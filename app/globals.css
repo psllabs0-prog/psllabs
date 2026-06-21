@@ -1,23 +1,44 @@
 @import "tailwindcss";
 
-:root {
-  --color-ink: #0E0F0E;
-  --color-paper: #F4F1EA;
-  --color-lab-white: #FBFAF6;
-  --color-sage: #3D5A4C;
-  --color-brass: #B89968;
-  --color-stone: #7A7770;
-  --color-signal: #C44536;
+@theme inline {
+  /* Pastel background tints */
+  --color-lavender: #ede8f5;
+  --color-blush: #f6e8ea;
+  --color-mint: #e4f0eb;
+  --color-pale-yellow: #f5f1e3;
 
-  --font-display: "Fraunces", Georgia, serif;
-  --font-body: "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "Courier New", monospace;
+  /* Text / interactive */
+  --color-near-black: #0e0f0e;
+  --color-slate-muted: #5c6360;
+
+  /* Typography — wired from next/font variables on <html> */
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  /* Custom utilities */
+  --radius-pill: 9999px;
+  --shadow-soft-card: 0 1px 2px rgb(14 15 14 / 0.04),
+    0 8px 24px rgb(14 15 14 / 0.06);
+}
+
+:root {
+  --color-ink: #0e0f0e;
+  --color-paper: #f4f1ea;
+  --color-lab-white: #fbfaf6;
+  --color-sage: #3d5a4c;
+  --color-brass: #b89968;
+  --color-stone: #7a7770;
+  --color-signal: #c44536;
+
+  /* Aliases for legacy var() usage */
+  --font-body: var(--font-sans);
 }
 
 html {
   background-color: var(--color-paper);
   color: var(--color-ink);
-  font-family: var(--font-body);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -25,10 +46,18 @@ body {
   background-color: var(--color-paper);
 }
 
-h1, h2, h3, h4 {
+h1,
+h2 {
   font-family: var(--font-display);
-  font-weight: 400;
+  font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+h3,
+h4 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .mono {

@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
-import { Fraunces, Inter, JetBrains_Mono } from "next/font/google";
+import { Archivo, Inter, JetBrains_Mono } from "next/font/google";
 
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import "./globals.css";
 
-const fraunces = Fraunces({
+const archivo = Archivo({
   subsets: ["latin"],
   variable: "--font-display",
+  weight: ["600", "700"],
   display: "swap",
 });
 
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-body",
+  variable: "--font-sans",
   display: "swap",
 });
 
@@ -50,9 +51,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${archivo.variable} ${inter.variable} ${jetbrainsMono.variable}`}
     >
-      <body>
+      <body className="font-sans">
         <SiteLayout>{children}</SiteLayout>
       </body>
     </html>
