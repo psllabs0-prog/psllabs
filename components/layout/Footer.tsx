@@ -1,19 +1,27 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { footerLegalLinks, footerNavLinks } from "@/lib/navigation";
 
 export function Footer() {
   return (
-    <footer className="border-t border-[var(--color-sage)] bg-[var(--color-lab-white)]">
-      <div className="mx-auto max-w-[1440px] px-6 py-16 md:px-12 md:py-20 lg:px-24 lg:py-24">
+    <footer className="border-t border-near-black/10 bg-[var(--color-lab-white)]">
+      <div className="mx-auto max-w-[1440px] px-6 py-20 md:px-16 md:py-28 lg:px-24">
         <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-4 lg:gap-16">
           {/* Brand */}
-          <div className="flex flex-col gap-4 lg:col-span-1">
+          <div className="flex flex-col gap-5 lg:col-span-1">
             <Link
               href="/"
-              className="font-[family-name:var(--font-display)] text-xl tracking-[-0.02em] text-[var(--color-ink)]"
+              className="inline-flex w-fit transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-sage)]"
+              aria-label="PSL Labs home"
             >
-              PSL Labs
+              <Image
+                src="/logo.png"
+                alt="PSL Labs"
+                width={140}
+                height={36}
+                className="h-7 w-auto"
+              />
             </Link>
             <p className="max-w-xs text-sm leading-relaxed text-[var(--color-stone)]">
               Clinical-grade longevity compounds. Third-party verified, every
