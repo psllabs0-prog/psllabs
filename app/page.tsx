@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { FeatureTile } from "@/components/ui/feature-tile";
 import { HomeSection } from "@/components/ui/home-section";
@@ -65,7 +64,7 @@ export default function Home() {
           <div className="flex flex-col gap-10">
             <div className="flex flex-col gap-6">
               <h1 className="font-display text-[clamp(2.5rem,5vw,3.5rem)] leading-[1.05] tracking-[-0.02em] text-near-black">
-                The daily protocol for the next thirty years.
+                Research peptides you can trust.
               </h1>
               <p className="max-w-lg text-base leading-relaxed text-slate-muted md:text-[1.125rem]">
                 Clinical-grade longevity compounds. Third-party verified, every
@@ -73,23 +72,27 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
-              <PillButton href="/#shop">Shop the Stack</PillButton>
-              <Link
-                href="/protocol"
-                className="text-base font-medium text-near-black underline underline-offset-4 transition-opacity duration-200 ease-out hover:opacity-70"
-              >
-                The Protocol
-              </Link>
-            </div>
+            <PillButton href="/#shop">Shop the Stack</PillButton>
           </div>
 
           <div
-            className="flex aspect-[4/5] items-center justify-center rounded-2xl bg-[var(--color-lab-white)] shadow-soft-card lg:aspect-square"
+            className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-gradient-to-br from-[var(--color-lab-white)] to-[var(--color-mint)] lg:aspect-square"
             role="img"
-            aria-label="Product image placeholder"
+            aria-label="Product stack preview"
           >
-            <div className="h-56 w-28 rounded-xl bg-pale-yellow" />
+            {/* Drop next/image product shots here — position absolutely with slight rotations */}
+            <div
+              aria-hidden
+              className="absolute left-[10%] top-[18%] h-48 w-32 -rotate-6 rounded-2xl border border-near-black/5 bg-white/60"
+            />
+            <div
+              aria-hidden
+              className="absolute right-[8%] top-[32%] h-52 w-36 rotate-3 rounded-2xl border border-near-black/5 bg-white/60"
+            />
+            <div
+              aria-hidden
+              className="absolute bottom-[14%] left-[28%] h-44 w-28 -rotate-2 rounded-2xl border border-near-black/5 bg-white/60"
+            />
           </div>
         </div>
       </HomeSection>
