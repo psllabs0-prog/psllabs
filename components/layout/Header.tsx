@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Menu, Search, ShoppingBag } from "lucide-react";
 
@@ -46,9 +47,17 @@ export function Header() {
       <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-6 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:px-24">
         <Link
           href="/"
-          className="font-[family-name:var(--font-display)] text-lg tracking-[-0.02em] text-[var(--color-ink)] transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-sage)]"
+          className="inline-flex shrink-0 items-center transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-sage)]"
+          aria-label="PSL Labs home"
         >
-          PSL Labs
+          <Image
+            src="/logo.png"
+            alt="PSL Labs"
+            width={160}
+            height={40}
+            priority
+            className="h-7 w-auto md:h-8"
+          />
         </Link>
 
         <nav
