@@ -8,7 +8,7 @@ export const primaryNavLinks: NavLink[] = [
   { label: "Products", href: "/#shop" },
   { label: "Testing", href: "/testing" },
   { label: "FAQ", href: "/faq" },
-  { label: "Contact", href: "mailto:support@psllabs.com" },
+  { label: "Contact", href: "/contact" },
 ];
 
 export const footerNavLinks: NavLink[] = [

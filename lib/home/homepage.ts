@@ -219,7 +219,7 @@ export const footerColumns: FooterColumnData[] = [
       { label: "FAQ", href: "/faq" },
       { label: "Shipping", href: "/shipping" },
       { label: "Returns", href: "/returns" },
-      { label: "Contact", href: "mailto:support@psllabs.com" },
+      { label: "Contact", href: "/contact" },
     ],
   },
   {
