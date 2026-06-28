@@ -16,9 +16,9 @@ import { getScienceArticles } from "@/lib/content/science";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Research peptides you can trust",
+  title: "PSL Labs - Research Peptides",
   description:
-    "Clinical-grade longevity compounds. Third-party verified, every batch. Designed to compound.",
+    "Research peptides with third-party testing and certificate of analysis.",
   path: "/",
 });
 

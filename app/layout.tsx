@@ -28,11 +28,11 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL ?? "https://psllabs.com"
   ),
   title: {
-    default: "PSL Labs — The daily protocol for the next thirty years",
+    default: "PSL Labs - Research Peptides",
     template: "%s",
   },
   description:
-    "Clinical-grade longevity compounds. Third-party verified, every batch. Designed to compound.",
+    "Research peptides with third-party testing and certificate of analysis.",
   openGraph: {
     siteName: "PSL Labs",
     locale: "en_US",
