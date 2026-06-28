@@ -4,11 +4,11 @@ export type NavLink = {
 };
 
 export const primaryNavLinks: NavLink[] = [
-  { label: "Shop", href: "/#shop" },
-  { label: "Protocol", href: "/protocol" },
-  { label: "Science", href: "/science" },
-  { label: "About", href: "/about" },
+  { label: "Home", href: "/" },
+  { label: "Products", href: "/#shop" },
+  { label: "Testing", href: "/testing" },
   { label: "FAQ", href: "/faq" },
+  { label: "Contact", href: "mailto:support@psllabs.com" },
 ];
 
 export const footerNavLinks: NavLink[] = [
@@ -29,8 +29,16 @@ export const footerLegalLinks: NavLink[] = [
 
 /** Returns true when the nav item should appear active for the current path. */
 export function isNavLinkActive(pathname: string, href: string): boolean {
-  if (href === "/#shop" || href === "/") {
+  if (href === "/") {
+    return pathname === "/";
+  }
+
+  if (href === "/#shop") {
     return pathname === "/" || pathname.startsWith("/products");
+  }
+
+  if (href.startsWith("mailto:")) {
+    return false;
   }
 
   const path = href.split("#")[0];

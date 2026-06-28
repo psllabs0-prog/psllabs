@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, Search, ShoppingBag } from "lucide-react";
+import { Menu, ShoppingBag } from "lucide-react";
 
 import { NavLinkItem } from "@/components/layout/nav-link";
 import {
@@ -61,9 +61,6 @@ export function Header() {
         </nav>
 
         <div className="flex items-center justify-end gap-1 lg:col-start-3">
-          <IconButton label="Search (placeholder)" className="hidden sm:inline-flex">
-            <Search className="size-5" strokeWidth={1.5} aria-hidden />
-          </IconButton>
           <IconButton label="Cart (placeholder)">
             <ShoppingBag className="size-5" strokeWidth={1.5} aria-hidden />
           </IconButton>
@@ -98,14 +95,6 @@ export function Header() {
                   />
                 ))}
               </nav>
-              <div className="mt-auto flex gap-2 border-t border-[var(--color-sage)] px-4 py-6">
-                <IconButton label="Search (placeholder)">
-                  <Search className="size-5" strokeWidth={1.5} aria-hidden />
-                </IconButton>
-                <IconButton label="Cart (placeholder)">
-                  <ShoppingBag className="size-5" strokeWidth={1.5} aria-hidden />
-                </IconButton>
-              </div>
             </SheetContent>
           </Sheet>
         </div>
