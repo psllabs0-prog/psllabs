@@ -1,5 +1,6 @@
 import crypto from "crypto";
 
+import { SITE_URL } from "@/lib/seo";
 import type {
   CheckoutSession,
   InvoiceStatus,
@@ -114,7 +115,7 @@ export class BTCPayProcessor implements PaymentProcessor {
     const totalUsd = Number((product.priceUsd * quantity).toFixed(2));
 
     const siteUrl =
-      process.env.NEXT_PUBLIC_SITE_URL ?? "https://psllabs.com";
+      SITE_URL;
 
     const storeId = getStoreId();
 

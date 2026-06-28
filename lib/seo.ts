@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 
 const SITE_NAME = "PSL Labs";
 
+export const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://psllabs.org";
+
 export function createPageMetadata({
   title,
   description,
@@ -18,6 +21,9 @@ export function createPageMetadata({
   return {
     title: pageTitle,
     description,
+    alternates: {
+      canonical: path,
+    },
     openGraph: {
       title: pageTitle,
       description,

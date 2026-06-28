@@ -3,7 +3,7 @@ import type { ContentPageMeta, ContentSection } from "./types";
 export const termsPageMeta: ContentPageMeta = {
   label: "LEGAL",
   title: "Terms of Service",
-  description: "Terms governing use of psllabs.com and purchase of PSL Labs products.",
+  description: "Terms governing use of psllabs.org and purchase of PSL Labs products.",
   intro: [
     "Last updated: May 2026. By using this site or purchasing our products, you agree to these terms.",
   ],
@@ -14,7 +14,7 @@ export const termsSections: ContentSection[] = [
     id: "acceptance",
     title: "Acceptance of terms",
     paragraphs: [
-      "These Terms of Service govern your access to psllabs.com and your purchase of products from PSL Labs. If you do not agree, do not use this site or purchase our products.",
+      "These Terms of Service govern your access to psllabs.org and your purchase of products from PSL Labs. If you do not agree, do not use this site or purchase our products.",
     ],
   },
   {

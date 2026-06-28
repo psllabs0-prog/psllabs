@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Archivo, Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 
 import { SiteLayout } from "@/components/layout/SiteLayout";
+import { SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 const archivo = Archivo({
@@ -31,9 +32,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://psllabs.com"
-  ),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "PSL Labs - Research Peptides",
     template: "%s",
