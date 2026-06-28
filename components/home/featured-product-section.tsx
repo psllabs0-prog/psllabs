@@ -8,12 +8,7 @@ type FeaturedProductSectionProps = {
 
 export function FeaturedProductSection({ product }: FeaturedProductSectionProps) {
   return (
-    <HomeSection
-      id="shop"
-      background="section-panel"
-      size="editorial"
-      className="scroll-mt-20"
-    >
+    <HomeSection background="section-panel" size="editorial">
       <div className="mx-auto grid max-w-[1440px] grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
         <div
           className="relative aspect-square w-full max-w-[520px] overflow-hidden rounded-lg bg-gradient-to-br from-lab-white to-section-cool lg:max-w-none"

@@ -5,14 +5,14 @@ export type NavLink = {
 
 export const primaryNavLinks: NavLink[] = [
   { label: "Home", href: "/" },
-  { label: "Products", href: "/#shop" },
+  { label: "Products", href: "/products" },
   { label: "Testing", href: "/testing" },
   { label: "FAQ", href: "/faq" },
   { label: "Contact", href: "/contact" },
 ];
 
 export const footerNavLinks: NavLink[] = [
-  { label: "Shop", href: "/#shop" },
+  { label: "Shop", href: "/products" },
   { label: "Protocol", href: "/protocol" },
   { label: "Science", href: "/science" },
   { label: "About", href: "/about" },
@@ -30,7 +30,7 @@ export const footerLegalLinks: NavLink[] = [
 export const footerColumns: { title: string; links: NavLink[] }[] = [
   {
     title: "Products",
-    links: [{ label: "All Products", href: "/#shop" }],
+    links: [{ label: "All Products", href: "/products" }],
   },
   {
     title: "Company",
@@ -66,8 +66,8 @@ export function isNavLinkActive(pathname: string, href: string): boolean {
     return pathname === "/";
   }
 
-  if (href === "/#shop") {
-    return pathname === "/" || pathname.startsWith("/products");
+  if (href === "/products") {
+    return pathname === "/products" || pathname.startsWith("/products/");
   }
 
   if (href.startsWith("mailto:")) {

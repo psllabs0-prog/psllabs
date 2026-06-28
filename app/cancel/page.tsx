@@ -34,7 +34,7 @@ export default function CancelPage() {
         <AnimateIn delay={0.24}>
           <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:gap-6">
             <Link
-              href="/#shop"
+              href="/products"
               className="inline-flex items-center justify-center rounded-md bg-[var(--color-sage)] px-6 py-3.5 text-base font-medium text-[var(--color-lab-white)] transition-opacity duration-200 ease-out hover:opacity-90"
             >
               Return to Shop

@@ -70,7 +70,7 @@ export default function AboutPage() {
             View testing standards →
           </Link>
           <Link
-            href="/#shop"
+            href="/products"
             className="text-sm text-[var(--color-sage)] underline underline-offset-4 transition-opacity duration-200 ease-out hover:opacity-70"
           >
             Browse products →

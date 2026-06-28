@@ -18,7 +18,7 @@ export const heroCopy = {
     "Third-Party Tested.",
   ],
   ctaLabel: "Shop Products",
-  ctaHref: "/#shop",
+  ctaHref: "/products",
   productImageAlt: "GLP-3 RT research peptide",
   productImageSrc: "/glp-3-rt.png",
 };

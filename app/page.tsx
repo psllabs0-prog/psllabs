@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 
-import { FeaturedProductSection } from "@/components/home/featured-product-section";
 import { HeroSection } from "@/components/home/hero-section";
 import { NewsletterBand } from "@/components/home/newsletter-band";
 import { TrustElementRow } from "@/components/home/trust-element-row";
 import { WhyChooseSection } from "@/components/home/why-choose-section";
 import {
-  featuredProduct,
   newsletterCopy,
   trustElements,
   whyChooseCards,
@@ -26,7 +24,6 @@ export default function Home() {
       <HeroSection />
       <TrustElementRow items={trustElements} />
       <WhyChooseSection cards={whyChooseCards} />
-      <FeaturedProductSection product={featuredProduct} />
       <NewsletterBand copy={newsletterCopy} />
     </main>
   );
