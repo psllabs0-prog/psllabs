@@ -2,17 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { FooterColumn } from "@/components/layout/footer-column";
-import {
-  footerColumns,
-  footerDisclaimer,
-} from "@/lib/home/homepage";
+import { footerColumns, footerDisclaimer } from "@/lib/navigation";
 
 export function Footer() {
   return (
     <footer className="border-t border-near-black/10 bg-[var(--color-lab-white)]">
       <div className="mx-auto max-w-[1440px] px-6 py-20 md:px-16 md:py-28 lg:px-24">
         <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-5 lg:gap-16">
-          <div className="flex flex-col gap-5 sm:col-span-2 lg:col-span-1">
+          <div className="flex flex-col gap-5 lg:col-span-1">
             <Link
               href="/"
               className="inline-flex w-fit transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-sage)]"

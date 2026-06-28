@@ -8,7 +8,7 @@ import { createPageMetadata } from "@/lib/seo";
 export const metadata: Metadata = createPageMetadata({
   title: "About",
   description:
-    "The founder story behind PSL Labs—a small, honest longevity stack built for people who read labels and check COAs.",
+    "Why PSL Labs exists—research-grade compounds with third-party testing and full batch documentation.",
   path: "/about",
 });
 
@@ -21,28 +21,59 @@ export default function AboutPage() {
             <p className="mono text-[var(--color-stone)]">{aboutPage.label}</p>
           </AnimateIn>
           <AnimateIn delay={0.08}>
-            <h1 className="mt-6 font-[family-name:var(--font-display)] text-[clamp(2rem,4vw,2.75rem)] leading-[1.2] tracking-[-0.02em] text-[var(--color-ink)]">
+            <h1 className="mt-6 font-display text-[clamp(2rem,4vw,2.75rem)] font-bold leading-[1.15] tracking-[-0.02em] text-near-black">
               {aboutPage.headline}
             </h1>
           </AnimateIn>
+          <AnimateIn delay={0.12}>
+            <p className="mx-auto mt-6 max-w-lg text-base leading-relaxed text-slate-muted md:text-lg">
+              {aboutPage.intro}
+            </p>
+          </AnimateIn>
         </header>
 
-        <div className="flex flex-col gap-10 md:gap-12">
-          {aboutPage.paragraphs.map((paragraph, index) => (
-            <AnimateIn key={index} delay={0.1 + index * 0.05}>
-              <p className="font-[family-name:var(--font-display)] text-[clamp(1.125rem,2vw,1.375rem)] leading-[1.75] text-[var(--color-ink)]">
-                {paragraph}
-              </p>
+        <div className="flex flex-col gap-14 md:gap-16">
+          {aboutPage.sections.map((section, index) => (
+            <AnimateIn key={section.id} delay={0.1 + index * 0.05}>
+              <section className="flex flex-col gap-4 border-t border-[var(--color-sage)] pt-10 first:border-t-0 first:pt-0">
+                <p className="mono text-[var(--color-stone)]">{section.label}</p>
+                <h2 className="font-display text-2xl font-bold tracking-[-0.02em] text-near-black">
+                  {section.title}
+                </h2>
+                <div className="flex flex-col gap-4">
+                  {section.paragraphs.map((paragraph) => (
+                    <p
+                      key={paragraph.slice(0, 48)}
+                      className={
+                        paragraph.startsWith("[PLACEHOLDER:")
+                          ? "rounded-lg border border-dashed border-[var(--color-sage)] bg-[var(--color-lab-white)] px-4 py-3 font-[family-name:var(--font-mono)] text-sm leading-relaxed text-[var(--color-stone)]"
+                          : "text-base leading-relaxed text-slate-muted md:text-[1.0625rem]"
+                      }
+                    >
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              </section>
             </AnimateIn>
           ))}
         </div>
 
-        <AnimateIn delay={0.4} className="mt-16 border-t border-[var(--color-sage)] pt-12 text-center md:mt-20">
+        <AnimateIn
+          delay={0.4}
+          className="mt-16 flex flex-col items-center gap-4 border-t border-[var(--color-sage)] pt-12 text-center md:mt-20"
+        >
           <Link
-            href="/"
+            href="/testing"
             className="text-sm text-[var(--color-sage)] underline underline-offset-4 transition-opacity duration-200 ease-out hover:opacity-70"
           >
-            Explore the stack →
+            View testing standards →
+          </Link>
+          <Link
+            href="/#shop"
+            className="text-sm text-[var(--color-sage)] underline underline-offset-4 transition-opacity duration-200 ease-out hover:opacity-70"
+          >
+            Browse products →
           </Link>
         </AnimateIn>
       </article>

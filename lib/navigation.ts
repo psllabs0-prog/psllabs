@@ -27,6 +27,39 @@ export const footerLegalLinks: NavLink[] = [
   { label: "Terms", href: "/terms" },
 ];
 
+export const footerColumns: { title: string; links: NavLink[] }[] = [
+  {
+    title: "Products",
+    links: [{ label: "All Products", href: "/#shop" }],
+  },
+  {
+    title: "Company",
+    links: [
+      { label: "About", href: "/about" },
+      { label: "Contact", href: "/contact" },
+    ],
+  },
+  {
+    title: "Information",
+    links: [
+      { label: "FAQ", href: "/faq" },
+      { label: "Testing", href: "/testing" },
+      { label: "Shipping", href: "/shipping" },
+      { label: "Returns", href: "/returns" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { label: "Terms", href: "/terms" },
+      { label: "Privacy", href: "/privacy" },
+    ],
+  },
+];
+
+export const footerDisclaimer =
+  "These statements have not been evaluated by the Food and Drug Administration. This product is not intended to diagnose, treat, cure, or prevent any disease. For research use only.";
+
 /** Returns true when the nav item should appear active for the current path. */
 export function isNavLinkActive(pathname: string, href: string): boolean {
   if (href === "/") {

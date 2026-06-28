@@ -2,13 +2,11 @@ import type { Metadata } from "next";
 
 import { FeaturedProductSection } from "@/components/home/featured-product-section";
 import { HeroSection } from "@/components/home/hero-section";
-import { HomeFaqSection } from "@/components/home/home-faq-section";
 import { NewsletterBand } from "@/components/home/newsletter-band";
 import { TrustBadgeRow } from "@/components/home/trust-badge-row";
 import { WhyChooseSection } from "@/components/home/why-choose-section";
 import {
   featuredProduct,
-  homeFaqItems,
   newsletterCopy,
   trustBadges,
   whyChooseCards,
@@ -29,7 +27,6 @@ export default function Home() {
       <TrustBadgeRow badges={trustBadges} />
       <WhyChooseSection cards={whyChooseCards} />
       <FeaturedProductSection product={featuredProduct} />
-      <HomeFaqSection items={homeFaqItems} />
       <NewsletterBand copy={newsletterCopy} />
     </main>
   );
