@@ -45,6 +45,7 @@ export type Product = {
   testing: ProductTesting;
   stackBlurb: string;
   stackRole: string;
+  dosage?: string[];
 };
 
 export type ProductHandle =

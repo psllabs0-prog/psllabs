@@ -60,13 +60,19 @@ export const glp3Rt: Product = {
   ],
   testing: {
     description:
-      "Every batch of GLP-3 RT is verified by an independent ISO 17025-accredited laboratory before release.",
+      "[PLACEHOLDER: Testing laboratory name, accreditation, and panels run per batch.] Every batch is verified by an independent third-party laboratory before release.",
     highlights: [
       "Identity confirmed by HPLC against reference standards",
-      "Purity verified to meet release specifications",
+      "[PLACEHOLDER: Minimum purity threshold — e.g. 99%+ by HPLC.]",
       "Lot-specific COA published within 48 hours of release",
     ],
   },
   stackBlurb:
     "GLP-3 RT is supplied as a standalone research peptide with full batch documentation.",
+  dosage: [
+    "For laboratory and research use only. Not for human or animal consumption.",
+    "[PLACEHOLDER: Lyophilized quantity per vial — e.g. 5 mg, 10 mg.]",
+    "[PLACEHOLDER: Reconstitution instructions — solvent, volume, concentration.]",
+    "[PLACEHOLDER: Storage conditions — temperature, shelf life, freeze-thaw guidance.]",
+  ],
 };

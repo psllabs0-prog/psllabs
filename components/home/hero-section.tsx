@@ -8,12 +8,13 @@ export function HeroSection() {
       <div className="mx-auto grid max-w-[1440px] grid-cols-1 items-center gap-16 lg:grid-cols-2 lg:gap-20">
         <div className="flex flex-col gap-10 lg:gap-12">
           <div className="flex flex-col gap-6 md:gap-8">
-            <h1 className="font-display text-[clamp(2.75rem,6vw,4.25rem)] font-bold leading-[1.05] tracking-[-0.03em] text-near-black">
-              {heroCopy.headline}
+            <h1 className="font-display text-[clamp(2.75rem,6vw,4.25rem)] font-bold leading-[1.08] tracking-[-0.03em] text-near-black">
+              {heroCopy.headlineLines.map((line) => (
+                <span key={line} className="block">
+                  {line}
+                </span>
+              ))}
             </h1>
-            <p className="max-w-lg text-lg leading-relaxed text-slate-muted md:text-xl">
-              {heroCopy.subhead}
-            </p>
           </div>
 
           <PillButton href={heroCopy.ctaHref} className="w-fit">

@@ -2,50 +2,37 @@ import type { LucideIcon } from "lucide-react";
 import {
   BadgeCheck,
   FileSearch,
+  FileText,
   FlaskConical,
   Globe,
   Microscope,
-  PackageCheck,
   ShieldCheck,
   Truck,
   Users,
 } from "lucide-react";
 
 export const heroCopy = {
-  headline: "Research peptides you can trust.",
-  subhead:
-    "Research peptides with third-party testing and certificate of analysis.",
-  ctaLabel: "Shop the Stack",
+  headlineLines: [
+    "Research Compounds.",
+    "Verified Purity.",
+    "Third-Party Tested.",
+  ],
+  ctaLabel: "Shop Products",
   ctaHref: "/#shop",
   productImageAlt: "GLP-3 RT research peptide",
   productImageSrc: "/glp-3-rt.png",
 };
 
-export type TrustBadgeData = {
+export type TrustElementData = {
   icon: LucideIcon;
-  title: string;
-  description: string;
+  label: string;
 };
 
-export const trustBadges: TrustBadgeData[] = [
-  {
-    icon: FlaskConical,
-    title: "99%+ Purity",
-    description:
-      "Identity and purity verified by HPLC on every batch before release.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Third-Party Tested",
-    description:
-      "Independent ISO 17025-accredited labs we do not own or operate.",
-  },
-  {
-    icon: PackageCheck,
-    title: "Shipment Protection",
-    description:
-      "Tracked domestic shipping with temperature-stable packaging.",
-  },
+export const trustElements: TrustElementData[] = [
+  { icon: Truck, label: "USA Shipping" },
+  { icon: ShieldCheck, label: "Third-Party Tested" },
+  { icon: FlaskConical, label: "Certificate of Analysis" },
+  { icon: FileText, label: "Research Documentation" },
 ];
 
 export type WhyChooseCardData = {
