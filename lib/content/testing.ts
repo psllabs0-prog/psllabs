@@ -31,7 +31,7 @@ export const testingSections: ContentSection[] = [
     title: "How to read your COA",
     paragraphs: [
       "Find the lot number printed on your bottle label. Match it to the COA on the product page or below. Each COA lists the testing lab, test methods, results, and pass/fail against our specifications.",
-      "If your lot number is not yet published, contact support@psllabs.com—we publish within 48 hours of batch release.",
+      "If your lot number is not yet published, contact support@psllabs.org—we publish within 48 hours of batch release.",
     ],
   },
   {

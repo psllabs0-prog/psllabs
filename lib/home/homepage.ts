@@ -76,7 +76,7 @@ export const whyChooseCards: WhyChooseCardData[] = [
     icon: Users,
     title: "Research-first support",
     description:
-      "Clear documentation, lot lookup, and direct answers at support@psllabs.com.",
+      "Clear documentation, lot lookup, and direct answers at support@psllabs.org.",
   },
 ];
 

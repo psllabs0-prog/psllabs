@@ -6,7 +6,7 @@ export const faqPageMeta: ContentPageMeta = {
   description:
     "Answers about the PSL stack, orders, testing, shipping, and subscriptions.",
   intro: [
-    "Straight answers—no proprietary blends, no hand-waving. If you don't see your question here, reach out at support@psllabs.com.",
+    "Straight answers—no proprietary blends, no hand-waving. If you don't see your question here, reach out at support@psllabs.org.",
   ],
 };
 

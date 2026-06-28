@@ -64,7 +64,7 @@ export const aboutPage: AboutPageContent = {
       title: "Transparency you can audit.",
       paragraphs: [
         "[PLACEHOLDER: What you publish per product—COAs, SDS, compound specs, stability notes, lot lookup process.]",
-        "If you cannot verify a batch from our published records, contact us at support@psllabs.com before use in your workflow.",
+        "If you cannot verify a batch from our published records, contact us at support@psllabs.org before use in your workflow.",
       ],
     },
   ],

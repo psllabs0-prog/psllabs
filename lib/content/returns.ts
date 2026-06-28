@@ -36,7 +36,7 @@ export const returnsSections: ContentSection[] = [
     id: "process",
     title: "How to start a return",
     paragraphs: [
-      "Email support@psllabs.com with your order number and reason. We will provide return instructions if applicable. Refunds are processed to your original payment method within 5–10 business days of receiving the return or approving a guarantee claim.",
+      "Email support@psllabs.org with your order number and reason. We will provide return instructions if applicable. Refunds are processed to your original payment method within 5–10 business days of receiving the return or approving a guarantee claim.",
     ],
   },
   {

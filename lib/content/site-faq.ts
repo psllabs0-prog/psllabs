@@ -27,7 +27,7 @@ export const siteFaqItems: SiteFaqItem[] = [
     id: "coa",
     question: "Where can I find my Certificate of Analysis?",
     answer:
-      "COAs are published on the product page and in our Testing section. Match the lot number on your vial label to the corresponding batch report. If your lot is not yet listed, contact support@psllabs.com.",
+      "COAs are published on the product page and in our Testing section. Match the lot number on your vial label to the corresponding batch report. If your lot is not yet listed, contact support@psllabs.org.",
   },
   {
     id: "storage",

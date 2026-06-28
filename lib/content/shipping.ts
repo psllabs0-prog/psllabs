@@ -44,7 +44,7 @@ export const shippingSections: ContentSection[] = [
     id: "issues",
     title: "Lost or damaged packages",
     paragraphs: [
-      "If your package is lost or arrives damaged, contact support@psllabs.com within 14 days of the estimated delivery date with your order number and photos (if damaged). We will work with the carrier to resolve the issue.",
+      "If your package is lost or arrives damaged, contact support@psllabs.org within 14 days of the estimated delivery date with your order number and photos (if damaged). We will work with the carrier to resolve the issue.",
     ],
   },
 ];

@@ -12,7 +12,7 @@ export const metadata: Metadata = createPageMetadata({
   path: "/contact",
 });
 
-const SUPPORT_EMAIL = "support@psllabs.com";
+const SUPPORT_EMAIL = "support@psllabs.org";
 
 export default function ContactPage() {
   return (
