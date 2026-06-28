@@ -47,4 +47,8 @@ export type Product = {
   stackRole: string;
 };
 
-export type ProductHandle = "foundation" | "cellular-energy" | "recovery";
+export type ProductHandle =
+  | "foundation"
+  | "cellular-energy"
+  | "recovery"
+  | "glp-3-rt";

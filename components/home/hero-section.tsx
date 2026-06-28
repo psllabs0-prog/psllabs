@@ -1,48 +1,36 @@
 import { PillButton } from "@/components/ui/pill-button";
 import { HomeSection } from "@/components/ui/home-section";
+import { heroCopy } from "@/lib/home/homepage";
 
 export function HeroSection() {
   return (
     <HomeSection background="pale-yellow" size="editorial" className="overflow-hidden">
-      <div className="mx-auto grid max-w-[1440px] grid-cols-1 items-center gap-16 lg:grid-cols-12 lg:gap-8 xl:gap-16">
-        <div className="flex flex-col gap-12 lg:col-span-5 lg:gap-14">
-          <div className="flex flex-col gap-8">
-            <p className="mono text-slate-muted">PSL LABS · LONGEVITY RESEARCH</p>
-            <h1 className="font-display text-[clamp(2.75rem,6vw,4.5rem)] font-bold leading-[1.02] tracking-[-0.03em] text-near-black">
-              Research peptides you can trust.
+      <div className="mx-auto grid max-w-[1440px] grid-cols-1 items-center gap-16 lg:grid-cols-2 lg:gap-20">
+        <div className="flex flex-col gap-10 lg:gap-12">
+          <div className="flex flex-col gap-6 md:gap-8">
+            <h1 className="font-display text-[clamp(2.75rem,6vw,4.25rem)] font-bold leading-[1.05] tracking-[-0.03em] text-near-black">
+              {heroCopy.headline}
             </h1>
-            <p className="max-w-md text-lg leading-relaxed text-slate-muted md:text-xl md:leading-relaxed">
-              Clinical-grade longevity compounds. Third-party verified, every
-              batch. Designed to compound.
+            <p className="max-w-lg text-lg leading-relaxed text-slate-muted md:text-xl">
+              {heroCopy.subhead}
             </p>
           </div>
 
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-            <PillButton href="/#shop">Shop the Stack</PillButton>
-            <PillButton href="/testing" variant="secondary">
-              View testing standards
-            </PillButton>
-          </div>
+          <PillButton href={heroCopy.ctaHref} className="w-fit">
+            {heroCopy.ctaLabel}
+          </PillButton>
         </div>
 
-        <div className="relative lg:col-span-7 lg:pl-8">
-          <div
-            className="relative mx-auto aspect-[4/5] max-h-[720px] w-full max-w-[640px] overflow-hidden rounded-[2rem] bg-gradient-to-br from-[var(--color-lab-white)] via-[var(--color-pale-yellow)] to-[var(--color-mint)] lg:aspect-square lg:max-h-none"
-            role="img"
-            aria-label="Featured product render"
-          >
-            {/* Drop next/image hero product render here */}
+        <div
+          className="relative mx-auto aspect-[4/5] w-full max-w-[560px] overflow-hidden rounded-3xl bg-gradient-to-br from-[var(--color-lab-white)] via-[var(--color-pale-yellow)] to-[var(--color-mint)] lg:aspect-square lg:max-w-none"
+          role="img"
+          aria-label={heroCopy.productImageAlt}
+        >
+          {/* Drop next/image GLP-3 RT product shot here — src="/glp-3-rt.png" */}
+          <div className="absolute inset-0 flex items-center justify-center p-10">
             <div
               aria-hidden
-              className="absolute inset-x-[18%] bottom-[8%] top-[12%] rounded-[2rem] border border-near-black/5 bg-white/50"
-            />
-            <div
-              aria-hidden
-              className="absolute left-[22%] top-[18%] h-[62%] w-[38%] -rotate-3 rounded-3xl border border-near-black/8 bg-[var(--color-lab-white)]/80"
-            />
-            <div
-              aria-hidden
-              className="absolute bottom-[20%] right-[16%] h-[48%] w-[28%] rotate-6 rounded-3xl border border-near-black/8 bg-[var(--color-lab-white)]/70"
+              className="h-[72%] w-[42%] rounded-2xl border border-near-black/8 bg-[var(--color-lab-white)]/80 shadow-soft-card"
             />
           </div>
         </div>

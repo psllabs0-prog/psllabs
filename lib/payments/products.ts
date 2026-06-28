@@ -27,6 +27,13 @@ const catalog: Record<string, CheckoutProduct> = {
       "Urolithin A, ubiquinol, and PQQ. The mitochondrial biogenesis stack. 60 capsules / 30-day supply.",
     priceUsd: 84,
   },
+  "glp-3-rt": {
+    id: "glp-3-rt",
+    name: "GLP-3 RT",
+    description:
+      "Lyophilized GLP-3 RT for laboratory and research use. Batch-specific COA included.",
+    priceUsd: 94,
+  },
 };
 
 export function getCheckoutProduct(

@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
 
-import { CommunitySection } from "@/components/home/community-section";
+import { FeaturedProductSection } from "@/components/home/featured-product-section";
 import { HeroSection } from "@/components/home/hero-section";
-import { ProductCarousel } from "@/components/home/product-carousel";
-import { QualityVerification } from "@/components/home/quality-verification";
-import { ResearchResources } from "@/components/home/research-resources";
-import { TrustGuarantees } from "@/components/home/trust-guarantees";
-import { HomeSection } from "@/components/ui/home-section";
+import { HomeFaqSection } from "@/components/home/home-faq-section";
+import { NewsletterBand } from "@/components/home/newsletter-band";
+import { TrustBadgeRow } from "@/components/home/trust-badge-row";
+import { WhyChooseSection } from "@/components/home/why-choose-section";
 import {
-  homeCarouselProducts,
-  qualityTabs,
-  trustGuarantees,
-} from "@/lib/home/home-data";
-import { getScienceArticles } from "@/lib/content/science";
+  featuredProduct,
+  homeFaqItems,
+  newsletterCopy,
+  trustBadges,
+  whyChooseCards,
+} from "@/lib/home/homepage";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
@@ -23,18 +23,14 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 export default function Home() {
-  const articles = getScienceArticles();
-
   return (
     <main>
       <HeroSection />
-      <TrustGuarantees guarantees={trustGuarantees} />
-      <HomeSection id="shop" background="mint" size="editorial" className="scroll-mt-20">
-        <ProductCarousel products={homeCarouselProducts} />
-      </HomeSection>
-      <QualityVerification tabs={qualityTabs} />
-      <ResearchResources articles={articles} />
-      <CommunitySection />
+      <TrustBadgeRow badges={trustBadges} />
+      <WhyChooseSection cards={whyChooseCards} />
+      <FeaturedProductSection product={featuredProduct} />
+      <HomeFaqSection items={homeFaqItems} />
+      <NewsletterBand copy={newsletterCopy} />
     </main>
   );
 }
