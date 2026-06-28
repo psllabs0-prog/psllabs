@@ -26,7 +26,7 @@ export function SectionShell({
   return (
     <section
       className={cn(
-        "border-t border-[var(--color-sage)] px-6 py-16 md:px-12 md:py-24 lg:px-24 lg:py-32",
+        "border-t border-linen px-6 py-16 md:px-12 md:py-24 lg:px-24 lg:py-32",
         variant === "paper"
           ? "bg-[var(--color-paper)]"
           : "bg-[var(--color-lab-white)]",

@@ -29,7 +29,7 @@ function IconButton({
       type="button"
       aria-label={label}
       className={cn(
-        "inline-flex size-10 items-center justify-center text-[var(--color-ink)] transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-sage)]",
+        "inline-flex size-10 items-center justify-center text-ink transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-petrol",
         className
       )}
     >
@@ -42,11 +42,11 @@ export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--color-sage)] bg-[var(--color-paper)]/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-50 border-b border-linen bg-paper/95 backdrop-blur-sm">
       <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-6 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:px-24">
         <Link
           href="/"
-          className="font-display shrink-0 text-lg font-bold tracking-[-0.03em] text-near-black transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--color-sage)]"
+          className="font-display shrink-0 text-lg font-bold tracking-[-0.03em] text-ink transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-petrol"
         >
           PSL Labs
         </Link>
@@ -62,23 +62,23 @@ export function Header() {
 
         <div className="flex items-center justify-end gap-1 lg:col-start-3">
           <IconButton label="Cart (placeholder)">
-            <ShoppingBag className="size-5" strokeWidth={1.5} aria-hidden />
+            <ShoppingBag className="size-5" strokeWidth={1.25} aria-hidden />
           </IconButton>
 
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger
-              className="inline-flex size-10 items-center justify-center text-[var(--color-ink)] transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-sage)] lg:hidden"
+              className="inline-flex size-10 items-center justify-center text-ink transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-petrol lg:hidden"
               aria-label="Open menu"
             >
-              <Menu className="size-5" strokeWidth={1.5} aria-hidden />
+              <Menu className="size-5" strokeWidth={1.25} aria-hidden />
             </SheetTrigger>
             <SheetContent
               side="right"
               showCloseButton
-              className="w-full border-[var(--color-sage)] bg-[var(--color-paper)] shadow-none sm:max-w-sm"
+              className="w-full border-linen bg-paper shadow-none sm:max-w-sm"
             >
-              <SheetHeader className="border-b border-[var(--color-sage)] pb-4">
-                <SheetTitle className="font-[family-name:var(--font-display)] text-xl font-normal text-[var(--color-ink)]">
+              <SheetHeader className="border-b border-linen pb-4">
+                <SheetTitle className="font-display text-xl font-normal text-ink">
                   Menu
                 </SheetTitle>
               </SheetHeader>
@@ -91,7 +91,7 @@ export function Header() {
                     key={link.href}
                     {...link}
                     onNavigate={() => setMobileOpen(false)}
-                    className="border-b border-[var(--color-sage)] py-5 text-base"
+                    className="border-b border-linen py-5 text-base"
                   />
                 ))}
               </nav>

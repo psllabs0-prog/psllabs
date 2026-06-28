@@ -16,13 +16,10 @@ export function TrustElement({ icon: Icon, label, className }: TrustElementProps
         className
       )}
     >
-      <div
-        className="flex size-12 items-center justify-center rounded-xl bg-[var(--color-lab-white)] shadow-soft-card"
-        aria-hidden
-      >
-        <Icon className="size-5 text-near-black" strokeWidth={1.5} />
+      <div className="icon-tile size-11" aria-hidden>
+        <Icon className="size-5 text-ink" strokeWidth={1.25} />
       </div>
-      <p className="font-display text-sm font-bold tracking-[-0.02em] text-near-black md:text-base">
+      <p className="font-display text-sm font-bold tracking-[-0.02em] text-ink md:text-base">
         {label}
       </p>
     </div>

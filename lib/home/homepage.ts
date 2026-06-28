@@ -39,7 +39,6 @@ export type WhyChooseCardData = {
   icon: LucideIcon;
   title: string;
   description: string;
-  themeColor: "lavender" | "blush" | "mint" | "pale-yellow";
 };
 
 export const whyChooseCards: WhyChooseCardData[] = [
@@ -48,42 +47,36 @@ export const whyChooseCards: WhyChooseCardData[] = [
     title: "Batch-matched COAs",
     description:
       "Every lot ships with a published Certificate of Analysis you can match to your vial label.",
-    themeColor: "mint",
   },
   {
     icon: Microscope,
     title: "HPLC identity testing",
     description:
       "Compound identity confirmed against analytical reference standards—not supplier paperwork alone.",
-    themeColor: "lavender",
   },
   {
     icon: BadgeCheck,
     title: "Documented quality panels",
     description:
       "Purity, identity, and contaminant results disclosed openly on every batch we release.",
-    themeColor: "blush",
   },
   {
     icon: Globe,
     title: "US fulfillment",
     description:
       "Domestic processing and tracked delivery for research supply you can plan around.",
-    themeColor: "pale-yellow",
   },
   {
     icon: Truck,
     title: "Protected shipping",
     description:
       "Orders packed for stability in transit with tracking from dispatch to delivery.",
-    themeColor: "mint",
   },
   {
     icon: Users,
     title: "Research-first support",
     description:
       "Clear documentation, lot lookup, and direct answers at support@psllabs.com.",
-    themeColor: "lavender",
   },
 ];
 

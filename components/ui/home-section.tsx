@@ -1,21 +1,30 @@
 import { cn } from "@/lib/utils";
 
-type PastelBg = "lavender" | "blush" | "mint" | "pale-yellow" | "paper";
+export type SectionBg =
+  | "paper"
+  | "canvas"
+  | "panel"
+  | "hero"
+  | "warm"
+  | "cool"
+  | "section-panel";
 
 type HomeSectionProps = {
   children: React.ReactNode;
-  background?: PastelBg;
+  background?: SectionBg;
   size?: "default" | "editorial";
   className?: string;
   id?: string;
 };
 
-const backgrounds: Record<PastelBg, string> = {
-  lavender: "bg-lavender",
-  blush: "bg-blush",
-  mint: "bg-mint",
-  "pale-yellow": "bg-pale-yellow",
-  paper: "bg-[var(--color-paper)]",
+const backgrounds: Record<SectionBg, string> = {
+  paper: "bg-paper",
+  canvas: "bg-canvas",
+  panel: "bg-panel",
+  hero: "bg-section-hero",
+  warm: "bg-section-warm",
+  cool: "bg-section-cool",
+  "section-panel": "bg-section-panel",
 };
 
 const sizes = {

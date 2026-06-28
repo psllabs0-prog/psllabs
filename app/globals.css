@@ -1,37 +1,65 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Pastel background tints */
-  --color-lavender: #ede8f5;
-  --color-blush: #f6e8ea;
-  --color-mint: #e4f0eb;
-  --color-pale-yellow: #f5f1e3;
+  /* Surfaces */
+  --color-paper: #f4f1ea;
+  --color-lab-white: #fbfaf6;
+  --color-porcelain: #f7f6f2;
+  --color-canvas: #eeede8;
+  --color-panel: #e8e6df;
 
-  /* Text / interactive */
+  /* Section bands */
+  --color-section-hero: #f2efe6;
+  --color-section-warm: #f0ebe3;
+  --color-section-cool: #eaecea;
+  --color-section-panel: #e4e8e6;
+
+  /* Text */
+  --color-ink: #0e0f0e;
   --color-near-black: #0e0f0e;
-  --color-slate-muted: #5c6360;
+  --color-graphite: #4a4f4c;
+  --color-ash: #6b706d;
+  --color-slate-muted: #6b706d;
+  --color-stone: #6b706d;
 
-  /* Typography — wired from next/font variables on <html> */
+  /* Borders & accents */
+  --color-linen: #d9d5cc;
+  --color-petrol: #1e3a38;
+  --color-petrol-muted: #2f4f4a;
+  --color-sage: #2f4f4a;
+  --color-brass: #9a7b5a;
+  --color-signal: #b8483a;
+
+  /* Typography */
   --font-display: var(--font-display);
   --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
   --font-mono: var(--font-mono);
 
-  /* Custom utilities */
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
   --radius-pill: 9999px;
+
+  /* Shadow */
   --shadow-soft-card: 0 1px 2px rgb(14 15 14 / 0.04),
     0 8px 24px rgb(14 15 14 / 0.06);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
 }
 
 :root {
-  --color-ink: #0e0f0e;
-  --color-paper: #f4f1ea;
-  --color-lab-white: #fbfaf6;
-  --color-sage: #3d5a4c;
-  --color-brass: #b89968;
-  --color-stone: #7a7770;
-  --color-signal: #c44536;
+  --color-border-default: var(--color-linen);
+  --color-border-focus: var(--color-petrol);
+  --color-surface-elevated: var(--color-lab-white);
+  --color-surface-section: var(--color-canvas);
+  --color-interactive: var(--color-petrol);
+  --color-interactive-hover: var(--color-petrol-muted);
 
-  /* Aliases for legacy var() usage */
   --font-body: var(--font-sans);
 }
 
@@ -60,9 +88,58 @@ h4 {
   letter-spacing: -0.01em;
 }
 
+.font-serif {
+  font-family: var(--font-serif);
+  font-weight: 600;
+}
+
 .mono {
   font-family: var(--font-mono);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-size: 0.75rem;
+}
+
+.text-display-xl {
+  font-size: clamp(2.75rem, 6vw, 4.25rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.text-display-lg {
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+}
+
+.text-display-md {
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.text-body-lg {
+  font-size: 1.125rem;
+  line-height: 1.65;
+}
+
+.text-body {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.text-label {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.icon-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-linen);
+  background-color: var(--color-lab-white);
+  border-radius: var(--radius-md);
 }

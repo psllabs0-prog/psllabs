@@ -7,15 +7,13 @@ type NewsletterBandProps = {
 
 export function NewsletterBand({ copy }: NewsletterBandProps) {
   return (
-    <HomeSection background="pale-yellow" size="default">
+    <HomeSection background="warm" size="default">
       <div className="mx-auto flex max-w-[720px] flex-col items-center gap-8 text-center">
         <div className="flex flex-col gap-4">
-          <h2 className="font-display text-[clamp(1.75rem,3vw,2.5rem)] font-bold leading-tight tracking-[-0.02em] text-near-black">
+          <h2 className="font-display text-display-md font-bold text-ink">
             {copy.heading}
           </h2>
-          <p className="text-base leading-relaxed text-slate-muted md:text-lg">
-            {copy.description}
-          </p>
+          <p className="text-body-lg text-ash">{copy.description}</p>
         </div>
 
         <div
@@ -32,17 +30,17 @@ export function NewsletterBand({ copy }: NewsletterBandProps) {
             name="email"
             placeholder={copy.placeholder}
             autoComplete="email"
-            className="min-w-0 flex-1 rounded-pill border border-near-black/10 bg-[var(--color-lab-white)] px-5 py-3.5 text-sm text-near-black placeholder:text-slate-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-near-black"
+            className="min-w-0 flex-1 rounded-pill border border-linen bg-lab-white px-5 py-3.5 text-sm text-ink placeholder:text-ash focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-petrol"
           />
           <button
             type="button"
-            className="shrink-0 rounded-pill bg-near-black px-6 py-3.5 text-sm font-medium text-white transition-opacity duration-200 ease-out hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-near-black"
+            className="shrink-0 rounded-pill bg-ink px-6 py-3.5 text-sm font-medium text-lab-white transition-opacity duration-200 ease-out hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-petrol"
           >
             {copy.buttonLabel}
           </button>
         </div>
 
-        <p className="text-xs text-slate-muted">{copy.disclaimer}</p>
+        <p className="text-xs text-ash">{copy.disclaimer}</p>
       </div>
     </HomeSection>
   );

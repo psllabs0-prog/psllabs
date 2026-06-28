@@ -6,9 +6,9 @@ import { PillButton } from "@/components/ui/pill-button";
 import { cn } from "@/lib/utils";
 
 const fieldClassName = cn(
-  "w-full rounded-lg border border-[var(--color-sage)] bg-[var(--color-lab-white)] px-4 py-3 text-base text-near-black",
-  "placeholder:text-slate-muted",
-  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-sage)]"
+  "w-full rounded-md border border-linen bg-lab-white px-4 py-3 text-base text-ink",
+  "placeholder:text-ash",
+  "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-petrol"
 );
 
 export function ContactForm() {
@@ -23,9 +23,9 @@ export function ContactForm() {
   };
 
   return (
-    <div className="flex flex-col gap-6 rounded-2xl border border-[var(--color-sage)] bg-[var(--color-lab-white)] p-6 md:p-8">
+    <div className="flex flex-col gap-6 rounded-lg border border-linen bg-lab-white p-6 md:p-8">
       <div className="flex flex-col gap-2">
-        <label htmlFor="contact-name" className="text-sm font-medium text-near-black">
+        <label htmlFor="contact-name" className="text-sm font-medium text-ink">
           Name
         </label>
         <input
@@ -40,7 +40,7 @@ export function ContactForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="contact-email" className="text-sm font-medium text-near-black">
+        <label htmlFor="contact-email" className="text-sm font-medium text-ink">
           Email
         </label>
         <input
@@ -55,7 +55,7 @@ export function ContactForm() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <label htmlFor="contact-message" className="text-sm font-medium text-near-black">
+        <label htmlFor="contact-message" className="text-sm font-medium text-ink">
           Message
         </label>
         <textarea

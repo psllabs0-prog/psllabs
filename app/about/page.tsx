@@ -26,7 +26,7 @@ export default function AboutPage() {
             </h1>
           </AnimateIn>
           <AnimateIn delay={0.12}>
-            <p className="mx-auto mt-6 max-w-lg text-base leading-relaxed text-slate-muted md:text-lg">
+            <p className="font-serif mx-auto mt-6 max-w-lg text-body-lg text-ash">
               {aboutPage.intro}
             </p>
           </AnimateIn>

@@ -14,13 +14,13 @@ export function FaqAccordion({ items }: FaqAccordionProps) {
     <HomeSection background="paper" size="editorial">
       <div className="mx-auto max-w-[800px]">
         <header className="mb-12 text-center md:mb-16">
-          <p className="mono mb-4 text-slate-muted">FAQ</p>
-          <h1 className="font-display text-[clamp(2rem,4vw,3rem)] font-bold leading-[1.08] tracking-[-0.02em] text-near-black">
+          <p className="mono text-ash">FAQ</p>
+          <h1 className="font-display text-display-lg font-bold text-ink">
             Common questions.
           </h1>
         </header>
 
-        <Accordion className="rounded-3xl border border-near-black/5 bg-[var(--color-lab-white)] px-6 md:px-10">
+        <Accordion className="rounded-lg border border-linen bg-lab-white px-6 md:px-10">
           {items.map((item) => (
             <FaqItem
               key={item.id}

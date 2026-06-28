@@ -23,7 +23,7 @@ export function ProductTesting({ product }: { product: Product }) {
             className="flex gap-4 text-sm leading-relaxed text-[var(--color-stone)] md:text-base"
           >
             <span
-              className="shrink-0 font-[family-name:var(--font-mono)] text-xs text-[var(--color-sage)]"
+              className="shrink-0 font-[family-name:var(--font-mono)] text-xs text-petrol"
               aria-hidden
             >
               {String(index + 1).padStart(2, "0")}
@@ -36,7 +36,7 @@ export function ProductTesting({ product }: { product: Product }) {
       <AnimateIn delay={0.2}>
         <button
           type="button"
-          className="rounded-md border border-[var(--color-sage)] bg-[var(--color-paper)] px-6 py-3.5 text-sm font-medium text-[var(--color-sage)] transition-opacity duration-200 ease-out hover:opacity-70"
+          className="rounded-md border border-linen bg-paper px-6 py-3.5 text-sm font-medium text-petrol transition-opacity duration-200 ease-out hover:opacity-70"
         >
           Download COA (placeholder)
         </button>
