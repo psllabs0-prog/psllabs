@@ -30,6 +30,13 @@
   --color-brass: #9a7b5a;
   --color-signal: #b8483a;
 
+  /* Biotech accent (hero & illustrations) */
+  --color-biotech-deep: #1a4d6d;
+  --color-biotech-blue: #3d6b8c;
+  --color-biotech-light: #7bafd4;
+  --color-biotech-pale: #e8f2fa;
+  --color-biotech-mist: #f0f7fc;
+
   /* Typography */
   --font-display: var(--font-display);
   --font-sans: var(--font-sans);
@@ -142,4 +149,24 @@ h4 {
   border: 1px solid var(--color-linen);
   background-color: var(--color-lab-white);
   border-radius: var(--radius-md);
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+.animate-float {
+  animation: float 5.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float {
+    animation: none;
+  }
 }

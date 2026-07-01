@@ -1,13 +1,14 @@
 import { cn } from "@/lib/utils";
 
-export type SectionBg =
+type SectionBg =
   | "paper"
   | "canvas"
   | "panel"
   | "hero"
   | "warm"
   | "cool"
-  | "section-panel";
+  | "section-panel"
+  | "biotech-mist";
 
 type HomeSectionProps = {
   children: React.ReactNode;
@@ -25,6 +26,7 @@ const backgrounds: Record<SectionBg, string> = {
   warm: "bg-section-warm",
   cool: "bg-section-cool",
   "section-panel": "bg-section-panel",
+  "biotech-mist": "bg-biotech-mist",
 };
 
 const sizes = {

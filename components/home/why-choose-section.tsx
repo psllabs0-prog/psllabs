@@ -8,7 +8,7 @@ type WhyChooseSectionProps = {
 
 export function WhyChooseSection({ cards }: WhyChooseSectionProps) {
   return (
-    <HomeSection background="cool" size="editorial">
+    <HomeSection background="paper" size="editorial">
       <div className="mx-auto max-w-[1440px]">
         <header className="mb-14 max-w-2xl md:mb-16">
           <p className="mono text-ash">WHY PSL LABS</p>

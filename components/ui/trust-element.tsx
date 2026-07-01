@@ -1,23 +1,32 @@
-import type { LucideIcon } from "lucide-react";
-
+import {
+  LabIllustration,
+  type LabIllustrationId,
+} from "@/components/illustrations/lab-illustrations";
 import { cn } from "@/lib/utils";
 
 type TrustElementProps = {
-  icon: LucideIcon;
+  illustration: LabIllustrationId;
   label: string;
   className?: string;
 };
 
-export function TrustElement({ icon: Icon, label, className }: TrustElementProps) {
+export function TrustElement({
+  illustration,
+  label,
+  className,
+}: TrustElementProps) {
   return (
     <div
       className={cn(
-        "flex flex-col items-center gap-3 text-center",
+        "flex flex-col items-center gap-4 text-center",
         className
       )}
     >
-      <div className="icon-tile size-11" aria-hidden>
-        <Icon className="size-5 text-ink" strokeWidth={1.25} />
+      <div
+        className="size-16 overflow-hidden rounded-lg border border-biotech-pale shadow-[0_8px_24px_rgba(26,77,109,0.08)]"
+        aria-hidden
+      >
+        <LabIllustration id={illustration} />
       </div>
       <p className="font-display text-sm font-bold tracking-[-0.02em] text-ink md:text-base">
         {label}

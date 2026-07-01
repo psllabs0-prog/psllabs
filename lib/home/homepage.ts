@@ -1,15 +1,4 @@
-import type { LucideIcon } from "lucide-react";
-import {
-  BadgeCheck,
-  FileSearch,
-  FileText,
-  FlaskConical,
-  Globe,
-  Microscope,
-  ShieldCheck,
-  Truck,
-  Users,
-} from "lucide-react";
+import type { LabIllustrationId } from "@/components/illustrations/lab-illustrations";
 
 export const heroCopy = {
   headlineLines: [
@@ -19,61 +8,61 @@ export const heroCopy = {
   ],
   ctaLabel: "Shop Products",
   ctaHref: "/products",
-  productImageAlt: "GLP-3 RT research peptide",
-  productImageSrc: "/glp-3-rt.png",
+  productImageAlt: "Retatrutide research peptide vial",
+  productImageSrc: "/Retatrutide.png",
 };
 
 export type TrustElementData = {
-  icon: LucideIcon;
+  illustration: LabIllustrationId;
   label: string;
 };
 
 export const trustElements: TrustElementData[] = [
-  { icon: Truck, label: "USA Shipping" },
-  { icon: ShieldCheck, label: "Third-Party Tested" },
-  { icon: FlaskConical, label: "Certificate of Analysis" },
-  { icon: FileText, label: "Research Documentation" },
+  { illustration: "usa-shipping", label: "USA Shipping" },
+  { illustration: "third-party-tested", label: "Third-Party Tested" },
+  { illustration: "certificate", label: "Certificate of Analysis" },
+  { illustration: "research-docs", label: "Research Documentation" },
 ];
 
 export type WhyChooseCardData = {
-  icon: LucideIcon;
+  illustration: LabIllustrationId;
   title: string;
   description: string;
 };
 
 export const whyChooseCards: WhyChooseCardData[] = [
   {
-    icon: FileSearch,
+    illustration: "batch-coa",
     title: "Batch-matched COAs",
     description:
       "Every lot ships with a published Certificate of Analysis you can match to your vial label.",
   },
   {
-    icon: Microscope,
+    illustration: "hplc",
     title: "HPLC identity testing",
     description:
       "Compound identity confirmed against analytical reference standards—not supplier paperwork alone.",
   },
   {
-    icon: BadgeCheck,
+    illustration: "quality-panel",
     title: "Documented quality panels",
     description:
       "Purity, identity, and contaminant results disclosed openly on every batch we release.",
   },
   {
-    icon: Globe,
+    illustration: "us-fulfillment",
     title: "US fulfillment",
     description:
       "Domestic processing and tracked delivery for research supply you can plan around.",
   },
   {
-    icon: Truck,
+    illustration: "protected-shipping",
     title: "Protected shipping",
     description:
       "Orders packed for stability in transit with tracking from dispatch to delivery.",
   },
   {
-    icon: Users,
+    illustration: "research-support",
     title: "Research-first support",
     description:
       "Clear documentation, lot lookup, and direct answers at support@psllabs.org.",
@@ -99,8 +88,8 @@ export const featuredProduct: FeaturedProductData = {
     "Lyophilized GLP-3 RT for laboratory and research use. Batch-specific COA included. Not for human consumption.",
   price: 94,
   href: "/products/glp-3-rt",
-  imageSrc: "/glp-3-rt.png",
-  imageAlt: "GLP-3 RT research peptide vial",
+  imageSrc: "/Retatrutide.png",
+  imageAlt: "Retatrutide research peptide vial",
 };
 
 export const newsletterCopy = {
