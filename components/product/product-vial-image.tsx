@@ -93,7 +93,7 @@ export function ProductVialImage({
             quality={90}
             priority={priority}
             sizes={config.sizes}
-            className="relative z-10 h-auto max-h-full w-full object-contain object-center mix-blend-darken drop-shadow-[0_28px_40px_rgba(26,77,109,0.28)]"
+            className="relative z-10 h-auto max-h-full w-full object-contain object-center drop-shadow-[0_28px_40px_rgba(26,77,109,0.28)]"
           />
         </div>
       </div>

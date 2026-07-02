@@ -1,4 +1,5 @@
 import type { LabIllustrationId } from "@/components/illustrations/lab-illustrations";
+import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
 
 export const heroCopy = {
   eyebrow: "PSL LABS",
@@ -6,8 +7,8 @@ export const heroCopy = {
   subheadline: "Third-party tested · batch-matched documentation.",
   ctaLabel: "Shop Products",
   ctaHref: "/products",
-  productImageAlt: "Retatrutide research peptide vial",
-  productImageSrc: "/Retatrutide.png",
+  productImageAlt: PRODUCT_VIAL_IMAGE.alt,
+  productImageSrc: PRODUCT_VIAL_IMAGE.src,
 };
 
 export type HeroTrustCardData = {
@@ -106,8 +107,8 @@ export const featuredProduct: FeaturedProductData = {
     "Lyophilized Retatrutide for laboratory and research use. Batch-specific COA included. Not for human consumption.",
   price: 94,
   href: "/products/retatrutide",
-  imageSrc: "/Retatrutide.png",
-  imageAlt: "Retatrutide research peptide vial",
+  imageSrc: PRODUCT_VIAL_IMAGE.src,
+  imageAlt: PRODUCT_VIAL_IMAGE.alt,
 };
 
 export const newsletterCopy = {

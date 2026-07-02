@@ -1,13 +1,7 @@
 export const PRODUCT_VIAL_IMAGE = {
-  src: "/Retatrutide.png",
+  src: "/Retatrutide-transparent.png",
   alt: "Retatrutide research peptide vial",
 } as const;
-
-/**
- * Asset note: Retatrutide.png currently has baked-in white/checkerboard
- * pixels. Replace with a true transparent PNG when a clean export is available.
- * ProductVialImage uses gradient card + mix-blend-darken as a visual workaround.
- */
 
 /** Opaque gradient — eliminates checkerboard behind transparent PNGs */
 export const PRODUCT_CARD_GRADIENT =

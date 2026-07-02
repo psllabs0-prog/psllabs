@@ -1,3 +1,5 @@
+import { PRODUCT_VIAL_IMAGE } from "./images";
+
 export type CatalogProduct = {
   handle: string;
   tag: string;
@@ -21,8 +23,8 @@ export const catalogProducts: CatalogProduct[] = [
       "Lyophilized research peptide for laboratory and in vitro use. Every batch is identity-verified by independent HPLC with a published Certificate of Analysis matched to your vial lot number.",
     price: 94,
     href: "/products/retatrutide",
-    imageSrc: "/Retatrutide.png",
-    imageAlt: "Retatrutide research peptide vial",
+    imageSrc: PRODUCT_VIAL_IMAGE.src,
+    imageAlt: PRODUCT_VIAL_IMAGE.alt,
     purityBadge: "99%+ Purity",
   },
 ];
