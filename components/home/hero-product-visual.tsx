@@ -3,7 +3,7 @@ import { heroCopy } from "@/lib/home/homepage";
 
 export function HeroProductVisual() {
   return (
-    <div className="relative mx-auto w-full max-w-[560px] md:max-w-[620px] lg:max-w-[680px]">
+    <div className="relative mx-auto w-full max-w-[580px] md:max-w-[640px] lg:max-w-[700px]">
       {/* Subtle COA accent */}
       <div
         aria-hidden

@@ -6,7 +6,7 @@ export const retatrutide: Product = {
   tag: "RESEARCH PEPTIDE",
   name: "Retatrutide",
   shortDescription:
-    "Lyophilized Retatrutide for laboratory and research use. Batch-specific COA included. Not for human consumption.",
+    "Investigational triple-receptor agonist for laboratory research. Not approved for human use.",
   price: 94,
   subscribePrice: 94,
   stockStatus: "in_stock",
@@ -14,7 +14,7 @@ export const retatrutide: Product = {
   imageAlt: PRODUCT_VIAL_IMAGE.alt,
   stackRole: "Research peptide · laboratory use only",
   whyThisExists:
-    "Research supply should come with batch-matched documentation—not marketing summaries. Retatrutide is released only after independent identity and purity testing, with a published COA for every lot.",
+    "Retatrutide is an investigational triple-receptor agonist designed to interact with three incretin-related pathways: GLP-1, GIP, and glucagon receptors. This multi-pathway profile is what makes the compound scientifically notable in metabolic research.\n\nGLP-1 receptor activity is associated with appetite regulation, glucose-dependent insulin signaling, and delayed gastric emptying.\n\nGIP receptor activity is involved in nutrient handling, insulin response, and adipose tissue signaling.\n\nGlucagon receptor activity is associated with hepatic energy metabolism and increased energy expenditure pathways.\n\nRetatrutide remains an investigational research compound and is not approved for human use.",
   bullets: [
     "Lyophilized research peptide",
     "Batch-matched COA published",
@@ -59,24 +59,37 @@ export const retatrutide: Product = {
     {
       question: "Where is the COA for my batch?",
       answer:
-        "Batch-specific Certificates of Analysis are published on this product page. Match your vial lot number to the corresponding report.",
+        "Batch-specific Certificates of Analysis are published on this product page when available. Match your vial lot number to the corresponding report.",
     },
   ],
   testing: {
     description:
-      "[PLACEHOLDER: Testing laboratory name, accreditation, and panels run per batch.] Every batch is verified by an independent third-party laboratory before release.",
+      "Every batch is verified by an independent third-party laboratory before release. Full panel details appear on the lot-specific COA when available.",
     highlights: [
       "Identity confirmed by HPLC against reference standards",
-      "[PLACEHOLDER: Minimum purity threshold — e.g. 99%+ by HPLC.]",
-      "Lot-specific COA published within 48 hours of release",
+      "Purity documented by HPLC against published release criteria",
+      "Lot-specific COA published when available for each batch",
     ],
   },
   stackBlurb:
     "Retatrutide is supplied as a standalone research peptide with full batch documentation.",
-  dosage: [
-    "For laboratory and research use only. Not for human or animal consumption.",
-    "[PLACEHOLDER: Lyophilized quantity per vial — e.g. 5 mg, 10 mg.]",
-    "[PLACEHOLDER: Reconstitution instructions — solvent, volume, concentration.]",
-    "[PLACEHOLDER: Storage conditions — temperature, shelf life, freeze-thaw guidance.]",
+  specifications: [
+    { label: "Compound", value: "Retatrutide" },
+    { label: "Alternate Name", value: "LY3437943" },
+    { label: "Class", value: "Triple receptor agonist" },
+    { label: "Receptor Targets", value: "GLP-1, GIP, Glucagon" },
+    { label: "Format", value: "Lyophilized powder" },
+    { label: "Strength", value: "10mg" },
+    { label: "Purity", value: "Batch-specific, pending COA" },
+    { label: "Testing", value: "Third-party analysis" },
+    { label: "COA Status", value: "Pending / available once uploaded" },
+    {
+      label: "Storage",
+      value: "Store according to supplier and lab handling requirements",
+    },
+    { label: "Intended Use", value: "Laboratory research only" },
+    { label: "Human Use", value: "Not approved for human use" },
   ],
+  researchDisclaimer:
+    "Retatrutide is an investigational compound. This page is for laboratory research and educational reference only. Not for human consumption, medical use, or therapeutic application.",
 };

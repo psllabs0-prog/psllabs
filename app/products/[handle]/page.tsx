@@ -39,9 +39,7 @@ export default async function ProductPage({ params }: PageProps) {
   const otherProducts = getOtherProducts(handle);
 
   if (handle === "retatrutide") {
-    return (
-      <ResearchPeptideTemplate product={product} otherProducts={otherProducts} />
-    );
+    return <ResearchPeptideTemplate product={product} />;
   }
 
   return <ProductTemplate product={product} otherProducts={otherProducts} />;

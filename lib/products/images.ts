@@ -3,6 +3,12 @@ export const PRODUCT_VIAL_IMAGE = {
   alt: "Retatrutide research peptide vial",
 } as const;
 
+/**
+ * Asset note: Retatrutide.png currently has baked-in white/checkerboard
+ * pixels. Replace with a true transparent PNG when a clean export is available.
+ * ProductVialImage uses gradient card + mix-blend-darken as a visual workaround.
+ */
+
 /** Opaque gradient — eliminates checkerboard behind transparent PNGs */
 export const PRODUCT_CARD_GRADIENT =
   "bg-gradient-to-br from-biotech-pale via-lab-white to-biotech-mist";
@@ -29,8 +35,8 @@ export const VIAL_CONTEXT_CONFIG: Record<
   },
   product: {
     padding: "p-12 md:p-14 lg:p-16",
-    vialMax: "max-w-[400px]",
-    sizes: "(max-width: 768px) 72vw, 400px",
+    vialMax: "max-w-[440px]",
+    sizes: "(max-width: 768px) 78vw, 440px",
   },
   hero: {
     padding: "p-12 md:p-14 lg:p-16",

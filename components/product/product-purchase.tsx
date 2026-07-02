@@ -12,8 +12,9 @@ import { cn } from "@/lib/utils";
 type ProductPurchaseProps = {
   productHandle: string;
   price: number;
-  subscribePrice: number;
+  subscribePrice?: number;
   stockStatus: StockStatus;
+  showSubscribe?: boolean;
   className?: string;
 };
 
@@ -24,12 +25,16 @@ export function ProductPurchase({
   price,
   subscribePrice,
   stockStatus,
+  showSubscribe = false,
   className,
 }: ProductPurchaseProps) {
   const [subscribe, setSubscribe] = useState(false);
   const [quantity, setQuantity] = useState(1);
 
-  const displayPrice = subscribe ? subscribePrice : price;
+  const displayPrice =
+    showSubscribe && subscribe && subscribePrice != null
+      ? subscribePrice
+      : price;
   const isOutOfStock = stockStatus === "out_of_stock";
 
   return (
@@ -44,48 +49,52 @@ export function ProductPurchase({
           <span className="font-display text-4xl font-bold tracking-[-0.02em] text-ink">
             ${displayPrice}
           </span>
-          {subscribe && (
+          {showSubscribe && subscribe && subscribePrice != null && (
             <span className="font-[family-name:var(--font-mono)] text-sm text-ash line-through">
               ${price}
             </span>
           )}
         </div>
 
-        <div
-          className="inline-flex w-fit border border-linen"
-          role="group"
-          aria-label="Purchase type"
-        >
-          <button
-            type="button"
-            onClick={() => setSubscribe(false)}
-            className={cn(
-              "px-4 py-2 text-sm transition-colors duration-200 ease-out",
-              !subscribe
-                ? "bg-petrol text-lab-white"
-                : "bg-lab-white text-ink hover:bg-biotech-mist/40"
-            )}
-          >
-            One-time
-          </button>
-          <button
-            type="button"
-            onClick={() => setSubscribe(true)}
-            className={cn(
-              "px-4 py-2 text-sm transition-colors duration-200 ease-out",
-              subscribe
-                ? "bg-petrol text-lab-white"
-                : "bg-lab-white text-ink hover:bg-biotech-mist/40"
-            )}
-          >
-            Subscribe
-          </button>
-        </div>
+        {showSubscribe && (
+          <>
+            <div
+              className="inline-flex w-fit border border-linen"
+              role="group"
+              aria-label="Purchase type"
+            >
+              <button
+                type="button"
+                onClick={() => setSubscribe(false)}
+                className={cn(
+                  "px-4 py-2 text-sm transition-colors duration-200 ease-out",
+                  !subscribe
+                    ? "bg-petrol text-lab-white"
+                    : "bg-lab-white text-ink hover:bg-biotech-mist/40"
+                )}
+              >
+                One-time
+              </button>
+              <button
+                type="button"
+                onClick={() => setSubscribe(true)}
+                className={cn(
+                  "px-4 py-2 text-sm transition-colors duration-200 ease-out",
+                  subscribe
+                    ? "bg-petrol text-lab-white"
+                    : "bg-lab-white text-ink hover:bg-biotech-mist/40"
+                )}
+              >
+                Subscribe
+              </button>
+            </div>
 
-        {subscribe && (
-          <p className="font-[family-name:var(--font-mono)] text-sm text-ash">
-            subscribe ↓ ${subscribePrice}/mo · cancel anytime
-          </p>
+            {subscribe && subscribePrice != null && (
+              <p className="font-[family-name:var(--font-mono)] text-sm text-ash">
+                subscribe ↓ ${subscribePrice}/mo · cancel anytime
+              </p>
+            )}
+          </>
         )}
       </div>
 

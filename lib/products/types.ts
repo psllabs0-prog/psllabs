@@ -31,6 +31,11 @@ export type ProductTesting = {
   highlights: string[];
 };
 
+export type ProductSpecification = {
+  label: string;
+  value: string;
+};
+
 export type Product = {
   handle: string;
   tag: string;
@@ -50,7 +55,8 @@ export type Product = {
   stockStatus: StockStatus;
   imageSrc?: string;
   imageAlt?: string;
-  dosage?: string[];
+  specifications?: ProductSpecification[];
+  researchDisclaimer?: string;
 };
 
 export type ProductHandle =

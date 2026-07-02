@@ -10,6 +10,7 @@ type ProductGalleryProps = {
   productName: string;
   imageSrc?: string;
   imageAlt?: string;
+  showThumbnails?: boolean;
 };
 
 const THUMBNAIL_COUNT = 4;
@@ -18,9 +19,22 @@ export function ProductGallery({
   productName,
   imageSrc = PRODUCT_VIAL_IMAGE.src,
   imageAlt,
+  showThumbnails = false,
 }: ProductGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const alt = imageAlt ?? `${productName} research peptide vial`;
+
+  if (!showThumbnails) {
+    return (
+      <ProductVialImage
+        src={imageSrc}
+        alt={alt}
+        context="product"
+        priority
+        className="w-full"
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">

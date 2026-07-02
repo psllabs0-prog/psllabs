@@ -14,6 +14,7 @@ export function ProductHero({ product }: { product: Product }) {
             productName={product.name}
             imageSrc={product.imageSrc}
             imageAlt={product.imageAlt}
+            showThumbnails
           />
         </AnimateIn>
 
@@ -47,6 +48,7 @@ export function ProductHero({ product }: { product: Product }) {
               price={product.price}
               subscribePrice={product.subscribePrice}
               stockStatus={product.stockStatus}
+              showSubscribe
             />
           </AnimateIn>
 

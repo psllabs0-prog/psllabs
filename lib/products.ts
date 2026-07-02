@@ -9,5 +9,6 @@ export {
   type ProductHandle,
   type ProductHowToStep,
   type ProductIngredient,
+  type ProductSpecification,
   type ProductTesting,
 } from "./products/index";

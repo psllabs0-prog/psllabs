@@ -29,5 +29,6 @@ export type {
   ProductHandle,
   ProductHowToStep,
   ProductIngredient,
+  ProductSpecification,
   ProductTesting,
 } from "./types";
