@@ -19,13 +19,13 @@ export type CatalogProduct = {
 
 export const catalogProducts: CatalogProduct[] = [
   {
-    handle: "glp-3-rt",
+    handle: "retatrutide",
     tag: "RESEARCH PEPTIDE",
     name: "Retatrutide",
     description:
       "Lyophilized research peptide for laboratory and in vitro use. Every batch is identity-verified by independent HPLC with a published Certificate of Analysis matched to your vial lot number.",
     price: 94,
-    href: "/products/glp-3-rt",
+    href: "/products/retatrutide",
     imageSrc: "/Retatrutide.png",
     imageAlt: "Retatrutide research peptide vial",
     purityBadge: "99%+ HPLC Verified",

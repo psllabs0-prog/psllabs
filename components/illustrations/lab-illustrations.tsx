@@ -121,9 +121,20 @@ const illustrations: Record<LabIllustrationId, ReactNode> = {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <text x="24" y="58" fill={blue.mid} fontSize="6" fontFamily="monospace">
-        LOT#
+      <text x="24" y="52" fill={blue.mid} fontSize="4" fontFamily="monospace">
+        Lot
       </text>
+      <rect
+        x="32"
+        y="46"
+        width="26"
+        height="9"
+        rx="1.5"
+        fill={blue.pale}
+        stroke={blue.mid}
+        strokeWidth="0.75"
+      />
+      <rect x="34" y="49" width="14" height="2" rx="0.5" fill={blue.light} />
     </>
   ),
   hplc: (

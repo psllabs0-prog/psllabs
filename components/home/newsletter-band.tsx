@@ -19,7 +19,7 @@ export function NewsletterBand({ copy }: NewsletterBandProps) {
         <div
           className="flex w-full flex-col gap-3 sm:flex-row sm:items-center"
           role="group"
-          aria-label="Newsletter signup (placeholder)"
+          aria-label="Newsletter signup"
         >
           <label htmlFor="home-newsletter-email" className="sr-only">
             Email address
@@ -39,8 +39,6 @@ export function NewsletterBand({ copy }: NewsletterBandProps) {
             {copy.buttonLabel}
           </button>
         </div>
-
-        <p className="text-xs text-ash">{copy.disclaimer}</p>
       </div>
     </HomeSection>
   );

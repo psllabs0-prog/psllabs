@@ -81,13 +81,13 @@ export type FeaturedProductData = {
 };
 
 export const featuredProduct: FeaturedProductData = {
-  handle: "glp-3-rt",
+  handle: "retatrutide",
   tag: "RESEARCH PEPTIDE",
-  name: "GLP-3 RT",
+  name: "Retatrutide",
   description:
-    "Lyophilized GLP-3 RT for laboratory and research use. Batch-specific COA included. Not for human consumption.",
+    "Lyophilized Retatrutide for laboratory and research use. Batch-specific COA included. Not for human consumption.",
   price: 94,
-  href: "/products/glp-3-rt",
+  href: "/products/retatrutide",
   imageSrc: "/Retatrutide.png",
   imageAlt: "Retatrutide research peptide vial",
 };
@@ -98,5 +98,4 @@ export const newsletterCopy = {
     "New COA publications, restock alerts, and research notes—no marketing noise.",
   placeholder: "you@example.com",
   buttonLabel: "Subscribe",
-  disclaimer: "Placeholder — no emails collected yet.",
 };

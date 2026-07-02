@@ -22,8 +22,15 @@ export function HeroProductVisual() {
           className="absolute left-[4%] top-[18%] z-0 w-[58%] -rotate-6 rounded-xl border border-white/60 bg-gradient-to-br from-white/90 to-biotech-mist/90 p-5 shadow-[0_24px_60px_rgba(26,77,109,0.12)] backdrop-blur-md"
         >
           <div className="mb-3 flex items-center justify-between">
-            <div className="h-2 w-16 rounded-full bg-biotech-blue/30" />
-            <div className="mono text-[0.55rem] text-biotech-deep/70">COA</div>
+            <div className="flex flex-col gap-1.5">
+              <span className="font-[family-name:var(--font-mono)] text-[0.5rem] uppercase tracking-wider text-biotech-deep/50">
+                Certificate
+              </span>
+              <div className="h-2 w-16 rounded-full bg-biotech-blue/30" />
+            </div>
+            <span className="rounded border border-biotech-blue/25 bg-biotech-pale/90 px-2 py-0.5 font-[family-name:var(--font-mono)] text-[0.55rem] uppercase tracking-wider text-biotech-deep/80">
+              COA
+            </span>
           </div>
           <div className="space-y-2">
             <div className="h-1.5 w-full rounded-full bg-biotech-blue/15" />

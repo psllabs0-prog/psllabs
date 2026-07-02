@@ -38,7 +38,7 @@ export default async function ProductPage({ params }: PageProps) {
 
   const otherProducts = getOtherProducts(handle);
 
-  if (handle === "glp-3-rt") {
+  if (handle === "retatrutide") {
     return (
       <ResearchPeptideTemplate product={product} otherProducts={otherProducts} />
     );

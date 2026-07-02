@@ -1,7 +1,15 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async redirects() {
+    return [
+      {
+        source: "/products/glp-3-rt",
+        destination: "/products/retatrutide",
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

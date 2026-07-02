@@ -52,4 +52,4 @@ export type ProductHandle =
   | "foundation"
   | "cellular-energy"
   | "recovery"
-  | "glp-3-rt";
+  | "retatrutide";

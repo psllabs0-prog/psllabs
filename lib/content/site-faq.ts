@@ -9,13 +9,13 @@ export const siteFaqItems: SiteFaqItem[] = [
     id: "research-use",
     question: "Are PSL Labs peptides for human consumption?",
     answer:
-      "No. PSL Labs products—including GLP-3 RT—are sold strictly for laboratory and research use only. They are not intended for human or animal consumption, diagnosis, treatment, cure, or prevention of any disease.",
+      "No. PSL Labs products—including Retatrutide—are sold strictly for laboratory and research use only. They are not intended for human or animal consumption, diagnosis, treatment, cure, or prevention of any disease.",
   },
   {
-    id: "glp-3-rt",
-    question: "What is GLP-3 RT?",
+    id: "retatrutide",
+    question: "What is Retatrutide?",
     answer:
-      "GLP-3 RT is a research peptide supplied in lyophilized form for in vitro and laboratory research applications. Full compound documentation and batch-specific testing data are published for each lot we release.",
+      "Retatrutide is a research peptide supplied in lyophilized form for in vitro and laboratory research applications. Full compound documentation and batch-specific testing data are published for each lot we release.",
   },
   {
     id: "purity",
