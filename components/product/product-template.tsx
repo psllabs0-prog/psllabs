@@ -35,6 +35,7 @@ export function ProductTemplate({
         productHandle={product.handle}
         price={product.price}
         productName={product.name}
+        stockStatus={product.stockStatus}
       />
     </main>
   );

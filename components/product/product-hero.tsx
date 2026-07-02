@@ -42,6 +42,7 @@ export function ProductHero({ product }: { product: Product }) {
               productHandle={product.handle}
               price={product.price}
               subscribePrice={product.subscribePrice}
+              stockStatus={product.stockStatus}
             />
           </AnimateIn>
 

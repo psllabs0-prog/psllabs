@@ -48,6 +48,7 @@ export function ResearchPeptideTemplate({
                 productHandle={product.handle}
                 price={product.price}
                 subscribePrice={product.subscribePrice}
+                stockStatus={product.stockStatus}
               />
             </AnimateIn>
           </div>
@@ -107,6 +108,7 @@ export function ResearchPeptideTemplate({
         productHandle={product.handle}
         price={product.price}
         productName={product.name}
+        stockStatus={product.stockStatus}
       />
     </main>
   );

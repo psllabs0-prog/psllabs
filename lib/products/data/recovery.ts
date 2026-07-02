@@ -9,6 +9,7 @@ export const recovery: Product = {
     "Urolithin A, ubiquinol, and PQQ. The evening layer for mitochondrial function and cellular energy production.",
   price: 84,
   subscribePrice: 72,
+  stockStatus: "in_stock",
   stackRole: "Mitochondrial layer · evening",
   whyThisExists:
     "Mitochondrial function declines with age, yet most \"mito\" supplements combine under-dosed CoQ10 with marketing ingredients and no disclosed amounts. Recovery targets three mechanisms—mitophagy signaling, electron transport support, and mitochondrial biogenesis—at doses referenced in published research.",

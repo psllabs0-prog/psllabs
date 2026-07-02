@@ -9,6 +9,7 @@ export const foundation: Product = {
     "The base layer. Trans-resveratrol, spermidine, fisetin, and methylated B-complex—four mechanisms in one daily capsule.",
   price: 52,
   subscribePrice: 44,
+  stockStatus: "in_stock",
   stackRole: "Base layer · take every morning",
   whyThisExists:
     "Most daily longevity formulas rely on proprietary blends, under-dosed actives, or ingredients chosen for label appeal rather than evidence. Foundation is the opposite: four compounds with distinct mechanisms—sirtuin signaling, autophagy support, senescent-cell clearance, and methylation-ready B vitamins—each listed at the dose ranges used in published research. One capsule. Full disclosure. No filler stack.",

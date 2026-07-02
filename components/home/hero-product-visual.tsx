@@ -4,58 +4,42 @@ import { heroCopy } from "@/lib/home/homepage";
 
 export function HeroProductVisual() {
   return (
-    <div className="relative mx-auto flex w-full max-w-[620px] items-center justify-center lg:mx-0 lg:ml-auto lg:max-w-none">
-      {/* Ambient lighting */}
+    <div className="relative mx-auto flex w-full max-w-[480px] items-center justify-center lg:max-w-none">
+      {/* Soft blue gradient stage */}
       <div
         aria-hidden
-        className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-biotech-blue/20 blur-3xl"
+        className="absolute inset-x-4 top-[8%] bottom-[12%] rounded-[2rem] bg-gradient-to-b from-biotech-pale via-biotech-mist to-biotech-light/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]"
       />
       <div
         aria-hidden
-        className="absolute right-0 top-8 h-48 w-48 rounded-full bg-biotech-light/80 blur-2xl"
+        className="absolute left-1/2 top-[20%] h-[280px] w-[280px] -translate-x-1/2 rounded-full bg-biotech-blue/20 blur-3xl md:h-[340px] md:w-[340px]"
       />
 
-      <div className="relative aspect-square w-full max-w-[520px]">
-        {/* COA document — blurred backdrop */}
+      <div className="relative aspect-[4/5] w-full max-w-[400px] md:max-w-[440px]">
+        {/* Subtle COA accent — reduced visual weight */}
         <div
           aria-hidden
-          className="absolute left-[4%] top-[18%] z-0 w-[58%] -rotate-6 rounded-xl border border-white/60 bg-gradient-to-br from-white/90 to-biotech-mist/90 p-5 shadow-[0_24px_60px_rgba(26,77,109,0.12)] backdrop-blur-md"
+          className="absolute left-[6%] top-[14%] z-0 w-[48%] -rotate-6 rounded-lg border border-white/50 bg-white/60 p-4 opacity-70 shadow-[0_16px_40px_rgba(26,77,109,0.08)] backdrop-blur-sm"
         >
-          <div className="mb-3 flex items-center justify-between">
-            <div className="flex flex-col gap-1.5">
-              <span className="font-[family-name:var(--font-mono)] text-[0.5rem] uppercase tracking-wider text-biotech-deep/50">
-                Certificate
-              </span>
-              <div className="h-2 w-16 rounded-full bg-biotech-blue/30" />
-            </div>
-            <span className="rounded border border-biotech-blue/25 bg-biotech-pale/90 px-2 py-0.5 font-[family-name:var(--font-mono)] text-[0.55rem] uppercase tracking-wider text-biotech-deep/80">
+          <div className="mb-2 flex items-center justify-between">
+            <div className="h-1.5 w-12 rounded-full bg-biotech-blue/25" />
+            <span className="rounded border border-biotech-blue/20 bg-biotech-pale/80 px-1.5 py-0.5 font-[family-name:var(--font-mono)] text-[0.5rem] uppercase tracking-wider text-biotech-deep/70">
               COA
             </span>
           </div>
-          <div className="space-y-2">
-            <div className="h-1.5 w-full rounded-full bg-biotech-blue/15" />
-            <div className="h-1.5 w-[85%] rounded-full bg-biotech-blue/10" />
-            <div className="h-1.5 w-[70%] rounded-full bg-biotech-blue/10" />
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <div className="h-8 rounded-md bg-biotech-pale/80" />
-              <div className="h-8 rounded-md bg-biotech-pale/60" />
-            </div>
-            <div className="h-1.5 w-[55%] rounded-full bg-biotech-blue/10" />
+          <div className="space-y-1.5">
+            <div className="h-1 w-full rounded-full bg-biotech-blue/10" />
+            <div className="h-1 w-[80%] rounded-full bg-biotech-blue/10" />
+            <div className="h-1 w-[60%] rounded-full bg-biotech-blue/10" />
           </div>
         </div>
 
-        {/* Secondary certificate layer */}
-        <div
-          aria-hidden
-          className="absolute bottom-[12%] right-[6%] z-0 h-32 w-40 rotate-3 rounded-lg border border-white/50 bg-white/40 blur-[2px] backdrop-blur-sm"
-        />
-
-        {/* Product stage */}
-        <div className="absolute inset-0 z-10 flex items-end justify-center pb-4 pl-8 md:pl-12">
-          <div className="animate-float relative w-[58%] max-w-[300px]">
+        {/* Vial — centered higher */}
+        <div className="absolute inset-x-0 top-[6%] z-10 flex justify-center md:top-[4%]">
+          <div className="animate-float relative w-[62%] max-w-[260px] md:max-w-[280px]">
             <div
               aria-hidden
-              className="absolute -inset-6 rounded-full bg-gradient-to-t from-biotech-blue/25 via-transparent to-transparent blur-2xl"
+              className="absolute -inset-8 rounded-full bg-gradient-to-b from-biotech-light/40 via-biotech-blue/15 to-transparent blur-2xl"
             />
             <Image
               src={heroCopy.productImageSrc}
@@ -63,16 +47,16 @@ export function HeroProductVisual() {
               width={600}
               height={900}
               priority
-              className="relative z-10 h-auto w-full drop-shadow-[0_32px_48px_rgba(26,77,109,0.28)]"
-              sizes="(max-width: 768px) 70vw, 300px"
+              className="relative z-10 h-auto w-full drop-shadow-[0_28px_44px_rgba(26,77,109,0.26)]"
+              sizes="(max-width: 768px) 65vw, 280px"
             />
           </div>
         </div>
 
-        {/* Foreground surface reflection */}
+        {/* Surface glow */}
         <div
           aria-hidden
-          className="absolute bottom-0 left-1/2 z-0 h-24 w-[72%] -translate-x-1/2 rounded-[100%] bg-gradient-to-r from-transparent via-biotech-blue/10 to-transparent blur-xl"
+          className="absolute bottom-[8%] left-1/2 z-0 h-16 w-[65%] -translate-x-1/2 rounded-[100%] bg-gradient-to-r from-transparent via-biotech-blue/12 to-transparent blur-xl"
         />
       </div>
     </div>

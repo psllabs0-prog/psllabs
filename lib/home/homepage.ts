@@ -1,16 +1,34 @@
 import type { LabIllustrationId } from "@/components/illustrations/lab-illustrations";
 
 export const heroCopy = {
-  headlineLines: [
-    "Research Compounds.",
-    "Verified Purity.",
-    "Third-Party Tested.",
-  ],
+  eyebrow: "PSL LABS",
+  headline: "Verified research compounds.",
+  subheadline: "Third-party tested · batch-matched documentation.",
   ctaLabel: "Shop Products",
   ctaHref: "/products",
   productImageAlt: "Retatrutide research peptide vial",
   productImageSrc: "/Retatrutide.png",
 };
+
+export type HeroTrustCardData = {
+  illustration: LabIllustrationId;
+  title: string;
+};
+
+export const heroTrustCards: HeroTrustCardData[] = [
+  {
+    illustration: "third-party-tested",
+    title: "Third-party testing",
+  },
+  {
+    illustration: "batch-coa",
+    title: "COA documentation",
+  },
+  {
+    illustration: "hplc",
+    title: "Batch verification",
+  },
+];
 
 export type TrustElementData = {
   illustration: LabIllustrationId;

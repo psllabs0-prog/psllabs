@@ -9,6 +9,7 @@ export const cellularEnergy: Product = {
     "NMN and NR with TMG for methylation support. Formulated for NAD+ pathway maintenance as levels decline with age.",
   price: 68,
   subscribePrice: 58,
+  stockStatus: "in_stock",
   stackRole: "NAD+ layer · morning with Foundation",
   whyThisExists:
     "NAD+ declines with age, and most precursor supplements either hide doses behind blends or pair NMN/NR without methylation support. Cellular Energy combines two well-studied precursors with TMG (trimethylglycine) to support the methylation cycle while NAD+ pools are replenished.",

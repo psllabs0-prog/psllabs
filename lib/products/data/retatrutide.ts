@@ -8,6 +8,7 @@ export const retatrutide: Product = {
     "Lyophilized Retatrutide for laboratory and research use. Batch-specific COA included. Not for human consumption.",
   price: 94,
   subscribePrice: 94,
+  stockStatus: "in_stock",
   stackRole: "Research peptide · laboratory use only",
   whyThisExists:
     "Research supply should come with batch-matched documentation—not marketing summaries. Retatrutide is released only after independent identity and purity testing, with a published COA for every lot.",

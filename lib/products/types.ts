@@ -1,3 +1,5 @@
+import type { StockStatus } from "./stock";
+
 export type ProductIngredient = {
   name: string;
   dose: string;
@@ -45,6 +47,7 @@ export type Product = {
   testing: ProductTesting;
   stackBlurb: string;
   stackRole: string;
+  stockStatus: StockStatus;
   dosage?: string[];
 };
 
