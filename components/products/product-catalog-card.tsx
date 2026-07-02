@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { Download } from "lucide-react";
 
+import { ProductVialImage } from "@/components/product/product-vial-image";
 import { PillButton } from "@/components/ui/pill-button";
 import type { CatalogProduct } from "@/lib/products/catalog";
 import { cn } from "@/lib/utils";
@@ -28,31 +28,21 @@ export function ProductCatalogCard({ product, className }: ProductCatalogCardPro
     >
       <div className="grid grid-cols-1 lg:grid-cols-2">
         {/* Image stage */}
-        <div className="relative flex min-h-[420px] items-center justify-center bg-gradient-to-br from-biotech-mist via-lab-white to-biotech-pale/40 p-12 md:min-h-[520px] md:p-16 lg:p-20">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_50%_40%,rgba(61,107,140,0.12),transparent)]"
-          />
-          <span className="absolute left-6 top-6 rounded-pill border border-biotech-blue/20 bg-lab-white/90 px-4 py-1.5 font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-[0.1em] text-biotech-deep backdrop-blur-sm md:left-10 md:top-10">
+        <div className="relative flex items-center justify-center p-6 md:p-8 lg:p-10">
+          <span className="absolute left-6 top-6 z-20 rounded-pill border border-biotech-blue/20 bg-lab-white/90 px-4 py-1.5 font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-[0.1em] text-biotech-deep backdrop-blur-sm md:left-10 md:top-10">
             {product.purityBadge}
           </span>
-          <span className="absolute right-6 top-6 rounded-md border border-linen bg-lab-white/80 px-3 py-1 font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-wider text-ash backdrop-blur-sm md:right-10 md:top-10">
+          <span className="absolute right-6 top-6 z-20 rounded-md border border-linen bg-lab-white/80 px-3 py-1 font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-wider text-ash backdrop-blur-sm md:right-10 md:top-10">
             RUO
           </span>
-          <div className="relative z-10 w-full max-w-[280px] md:max-w-[320px]">
-            <div
-              aria-hidden
-              className="absolute -inset-8 rounded-full bg-biotech-blue/10 blur-3xl"
-            />
-            <Image
-              src={product.imageSrc}
-              alt={product.imageAlt}
-              width={640}
-              height={960}
-              className="relative z-10 h-auto w-full drop-shadow-[0_28px_40px_rgba(26,77,109,0.22)]"
-              sizes="(max-width: 1024px) 60vw, 320px"
-            />
-          </div>
+          <ProductVialImage
+            src={product.imageSrc}
+            alt={product.imageAlt}
+            size="lg"
+            bordered={false}
+            rounded="none"
+            className="min-h-[420px] w-full rounded-none rounded-t-2xl md:min-h-[520px] lg:rounded-none lg:rounded-l-2xl lg:rounded-tr-none"
+          />
         </div>
 
         {/* Details */}

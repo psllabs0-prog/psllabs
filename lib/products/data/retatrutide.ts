@@ -1,4 +1,5 @@
 import type { Product } from "../types";
+import { PRODUCT_VIAL_IMAGE } from "../images";
 
 export const retatrutide: Product = {
   handle: "retatrutide",
@@ -9,6 +10,8 @@ export const retatrutide: Product = {
   price: 94,
   subscribePrice: 94,
   stockStatus: "in_stock",
+  imageSrc: PRODUCT_VIAL_IMAGE.src,
+  imageAlt: PRODUCT_VIAL_IMAGE.alt,
   stackRole: "Research peptide · laboratory use only",
   whyThisExists:
     "Research supply should come with batch-matched documentation—not marketing summaries. Retatrutide is released only after independent identity and purity testing, with a published COA for every lot.",

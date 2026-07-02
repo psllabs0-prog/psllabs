@@ -48,6 +48,8 @@ export type Product = {
   stackBlurb: string;
   stackRole: string;
   stockStatus: StockStatus;
+  imageSrc?: string;
+  imageAlt?: string;
   dosage?: string[];
 };
 

@@ -1,6 +1,6 @@
-import Image from "next/image";
-
 import { LabIllustration } from "@/components/illustrations/lab-illustrations";
+import { ProductVialImage } from "@/components/product/product-vial-image";
+import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
 import type { LabPhoto } from "@/lib/about";
 import { cn } from "@/lib/utils";
 
@@ -42,46 +42,41 @@ export function LabPhotoPanel({ photo, className, priority }: LabPhotoPanelProps
         className
       )}
     >
-      <div
-        className={cn(
-          "relative flex aspect-[4/5] items-center justify-center bg-gradient-to-br p-8 md:p-10",
-          style.gradient
-        )}
-      >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_50%_30%,rgba(61,107,140,0.14),transparent)]"
-        />
-
+      <div className="relative">
         {photo.variant === "vial" ? (
-          <div className="relative z-10 w-full max-w-[200px] md:max-w-[240px]">
+          <ProductVialImage
+            src={PRODUCT_VIAL_IMAGE.src}
+            alt={photo.alt}
+            size="md"
+            priority={priority}
+            bordered={false}
+            rounded="none"
+            className="rounded-none"
+          />
+        ) : (
+          <div
+            className={cn(
+              "relative flex aspect-[4/5] items-center justify-center bg-gradient-to-br p-8 md:p-10",
+              style.gradient
+            )}
+          >
             <div
               aria-hidden
-              className="absolute -inset-6 rounded-full bg-biotech-blue/15 blur-2xl transition-opacity duration-500 group-hover:opacity-80"
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_70%_at_50%_30%,rgba(61,107,140,0.14),transparent)]"
             />
-            <Image
-              src="/Retatrutide.png"
-              alt={photo.alt}
-              width={480}
-              height={720}
-              priority={priority}
-              className="relative z-10 h-auto w-full drop-shadow-[0_20px_32px_rgba(26,77,109,0.2)] transition-transform duration-500 ease-out group-hover:scale-[1.02]"
-              sizes="(max-width: 768px) 50vw, 240px"
+            {style.illustration ? (
+              <div className="relative z-10 w-full max-w-[180px] md:max-w-[200px]">
+                <div className="overflow-hidden rounded-xl border border-biotech-blue/15 bg-lab-white/80 p-6 shadow-soft-card backdrop-blur-sm">
+                  <LabIllustration id={style.illustration} className="size-full" />
+                </div>
+              </div>
+            ) : null}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(14,15,14,0.06)_100%)]"
             />
           </div>
-        ) : style.illustration ? (
-          <div className="relative z-10 w-full max-w-[180px] md:max-w-[200px]">
-            <div className="overflow-hidden rounded-xl border border-biotech-blue/15 bg-lab-white/80 p-6 shadow-soft-card backdrop-blur-sm">
-              <LabIllustration id={style.illustration} className="size-full" />
-            </div>
-          </div>
-        ) : null}
-
-        {/* Photo-style vignette */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(14,15,14,0.06)_100%)]"
-        />
+        )}
       </div>
 
       <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/75 via-ink/40 to-transparent px-5 pb-5 pt-16 md:px-6 md:pb-6">

@@ -23,7 +23,11 @@ export function ResearchPeptideTemplate({
       <section className="mx-auto max-w-[1440px] px-6 py-12 md:px-12 md:py-20 lg:px-24 lg:py-28">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-20">
           <AnimateIn y={16}>
-            <ProductGallery productName={product.name} />
+            <ProductGallery
+              productName={product.name}
+              imageSrc={product.imageSrc}
+              imageAlt={product.imageAlt}
+            />
           </AnimateIn>
 
           <div className="flex flex-col gap-8">
