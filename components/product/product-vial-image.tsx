@@ -2,7 +2,7 @@ import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 
-export type ProductVialImageSize = "xs" | "sm" | "md" | "lg";
+export type ProductVialImageSize = "xs" | "sm" | "md" | "lg" | "xl";
 
 const sizeConfig: Record<
   ProductVialImageSize,
@@ -27,6 +27,11 @@ const sizeConfig: Record<
     padding: "p-12 md:p-14 lg:p-16",
     maxWidth: "max-w-[300px]",
     sizes: "(max-width: 1024px) 60vw, 300px",
+  },
+  xl: {
+    padding: "p-12 md:p-14 lg:p-16",
+    maxWidth: "max-w-[375px]",
+    sizes: "(max-width: 1024px) 72vw, 375px",
   },
 };
 

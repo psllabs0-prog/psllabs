@@ -3,11 +3,11 @@ import { heroCopy } from "@/lib/home/homepage";
 
 export function HeroProductVisual() {
   return (
-    <div className="relative mx-auto w-full max-w-[440px] lg:max-w-none">
+    <div className="relative mx-auto w-full max-w-[520px] md:max-w-[560px] lg:max-w-[580px]">
       {/* Subtle COA accent */}
       <div
         aria-hidden
-        className="absolute left-0 top-[10%] z-20 w-[44%] -rotate-6 rounded-lg border border-white/50 bg-white/70 p-3 opacity-75 shadow-[0_12px_32px_rgba(26,77,109,0.08)] backdrop-blur-sm md:left-[4%]"
+        className="absolute left-0 top-[8%] z-20 w-[40%] -rotate-6 rounded-lg border border-white/50 bg-white/70 p-3 opacity-70 shadow-[0_12px_32px_rgba(26,77,109,0.08)] backdrop-blur-sm md:left-[2%]"
       >
         <div className="mb-2 flex items-center justify-between">
           <div className="h-1.5 w-10 rounded-full bg-biotech-blue/25" />
@@ -24,7 +24,7 @@ export function HeroProductVisual() {
       <ProductVialImage
         src={heroCopy.productImageSrc}
         alt={heroCopy.productImageAlt}
-        size="lg"
+        size="xl"
         priority
         animate
         className="w-full"
