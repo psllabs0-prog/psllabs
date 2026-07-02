@@ -6,13 +6,14 @@ import type { ContentSection } from "@/lib/content/types";
 
 export function ContentSections({ sections }: { sections: ContentSection[] }) {
   const accordionItems = sections.map((section) => ({
+    id: section.id,
     question: section.title,
     answer: section.paragraphs.join("\n\n"),
   }));
 
   return (
     <AnimateIn>
-      <ContentAccordion items={accordionItems} multiple />
+      <ContentAccordion items={accordionItems} />
     </AnimateIn>
   );
 }
