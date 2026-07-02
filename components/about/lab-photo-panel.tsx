@@ -47,7 +47,7 @@ export function LabPhotoPanel({ photo, className, priority }: LabPhotoPanelProps
           <ProductVialImage
             src={PRODUCT_VIAL_IMAGE.src}
             alt={photo.alt}
-            size="md"
+            context="card"
             priority={priority}
             bordered={false}
             rounded="none"

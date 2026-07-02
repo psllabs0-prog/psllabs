@@ -71,7 +71,7 @@ export function AddToCartButton({
       >
         {loading
           ? "Redirecting…"
-          : children ?? "Pay with BTC"}
+          : children ?? "Pay with Bitcoin"}
       </button>
       {error && (
         <p className="mt-2 text-xs text-signal">{error}</p>

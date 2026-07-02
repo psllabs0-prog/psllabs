@@ -13,7 +13,7 @@ export function ContentSections({ sections }: { sections: ContentSection[] }) {
 
   return (
     <AnimateIn>
-      <ContentAccordion items={accordionItems} />
+      <ContentAccordion items={accordionItems} multiple={false} />
     </AnimateIn>
   );
 }

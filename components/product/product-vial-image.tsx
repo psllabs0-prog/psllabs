@@ -1,45 +1,19 @@
 import Image from "next/image";
 
+import {
+  PRODUCT_CARD_GRADIENT,
+  PRODUCT_CARD_RADIAL,
+  VIAL_CONTEXT_CONFIG,
+  type ProductVialContext,
+} from "@/lib/products/images";
 import { cn } from "@/lib/utils";
-
-export type ProductVialImageSize = "xs" | "sm" | "md" | "lg" | "xl";
-
-const sizeConfig: Record<
-  ProductVialImageSize,
-  { padding: string; maxWidth: string; sizes: string }
-> = {
-  xs: {
-    padding: "p-3",
-    maxWidth: "max-w-full",
-    sizes: "80px",
-  },
-  sm: {
-    padding: "p-8",
-    maxWidth: "max-w-[200px]",
-    sizes: "(max-width: 768px) 42vw, 200px",
-  },
-  md: {
-    padding: "p-10 md:p-12",
-    maxWidth: "max-w-[260px]",
-    sizes: "(max-width: 768px) 55vw, 260px",
-  },
-  lg: {
-    padding: "p-12 md:p-14 lg:p-16",
-    maxWidth: "max-w-[300px]",
-    sizes: "(max-width: 1024px) 60vw, 300px",
-  },
-  xl: {
-    padding: "p-12 md:p-14 lg:p-16",
-    maxWidth: "max-w-[375px]",
-    sizes: "(max-width: 1024px) 72vw, 375px",
-  },
-};
 
 type ProductVialImageProps = {
   src: string;
   alt: string;
-  size?: ProductVialImageSize;
+  context?: ProductVialContext;
   priority?: boolean;
+  /** Floating animation — homepage hero only */
   animate?: boolean;
   aspectRatio?: "4/5" | "square";
   rounded?: "2xl" | "none" | "l-2xl";
@@ -50,7 +24,7 @@ type ProductVialImageProps = {
 export function ProductVialImage({
   src,
   alt,
-  size = "md",
+  context = "card",
   priority = false,
   animate = false,
   aspectRatio = "4/5",
@@ -58,7 +32,7 @@ export function ProductVialImage({
   bordered = true,
   className,
 }: ProductVialImageProps) {
-  const config = sizeConfig[size];
+  const config = VIAL_CONTEXT_CONFIG[context];
 
   const roundedClass =
     rounded === "none"
@@ -70,7 +44,8 @@ export function ProductVialImage({
   return (
     <div
       className={cn(
-        "relative flex w-full items-center justify-center overflow-hidden bg-gradient-to-br from-biotech-pale via-biotech-mist to-biotech-light/30",
+        "relative flex w-full items-center justify-center overflow-hidden",
+        PRODUCT_CARD_GRADIENT,
         bordered && "border border-biotech-pale/70",
         aspectRatio === "square" ? "aspect-square" : "aspect-[4/5]",
         roundedClass,
@@ -79,7 +54,14 @@ export function ProductVialImage({
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_80%_65%_at_50%_42%,rgba(123,175,212,0.22),transparent)]"
+        className="pointer-events-none absolute inset-0 bg-lab-white"
+      />
+      <div
+        aria-hidden
+        className={cn(
+          "pointer-events-none absolute inset-0",
+          PRODUCT_CARD_RADIAL
+        )}
       />
 
       <div
@@ -90,18 +72,18 @@ export function ProductVialImage({
       >
         <div
           className={cn(
-            "relative flex w-full items-center justify-center",
-            config.maxWidth,
+            "relative mx-auto flex w-full items-center justify-center",
+            config.vialMax,
             animate && "animate-float"
           )}
         >
           <div
             aria-hidden
-            className="absolute -bottom-1 left-1/2 z-0 h-3 w-[72%] -translate-x-1/2 rounded-[100%] bg-biotech-deep/14 blur-md"
+            className="absolute -bottom-2 left-1/2 z-0 h-4 w-[78%] -translate-x-1/2 rounded-[100%] bg-biotech-deep/20 blur-lg"
           />
           <div
             aria-hidden
-            className="absolute inset-4 -z-10 rounded-full bg-biotech-blue/12 blur-2xl"
+            className="absolute bottom-[8%] left-1/2 z-0 h-2 w-[55%] -translate-x-1/2 rounded-[100%] bg-biotech-deep/30 blur-sm"
           />
           <Image
             src={src}
@@ -111,7 +93,7 @@ export function ProductVialImage({
             quality={90}
             priority={priority}
             sizes={config.sizes}
-            className="relative z-10 h-auto w-full object-contain drop-shadow-[0_22px_34px_rgba(26,77,109,0.22)]"
+            className="relative z-10 h-auto max-h-full w-full object-contain object-center drop-shadow-[0_28px_40px_rgba(26,77,109,0.28)]"
           />
         </div>
       </div>

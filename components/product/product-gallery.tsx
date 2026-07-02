@@ -27,7 +27,7 @@ export function ProductGallery({
       <ProductVialImage
         src={imageSrc}
         alt={`${alt} — view ${activeIndex + 1}`}
-        size="lg"
+        context="product"
         priority
         className="w-full"
       />
@@ -39,7 +39,7 @@ export function ProductGallery({
             type="button"
             onClick={() => setActiveIndex(index)}
             className={cn(
-              "overflow-hidden rounded-lg border-2 transition-opacity duration-200 ease-out hover:opacity-90",
+              "overflow-hidden rounded-xl border-2 transition-opacity duration-200 ease-out hover:opacity-95",
               activeIndex === index
                 ? "border-biotech-blue/50"
                 : "border-transparent opacity-70"
@@ -50,10 +50,11 @@ export function ProductGallery({
             <ProductVialImage
               src={imageSrc}
               alt=""
-              size="xs"
+              context="thumb"
               aspectRatio="square"
               rounded="2xl"
-              className="pointer-events-none aspect-square w-full border-0"
+              bordered={false}
+              className="pointer-events-none aspect-square w-full"
             />
           </button>
         ))}

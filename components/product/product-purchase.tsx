@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Zap } from "lucide-react";
+import { Check } from "lucide-react";
 
 import { AddToCartButton } from "@/components/commerce/AddToCartButton";
 import { BitcoinIcon } from "@/components/commerce/bitcoin-icon";
@@ -125,12 +125,11 @@ export function ProductPurchase({
           disabled={isOutOfStock}
           className={cn(isOutOfStock && "opacity-60")}
         >
-          {isOutOfStock ? "Out of Stock" : "Pay with BTC"}
+          {isOutOfStock ? "Out of Stock" : "Pay with Bitcoin"}
         </AddToCartButton>
 
-        <p className="flex items-center gap-2 text-xs leading-relaxed text-ash">
-          <BitcoinIcon />
-          Bitcoin payments processed securely via BTCPay Server.
+        <p className="text-xs leading-relaxed text-ash">
+          Bitcoin payments are processed through BTCPay Server.
         </p>
 
         <ul className="flex flex-col gap-2.5">
@@ -149,20 +148,11 @@ export function ProductPurchase({
           ))}
         </ul>
 
-        <div className="flex flex-col gap-2.5 pt-1">
-          <p className="font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-wider text-ash">
-            Accepted payments
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-pill border border-linen bg-paper/60 px-3 py-1 text-xs text-ash">
-              <BitcoinIcon className="size-3" />
-              Bitcoin
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-pill border border-linen bg-paper/60 px-3 py-1 text-xs text-ash">
-              <Zap className="size-3 shrink-0 text-ash" strokeWidth={1.75} aria-hidden />
-              Lightning
-            </span>
-          </div>
+        <div className="pt-1">
+          <span className="inline-flex items-center gap-1.5 rounded-pill border border-linen bg-paper/50 px-3 py-1 text-xs text-ash">
+            <BitcoinIcon className="size-3" />
+            Bitcoin accepted
+          </span>
         </div>
       </div>
     </div>

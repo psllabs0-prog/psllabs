@@ -25,7 +25,7 @@ export function ContentAccordion({
     <Accordion
       multiple={multiple}
       className={cn(
-        "relative z-0 overflow-hidden rounded-2xl border border-linen bg-lab-white shadow-[0_2px_16px_rgba(26,77,109,0.06)]",
+        "relative z-0 rounded-2xl border border-linen bg-lab-white shadow-[0_2px_16px_rgba(26,77,109,0.06)]",
         className
       )}
     >
@@ -37,22 +37,17 @@ export function ContentAccordion({
         >
           <AccordionTrigger
             className={cn(
-              "rounded-none px-6 py-5 text-base font-display font-bold tracking-[-0.02em] text-ink md:px-8 md:py-6 md:text-lg",
-              "hover:no-underline"
+              "w-full rounded-none px-5 py-6 text-base font-display font-bold tracking-[-0.02em] text-ink md:px-8 md:py-7 md:text-lg",
+              "hover:no-underline active:bg-biotech-mist/50"
             )}
           >
             {item.question}
           </AccordionTrigger>
-          <AccordionContent className="px-6 pb-6 text-base leading-relaxed text-ash md:px-8 md:pb-8">
+          <AccordionContent className="px-5 pb-7 text-base leading-[1.7] text-ash md:px-8 md:pb-8 md:text-[1.0625rem]">
             {item.answer.split("\n\n").map((paragraph) => (
               <p
                 key={paragraph.slice(0, 32)}
-                className={cn(
-                  "mb-4 last:mb-0",
-                  paragraph.startsWith("[PLACEHOLDER:")
-                    ? "rounded-lg border border-dashed border-linen bg-paper/80 px-4 py-3 font-[family-name:var(--font-mono)] text-sm leading-relaxed text-ash"
-                    : undefined
-                )}
+                className="mb-5 last:mb-0"
               >
                 {paragraph}
               </p>

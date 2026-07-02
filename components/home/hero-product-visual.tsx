@@ -3,7 +3,7 @@ import { heroCopy } from "@/lib/home/homepage";
 
 export function HeroProductVisual() {
   return (
-    <div className="relative mx-auto w-full max-w-[520px] md:max-w-[560px] lg:max-w-[580px]">
+    <div className="relative mx-auto w-full max-w-[560px] md:max-w-[620px] lg:max-w-[680px]">
       {/* Subtle COA accent */}
       <div
         aria-hidden
@@ -24,7 +24,7 @@ export function HeroProductVisual() {
       <ProductVialImage
         src={heroCopy.productImageSrc}
         alt={heroCopy.productImageAlt}
-        size="xl"
+        context="hero"
         priority
         animate
         className="w-full"

@@ -57,9 +57,10 @@
   --ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
   --duration-fast: 150ms;
   --duration-normal: 200ms;
+  --duration-smooth: 300ms;
 
-  --animate-accordion-down: accordion-down 0.25s var(--ease-out);
-  --animate-accordion-up: accordion-up 0.2s var(--ease-out);
+  --animate-accordion-down: accordion-down 0.3s var(--ease-out);
+  --animate-accordion-up: accordion-up 0.28s var(--ease-out);
 }
 
 :root {
