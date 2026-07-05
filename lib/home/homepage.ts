@@ -110,11 +110,3 @@ export const featuredProduct: FeaturedProductData = {
   imageSrc: PRODUCT_VIAL_IMAGE.src,
   imageAlt: PRODUCT_VIAL_IMAGE.alt,
 };
-
-export const newsletterCopy = {
-  heading: "Stay current on batch releases",
-  description:
-    "New COA publications, restock alerts, and research notes—no marketing noise.",
-  placeholder: "you@example.com",
-  buttonLabel: "Subscribe",
-};
