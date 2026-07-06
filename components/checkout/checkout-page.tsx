@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { useCart } from "@/components/cart/cart-provider";
+import { formatPrice } from "@/lib/cart/format";
+import { US_COUNTRY, US_STATES } from "@/lib/checkout/us-states";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +19,6 @@ type FormState = {
   city: string;
   state: string;
   zip: string;
-  country: string;
 };
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
@@ -30,8 +31,10 @@ const initialForm: FormState = {
   city: "",
   state: "",
   zip: "",
-  country: "United States",
 };
+
+const selectClassName =
+  "h-11 w-full rounded-lg border border-linen bg-lab-white px-3 text-base text-ink outline-none focus-visible:border-primary-blue focus-visible:ring-3 focus-visible:ring-primary-blue/20 md:text-sm";
 
 function Field({
   id,
@@ -77,7 +80,6 @@ function validateForm(form: FormState): FormErrors {
   if (!form.city.trim()) errors.city = "City is required.";
   if (!form.state.trim()) errors.state = "State is required.";
   if (!form.zip.trim()) errors.zip = "ZIP code is required.";
-  if (!form.country.trim()) errors.country = "Country is required.";
 
   return errors;
 }
@@ -104,7 +106,8 @@ export function CheckoutPage() {
     setErrors(nextErrors);
     setSubmitted(true);
     if (Object.keys(nextErrors).length > 0) return;
-    // Demo flow — no order creation or email yet
+    // Demo flow — no order creation yet.
+    // TODO: Send order receipt email via lib/email/order-receipt.ts after payment setup is finalized.
   }
 
   if (isHydrated && isEmpty) {
@@ -242,13 +245,21 @@ export function CheckoutPage() {
                   required
                   error={submitted ? errors.state : undefined}
                 >
-                  <Input
+                  <select
                     id="checkout-state"
                     autoComplete="address-level1"
                     value={form.state}
                     onChange={(e) => updateField("state", e.target.value)}
-                    className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base md:text-sm"
-                  />
+                    className={selectClassName}
+                    aria-invalid={!!errors.state}
+                  >
+                    <option value="">Select state</option>
+                    {US_STATES.map((state) => (
+                      <option key={state.value} value={state.value}>
+                        {state.label} — {state.value}
+                      </option>
+                    ))}
+                  </select>
                 </Field>
                 <Field
                   id="checkout-zip"
@@ -264,20 +275,21 @@ export function CheckoutPage() {
                     className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base md:text-sm"
                   />
                 </Field>
-                <Field
-                  id="checkout-country"
-                  label="Country"
-                  required
-                  error={submitted ? errors.country : undefined}
-                >
-                  <Input
-                    id="checkout-country"
-                    autoComplete="country-name"
-                    value={form.country}
-                    onChange={(e) => updateField("country", e.target.value)}
-                    className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base md:text-sm"
-                  />
-                </Field>
+                <div className="sm:col-span-2">
+                  <Field id="checkout-country" label="Country" required>
+                    <Input
+                      id="checkout-country"
+                      autoComplete="country-name"
+                      value={US_COUNTRY}
+                      disabled
+                      readOnly
+                      className="h-11 cursor-not-allowed rounded-lg border-linen bg-soft-blue/40 px-3 text-base text-ash md:text-sm"
+                    />
+                  </Field>
+                  <p className="mt-2 text-xs leading-relaxed text-ash">
+                    PSL Labs currently ships within the United States only.
+                  </p>
+                </div>
               </div>
             </section>
 
@@ -299,8 +311,7 @@ export function CheckoutPage() {
                 Checkout unavailable
               </button>
               <p className="mt-3 text-center text-sm leading-relaxed text-ash">
-                Checkout is not active yet. Payment options will be enabled
-                after final review.
+                Payment options will be enabled after final review.
               </p>
             </section>
           </form>
@@ -348,7 +359,7 @@ function CheckoutSummary({
               </p>
             </div>
             <p className="shrink-0 font-medium text-ink">
-              ${line.unitPrice * line.quantity}
+              {formatPrice(line.unitPrice * line.quantity)}
             </p>
           </li>
         ))}
@@ -356,7 +367,7 @@ function CheckoutSummary({
       <dl className="flex flex-col gap-2 text-sm">
         <div className="flex justify-between text-ash">
           <dt>Subtotal</dt>
-          <dd className="text-ink">${subtotal}</dd>
+          <dd className="text-ink">{formatPrice(subtotal)}</dd>
         </div>
         <div className="flex justify-between gap-4 text-ash">
           <dt>Shipping</dt>
@@ -372,7 +383,7 @@ function CheckoutSummary({
         <div className="mt-2 flex justify-between border-t border-linen pt-3">
           <dt className="font-display font-bold text-ink">Estimated total</dt>
           <dd className="font-display text-lg font-bold text-ink">
-            ${estimatedTotal}
+            {formatPrice(estimatedTotal)}
           </dd>
         </div>
       </dl>

@@ -1,3 +1,5 @@
+import { getCatalogProductByHandle } from "@/lib/products/catalog";
+
 export type CheckoutProduct = {
   id: string;
   name: string;
@@ -32,7 +34,7 @@ const catalog: Record<string, CheckoutProduct> = {
     name: "Retatrutide",
     description:
       "Lyophilized Retatrutide for laboratory and research use. Batch-specific COA included.",
-    priceUsd: 94,
+    priceUsd: getCatalogProductByHandle("retatrutide")!.price,
   },
 };
 

@@ -1,5 +1,8 @@
 import type { Product } from "../types";
+import { getCatalogProductByHandle } from "../catalog";
 import { PRODUCT_VIAL_IMAGE } from "../images";
+
+const listing = getCatalogProductByHandle("retatrutide")!;
 
 export const retatrutide: Product = {
   handle: "retatrutide",
@@ -7,7 +10,7 @@ export const retatrutide: Product = {
   name: "Retatrutide",
   shortDescription:
     "Investigational triple-receptor agonist for laboratory research. Not approved for human use.",
-  price: 94,
+  price: listing.price,
   stockStatus: "in_stock",
   imageSrc: PRODUCT_VIAL_IMAGE.src,
   imageAlt: PRODUCT_VIAL_IMAGE.alt,

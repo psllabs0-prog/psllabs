@@ -4,6 +4,7 @@ import { Check } from "lucide-react";
 
 import { AddToCartButton } from "@/components/commerce/AddToCartButton";
 import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
+import { formatPrice } from "@/lib/cart/format";
 import type { StockStatus } from "@/lib/products/stock";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +16,7 @@ type ProductPurchaseProps = {
   className?: string;
 };
 
-const purchaseTrustItems = ["Third-Party Tested", "COA Available"] as const;
+const purchaseTrustItems = ["Third-Party Tested", "COA Pending"] as const;
 
 export function ProductPurchase({
   productHandle,
@@ -35,10 +36,10 @@ export function ProductPurchase({
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-baseline gap-3">
           <span className="font-display text-4xl font-bold tracking-[-0.02em] text-ink">
-            ${totalPrice}
+            {formatPrice(totalPrice)}
           </span>
           {quantity > 1 && (
-            <span className="text-sm text-ash">${unitPrice} each</span>
+            <span className="text-sm text-ash">{formatPrice(unitPrice)} each</span>
           )}
         </div>
       </div>

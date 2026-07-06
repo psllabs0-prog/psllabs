@@ -1,5 +1,6 @@
 import { ProductVialImage } from "@/components/product/product-vial-image";
 import { PillButton } from "@/components/ui/pill-button";
+import { formatPrice } from "@/lib/cart/format";
 import type { CatalogProduct } from "@/lib/products/catalog";
 import { cn } from "@/lib/utils";
 
@@ -55,7 +56,7 @@ export function ProductCatalogCard({
         </div>
 
         <p className="mt-auto font-display text-3xl font-bold tracking-[-0.02em] text-ink">
-          ${product.price}
+          {formatPrice(product.price)}
         </p>
 
         <PillButton href={product.href} className="w-full">

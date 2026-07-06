@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
 import { useCart } from "@/components/cart/cart-provider";
@@ -11,6 +12,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { formatPrice } from "@/lib/cart/format";
 import { cn } from "@/lib/utils";
 
 function CartLineRow({
@@ -45,7 +47,9 @@ function CartLineRow({
               {line.name}
             </h3>
             <p className="mt-0.5 text-xs text-ash">{line.strength}</p>
-            <p className="mt-1 text-sm text-ash">${line.unitPrice} each</p>
+            <p className="mt-1 text-sm text-ash">
+              {formatPrice(line.unitPrice)} each
+            </p>
           </div>
           <button
             type="button"
@@ -79,7 +83,9 @@ function CartLineRow({
               <Plus className="size-3.5" strokeWidth={2} aria-hidden />
             </button>
           </div>
-          <p className="font-display text-lg font-bold text-ink">${lineTotal}</p>
+          <p className="font-display text-lg font-bold text-ink">
+            {formatPrice(lineTotal)}
+          </p>
         </div>
       </div>
     </article>
@@ -87,6 +93,7 @@ function CartLineRow({
 }
 
 export function CartDrawer() {
+  const router = useRouter();
   const {
     lines,
     isOpen,
@@ -101,6 +108,11 @@ export function CartDrawer() {
 
   const isEmpty = lines.length === 0;
 
+  function handleProceedToCheckout() {
+    closeCart();
+    router.push("/checkout");
+  }
+
   return (
     <Sheet
       open={isOpen}
@@ -111,6 +123,7 @@ export function CartDrawer() {
       <SheetContent
         side="right"
         showCloseButton
+        overlayClassName="bg-black/[0.03] backdrop-blur-none supports-backdrop-filter:backdrop-blur-none"
         className="flex w-full flex-col border-linen bg-paper p-0 shadow-[0_0_48px_rgba(37,99,235,0.12)] sm:max-w-md"
       >
         <SheetHeader className="border-b border-linen px-5 py-4 pr-14">
@@ -145,18 +158,21 @@ export function CartDrawer() {
                 ))}
               </div>
 
-              <div className="border-t border-linen bg-lab-white/80 px-5 py-5 backdrop-blur-sm">
+              <div className="border-t border-linen bg-lab-white px-5 py-5">
                 <dl className="flex flex-col gap-2 text-sm">
                   <div className="flex items-center justify-between text-ash">
                     <dt>Subtotal</dt>
-                    <dd className="font-medium text-ink">${subtotal}</dd>
+                    <dd className="font-medium text-ink">
+                      {formatPrice(subtotal)}
+                    </dd>
                   </div>
                   <div className="flex items-start justify-between gap-4 text-ash">
                     <dt>Shipping</dt>
                     <dd
                       className={cn(
                         "max-w-[14rem] text-right text-xs leading-relaxed md:text-sm",
-                        shippingDisplay.isFreeShipping && "text-verified-green font-medium"
+                        shippingDisplay.isFreeShipping &&
+                          "font-medium text-verified-green"
                       )}
                     >
                       {shippingDisplay.message}
@@ -167,18 +183,18 @@ export function CartDrawer() {
                       Estimated total
                     </dt>
                     <dd className="font-display text-xl font-bold text-ink">
-                      ${estimatedTotal}
+                      {formatPrice(estimatedTotal)}
                     </dd>
                   </div>
                 </dl>
 
-                <PillButton
-                  href="/checkout"
-                  onClick={closeCart}
-                  className="mt-5 w-full py-4 text-base"
+                <button
+                  type="button"
+                  onClick={handleProceedToCheckout}
+                  className="mt-5 inline-flex w-full items-center justify-center rounded-pill bg-ink px-6 py-4 text-base font-medium text-lab-white transition-opacity hover:opacity-90"
                 >
                   Proceed to Checkout
-                </PillButton>
+                </button>
               </div>
             </>
           )}

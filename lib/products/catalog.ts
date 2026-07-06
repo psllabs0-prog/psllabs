@@ -18,10 +18,10 @@ export const catalogProducts: CatalogProduct[] = [
     handle: "retatrutide",
     tag: "RESEARCH PEPTIDE",
     name: "Retatrutide",
-    strength: "Lyophilized · quantity per COA",
+    strength: "10mg",
     description:
-      "Lyophilized research peptide for laboratory and in vitro use. Every batch is identity-verified by independent HPLC with a published Certificate of Analysis matched to your vial lot number.",
-    price: 94,
+      "Lyophilized research peptide for laboratory and in vitro use. Every batch is identity-verified by independent HPLC with lot-specific documentation when available.",
+    price: 69.99,
     href: "/products/retatrutide",
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: PRODUCT_VIAL_IMAGE.alt,
@@ -31,4 +31,10 @@ export const catalogProducts: CatalogProduct[] = [
 
 export function getCatalogProducts(): CatalogProduct[] {
   return catalogProducts;
+}
+
+export function getCatalogProductByHandle(
+  handle: string
+): CatalogProduct | undefined {
+  return catalogProducts.find((product) => product.handle === handle);
 }

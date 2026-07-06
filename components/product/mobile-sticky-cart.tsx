@@ -1,6 +1,7 @@
 "use client";
 
 import { AddToCartButton } from "@/components/commerce/AddToCartButton";
+import { formatPrice } from "@/lib/cart/format";
 import type { StockStatus } from "@/lib/products/stock";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +26,9 @@ export function MobileStickyCart({
       <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
         <div className="min-w-0">
           <p className="truncate text-sm text-ash">{productName}</p>
-          <p className="font-display text-xl font-bold text-ink">${totalPrice}</p>
+          <p className="font-display text-xl font-bold text-ink">
+            {formatPrice(totalPrice)}
+          </p>
         </div>
         <AddToCartButton
           productId={productHandle}

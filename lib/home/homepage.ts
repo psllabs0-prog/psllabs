@@ -1,4 +1,5 @@
 import type { LabIllustrationId } from "@/components/illustrations/lab-illustrations";
+import { getCatalogProductByHandle } from "@/lib/products/catalog";
 import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
 
 export const heroCopy = {
@@ -54,7 +55,7 @@ export const whyChooseCards: WhyChooseCardData[] = [
     illustration: "batch-coa",
     title: "Batch-matched COAs",
     description:
-      "Every lot ships with a published Certificate of Analysis you can match to your vial label.",
+      "Lot-specific Certificates of Analysis are published when available.",
   },
   {
     illustration: "hplc",
@@ -99,14 +100,16 @@ export type FeaturedProductData = {
   imageAlt: string;
 };
 
+const retatrutideListing = getCatalogProductByHandle("retatrutide")!;
+
 export const featuredProduct: FeaturedProductData = {
-  handle: "retatrutide",
-  tag: "RESEARCH PEPTIDE",
-  name: "Retatrutide",
+  handle: retatrutideListing.handle,
+  tag: retatrutideListing.tag,
+  name: retatrutideListing.name,
   description:
     "Lyophilized Retatrutide for laboratory and research use. Batch-specific COA included. Not for human consumption.",
-  price: 94,
-  href: "/products/retatrutide",
-  imageSrc: PRODUCT_VIAL_IMAGE.src,
-  imageAlt: PRODUCT_VIAL_IMAGE.alt,
+  price: retatrutideListing.price,
+  href: retatrutideListing.href,
+  imageSrc: retatrutideListing.imageSrc,
+  imageAlt: retatrutideListing.imageAlt,
 };
