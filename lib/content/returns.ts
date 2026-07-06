@@ -1,42 +1,71 @@
-import type { ContentPageMeta, ContentSection } from "./types";
-
-export const returnsPageMeta: ContentPageMeta = {
-  label: "RETURNS",
-  title: "Returns & Guarantee",
-  description: "Our 60-day guarantee, return policy, and how to request a refund.",
-  intro: [
-    "We want you to have time to evaluate the protocol. First orders include a 60-day guarantee on your first bottle of each product.",
-  ],
+export const returnsPageMeta = {
+  title: "Returns & Refunds",
+  description:
+    "How to report damaged, incorrect, or documentation issues with PSL Labs orders.",
 };
 
-export const returnsSections: ContentSection[] = [
-  {
-    id: "guarantee",
-    title: "60-day guarantee (first order)",
-    paragraphs: [
-      "If your first bottle of any PSL product isn't right for you, contact us within 60 days of delivery for a full refund of that product—no lengthy questionnaires.",
-      "The guarantee applies once per product per customer (first order only).",
-    ],
+export const returnsPageContent = {
+  eyebrow: "Order Issue Policy",
+  title: "Returns & Refunds",
+  subtitle:
+    "If an order arrives damaged, incorrect, or has a verified documentation issue, contact PSL Labs with your order number and clear photos so the issue can be reviewed.",
+  badge: "Reviewed case-by-case",
+  protectionPolicy: {
+    title: "Damage / Issue Protection Policy",
+    body: "PSL Labs reviews order issues on a case-by-case basis. If an item arrives damaged in transit, incorrect, or does not match the available batch documentation, customers should contact support with clear photo evidence and their order number. Approved claims may be eligible for a one-time replacement or another resolution at PSL Labs' discretion.",
   },
-  {
-    id: "standard",
-    title: "Standard returns",
-    paragraphs: [
-      "Unopened products in original packaging may be returned within 30 days of delivery for a refund minus shipping costs. Opened products are not eligible for standard returns unless covered by the 60-day guarantee.",
-    ],
+  steps: [
+    {
+      step: 1,
+      title: "Document the Issue",
+      body: "Take clear photos of the product, packaging, label, and any visible damage or discrepancy as soon as the order arrives.",
+    },
+    {
+      step: 2,
+      title: "Contact Support",
+      body: "Email support@psllabs.org with your order number, photos, and a short description of the issue.",
+    },
+    {
+      step: 3,
+      title: "Review & Resolution",
+      body: "PSL Labs will review the claim and respond with next steps. Approved claims may be eligible for a replacement or other resolution.",
+    },
+  ],
+  eligible: [
+    "Products damaged during transit with clear photo evidence",
+    "Incorrect item received",
+    "Missing item from order",
+    "Product/documentation mismatch",
+    "Verified batch documentation issue",
+  ],
+  notEligible: [
+    "Claims without photo evidence",
+    "Products without proof of purchase",
+    "Products altered, opened, mishandled, or improperly stored after delivery",
+    "Change-of-mind returns",
+    "Requests made after the claim window",
+    "Suspicious, excessive, or unverifiable claims",
+  ],
+  timeline: [
+    {
+      label: "Issue submitted",
+      body: "Customer emails support@psllabs.org with photos and order number.",
+    },
+    {
+      label: "Claim reviewed",
+      body: "Most claims are reviewed within 1–3 business days.",
+    },
+    {
+      label: "Resolution provided",
+      body: "If approved, PSL Labs will provide the next steps for replacement or another resolution.",
+    },
+  ],
+  disclaimer:
+    "All claims are subject to review and may be denied if evidence is incomplete, unverifiable, or inconsistent with the policy. PSL Labs reserves the right to deny excessive, suspicious, or unsupported claims. This policy does not override any applicable laws, carrier policies, or product-specific restrictions.",
+  cta: {
+    title: "Need help with an order?",
+    buttonLabel: "Contact Support",
+    buttonHref: "/contact",
+    note: "Please include your order number and clear photos when contacting support.",
   },
-  {
-    id: "process",
-    title: "How to start a return",
-    paragraphs: [
-      "Email support@psllabs.org with your order number and reason. We will provide return instructions if applicable. Refunds are processed to your original payment method within 5–10 business days of receiving the return or approving a guarantee claim.",
-    ],
-  },
-  {
-    id: "exclusions",
-    title: "Exclusions",
-    paragraphs: [
-      "We cannot accept returns of products purchased through unauthorized resellers. Damaged products should be reported within 14 days of delivery with photos.",
-    ],
-  },
-];
+} as const;

@@ -45,12 +45,12 @@ export const siteFaqItems: SiteFaqItem[] = [
     id: "returns",
     question: "What is your return policy?",
     answer:
-      "Unopened products in original condition may be returned within 30 days of delivery. See our Returns page for eligibility and instructions.",
+      "Order issues such as transit damage, incorrect items, or documentation mismatches are reviewed case-by-case. Email support@psllabs.org with your order number and photos. See our Returns page for full details.",
   },
   {
     id: "payments",
     question: "What payment methods do you accept?",
     answer:
-      "Checkout is processed via cryptocurrency through our secure payment partner. You will receive order confirmation and tracking once payment is confirmed.",
+      "Checkout is processed via Bitcoin through BTCPay Server. You will receive order confirmation and tracking once payment is confirmed.",
   },
 ];

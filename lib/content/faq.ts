@@ -42,9 +42,9 @@ export const faqCategories: FaqCategory[] = [
     title: "Orders",
     items: [
       {
-        question: "Do you offer a guarantee?",
+        question: "What if my order arrives damaged or incorrect?",
         answer:
-          "Every first order includes a 60-day guarantee. If the product isn't right for you, contact us within 60 days of delivery for a refund on your first bottle of each SKU.",
+          "Order issues such as transit damage, incorrect items, or documentation mismatches are reviewed case-by-case. Email support@psllabs.org with your order number and clear photos. See our Returns page for full details.",
       },
     ],
   },
@@ -81,7 +81,7 @@ export const faqCategories: FaqCategory[] = [
       {
         question: "What is your return policy?",
         answer:
-          "Unopened products may be returned within 30 days of delivery. First-time customers also have our 60-day guarantee on their first bottle of each product. See our Returns page for full details.",
+          "Order issues are reviewed case-by-case when reported with order number and photo evidence. Change-of-mind returns are not accepted. See our Returns page for eligibility and instructions.",
       },
     ],
   },

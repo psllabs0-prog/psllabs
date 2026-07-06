@@ -53,6 +53,7 @@ export const footerColumns: { title: string; links: NavLink[] }[] = [
     links: [
       { label: "Terms", href: "/terms" },
       { label: "Privacy", href: "/privacy" },
+      { label: "Disclaimer", href: "/disclaimer" },
     ],
   },
 ];
