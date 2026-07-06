@@ -6,8 +6,8 @@ import { SectionShell } from "./section-shell";
 export function ProductHowToUse({ product }: { product: Product }) {
   return (
     <SectionShell
-      label="HOW TO USE"
-      title="Three steps. One protocol."
+      label="DOCUMENTATION"
+      title="Review before laboratory use."
       variant="paper"
       width="content"
     >

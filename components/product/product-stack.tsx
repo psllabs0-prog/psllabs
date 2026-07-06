@@ -14,7 +14,7 @@ export function ProductStack({
 }) {
   return (
     <SectionShell
-      label="THE STACK POSITION"
+      label="RELATED MATERIALS"
       variant="paper"
       width="content"
     >

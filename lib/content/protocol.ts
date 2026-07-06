@@ -1,12 +1,12 @@
 import type { ContentPageMeta, ContentSection } from "./types";
 
 export const protocolPageMeta: ContentPageMeta = {
-  label: "THE PROTOCOL",
-  title: "Three compounds. One daily rhythm.",
+  label: "CATALOG REFERENCE",
+  title: "Compound profiles and documentation.",
   description:
-    "How to use the PSL stack—timing, stacking order, and what to expect.",
+    "How PSL Labs organizes research compound profiles, testing records, and batch documentation.",
   intro: [
-    "The protocol is intentionally simple. Complexity belongs in the formulation and the evidence—not in your morning routine.",
+    "PSL Labs groups related compound profiles for reference and documentation purposes. All materials are sold for laboratory research use only—not for human consumption or medical application.",
   ],
 };
 
@@ -15,40 +15,40 @@ export const protocolSections: ContentSection[] = [
     id: "overview",
     title: "Overview",
     paragraphs: [
-      "PSL is a three-part daily protocol: Foundation every morning, Cellular Energy every morning (with Foundation), Recovery every evening. Each product targets a distinct mechanism. Together, they cover base-layer signaling, NAD+ maintenance, and mitochondrial function.",
-      "You do not need to start all three at once. Most users begin with Foundation for 4–8 weeks, then add Cellular Energy, then Recovery.",
+      "The PSL catalog includes compound reference profiles organized by research area: Foundation (multi-compound base profile), Cellular Energy (NAD+ pathway materials), and Recovery (mitochondrial research compounds). Each profile lists disclosed actives, published citations, and batch-matched testing records.",
+      "Products can be reviewed independently. Select materials based on your laboratory requirements and verify lot documentation before use.",
     ],
   },
   {
     id: "foundation",
-    title: "Foundation — morning",
+    title: "Foundation — compound profile",
     paragraphs: [
-      "Take 2 capsules with your first meal containing fat. Same time daily. Foundation is the base layer: resveratrol, spermidine, fisetin, and methylated B vitamins.",
-      "If you experience GI sensitivity, split the dose: 1 capsule with breakfast, 1 with lunch.",
+      "Foundation documents trans-resveratrol, spermidine, fisetin, and methylated B vitamins at disclosed doses with per-ingredient mechanisms and batch COAs.",
+      "Review the lot-specific Certificate of Analysis and reference citations before integrating into any research workflow.",
     ],
   },
   {
     id: "cellular-energy",
-    title: "Cellular Energy — morning",
+    title: "Cellular Energy — NAD+ pathway",
     paragraphs: [
-      "Take 2 capsules with Foundation at your first meal. NMN, NR, and TMG are dosed together to support NAD+ pathways and methylation balance.",
-      "Do not take Cellular Energy in the evening if you are sensitive to daytime NAD+ precursors affecting sleep.",
+      "Cellular Energy documents NMN, NR, and TMG at disclosed doses referenced in NAD+ pathway research literature.",
+      "Batch identity, potency, and contaminant results are published per lot on the product page and in the Testing section.",
     ],
   },
   {
     id: "recovery",
-    title: "Recovery — evening",
+    title: "Recovery — mitochondrial compounds",
     paragraphs: [
-      "Take 2 capsules with dinner or your last meal. Recovery targets mitochondrial function with urolithin A, ubiquinol, and PQQ—separated from morning compounds by design.",
-      "Consistency over 8–12 weeks matters more than perfect timing to the minute.",
+      "Recovery documents urolithin A, ubiquinol, and PQQ at disclosed doses cited in mitochondrial research publications.",
+      "Match your lot number to the published COA and confirm specifications meet your laboratory requirements.",
     ],
   },
   {
-    id: "what-to-expect",
-    title: "What to expect",
+    id: "documentation",
+    title: "Documentation standards",
     paragraphs: [
-      "We do not promise specific outcomes. Cellular mechanisms operate on long timescales. The protocol is built for years of daily use, not a 30-day transformation.",
-      "Track consistency, not daily subjective changes. If you stop for more than a week, resume at full dose when you restart—do not double up to catch up.",
+      "Every batch receives independent third-party testing before release. Full Certificates of Analysis are published within 48 hours of batch release—linked from each product page.",
+      "For institutional requests or documentation questions, contact support@psllabs.org with your lot number.",
     ],
   },
 ];

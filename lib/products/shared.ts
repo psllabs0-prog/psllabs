@@ -1,9 +1,9 @@
 import type { Product } from "./types";
 
 export const defaultBullets = [
-  "60 capsules / 30-day supply",
-  "60-day guarantee",
-  "Free US shipping over $60",
+  "Independent third-party testing",
+  "Batch-matched COA published",
+  "Research use only",
 ] as const;
 
 export function getOtherProducts(handle: string, catalog: Record<string, Product>): Product[] {

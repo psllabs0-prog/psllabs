@@ -6,51 +6,51 @@ export const recovery: Product = {
   tag: "RECOVERY · MITOCHONDRIA",
   name: "Recovery",
   shortDescription:
-    "Urolithin A, ubiquinol, and PQQ. The evening layer for mitochondrial function and cellular energy production.",
+    "Reference profile for urolithin A, ubiquinol, and PQQ—mitochondrial research compounds at disclosed doses cited in published studies.",
   price: 84,
   stockStatus: "in_stock",
-  stackRole: "Mitochondrial layer · evening",
+  stackRole: "Compound profile · research reference",
   whyThisExists:
-    "Mitochondrial function declines with age, yet most \"mito\" supplements combine under-dosed CoQ10 with marketing ingredients and no disclosed amounts. Recovery targets three mechanisms—mitophagy signaling, electron transport support, and mitochondrial biogenesis—at doses referenced in published research.",
+    "Mitochondrial research often involves multiple cofactors, but many listings combine under-dosed actives without per-compound disclosure. Recovery publishes urolithin A, ubiquinol, and PQQ at documented amounts with batch-matched testing records for laboratory reference.",
   bullets: [...defaultBullets],
   ingredients: [
     {
       name: "Urolithin A",
       dose: "500 mg",
       mechanism:
-        "Postbiotic compound studied for induction of mitophagy—the selective recycling of damaged mitochondria—in human trials.",
+        "Postbiotic compound studied for induction of mitophagy—the selective recycling of damaged mitochondria—in published research models.",
     },
     {
       name: "Ubiquinol (Kaneka QH)",
       dose: "200 mg",
       mechanism:
-        "Reduced form of CoQ10 that supports electron transport in the mitochondrial inner membrane and acts as a lipid-soluble antioxidant.",
+        "Reduced form of CoQ10 referenced in electron transport and mitochondrial membrane research.",
     },
     {
       name: "Pyrroloquinoline quinone (PQQ)",
       dose: "20 mg",
       mechanism:
-        "Cofactor studied for effects on mitochondrial biogenesis signaling pathways in preclinical and human supplementation research.",
+        "Cofactor studied for effects on mitochondrial biogenesis signaling pathways in preclinical and published reference studies.",
     },
   ],
   howToUse: [
     {
       step: 1,
-      title: "Evening dose",
+      title: "Review lot documentation",
       description:
-        "Take 2 capsules with dinner or your last meal. Evening timing separates mitochondrial support from morning NAD+ and base-layer compounds.",
+        "Match the lot number on your label to the batch-specific Certificate of Analysis before integrating into any laboratory workflow.",
     },
     {
       step: 2,
-      title: "Pair with morning stack",
+      title: "Verify specifications",
       description:
-        "Recovery works best as the third layer: Foundation + Cellular Energy in the morning, Recovery at night. Allow 2–4 weeks of consistent use before evaluating.",
+        "Confirm identity, potency, and contaminant results meet your requirements. Contact support@psllabs.org for institutional requests.",
     },
     {
       step: 3,
-      title: "Training days",
+      title: "Handle per research protocols",
       description:
-        "Some users take Recovery post-exercise on training days. Maintain daily consistency regardless of activity level for baseline mitochondrial support.",
+        "Store and handle according to institutional SOPs and product storage guidance. For laboratory research use only.",
     },
   ],
   citations: [
@@ -65,8 +65,7 @@ export const recovery: Product = {
     },
     {
       authors: "López-Lluch G, Del Rosario PM, Sainz RM, et al.",
-      title:
-        "Coenzyme Q supplementation in aging and disease.",
+      title: "Coenzyme Q supplementation in aging and disease.",
       journal: "Frontiers in Physiology",
       year: 2018,
       volume: "9",
@@ -93,29 +92,29 @@ export const recovery: Product = {
   ],
   faqs: [
     {
-      question: "Why take Recovery at night?",
+      question: "What documentation is available for Recovery?",
       answer:
-        "Evening dosing separates mitochondrial renewal from morning NAD+ and base-layer compounds. It also fits a natural wind-down rhythm for users who train or work during the day.",
-    },
-    {
-      question: "Do I need the full stack?",
-      answer:
-        "Recovery is designed as Step 3 of the PSL protocol. It can be used alone, but the three products address complementary mechanisms—signaling, NAD+, and mitochondria.",
+        "Each lot includes a published Certificate of Analysis with identity, potency, and contaminant panel results from an independent accredited laboratory.",
     },
     {
       question: "Is ubiquinol the same as CoQ10?",
       answer:
-        "Ubiquinol is the reduced, bioactive form of CoQ10. We use ubiquinol rather than ubiquinone for direct mitochondrial membrane availability at the dose listed.",
+        "Ubiquinol is the reduced form of CoQ10. Recovery lists ubiquinol at a disclosed dose for research reference and batch documentation.",
     },
     {
       question: "Where does urolithin A come from?",
       answer:
-        "Our urolithin A is synthetically produced to pharmaceutical-grade purity—not reliant on individual gut microbiome conversion from ellagitannins, which varies widely between people.",
+        "Our urolithin A is synthetically produced to documented purity specifications—not reliant on variable microbiome conversion from ellagitannin precursors.",
+    },
+    {
+      question: "Is Recovery intended for human use?",
+      answer:
+        "No. Recovery is sold for laboratory research, analytical, and educational reference only. It is not intended for human consumption, medical use, or therapeutic application.",
     },
     {
       question: "How is each batch verified?",
       answer:
-        "Independent third-party testing for identity, potency, and heavy metals. Full Certificates of Analysis published for every lot—same transparency standard across PSL.",
+        "Independent third-party testing for identity, potency, and heavy metals. Full Certificates of Analysis are published for every lot.",
     },
   ],
   testing: {
@@ -123,5 +122,7 @@ export const recovery: Product = {
       "Recovery undergoes the same third-party verification pipeline as every PSL product. No batch ships without passing identity, potency, and contaminant thresholds.",
   },
   stackBlurb:
-    "Recovery is Step 3—the evening mitochondrial layer. Pair with Foundation (morning base) and Cellular Energy (NAD+ support) for the complete daily protocol.",
+    "Recovery covers mitochondrial research compounds in the PSL catalog. See Foundation for base-layer profiles and Cellular Energy for NAD+ pathway reference materials.",
+  researchDisclaimer:
+    "Recovery is provided for laboratory research and educational reference only. Not for human consumption, medical use, or therapeutic application.",
 };

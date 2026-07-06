@@ -32,7 +32,11 @@ export function ProductTemplate({
         <ProductHowToUse product={product} />
         <ProductResearch product={product} />
         <ProductFaqSection product={product} />
-        <ProductDisclaimer />
+        {product.researchDisclaimer ? (
+          <ProductDisclaimer>{product.researchDisclaimer}</ProductDisclaimer>
+        ) : (
+          <ProductDisclaimer />
+        )}
         <MobileStickyCart
           productHandle={product.handle}
           productName={product.name}

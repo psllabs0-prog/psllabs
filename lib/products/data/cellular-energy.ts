@@ -6,19 +6,19 @@ export const cellularEnergy: Product = {
   tag: "CELLULAR ENERGY · NAD+",
   name: "Cellular Energy",
   shortDescription:
-    "NMN and NR with TMG for methylation support. Formulated for NAD+ pathway maintenance as levels decline with age.",
+    "Reference profile for NMN, NR, and TMG—NAD+ pathway precursors and methylation cofactors at disclosed doses cited in published research.",
   price: 68,
   stockStatus: "in_stock",
-  stackRole: "NAD+ layer · morning with Foundation",
+  stackRole: "Compound profile · research reference",
   whyThisExists:
-    "NAD+ declines with age, and most precursor supplements either hide doses behind blends or pair NMN/NR without methylation support. Cellular Energy combines two well-studied precursors with TMG (trimethylglycine) to support the methylation cycle while NAD+ pools are replenished.",
+    "NAD+ pathway research often involves multiple precursors and methylation cofactors, but many listings omit doses or pair compounds without documentation. Cellular Energy publishes NMN, NR, and TMG at disclosed amounts with batch-matched testing records for laboratory reference.",
   bullets: [...defaultBullets],
   ingredients: [
     {
       name: "Nicotinamide mononucleotide (NMN)",
       dose: "500 mg",
       mechanism:
-        "Direct NAD+ precursor studied in human supplementation trials for effects on blood NAD+ metabolite levels.",
+        "NAD+ precursor studied in published trials for effects on blood NAD+ metabolite levels in research contexts.",
     },
     {
       name: "Nicotinamide riboside (NR)",
@@ -30,27 +30,27 @@ export const cellularEnergy: Product = {
       name: "Trimethylglycine (TMG)",
       dose: "500 mg",
       mechanism:
-        "Methyl donor that supports homocysteine remethylation during high-dose NAD+ precursor supplementation.",
+        "Methyl donor referenced in homocysteine remethylation studies involving high-dose NAD+ precursor research models.",
     },
   ],
   howToUse: [
     {
       step: 1,
-      title: "Morning stack",
+      title: "Review lot documentation",
       description:
-        "Take 2 capsules with Foundation at your first meal. NAD+ precursors are typically dosed earlier in the day.",
+        "Match the lot number on your label to the batch-specific Certificate of Analysis before integrating into any laboratory workflow.",
     },
     {
       step: 2,
-      title: "Consistent timing",
+      title: "Verify specifications",
       description:
-        "Daily consistency supports stable NAD+ metabolite patterns. Avoid skipping multiple days between doses when establishing a baseline.",
+        "Confirm identity, potency, and contaminant results meet your requirements. Contact support@psllabs.org for additional documentation.",
     },
     {
       step: 3,
-      title: "Add Recovery at night",
+      title: "Handle per research protocols",
       description:
-        "Cellular Energy supports NAD+ pools. Recovery (evening) addresses mitochondrial biogenesis—the complementary evening layer of the stack.",
+        "Store and handle according to institutional SOPs and product storage guidance. For laboratory research use only.",
     },
   ],
   citations: [
@@ -73,8 +73,7 @@ export const cellularEnergy: Product = {
     },
     {
       authors: "Schultz MB, Sinclair DA.",
-      title:
-        "Why NAD+ declines during aging: it's destroyed.",
+      title: "Why NAD+ declines during aging: it's destroyed.",
       journal: "Cell Metabolism",
       year: 2016,
       volume: "23",
@@ -82,8 +81,7 @@ export const cellularEnergy: Product = {
     },
     {
       authors: "Levine ME, Lu AT, Bennett DA, et al.",
-      title:
-        "Methylation-based biomarkers of aging and lifestyle factors.",
+      title: "Methylation-based biomarkers of aging and lifestyle factors.",
       journal: "Aging",
       year: 2020,
       volume: "12",
@@ -92,35 +90,37 @@ export const cellularEnergy: Product = {
   ],
   faqs: [
     {
-      question: "Why both NMN and NR?",
+      question: "Why are both NMN and NR included?",
       answer:
-        "They use complementary conversion pathways to NAD+. We include both at disclosed doses rather than forcing a single-precursor choice without data on your individual response.",
+        "They use complementary conversion pathways to NAD+ in published research. Both are listed at disclosed doses for reference and documentation purposes.",
     },
     {
       question: "Why is TMG included?",
       answer:
-        "High-dose NAD+ precursors can increase demand on methylation pathways. TMG (betaine) donates methyl groups and supports homocysteine metabolism during supplementation.",
+        "High-dose NAD+ precursor research models show increased demand on methylation pathways. TMG is included as a documented methyl donor referenced in the literature.",
     },
     {
-      question: "Can I take this without Foundation?",
+      question: "Is Cellular Energy intended for human use?",
       answer:
-        "Yes, but the PSL protocol is designed as a stack. Foundation provides the daily base layer; Cellular Energy targets NAD+ specifically. Most users start with Foundation, then add this product.",
+        "No. Cellular Energy is sold for laboratory research, analytical, and educational reference only. It is not intended for human consumption, medical use, or therapeutic application.",
     },
     {
-      question: "Will this affect my sleep?",
+      question: "How is each batch tested?",
       answer:
-        "Some individuals report sensitivity to NAD+ precursors taken late in the day. We recommend morning dosing with food. Adjust timing if you notice sleep disruption.",
+        "Third-party verification for identity, potency, and heavy metals. Full COAs are published per lot—the same standard as every PSL product.",
     },
     {
-      question: "How do you test each batch?",
+      question: "Where can I find the COA for my lot?",
       answer:
-        "Third-party verification for identity, potency, and heavy metals. Full COAs are published per lot—same standard as every PSL product.",
+        "Batch-specific Certificates of Analysis are published on this product page and in the Testing section. Match your vial lot number to the corresponding report.",
     },
   ],
   testing: {
     description:
-      "Cellular Energy batches are verified by independent third-party laboratories before any unit ships. We test what matters: identity, label potency, and contaminant panels.",
+      "Cellular Energy batches are verified by independent third-party laboratories before release. Identity, label potency, and contaminant panels are tested against specifications.",
   },
   stackBlurb:
-    "Cellular Energy is Step 2—morning NAD+ support paired with Foundation. Add Recovery in the evening for mitochondrial function to complete the protocol.",
+    "Cellular Energy covers NAD+ pathway reference compounds in the PSL catalog. See Foundation for base-layer compound profiles and Recovery for mitochondrial research materials.",
+  researchDisclaimer:
+    "Cellular Energy is provided for laboratory research and educational reference only. Not for human consumption, medical use, or therapeutic application.",
 };

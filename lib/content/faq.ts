@@ -4,36 +4,36 @@ export const faqPageMeta: ContentPageMeta = {
   label: "FAQ",
   title: "Common questions.",
   description:
-    "Answers about the PSL stack, orders, testing, and shipping.",
+    "Answers about orders, testing, shipping, and research-use policies.",
   intro: [
-    "Straight answers—no proprietary blends, no hand-waving. If you don't see your question here, reach out at support@psllabs.org.",
+    "Straight answers about orders, testing, shipping, and research-use policies. If you don't see your question here, reach out at support@psllabs.org.",
   ],
 };
 
 export const faqCategories: FaqCategory[] = [
   {
-    id: "stack",
-    title: "The Stack",
+    id: "products",
+    title: "Products & Documentation",
     items: [
       {
-        question: "What is the PSL stack?",
+        question: "What products does PSL Labs offer?",
         answer:
-          "Three products designed to work together: Foundation (daily base layer), Cellular Energy (NAD+ support, morning), and Recovery (mitochondrial function, evening). Each discloses every dose. You can start with Foundation alone and add the others when ready.",
+          "PSL Labs publishes research compound profiles with disclosed ingredients, batch-matched Certificates of Analysis, and reference citations. See the product catalog for current listings including Retatrutide and compound reference profiles.",
       },
       {
-        question: "Can I take only one product?",
+        question: "Are ingredient amounts fully disclosed?",
         answer:
-          "Yes. Foundation is designed to stand alone. Cellular Energy and Recovery address specific mechanisms and are most useful as part of the full protocol—but there is no requirement to buy all three.",
+          "Yes. Every active and dose appears on the label, product page, and batch COA. We do not use proprietary blends or undisclosed complexes.",
       },
       {
-        question: "How long before I notice anything?",
+        question: "Where can I find batch documentation?",
         answer:
-          "We don't make outcome promises—that's intentional. Longevity compounds work on cellular timescales. Most users evaluate over 8–12 weeks of consistent daily use, not days.",
+          "COAs are published on each product page and in our Testing section. Match the lot number on your label to the corresponding batch report.",
       },
       {
-        question: "Are these proprietary blends?",
+        question: "Can I request additional documentation?",
         answer:
-          "No. Every ingredient and dose is on the label, this site, and every Certificate of Analysis. We do not use proprietary blends.",
+          "Contact support@psllabs.org with your lot number for institutional or compliance documentation requests.",
       },
     ],
   },
@@ -86,18 +86,18 @@ export const faqCategories: FaqCategory[] = [
     ],
   },
   {
-    id: "safety",
-    title: "Safety & Medical",
+    id: "research-use",
+    title: "Research Use",
     items: [
       {
-        question: "Should I talk to my doctor before taking these?",
+        question: "Are PSL Labs products intended for human use?",
         answer:
-          "If you take prescription medications, are pregnant or nursing, or have a medical condition, consult your physician before starting any supplement protocol.",
+          "No. PSL Labs products and materials are sold strictly for laboratory research, analytical, and educational reference purposes. They are not intended for human consumption, medical use, or therapeutic application.",
       },
       {
         question: "Are these FDA approved?",
         answer:
-          "Dietary supplements are not approved by the FDA in the same way drugs are. Our products are manufactured in cGMP-certified facilities and tested by third-party laboratories. Structure/function claims include the required FDA disclaimer on every product page.",
+          "PSL Labs materials are not FDA-approved drugs, dietary supplements, or medical devices. Product information and testing summaries are provided for research documentation and reference only.",
       },
     ],
   },

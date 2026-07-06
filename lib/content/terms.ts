@@ -19,10 +19,11 @@ export const termsSections: ContentSection[] = [
   },
   {
     id: "products",
-    title: "Products and supplements",
+    title: "Research use only",
     paragraphs: [
-      "PSL Labs sells dietary supplements. Our products are not intended to diagnose, treat, cure, or prevent any disease. Statements on this site have not been evaluated by the Food and Drug Administration.",
-      "You are responsible for consulting a healthcare provider before use, especially if you take medications, are pregnant or nursing, or have a medical condition.",
+      "Products, materials, documentation, and related information provided by PSL Labs are intended solely for laboratory research, analytical, and educational reference purposes. They are not intended for human consumption, medical use, therapeutic use, diagnostic use, veterinary use, dietary use, cosmetic use, or use as food, drugs, or supplements.",
+      "Statements on this site have not been evaluated by the Food and Drug Administration. Nothing on this site constitutes medical advice, usage guidance, or a recommendation for personal or clinical application.",
+      "By purchasing from PSL Labs, you represent that you are qualified to handle research materials under applicable laws and institutional requirements, and that your use will be limited to lawful laboratory research and reference purposes.",
     ],
   },
   {
@@ -50,7 +51,7 @@ export const termsSections: ContentSection[] = [
     id: "governing-law",
     title: "Governing law",
     paragraphs: [
-      "These terms are governed by the laws of the State of Delaware, without regard to conflict of law principles. Disputes shall be resolved in courts located in Delaware.",
+      "These Terms are governed by the laws of the State of Arizona, without regard to conflict of law principles.",
     ],
   },
 ];

@@ -1,26 +1,36 @@
-import { PillButton } from "@/components/ui/pill-button";
 import { AnimateIn } from "@/components/product/animate-in";
+import { PillButton } from "@/components/ui/pill-button";
+import type { AboutContent } from "@/lib/about";
+import { cn } from "@/lib/utils";
 
-export function AboutCta() {
+const cardClass =
+  "rounded-2xl border border-linen bg-lab-white p-6 shadow-[0_2px_16px_rgba(26,77,109,0.06)] md:p-8";
+
+type AboutClosingProps = {
+  closing: AboutContent["closing"];
+};
+
+export function AboutClosing({ closing }: AboutClosingProps) {
   return (
-    <section className="border-t border-linen px-6 py-16 md:px-16 md:py-20 lg:px-24">
-      <AnimateIn className="mx-auto flex max-w-[720px] flex-col items-center gap-8 text-center">
-        <div className="flex flex-col gap-4">
-          <h2 className="font-display text-2xl font-bold text-ink md:text-3xl">
-            Ready to verify your next batch?
+    <section className="border-t border-linen px-6 py-16 md:px-16 md:py-24 lg:px-24 lg:py-28">
+      <AnimateIn className="mx-auto flex max-w-[960px] flex-col gap-10 md:gap-12">
+        <article className={cn(cardClass, "flex flex-col gap-4 text-center md:gap-5")}>
+          <h2 className="font-display text-display-md font-bold text-ink">
+            {closing.title}
           </h2>
-          <p className="text-base leading-relaxed text-ash md:text-lg">
-            Browse our research catalog or review our full testing documentation
-            before you order.
+          <p className="mx-auto max-w-2xl text-base leading-relaxed text-ash md:text-body-lg">
+            {closing.body}
           </p>
-        </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        </article>
+
+        <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
           <PillButton href="/products">Browse products</PillButton>
           <PillButton href="/testing" variant="secondary">
             Testing standards
           </PillButton>
         </div>
-        <p className="text-sm leading-relaxed text-ash">
+
+        <p className="text-center text-sm leading-relaxed text-ash">
           All products are sold strictly for laboratory and research use only.
           Not for human or animal consumption.
         </p>

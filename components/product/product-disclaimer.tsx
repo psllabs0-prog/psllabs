@@ -8,9 +8,11 @@ export function ProductDisclaimer({ children }: ProductDisclaimerProps) {
       <p className="mx-auto max-w-[720px] text-sm leading-relaxed text-ash">
         {children ?? (
           <>
-            These statements have not been evaluated by the Food and Drug
-            Administration. This product is not intended to diagnose, treat,
-            cure, or prevent any disease.
+            PSL Labs products are sold strictly for laboratory and research use
+            only. They are not intended for human or animal consumption,
+            diagnosis, treatment, cure, or prevention of any disease. These
+            statements have not been evaluated by the Food and Drug
+            Administration.
           </>
         )}
       </p>
