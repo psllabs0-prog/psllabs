@@ -3,7 +3,6 @@
 import { Check } from "lucide-react";
 
 import { AddToCartButton } from "@/components/commerce/AddToCartButton";
-import { BitcoinIcon } from "@/components/commerce/bitcoin-icon";
 import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
 import type { StockStatus } from "@/lib/products/stock";
 import { cn } from "@/lib/utils";
@@ -80,11 +79,11 @@ export function ProductPurchase({
           disabled={isOutOfStock}
           className={cn(isOutOfStock && "opacity-60")}
         >
-          {isOutOfStock ? "Out of Stock" : "Pay with Bitcoin"}
+          {isOutOfStock ? "Out of Stock" : "Add to Cart"}
         </AddToCartButton>
 
         <p className="text-xs leading-relaxed text-ash">
-          Bitcoin payments are processed through BTCPay Server.
+          Items are saved to your cart for review at checkout.
         </p>
 
         <ul className="flex flex-col gap-2.5">
@@ -102,13 +101,6 @@ export function ProductPurchase({
             </li>
           ))}
         </ul>
-
-        <div className="pt-1">
-          <span className="inline-flex items-center gap-1.5 rounded-pill border border-linen bg-paper/50 px-3 py-1 text-xs text-ash">
-            <BitcoinIcon className="size-3" />
-            Bitcoin accepted
-          </span>
-        </div>
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-
+import { useCart } from "@/components/cart/cart-provider";
 import { cn } from "@/lib/utils";
 
 type AddToCartButtonProps = {
@@ -21,36 +20,11 @@ export function AddToCartButton({
   disabled = false,
   children,
 }: AddToCartButtonProps) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { addItem } = useCart();
 
-  async function handleCheckout() {
+  function handleAddToCart() {
     if (disabled) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId,
-          quantity,
-        }),
-      });
-
-      const data = (await res.json()) as { url?: string; error?: string };
-
-      if (!res.ok || !data.url) {
-        throw new Error(data.error ?? "Failed to create checkout session");
-      }
-
-      window.location.href = data.url;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setLoading(false);
-    }
+    addItem(productId, quantity);
   }
 
   const baseStyles =
@@ -59,23 +33,18 @@ export function AddToCartButton({
   const variantStyles =
     variant === "primary"
       ? "w-full px-6 py-3.5 text-base"
-      : "shrink-0 px-6 py-3 text-sm";
+      : "shrink-0 px-6 py-3.5 text-sm min-h-[44px]";
 
   return (
     <div className={cn("flex flex-col", className)}>
       <button
         type="button"
-        onClick={handleCheckout}
-        disabled={disabled || loading}
+        onClick={handleAddToCart}
+        disabled={disabled}
         className={cn(baseStyles, variantStyles)}
       >
-        {loading
-          ? "Redirecting…"
-          : children ?? "Pay with Bitcoin"}
+        {children ?? "Add to Cart"}
       </button>
-      {error && (
-        <p className="mt-2 text-xs text-signal">{error}</p>
-      )}
     </div>
   );
 }

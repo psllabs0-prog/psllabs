@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu, ShoppingBag } from "lucide-react";
+import { Menu } from "lucide-react";
 
+import { CartIconButton } from "@/components/cart/cart-icon-button";
 import { NavLinkItem } from "@/components/layout/nav-link";
 import {
   Sheet,
@@ -13,30 +14,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { primaryNavLinks } from "@/lib/navigation";
-import { cn } from "@/lib/utils";
-
-function IconButton({
-  label,
-  children,
-  className,
-}: {
-  label: string;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      className={cn(
-        "inline-flex size-10 items-center justify-center text-ink transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-petrol",
-        className
-      )}
-    >
-      {children}
-    </button>
-  );
-}
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -46,7 +23,7 @@ export function Header() {
       <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-6 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:px-24">
         <Link
           href="/"
-          className="font-display shrink-0 text-lg font-bold tracking-[-0.03em] text-ink transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-petrol"
+          className="font-display shrink-0 text-lg font-bold tracking-[-0.03em] text-ink transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-blue"
         >
           PSL Labs
         </Link>
@@ -61,16 +38,14 @@ export function Header() {
         </nav>
 
         <div className="flex items-center justify-end gap-1 lg:col-start-3">
-          <IconButton label="Cart (placeholder)">
-            <ShoppingBag className="size-5" strokeWidth={1.25} aria-hidden />
-          </IconButton>
+          <CartIconButton />
 
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger
-              className="inline-flex size-10 items-center justify-center text-ink transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-petrol lg:hidden"
+              className="inline-flex size-11 items-center justify-center rounded-lg text-ink transition-colors duration-200 ease-out hover:bg-soft-blue/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-blue lg:hidden"
               aria-label="Open menu"
             >
-              <Menu className="size-5" strokeWidth={1.25} aria-hidden />
+              <Menu className="size-6" strokeWidth={1.35} aria-hidden />
             </SheetTrigger>
             <SheetContent
               side="right"

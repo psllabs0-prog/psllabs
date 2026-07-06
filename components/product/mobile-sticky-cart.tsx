@@ -34,7 +34,7 @@ export function MobileStickyCart({
           disabled={isOutOfStock}
           className={cn(isOutOfStock && "opacity-60")}
         >
-          {isOutOfStock ? "Out of Stock" : "Pay with Bitcoin"}
+          {isOutOfStock ? "Out of Stock" : "Add to Cart"}
         </AddToCartButton>
       </div>
     </div>
