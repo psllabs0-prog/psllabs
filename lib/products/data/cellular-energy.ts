@@ -8,7 +8,6 @@ export const cellularEnergy: Product = {
   shortDescription:
     "NMN and NR with TMG for methylation support. Formulated for NAD+ pathway maintenance as levels decline with age.",
   price: 68,
-  subscribePrice: 58,
   stockStatus: "in_stock",
   stackRole: "NAD+ layer · morning with Foundation",
   whyThisExists:
@@ -121,12 +120,6 @@ export const cellularEnergy: Product = {
   testing: {
     description:
       "Cellular Energy batches are verified by independent third-party laboratories before any unit ships. We test what matters: identity, label potency, and contaminant panels.",
-    highlights: [
-      "NMN and NR identity verified by HPLC",
-      "TMG potency confirmed at label claim",
-      "Heavy metals panel per batch",
-      "Published COA for every lot number",
-    ],
   },
   stackBlurb:
     "Cellular Energy is Step 2—morning NAD+ support paired with Foundation. Add Recovery in the evening for mitochondrial function to complete the protocol.",

@@ -38,7 +38,7 @@ export function LabPhotoPanel({ photo, className, priority }: LabPhotoPanelProps
   return (
     <figure
       className={cn(
-        "group relative overflow-hidden rounded-2xl border border-linen bg-lab-white shadow-[0_4px_24px_rgba(26,77,109,0.08)]",
+        "group flex flex-col overflow-hidden rounded-2xl border border-linen bg-lab-white shadow-[0_4px_24px_rgba(26,77,109,0.08)]",
         className
       )}
     >
@@ -79,11 +79,9 @@ export function LabPhotoPanel({ photo, className, priority }: LabPhotoPanelProps
         )}
       </div>
 
-      <figcaption className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/75 via-ink/40 to-transparent px-5 pb-5 pt-16 md:px-6 md:pb-6">
-        <p className="font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-wider text-lab-white/70">
-          Laboratory
-        </p>
-        <p className="mt-1 text-sm font-medium leading-snug text-lab-white md:text-base">
+      <figcaption className="border-t border-linen bg-lab-white px-5 py-4 md:px-6 md:py-5">
+        <p className="mono text-ash">Laboratory</p>
+        <p className="mt-1 text-sm font-medium leading-snug text-ink md:text-base">
           {photo.caption}
         </p>
       </figcaption>

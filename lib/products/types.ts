@@ -28,7 +28,6 @@ export type ProductHowToStep = {
 
 export type ProductTesting = {
   description: string;
-  highlights: string[];
 };
 
 export type ProductSpecification = {
@@ -42,7 +41,6 @@ export type Product = {
   name: string;
   shortDescription: string;
   price: number;
-  subscribePrice: number;
   whyThisExists: string;
   bullets: string[];
   ingredients: ProductIngredient[];

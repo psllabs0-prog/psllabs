@@ -4,19 +4,20 @@ import { AddToCartButton } from "@/components/commerce/AddToCartButton";
 import type { StockStatus } from "@/lib/products/stock";
 import { cn } from "@/lib/utils";
 
+import { useProductQuantity } from "./product-quantity-provider";
+
 type MobileStickyCartProps = {
   productHandle: string;
-  price: number;
   productName: string;
   stockStatus: StockStatus;
 };
 
 export function MobileStickyCart({
   productHandle,
-  price,
   productName,
   stockStatus,
 }: MobileStickyCartProps) {
+  const { quantity, totalPrice } = useProductQuantity();
   const isOutOfStock = stockStatus === "out_of_stock";
 
   return (
@@ -24,10 +25,11 @@ export function MobileStickyCart({
       <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
         <div className="min-w-0">
           <p className="truncate text-sm text-ash">{productName}</p>
-          <p className="font-display text-xl font-bold text-ink">${price}</p>
+          <p className="font-display text-xl font-bold text-ink">${totalPrice}</p>
         </div>
         <AddToCartButton
           productId={productHandle}
+          quantity={quantity}
           variant="compact"
           disabled={isOutOfStock}
           className={cn(isOutOfStock && "opacity-60")}

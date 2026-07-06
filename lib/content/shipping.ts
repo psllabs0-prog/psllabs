@@ -14,7 +14,7 @@ export const shippingSections: ContentSection[] = [
     id: "regions",
     title: "Where we ship",
     paragraphs: [
-      "We currently ship to all 50 US states. We do not ship internationally, to PO boxes requiring special handling beyond standard USPS/UPS service, or to US territories at launch—contact support if you need clarification for your address.",
+      "We currently ship to all 50 US states. We do not ship internationally, to PO boxes requiring special handling beyond standard USPS/UPS service, or to US territories at launch—contact support@psllabs.org if you need clarification for your address.",
     ],
   },
   {
@@ -31,13 +31,6 @@ export const shippingSections: ContentSection[] = [
     paragraphs: [
       "Standard shipping is calculated at checkout based on weight and destination. Free standard shipping applies to US orders over $60 before tax.",
       "Expedited shipping may be available at checkout for an additional fee.",
-    ],
-  },
-  {
-    id: "subscriptions",
-    title: "Subscription shipments",
-    paragraphs: [
-      "Subscription orders ship automatically on your renewal date. You will receive tracking for each shipment. Update your address in your account before your next renewal to avoid delivery to an old address.",
     ],
   },
   {

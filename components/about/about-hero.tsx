@@ -19,8 +19,8 @@ export function AboutHero({ hero, featuredPhoto }: AboutHeroProps) {
         className="pointer-events-none absolute -left-24 bottom-0 h-80 w-80 rounded-full bg-biotech-pale/60 blur-3xl"
       />
 
-      <div className="relative mx-auto grid max-w-[1440px] grid-cols-1 items-center gap-14 lg:grid-cols-2 lg:gap-20 xl:gap-24">
-        <div className="flex flex-col gap-8 lg:gap-10">
+      <div className="relative z-10 mx-auto grid max-w-[1440px] grid-cols-1 items-center gap-14 lg:grid-cols-2 lg:gap-20 xl:gap-24">
+        <div className="relative z-10 flex flex-col gap-8 lg:gap-10">
           <AnimateIn>
             <p className="mono text-biotech-deep/80">{hero.label}</p>
           </AnimateIn>
@@ -36,7 +36,7 @@ export function AboutHero({ hero, featuredPhoto }: AboutHeroProps) {
           </AnimateIn>
         </div>
 
-        <AnimateIn delay={0.14} className="mx-auto w-full max-w-md lg:max-w-none">
+        <AnimateIn delay={0.14} className="relative z-10 mx-auto w-full max-w-md lg:max-w-none lg:justify-self-end">
           <LabPhotoPanel photo={featuredPhoto} priority className="lg:ml-auto lg:max-w-[420px]" />
         </AnimateIn>
       </div>

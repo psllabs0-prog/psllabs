@@ -8,7 +8,6 @@ export const foundation: Product = {
   shortDescription:
     "The base layer. Trans-resveratrol, spermidine, fisetin, and methylated B-complex—four mechanisms in one daily capsule.",
   price: 52,
-  subscribePrice: 44,
   stockStatus: "in_stock",
   stackRole: "Base layer · take every morning",
   whyThisExists:
@@ -134,13 +133,6 @@ export const foundation: Product = {
   testing: {
     description:
       "Foundation is manufactured in a cGMP-certified facility and verified by a third-party lab we do not own. Every batch receives full-panel testing before release.",
-    highlights: [
-      "Identity confirmed by HPLC against reference standards",
-      "Potency verified at label claim ± tolerance",
-      "Heavy metals screened: lead, arsenic, cadmium, mercury",
-      "Microbial limits tested per USP guidelines",
-      "Lot-specific COA published within 48 hours of release",
-    ],
   },
   stackBlurb:
     "Foundation is Step 1—the daily base layer for cellular signaling, autophagy, and methylation support. Cellular Energy addresses NAD+ decline. Recovery targets mitochondrial renewal. Together, they form the complete PSL protocol.",

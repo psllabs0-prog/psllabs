@@ -33,13 +33,6 @@ export const termsSections: ContentSection[] = [
     ],
   },
   {
-    id: "subscriptions",
-    title: "Subscriptions",
-    paragraphs: [
-      "Subscription orders renew automatically at the interval selected at checkout. You may pause, skip, or cancel before your next billing date through your account or by contacting support. Cancellation stops future charges; it does not refund prior charges.",
-    ],
-  },
-  {
     id: "intellectual-property",
     title: "Intellectual property",
     paragraphs: [

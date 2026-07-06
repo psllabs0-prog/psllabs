@@ -15,7 +15,7 @@ export const returnsSections: ContentSection[] = [
     title: "60-day guarantee (first order)",
     paragraphs: [
       "If your first bottle of any PSL product isn't right for you, contact us within 60 days of delivery for a full refund of that product—no lengthy questionnaires.",
-      "The guarantee applies once per product per customer (first order only). Subscription renewals are covered by our standard return policy below.",
+      "The guarantee applies once per product per customer (first order only).",
     ],
   },
   {
@@ -23,13 +23,6 @@ export const returnsSections: ContentSection[] = [
     title: "Standard returns",
     paragraphs: [
       "Unopened products in original packaging may be returned within 30 days of delivery for a refund minus shipping costs. Opened products are not eligible for standard returns unless covered by the 60-day guarantee.",
-    ],
-  },
-  {
-    id: "subscriptions",
-    title: "Subscription cancellations",
-    paragraphs: [
-      "Cancel anytime before your next billing date—no penalty. Cancellation stops future charges. It does not automatically refund the current period unless within the guarantee window for a first order.",
     ],
   },
   {

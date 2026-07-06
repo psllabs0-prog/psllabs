@@ -8,7 +8,6 @@ type ProductCardProps = {
   name: string;
   description: string;
   price: string;
-  subscribe?: string;
   href: string;
   className?: string;
 };
@@ -18,7 +17,6 @@ export function ProductCard({
   name,
   description,
   price,
-  subscribe,
   href,
   className,
 }: ProductCardProps) {
@@ -52,11 +50,6 @@ export function ProductCard({
           <span className="font-display text-xl font-bold text-ink">
             {price}
           </span>
-          {subscribe && (
-            <span className="font-[family-name:var(--font-mono)] text-sm text-ash">
-              {subscribe}
-            </span>
-          )}
         </div>
 
         <PillButton href={href} variant="primary" size="sm" className="w-fit">

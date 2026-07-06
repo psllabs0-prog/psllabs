@@ -4,7 +4,7 @@ export const faqPageMeta: ContentPageMeta = {
   label: "FAQ",
   title: "Common questions.",
   description:
-    "Answers about the PSL stack, orders, testing, shipping, and subscriptions.",
+    "Answers about the PSL stack, orders, testing, and shipping.",
   intro: [
     "Straight answers—no proprietary blends, no hand-waving. If you don't see your question here, reach out at support@psllabs.org.",
   ],
@@ -39,18 +39,8 @@ export const faqCategories: FaqCategory[] = [
   },
   {
     id: "orders",
-    title: "Orders & Subscriptions",
+    title: "Orders",
     items: [
-      {
-        question: "How does subscribe and save work?",
-        answer:
-          "Subscribe to any product for a discounted monthly price. You can pause, skip, or cancel anytime from your account. Subscriptions ship on a 30-day cycle aligned with a 30-day supply.",
-      },
-      {
-        question: "Can I change or cancel my subscription?",
-        answer:
-          "Yes—pause, skip, or cancel before your next billing date with no penalty. Changes take effect on your next renewal cycle.",
-      },
       {
         question: "Do you offer a guarantee?",
         answer:

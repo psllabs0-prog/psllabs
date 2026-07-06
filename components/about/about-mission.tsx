@@ -13,7 +13,7 @@ export function AboutMission({ mission, photos }: AboutMissionProps) {
   return (
     <section className="px-6 py-20 md:px-16 md:py-28 lg:px-24 lg:py-32">
       <div className="mx-auto max-w-[1440px]">
-        <div className="grid grid-cols-1 gap-16 lg:grid-cols-2 lg:gap-20 xl:gap-28">
+        <div className="grid grid-cols-1 items-start gap-16 lg:grid-cols-2 lg:gap-20 xl:gap-28">
           <div className="flex flex-col gap-10">
             <AnimateIn>
               <div className="flex flex-col gap-5">
@@ -51,12 +51,12 @@ export function AboutMission({ mission, photos }: AboutMissionProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4 md:gap-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-6">
             {gridPhotos.map((photo, index) => (
               <AnimateIn
                 key={photo.id}
                 delay={0.08 + index * 0.06}
-                className={index === 1 ? "mt-8 md:mt-12" : undefined}
+                className={index === 1 ? "sm:mt-8 lg:mt-12" : undefined}
               >
                 <LabPhotoPanel photo={photo} />
               </AnimateIn>

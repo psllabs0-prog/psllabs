@@ -44,7 +44,7 @@ export function AboutTimeline({ timeline }: AboutTimelineProps) {
                           : "md:col-start-2 md:pl-16"
                       }
                     >
-                      <div className="ml-14 rounded-2xl border border-linen bg-lab-white p-6 shadow-[0_2px_16px_rgba(26,77,109,0.06)] md:ml-0 md:p-8">
+                      <div className="rounded-2xl border border-linen bg-lab-white p-6 pl-10 md:ml-0 md:p-8">
                         <span className="font-[family-name:var(--font-mono)] text-[0.7rem] uppercase tracking-[0.12em] text-biotech-deep/70">
                           Phase {event.phase}
                         </span>

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Check } from "lucide-react";
 
 import { AddToCartButton } from "@/components/commerce/AddToCartButton";
@@ -9,12 +8,11 @@ import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
 import type { StockStatus } from "@/lib/products/stock";
 import { cn } from "@/lib/utils";
 
+import { useProductQuantity } from "./product-quantity-provider";
+
 type ProductPurchaseProps = {
   productHandle: string;
-  price: number;
-  subscribePrice?: number;
   stockStatus: StockStatus;
-  showSubscribe?: boolean;
   className?: string;
 };
 
@@ -22,19 +20,10 @@ const purchaseTrustItems = ["Third-Party Tested", "COA Available"] as const;
 
 export function ProductPurchase({
   productHandle,
-  price,
-  subscribePrice,
   stockStatus,
-  showSubscribe = false,
   className,
 }: ProductPurchaseProps) {
-  const [subscribe, setSubscribe] = useState(false);
-  const [quantity, setQuantity] = useState(1);
-
-  const displayPrice =
-    showSubscribe && subscribe && subscribePrice != null
-      ? subscribePrice
-      : price;
+  const { quantity, setQuantity, unitPrice, totalPrice } = useProductQuantity();
   const isOutOfStock = stockStatus === "out_of_stock";
 
   return (
@@ -45,57 +34,14 @@ export function ProductPurchase({
       )}
     >
       <div className="flex flex-col gap-4">
-        <div className="flex items-baseline gap-3">
+        <div className="flex flex-wrap items-baseline gap-3">
           <span className="font-display text-4xl font-bold tracking-[-0.02em] text-ink">
-            ${displayPrice}
+            ${totalPrice}
           </span>
-          {showSubscribe && subscribe && subscribePrice != null && (
-            <span className="font-[family-name:var(--font-mono)] text-sm text-ash line-through">
-              ${price}
-            </span>
+          {quantity > 1 && (
+            <span className="text-sm text-ash">${unitPrice} each</span>
           )}
         </div>
-
-        {showSubscribe && (
-          <>
-            <div
-              className="inline-flex w-fit border border-linen"
-              role="group"
-              aria-label="Purchase type"
-            >
-              <button
-                type="button"
-                onClick={() => setSubscribe(false)}
-                className={cn(
-                  "px-4 py-2 text-sm transition-colors duration-200 ease-out",
-                  !subscribe
-                    ? "bg-petrol text-lab-white"
-                    : "bg-lab-white text-ink hover:bg-biotech-mist/40"
-                )}
-              >
-                One-time
-              </button>
-              <button
-                type="button"
-                onClick={() => setSubscribe(true)}
-                className={cn(
-                  "px-4 py-2 text-sm transition-colors duration-200 ease-out",
-                  subscribe
-                    ? "bg-petrol text-lab-white"
-                    : "bg-lab-white text-ink hover:bg-biotech-mist/40"
-                )}
-              >
-                Subscribe
-              </button>
-            </div>
-
-            {subscribe && subscribePrice != null && (
-              <p className="font-[family-name:var(--font-mono)] text-sm text-ash">
-                subscribe ↓ ${subscribePrice}/mo · cancel anytime
-              </p>
-            )}
-          </>
-        )}
       </div>
 
       <div className="flex flex-col gap-3">
@@ -103,7 +49,7 @@ export function ProductPurchase({
         <div className="inline-flex w-fit items-center border border-linen">
           <button
             type="button"
-            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+            onClick={() => setQuantity(Math.max(1, quantity - 1))}
             disabled={isOutOfStock}
             className="px-4 py-2 text-lg transition-opacity duration-200 ease-out hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Decrease quantity"
@@ -115,7 +61,7 @@ export function ProductPurchase({
           </span>
           <button
             type="button"
-            onClick={() => setQuantity((q) => q + 1)}
+            onClick={() => setQuantity(quantity + 1)}
             disabled={isOutOfStock}
             className="px-4 py-2 text-lg transition-opacity duration-200 ease-out hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Increase quantity"

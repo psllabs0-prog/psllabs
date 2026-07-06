@@ -20,8 +20,7 @@ export const privacySections: ContentSection[] = [
     id: "use",
     title: "How we use your information",
     paragraphs: [
-      "We use your information to process orders, manage subscriptions, send transactional emails (order confirmations, shipping updates), respond to support requests, and improve our site.",
-      "We may send marketing emails if you opt in. You can unsubscribe at any time.",
+      "We use your information to process orders, send transactional emails (order confirmations, shipping updates), respond to support requests, and improve our site.",
     ],
   },
   {
@@ -36,7 +35,7 @@ export const privacySections: ContentSection[] = [
     id: "cookies",
     title: "Cookies",
     paragraphs: [
-      "We use cookies and similar technologies for site functionality, analytics, and marketing (if you consent). You can control cookies through your browser settings.",
+      "We use cookies and similar technologies for site functionality and analytics. You can control cookies through your browser settings.",
     ],
   },
   {
@@ -50,14 +49,14 @@ export const privacySections: ContentSection[] = [
     id: "rights",
     title: "Your rights",
     paragraphs: [
-      "Depending on your location, you may have rights to access, correct, delete, or port your personal data. Contact privacy@psllabs.com to exercise these rights. California residents may have additional rights under the CCPA.",
+      "Depending on your location, you may have rights to access, correct, delete, or port your personal data. Contact support@psllabs.org to exercise these rights. California residents may have additional rights under the CCPA.",
     ],
   },
   {
     id: "contact",
     title: "Contact",
     paragraphs: [
-      "Questions about this policy: privacy@psllabs.com.",
+      "Questions about this policy: support@psllabs.org.",
     ],
   },
 ];

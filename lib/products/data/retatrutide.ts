@@ -8,7 +8,6 @@ export const retatrutide: Product = {
   shortDescription:
     "Investigational triple-receptor agonist for laboratory research. Not approved for human use.",
   price: 94,
-  subscribePrice: 94,
   stockStatus: "in_stock",
   imageSrc: PRODUCT_VIAL_IMAGE.src,
   imageAlt: PRODUCT_VIAL_IMAGE.alt,
@@ -64,12 +63,7 @@ export const retatrutide: Product = {
   ],
   testing: {
     description:
-      "Every batch is verified by an independent third-party laboratory before release. Full panel details appear on the lot-specific COA when available.",
-    highlights: [
-      "Identity confirmed by HPLC against reference standards",
-      "Purity documented by HPLC against published release criteria",
-      "Lot-specific COA published when available for each batch",
-    ],
+      "Every batch is verified by an independent third-party laboratory before release. Full panel details appear on the lot-specific COA.",
   },
   stackBlurb:
     "Retatrutide is supplied as a standalone research peptide with full batch documentation.",
@@ -80,13 +74,9 @@ export const retatrutide: Product = {
     { label: "Receptor Targets", value: "GLP-1, GIP, Glucagon" },
     { label: "Format", value: "Lyophilized powder" },
     { label: "Strength", value: "10mg" },
-    { label: "Purity", value: "Batch-specific, pending COA" },
+    { label: "Purity", value: "Batch-specific, shown on COA" },
     { label: "Testing", value: "Third-party analysis" },
-    { label: "COA Status", value: "Pending / available once uploaded" },
-    {
-      label: "Storage",
-      value: "Store according to supplier and lab handling requirements",
-    },
+    { label: "COA Status", value: "Lot-specific COA" },
     { label: "Intended Use", value: "Laboratory research only" },
     { label: "Human Use", value: "Not approved for human use" },
   ],

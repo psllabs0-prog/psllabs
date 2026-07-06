@@ -8,7 +8,6 @@ export const recovery: Product = {
   shortDescription:
     "Urolithin A, ubiquinol, and PQQ. The evening layer for mitochondrial function and cellular energy production.",
   price: 84,
-  subscribePrice: 72,
   stockStatus: "in_stock",
   stackRole: "Mitochondrial layer · evening",
   whyThisExists:
@@ -122,12 +121,6 @@ export const recovery: Product = {
   testing: {
     description:
       "Recovery undergoes the same third-party verification pipeline as every PSL product. No batch ships without passing identity, potency, and contaminant thresholds.",
-    highlights: [
-      "Urolithin A purity verified by HPLC",
-      "Ubiquinol potency at label claim",
-      "PQQ identity and heavy metals panel",
-      "Lot-specific COA published online",
-    ],
   },
   stackBlurb:
     "Recovery is Step 3—the evening mitochondrial layer. Pair with Foundation (morning base) and Cellular Energy (NAD+ support) for the complete daily protocol.",
