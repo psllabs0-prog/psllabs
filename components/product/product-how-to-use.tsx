@@ -8,27 +8,24 @@ export function ProductHowToUse({ product }: { product: Product }) {
     <SectionShell
       label="DOCUMENTATION"
       title="Review before laboratory use."
-      variant="paper"
+      variant="white"
       width="content"
     >
-      <ol className="grid grid-cols-1 gap-10 md:grid-cols-3 md:gap-0">
+      <ol className="grid grid-cols-1 gap-5 md:grid-cols-3 md:gap-5">
         {product.howToUse.map((step, index) => (
-          <li
-            key={step.step}
-            className={`list-none md:px-10 ${
-              index > 0 ? "md:border-l md:border-[var(--color-sage)]" : "md:pl-0"
-            }`}
-          >
-            <AnimateIn delay={index * 0.08} className="flex flex-col gap-5">
-              <span className="font-[family-name:var(--font-mono)] text-sm text-[var(--color-brass)]">
-                {String(step.step).padStart(2, "0")}
-              </span>
-              <h3 className="font-[family-name:var(--font-display)] text-xl text-[var(--color-ink)] md:text-2xl">
-                {step.title}
-              </h3>
-              <p className="text-sm leading-relaxed text-[var(--color-stone)] md:text-base">
-                {step.description}
-              </p>
+          <li key={step.step} className="list-none">
+            <AnimateIn delay={index * 0.08}>
+              <div className="premium-card flex h-full flex-col gap-4 p-5 md:p-6">
+                <span className="font-[family-name:var(--font-mono)] text-sm text-primary-blue">
+                  {String(step.step).padStart(2, "0")}
+                </span>
+                <h3 className="font-[family-name:var(--font-display)] text-xl text-ink md:text-2xl">
+                  {step.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-ash md:text-base">
+                  {step.description}
+                </p>
+              </div>
             </AnimateIn>
           </li>
         ))}

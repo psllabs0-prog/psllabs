@@ -20,12 +20,12 @@ export function WhyChooseCard({
   return (
     <article
       className={cn(
-        "flex flex-col gap-5 rounded-lg border border-biotech-pale/80 bg-gradient-to-b from-lab-white to-biotech-mist/40 p-6 shadow-[0_8px_30px_rgba(26,77,109,0.06)] md:p-8",
+        "premium-card premium-card-hover flex flex-col gap-4 p-5 md:gap-5 md:p-6",
         className
       )}
     >
       <div
-        className="size-[4.5rem] overflow-hidden rounded-lg border border-biotech-pale"
+        className="size-[4rem] overflow-hidden rounded-lg border border-linen bg-soft-blue/50 md:size-[4.5rem]"
         aria-hidden
       >
         <LabIllustration id={illustration} />

@@ -8,37 +8,37 @@ export function ProductIngredients({ product }: { product: Product }) {
     <SectionShell
       label="INGREDIENTS"
       title="Every dose disclosed."
-      variant="white"
+      variant="ice"
       width="content"
     >
-      <div className="hidden md:block">
+      <div className="premium-card hidden overflow-hidden md:block">
         <table className="w-full border-collapse text-left">
           <thead>
-            <tr className="border-b border-[var(--color-sage)]">
-              <th className="pb-5 pr-10 font-[family-name:var(--font-display)] text-lg font-normal text-[var(--color-ink)]">
+            <tr className="border-b border-linen bg-soft-blue/50">
+              <th className="px-6 py-4 font-[family-name:var(--font-display)] text-lg font-normal text-ink">
                 Ingredient
               </th>
-              <th className="pb-5 pr-10 font-[family-name:var(--font-display)] text-lg font-normal text-[var(--color-ink)]">
+              <th className="px-6 py-4 font-[family-name:var(--font-display)] text-lg font-normal text-ink">
                 Dose
               </th>
-              <th className="pb-5 font-[family-name:var(--font-display)] text-lg font-normal text-[var(--color-ink)]">
+              <th className="px-6 py-4 font-[family-name:var(--font-display)] text-lg font-normal text-ink">
                 Mechanism
               </th>
             </tr>
           </thead>
           <tbody>
-            {product.ingredients.map((ingredient) => (
+            {product.ingredients.map((ingredient, index) => (
               <tr
                 key={ingredient.name}
-                className="border-b border-[var(--color-sage)]"
+                className={`border-b border-linen ${index % 2 === 1 ? "bg-ice-blue/30" : ""}`}
               >
-                <td className="py-6 pr-10 text-[var(--color-ink)]">
+                <td className="px-6 py-5 text-ink">
                   {ingredient.name}
                 </td>
-                <td className="py-6 pr-10 font-[family-name:var(--font-mono)] text-sm text-[var(--color-ink)]">
+                <td className="px-6 py-5 font-[family-name:var(--font-mono)] text-sm text-ink">
                   {ingredient.dose}
                 </td>
-                <td className="py-6 text-sm leading-relaxed text-[var(--color-stone)]">
+                <td className="px-6 py-5 text-sm leading-relaxed text-ash">
                   {ingredient.mechanism}
                 </td>
               </tr>
@@ -47,17 +47,17 @@ export function ProductIngredients({ product }: { product: Product }) {
         </table>
       </div>
 
-      <ul className="flex flex-col md:hidden">
+      <ul className="premium-card flex flex-col overflow-hidden md:hidden">
         {product.ingredients.map((ingredient, index) => (
           <AnimateIn key={ingredient.name} delay={index * 0.06}>
-            <li className="border-b border-[var(--color-sage)] py-8">
-              <p className="mb-2 font-[family-name:var(--font-display)] text-lg text-[var(--color-ink)]">
+            <li className={`border-b border-linen px-5 py-6 last:border-b-0 ${index % 2 === 1 ? "bg-ice-blue/30" : ""}`}>
+              <p className="mb-2 font-[family-name:var(--font-display)] text-lg text-ink">
                 {ingredient.name}
               </p>
-              <p className="mb-3 font-[family-name:var(--font-mono)] text-sm text-[var(--color-ink)]">
+              <p className="mb-3 font-[family-name:var(--font-mono)] text-sm text-ink">
                 {ingredient.dose}
               </p>
-              <p className="text-sm leading-relaxed text-[var(--color-stone)]">
+              <p className="text-sm leading-relaxed text-ash">
                 {ingredient.mechanism}
               </p>
             </li>

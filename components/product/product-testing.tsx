@@ -10,11 +10,15 @@ export function ProductTesting({ product: _product }: { product: Product }) {
   return (
     <SectionShell
       label="TESTING & QUALITY"
-      variant="white"
+      variant="soft"
       width="prose"
     >
       <AnimateIn>
-        <div className="rounded-2xl border border-linen bg-lab-white p-6 shadow-[0_2px_16px_rgba(26,77,109,0.06)] md:p-8">
+        <div className="premium-card p-6 md:p-7">
+          <div className="mb-4 flex flex-wrap gap-2">
+            <span className="badge-verified">Third-party tested</span>
+            <span className="badge-accent">COA published</span>
+          </div>
           <p className="text-base leading-[1.7] text-ash md:text-body-lg">
             {TESTING_STATEMENT}
           </p>

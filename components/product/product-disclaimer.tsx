@@ -4,7 +4,7 @@ type ProductDisclaimerProps = {
 
 export function ProductDisclaimer({ children }: ProductDisclaimerProps) {
   return (
-    <section className="border-t border-linen bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
+    <section className="border-t border-linen bg-gradient-to-b from-soft-blue/40 to-paper px-6 py-12 md:px-16 md:py-14 lg:px-24">
       <p className="mx-auto max-w-[720px] text-sm leading-relaxed text-ash">
         {children ?? (
           <>

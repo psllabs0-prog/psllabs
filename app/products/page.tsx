@@ -15,12 +15,11 @@ export default function ProductsPage() {
   const products = getCatalogProducts();
 
   return (
-    <main className="bg-gradient-to-b from-paper via-lab-white to-biotech-mist/30">
-      {/* Catalog header */}
-      <section className="border-b border-linen px-6 py-20 md:px-16 md:py-28 lg:px-24 lg:py-32">
+    <main className="section-surface-ice">
+      <section className="border-b border-linen px-6 py-14 md:px-16 md:py-20 lg:px-24 lg:py-24">
         <div className="mx-auto max-w-[1440px]">
-          <div className="flex max-w-3xl flex-col gap-6">
-            <p className="mono text-biotech-deep/80">PRODUCT CATALOG</p>
+          <div className="flex max-w-3xl flex-col gap-5">
+            <p className="mono text-biotech-deep/90">PRODUCT CATALOG</p>
             <h1 className="font-display text-display-lg font-bold text-ink">
               Laboratory-grade research compounds.
             </h1>
@@ -33,17 +32,15 @@ export default function ProductsPage() {
         </div>
       </section>
 
-      {/* Product grid */}
-      <section className="px-6 py-16 md:px-16 md:py-24 lg:px-24 lg:py-32">
-        <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+      <section className="section-surface-soft px-6 py-12 md:px-16 md:py-20 lg:px-24 lg:py-20">
+        <div className="mx-auto grid max-w-[1200px] grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
           {products.map((product) => (
             <ProductCatalogCard key={product.handle} product={product} />
           ))}
         </div>
       </section>
 
-      {/* Footer note */}
-      <section className="border-t border-linen px-6 py-12 md:px-16 lg:px-24">
+      <section className="border-t border-linen bg-paper px-6 py-10 md:px-16 lg:px-24">
         <p className="mx-auto max-w-[720px] text-center text-sm leading-relaxed text-ash">
           All products are sold strictly for laboratory and research use only.
           Not for human or animal consumption. These statements have not been

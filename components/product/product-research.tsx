@@ -13,11 +13,13 @@ export function ProductResearch({ product }: { product: Product }) {
       width="prose"
     >
       <AnimateIn>
-        <ul>
-          {product.citations.map((citation) => (
-            <CitationEntry key={citation.title} citation={citation} />
-          ))}
-        </ul>
+        <div className="premium-card divide-y divide-linen">
+          <ul>
+            {product.citations.map((citation) => (
+              <CitationEntry key={citation.title} citation={citation} />
+            ))}
+          </ul>
+        </div>
       </AnimateIn>
     </SectionShell>
   );

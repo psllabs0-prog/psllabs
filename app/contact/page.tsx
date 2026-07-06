@@ -19,7 +19,7 @@ export default function ContactPage() {
     <main className="relative overflow-hidden bg-gradient-to-br from-paper via-lab-white to-biotech-mist/40">
       <ContactBackground />
 
-      <div className="relative mx-auto max-w-[1440px] px-6 py-20 md:px-16 md:py-28 lg:px-24 lg:py-32">
+      <div className="relative mx-auto max-w-[1440px] px-6 py-16 md:px-16 md:py-20 lg:px-24 lg:py-24">
         <div className="grid grid-cols-1 items-start gap-14 lg:grid-cols-2 lg:gap-16 xl:gap-24">
           <ContactInfoPanel content={contactPage} />
 

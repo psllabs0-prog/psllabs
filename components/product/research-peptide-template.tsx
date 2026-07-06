@@ -21,10 +21,10 @@ export function ResearchPeptideTemplate({
   return (
     <ProductQuantityProvider unitPrice={product.price}>
       <main className="bg-paper pb-28 lg:pb-0">
-        <section className="mx-auto max-w-[1440px] px-6 py-20 md:px-16 md:py-28 lg:px-24 lg:py-32">
-          <div className="grid grid-cols-1 gap-14 lg:grid-cols-2 lg:gap-24 xl:gap-28">
+        <section className="section-surface-ice mx-auto max-w-[1440px] px-6 py-14 md:px-16 md:py-20 lg:px-24 lg:py-24">
+          <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-16 xl:gap-20">
             <AnimateIn y={16}>
-              <div className="mx-auto w-full max-w-[520px] lg:max-w-none">
+              <div className="mx-auto w-full max-w-[520px] overflow-hidden rounded-2xl border border-linen shadow-[0_12px_40px_rgba(37,99,235,0.1)] lg:max-w-none">
                 <ProductGallery
                   productName={product.name}
                   imageSrc={product.imageSrc}
@@ -33,7 +33,7 @@ export function ResearchPeptideTemplate({
               </div>
             </AnimateIn>
 
-            <div className="flex flex-col gap-10">
+            <div className="flex flex-col gap-8">
               <AnimateIn delay={0.08}>
                 <p className="mono text-ash">{product.tag}</p>
               </AnimateIn>
@@ -42,6 +42,10 @@ export function ResearchPeptideTemplate({
                 <h1 className="font-display text-display-lg font-bold text-ink">
                   {product.name}
                 </h1>
+              </AnimateIn>
+
+              <AnimateIn delay={0.2}>
+                <span className="badge-verified">Research use only</span>
               </AnimateIn>
 
               <AnimateIn delay={0.24}>
@@ -64,7 +68,7 @@ export function ResearchPeptideTemplate({
           variant="white"
           width="prose"
         >
-          <div className="flex flex-col gap-5">
+          <div className="premium-card flex flex-col gap-5 p-6 md:p-7">
             {product.whyThisExists.split("\n\n").map((paragraph) => (
               <p
                 key={paragraph.slice(0, 40)}
@@ -80,6 +84,7 @@ export function ResearchPeptideTemplate({
           <SectionShell
             label="SPECIFICATIONS"
             title="Research specifications."
+            variant="ice"
             width="prose"
           >
             <ProductSpecificationsTable specifications={product.specifications} />

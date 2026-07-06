@@ -11,10 +11,10 @@ export function HeroTrustCards({ cards }: HeroTrustCardsProps) {
       {cards.map((card) => (
         <div
           key={card.title}
-          className="flex items-center gap-4 rounded-xl border border-linen/80 bg-lab-white/70 px-5 py-4 shadow-[0_2px_12px_rgba(26,77,109,0.05)] backdrop-blur-sm"
+          className="premium-card premium-card-hover flex items-center gap-4 px-5 py-3.5 md:py-4"
         >
           <div
-            className="size-11 shrink-0 overflow-hidden rounded-lg border border-biotech-pale"
+            className="size-11 shrink-0 overflow-hidden rounded-lg border border-linen bg-soft-blue/60"
             aria-hidden
           >
             <LabIllustration id={card.illustration} />

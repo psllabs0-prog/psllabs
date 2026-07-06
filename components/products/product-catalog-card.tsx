@@ -15,7 +15,7 @@ export function ProductCatalogCard({
   return (
     <article
       className={cn(
-        "flex flex-col overflow-hidden rounded-2xl border border-linen bg-lab-white shadow-[0_4px_24px_rgba(26,77,109,0.07)] transition-transform duration-300 ease-out hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(26,77,109,0.1)]",
+        "premium-card premium-card-hover flex flex-col overflow-hidden",
         className
       )}
     >
@@ -28,10 +28,10 @@ export function ProductCatalogCard({
           rounded="none"
           className="rounded-none"
         />
-        <span className="absolute left-4 top-4 z-20 rounded-pill border border-biotech-blue/20 bg-lab-white/95 px-3 py-1 font-[family-name:var(--font-mono)] text-[0.6rem] uppercase tracking-wider text-biotech-deep backdrop-blur-sm">
+        <span className="badge-verified absolute left-4 top-4 z-20 backdrop-blur-sm">
           {product.purityBadge}
         </span>
-        <span className="absolute right-4 top-4 z-20 rounded-pill border border-linen bg-lab-white/95 px-3 py-1 font-[family-name:var(--font-mono)] text-[0.6rem] uppercase tracking-wider text-ash backdrop-blur-sm">
+        <span className="badge-accent absolute right-4 top-4 z-20 backdrop-blur-sm">
           Research Use Only
         </span>
       </div>

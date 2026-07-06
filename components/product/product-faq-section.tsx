@@ -9,7 +9,7 @@ export function ProductFaqSection({ product }: { product: Product }) {
     <SectionShell
       label="FAQ"
       title="Common questions."
-      variant="paper"
+      variant="ice"
       width="prose"
     >
       <AnimateIn>
