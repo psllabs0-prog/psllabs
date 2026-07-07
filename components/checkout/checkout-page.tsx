@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Bitcoin, CreditCard } from "lucide-react";
 
 import { useCart } from "@/components/cart/cart-provider";
 import { formatPrice } from "@/lib/cart/format";
@@ -35,6 +36,32 @@ const initialForm: FormState = {
 
 const selectClassName =
   "h-11 w-full rounded-lg border border-linen bg-lab-white px-3 text-base text-ink outline-none focus-visible:border-primary-blue focus-visible:ring-3 focus-visible:ring-primary-blue/20 md:text-sm";
+
+function PaymentOption({
+  icon,
+  label,
+  helperText,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  helperText: string;
+}) {
+  return (
+    <div
+      aria-disabled
+      className="flex cursor-not-allowed items-start gap-3 rounded-xl border border-linen bg-lab-white/70 p-4 opacity-70"
+    >
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-linen bg-soft-blue/50">
+        {icon}
+      </span>
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="text-sm font-medium text-ink">{label}</span>
+        <span className="text-xs leading-relaxed text-ash">{helperText}</span>
+      </div>
+      <span className="badge-accent mt-0.5 shrink-0">Coming soon</span>
+    </div>
+  );
+}
 
 function Field({
   id,
@@ -303,15 +330,36 @@ export function CheckoutPage() {
             </div>
 
             <section className="premium-card p-5 md:p-6">
-              <button
-                type="button"
-                disabled
-                className="w-full rounded-pill bg-ink/40 px-6 py-4 text-base font-medium text-lab-white/90 cursor-not-allowed"
-              >
-                Checkout unavailable
-              </button>
-              <p className="mt-3 text-center text-sm leading-relaxed text-ash">
-                Payment options will be enabled after final review.
+              <h2 className="font-display text-lg font-bold text-ink">
+                Payment Method
+              </h2>
+              <div className="mt-5 flex flex-col gap-3">
+                <PaymentOption
+                  icon={
+                    <CreditCard
+                      className="size-5 text-biotech-deep"
+                      strokeWidth={1.6}
+                      aria-hidden
+                    />
+                  }
+                  label="Card or bank payment"
+                  helperText="Available after payment processor approval."
+                />
+                <PaymentOption
+                  icon={
+                    <Bitcoin
+                      className="size-5 text-biotech-deep"
+                      strokeWidth={1.6}
+                      aria-hidden
+                    />
+                  }
+                  label="Bitcoin via BTCPay"
+                  helperText="Available after final review."
+                />
+              </div>
+              <p className="mt-5 rounded-lg border border-linen bg-soft-blue/40 px-4 py-3 text-center text-sm leading-relaxed text-ash">
+                Payment options are currently unavailable. Checkout will be
+                enabled after final review.
               </p>
             </section>
           </form>
