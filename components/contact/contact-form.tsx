@@ -7,7 +7,14 @@ import { cn } from "@/lib/utils";
 
 const MIN_MESSAGE_LENGTH = 10;
 const MAX_MESSAGE_LENGTH = 5000;
-const MAX_NAME_LENGTH = 200;
+const MAX_NAME_LENGTH = 100;
+const MAX_EMAIL_LENGTH = 254;
+const MAX_SUBJECT_LENGTH = 150;
+
+const SUCCESS_MESSAGE =
+  "Your message has been sent. We'll respond as soon as possible.";
+const ERROR_MESSAGE =
+  "We couldn't send your message. Please try again or email support@psllabs.org directly.";
 
 const fieldClassName = cn(
   "w-full rounded-lg border border-linen bg-paper/50 px-4 py-3.5 text-base text-ink",
@@ -28,7 +35,9 @@ type ContactFormProps = {
 export function ContactForm({ title, description }: ContactFormProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [website, setWebsite] = useState("");
   const [status, setStatus] = useState<
     "idle" | "submitting" | "success" | "error"
   >("idle");
@@ -36,12 +45,14 @@ export function ContactForm({ title, description }: ContactFormProps) {
   const [fieldErrors, setFieldErrors] = useState<{
     name?: string;
     email?: string;
+    subject?: string;
     message?: string;
   }>({});
 
   const validate = () => {
     const trimmedName = name.trim();
     const trimmedEmail = email.trim();
+    const trimmedSubject = subject.trim();
     const trimmedMessage = message.trim();
     const errors: typeof fieldErrors = {};
 
@@ -53,8 +64,14 @@ export function ContactForm({ title, description }: ContactFormProps) {
 
     if (!trimmedEmail) {
       errors.email = "Email is required.";
-    } else if (!isValidEmail(trimmedEmail)) {
+    } else if (trimmedEmail.length > MAX_EMAIL_LENGTH || !isValidEmail(trimmedEmail)) {
       errors.email = "Enter a valid email address.";
+    }
+
+    if (!trimmedSubject) {
+      errors.subject = "Subject is required.";
+    } else if (trimmedSubject.length > MAX_SUBJECT_LENGTH) {
+      errors.subject = `Subject must be ${MAX_SUBJECT_LENGTH} characters or fewer.`;
     }
 
     if (!trimmedMessage) {
@@ -70,6 +87,8 @@ export function ContactForm({ title, description }: ContactFormProps) {
   };
 
   const handleSubmit = async () => {
+    if (status === "submitting") return;
+
     setFeedback(null);
     if (!validate()) {
       setStatus("error");
@@ -85,32 +104,29 @@ export function ContactForm({ title, description }: ContactFormProps) {
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),
+          subject: subject.trim(),
           message: message.trim(),
+          website,
         }),
       });
 
-      const data = (await response.json()) as {
-        error?: string;
-        success?: boolean;
-      };
-
       if (!response.ok) {
         setStatus("error");
-        setFeedback(
-          data.error ?? "Failed to send your message. Please try again."
-        );
+        setFeedback(ERROR_MESSAGE);
         return;
       }
 
       setStatus("success");
-      setFeedback("Message sent. We'll respond within one business day.");
+      setFeedback(SUCCESS_MESSAGE);
       setName("");
       setEmail("");
+      setSubject("");
       setMessage("");
+      setWebsite("");
       setFieldErrors({});
     } catch {
       setStatus("error");
-      setFeedback("Failed to send your message. Please try again.");
+      setFeedback(ERROR_MESSAGE);
     }
   };
 
@@ -135,6 +151,7 @@ export function ContactForm({ title, description }: ContactFormProps) {
             id="contact-name"
             type="text"
             name="name"
+            maxLength={MAX_NAME_LENGTH}
             value={name}
             onChange={(e) => setName(e.target.value)}
             autoComplete="name"
@@ -164,6 +181,7 @@ export function ContactForm({ title, description }: ContactFormProps) {
             id="contact-email"
             type="email"
             name="email"
+            maxLength={MAX_EMAIL_LENGTH}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
@@ -186,6 +204,38 @@ export function ContactForm({ title, description }: ContactFormProps) {
         </div>
 
         <div className="flex flex-col gap-2">
+          <label
+            htmlFor="contact-subject"
+            className="text-sm font-medium text-ink"
+          >
+            Subject
+          </label>
+          <input
+            id="contact-subject"
+            type="text"
+            name="subject"
+            maxLength={MAX_SUBJECT_LENGTH}
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder="How can we help?"
+            aria-invalid={Boolean(fieldErrors.subject)}
+            aria-describedby={
+              fieldErrors.subject ? "contact-subject-error" : undefined
+            }
+            className={fieldClassName}
+          />
+          {fieldErrors.subject ? (
+            <p
+              id="contact-subject-error"
+              className="text-sm text-signal"
+              role="alert"
+            >
+              {fieldErrors.subject}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col gap-2">
           <label htmlFor="contact-message" className="text-sm font-medium text-ink">
             Message
           </label>
@@ -193,6 +243,7 @@ export function ContactForm({ title, description }: ContactFormProps) {
             id="contact-message"
             name="message"
             rows={6}
+            maxLength={MAX_MESSAGE_LENGTH}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Order number, lot number, or your question…"
@@ -213,19 +264,36 @@ export function ContactForm({ title, description }: ContactFormProps) {
           ) : null}
         </div>
 
-        {feedback ? (
-          <p
-            role="status"
-            className={cn(
-              "rounded-lg border px-4 py-3 text-sm",
-              status === "success"
-                ? "border-biotech-pale bg-biotech-mist/60 text-biotech-deep"
-                : "border-signal/30 bg-signal/5 text-signal"
-            )}
-          >
-            {feedback}
-          </p>
-        ) : null}
+        {/* Honeypot — hidden from real users */}
+        <div className="hidden" aria-hidden>
+          <label htmlFor="contact-website">Website</label>
+          <input
+            id="contact-website"
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+          />
+        </div>
+
+        <p
+          aria-live="polite"
+          role="status"
+          className={cn(
+            feedback
+              ? "rounded-lg border px-4 py-3 text-sm"
+              : "sr-only",
+            feedback && status === "success"
+              ? "border-biotech-pale bg-biotech-mist/60 text-biotech-deep"
+              : feedback
+                ? "border-signal/30 bg-signal/5 text-signal"
+                : ""
+          )}
+        >
+          {feedback}
+        </p>
 
         <PillButton
           type="button"
@@ -233,7 +301,7 @@ export function ContactForm({ title, description }: ContactFormProps) {
           disabled={status === "submitting"}
           className="w-fit"
         >
-          {status === "submitting" ? "Sending…" : "Send message"}
+          {status === "submitting" ? "Sending…" : "Send Message"}
         </PillButton>
       </div>
     </div>
