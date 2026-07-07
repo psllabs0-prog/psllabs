@@ -97,6 +97,7 @@ export async function POST(request: Request) {
   const user = process.env.SMTP_USER;
   const password = process.env.SMTP_PASSWORD;
   const toEmail = process.env.CONTACT_TO_EMAIL ?? SUPPORT_EMAIL;
+  const bccEmail = process.env.CONTACT_BCC_EMAIL || undefined;
 
   if (!host || !user || !password) {
     console.error("[contact] SMTP is not configured");
@@ -149,6 +150,7 @@ export async function POST(request: Request) {
     await transporter.sendMail({
       from: FROM_EMAIL,
       to: toEmail,
+      bcc: bccEmail,
       replyTo: email,
       subject: `[PSL Labs Contact] ${subject}`,
       text,
