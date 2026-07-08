@@ -1,10 +1,11 @@
 import type { ContentPageMeta, ContentSection } from "./types";
+import { LEGAL_ENTITY_NAME, LEGAL_LAST_UPDATED } from "./testing-scope";
 
 export const privacyPageMeta: ContentPageMeta = {
   label: "LEGAL",
   title: "Privacy Policy",
   description: "How PSL Labs collects, uses, and protects your personal information.",
-  intro: ["Last updated: May 2026."],
+  intro: [`Last updated: ${LEGAL_LAST_UPDATED}.`],
 };
 
 export const privacySections: ContentSection[] = [
@@ -56,7 +57,7 @@ export const privacySections: ContentSection[] = [
     id: "contact",
     title: "Contact",
     paragraphs: [
-      "Questions about this policy: support@psllabs.org.",
+      `${LEGAL_ENTITY_NAME} — Questions about this policy: support@psllabs.org.`,
     ],
   },
 ];

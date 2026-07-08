@@ -42,10 +42,12 @@ export function ProductPurchase({
       ? `Only ${availability.available} left`
       : null;
   const purchaseTrustItems = [
-    "Third-Party Tested",
     hasAvailableReport(productHandle)
-      ? "Third-Party Report Available"
-      : "COA Pending",
+      ? "Original laboratory report available"
+      : "Laboratory report when published",
+    hasAvailableReport(productHandle)
+      ? "COA / Batch Lookup"
+      : "COA pending",
   ] as const;
 
   return (

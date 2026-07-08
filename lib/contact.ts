@@ -42,11 +42,11 @@ export const contactPage: ContactPageContent = {
     {
       id: "hours",
       label: "Business hours",
-      value: "Monday–Friday, 9:00 AM – 5:00 PM Eastern",
+      value: "Monday–Friday, 9:00 AM – 5:00 PM Arizona Time",
     },
   ],
   topics: [
-    { label: "COA & lot lookup", href: "/testing" },
+    { label: "COA / Batch Lookup", href: "/coa" },
     { label: "Shipping & returns", href: "/shipping" },
     { label: "Frequently asked questions", href: "/faq" },
   ],

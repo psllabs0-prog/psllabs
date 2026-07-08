@@ -1,7 +1,9 @@
 import { PRODUCT_VIAL_IMAGE } from "./images";
+import { retatrutideSource } from "./retatrutide-source";
 
 export type CatalogProduct = {
   handle: string;
+  sku: string;
   tag: string;
   name: string;
   strength: string;
@@ -15,17 +17,17 @@ export type CatalogProduct = {
 
 export const catalogProducts: CatalogProduct[] = [
   {
-    handle: "retatrutide",
-    tag: "RESEARCH PEPTIDE",
-    name: "Retatrutide",
-    strength: "10mg",
-    description:
-      "Lyophilized research peptide for laboratory and in vitro use. Independent batch documentation available for selected lots.",
-    price: 69.99,
-    href: "/products/retatrutide",
+    handle: retatrutideSource.handle,
+    sku: retatrutideSource.sku,
+    tag: retatrutideSource.tag,
+    name: retatrutideSource.name,
+    strength: retatrutideSource.nominalStrength,
+    description: retatrutideSource.description,
+    price: retatrutideSource.price,
+    href: retatrutideSource.href,
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: PRODUCT_VIAL_IMAGE.alt,
-    purityBadge: "Batch-specific purity",
+    purityBadge: retatrutideSource.purityBadge,
   },
 ];
 

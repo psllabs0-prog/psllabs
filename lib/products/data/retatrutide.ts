@@ -1,25 +1,24 @@
-import type { Product } from "../types";
-import { getCatalogProductByHandle } from "../catalog";
-import { PRODUCT_VIAL_IMAGE } from "../images";
+import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 import {
   formatReportedAmount,
   formatReportedPurity,
   retatrutideBlackTopReport,
 } from "@/lib/batch-reports";
+import { PRODUCT_VIAL_IMAGE } from "../images";
+import { retatrutideSource } from "../retatrutide-source";
+import type { Product } from "../types";
 
-const listing = getCatalogProductByHandle("retatrutide")!;
 const blackTop = retatrutideBlackTopReport;
 const blackTopAmount = formatReportedAmount(blackTop.reportedAmountMg);
 const blackTopPurity = formatReportedPurity(blackTop.purityPercent);
 
 export const retatrutide: Product = {
-  handle: "retatrutide",
-  tag: "RESEARCH PEPTIDE",
-  name: "Retatrutide",
-  shortDescription:
-    "Investigational triple-receptor agonist for laboratory research. Not approved for human use.",
-  price: listing.price,
-  stockStatus: "in_stock",
+  handle: retatrutideSource.handle,
+  tag: retatrutideSource.tag,
+  name: retatrutideSource.name,
+  shortDescription: retatrutideSource.shortDescription,
+  price: retatrutideSource.price,
+  stockStatus: retatrutideSource.stockStatus,
   imageSrc: PRODUCT_VIAL_IMAGE.src,
   imageAlt: PRODUCT_VIAL_IMAGE.alt,
   stackRole: "Research peptide · laboratory use only",
@@ -28,13 +27,13 @@ export const retatrutide: Product = {
   bullets: [
     "Lyophilized research peptide",
     "Independent batch documentation for selected lots",
-    "Third-party HPLC verification",
+    "Laboratory report available for published lots",
     "For laboratory and research use only",
   ],
   ingredients: [
     {
       name: "Retatrutide",
-      dose: "See COA for batch quantity",
+      dose: `${retatrutideSource.nominalStrength} nominal (see COA for laboratory-reported amount)`,
       mechanism:
         "Research peptide supplied for in vitro and laboratory research applications.",
     },
@@ -56,7 +55,7 @@ export const retatrutide: Product = {
       step: 3,
       title: "Documentation",
       description:
-        "Match the lot number on your vial to the published COA on this product page before use in your workflow.",
+        "Match the lot number on your vial to the published laboratory report on this page or via COA / Batch Lookup before use in your workflow.",
     },
   ],
   citations: [],
@@ -69,22 +68,27 @@ export const retatrutide: Product = {
     {
       question: "Where is the COA for my batch?",
       answer:
-        "When a third-party laboratory report is published for your lot, it appears on this product page under Testing & Quality. Results apply only to the tested sample and batch identified in that report.",
+        "When a third-party laboratory report is published for your lot, it appears on this product page under Testing & Quality and in COA / Batch Lookup. Results apply only to the tested sample and batch identified in that report.",
+    },
+    {
+      question: "What is the difference between nominal strength and the laboratory-reported amount?",
+      answer:
+        `The vial is labeled at a nominal strength of ${retatrutideSource.nominalStrength}. The laboratory-reported amount on the original report reflects the specific sample tested and may differ. Review the published report for the batch you received.`,
     },
   ],
   testing: {
-    description:
-      "Independent third-party laboratory documentation is published for selected lots. Available reports list laboratory-reported identity, amount, and purity for the specific sample tested.",
+    description: `Independent third-party laboratory documentation is published for selected lots when available. ${TESTING_SCOPE_STATEMENT}`,
   },
   stackBlurb:
     "Retatrutide is supplied as a standalone research peptide with lot-specific documentation when published.",
   specifications: [
+    { label: "SKU", value: retatrutideSource.sku },
     { label: "Compound", value: "Retatrutide" },
     { label: "Alternate Name", value: "LY3437943" },
     { label: "Class", value: "Triple receptor agonist" },
     { label: "Receptor Targets", value: "GLP-1, GIP, Glucagon" },
     { label: "Format", value: "Lyophilized powder" },
-    { label: "Nominal Strength", value: blackTop.nominalStrength },
+    { label: "Nominal Strength", value: retatrutideSource.nominalStrength },
     {
       label: `Laboratory-Reported Amount — Batch ${blackTop.batch}`,
       value: blackTopAmount,
@@ -93,7 +97,7 @@ export const retatrutide: Product = {
       label: `Laboratory-Reported Purity — Batch ${blackTop.batch}`,
       value: blackTopPurity,
     },
-    { label: "Testing", value: "Third-party analysis (selected lots)" },
+    { label: "Testing", value: "Per original laboratory report (selected lots)" },
     { label: "COA Status", value: "Third-Party Report Available" },
     { label: "Intended Use", value: "Laboratory research only" },
     { label: "Human Use", value: "Not approved for human use" },

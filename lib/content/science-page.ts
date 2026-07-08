@@ -2,10 +2,10 @@ import type { ContentPageMeta } from "./types";
 
 export const sciencePageMeta: ContentPageMeta = {
   label: "SCIENCE",
-  title: "Research & reference.",
+  title: "Documentation reference.",
   description:
-    "Editorial articles on mechanisms, testing, and how to read the evidence.",
+    "How to locate lot numbers, open original laboratory reports, and read published batch documentation.",
   intro: [
-    "Reference-grade writing—not hype. These articles explain the science behind the stack. A full CMS is coming; for launch, we publish here.",
+    "Short guides for reviewing PSL batch documentation. These articles describe how to find and read published laboratory reports—not product use or outcomes.",
   ],
 };

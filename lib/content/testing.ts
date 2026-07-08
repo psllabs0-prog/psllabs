@@ -1,4 +1,5 @@
 import type { ContentPageMeta, ContentSection } from "./types";
+import { TESTING_SCOPE_STATEMENT } from "./testing-scope";
 
 export const testingPageMeta: ContentPageMeta = {
   label: "TESTING & QUALITY",
@@ -7,6 +8,7 @@ export const testingPageMeta: ContentPageMeta = {
     "How PSL Labs approaches third-party testing—and how to review published batch documentation.",
   intro: [
     "Independent batch documentation is published for selected lots. When a third-party laboratory report is available, we show the laboratory-reported identity, amount, and purity for the specific sample tested—not a marketing summary.",
+    TESTING_SCOPE_STATEMENT,
   ],
 };
 
@@ -15,14 +17,14 @@ export const testingSections: ContentSection[] = [
     id: "identity",
     title: "Identity Verification",
     paragraphs: [
-      "Every batch is reviewed to confirm the submitted material matches the expected compound profile. Identity testing helps verify that the sample aligns with the labeled compound before any purity result is interpreted.",
+      `When an original laboratory report is published for a lot, identity results for the tested sample are shown on that report. ${TESTING_SCOPE_STATEMENT}`,
     ],
   },
   {
     id: "purity",
     title: "Purity Analysis",
     paragraphs: [
-      "Samples are evaluated for estimated purity using laboratory analytical methods. The goal is to identify the main compound signal and screen for visible impurities, degradation products, or unexpected material.",
+      "When purity results appear on a published report, they reflect the analytical methods and scope documented on that original laboratory report for the specific sample tested.",
     ],
   },
   {
@@ -36,14 +38,14 @@ export const testingSections: ContentSection[] = [
     id: "coa-review",
     title: "COA Review",
     paragraphs: [
-      "Certificates of Analysis summarize the reported testing results, including sample identification, testing method, purity result, and relevant notes. COAs should be reviewed as supporting documentation, not as medical or usage guidance.",
+      "Certificates of Analysis summarize the reported testing results for the sample identified in the report. COAs should be reviewed as supporting documentation, not as medical or usage guidance.",
     ],
   },
   {
     id: "quality-standard",
     title: "Quality Standard",
     paragraphs: [
-      "PSL Labs is built around documentation, transparency, and batch-level verification. Our goal is to make testing information easy to find, easy to understand, and clearly connected to each product batch.",
+      `PSL Labs is built around documentation, transparency, and batch-level verification when reports are published. ${TESTING_SCOPE_STATEMENT}`,
     ],
   },
 ];

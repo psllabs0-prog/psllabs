@@ -1,5 +1,8 @@
+import Link from "next/link";
+
 import type { Product } from "@/lib/products";
 import { getBatchReportsForProduct } from "@/lib/batch-reports";
+import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 
 import { AnimateIn } from "./animate-in";
 import { BatchTestingCard } from "./batch-testing-card";
@@ -17,19 +20,22 @@ export function ProductTesting({ product }: { product: Product }) {
         <AnimateIn>
           <div className="premium-card p-6 md:p-7">
             <div className="mb-4 flex flex-wrap gap-2">
-              <span className="badge-verified">Third-party tested</span>
-              <span className="badge-accent">
-                {hasReport
-                  ? "Third-Party Report Available"
-                  : "Documentation when available"}
+              <span className="badge-verified">
+                {hasReport ? "Report available" : "Documentation when available"}
               </span>
             </div>
             <p className="text-base leading-[1.7] text-ash md:text-body-lg">
               {hasReport
-                ? "Independent third-party laboratory documentation is published for selected lots. Review the batch report below for laboratory-reported identity, amount, and purity results specific to the tested sample."
+                ? `Independent third-party laboratory documentation is published for selected lots. ${TESTING_SCOPE_STATEMENT}`
                 : (product.testing.description ||
                   "Lot-specific third-party documentation is published when available.")}
             </p>
+            <Link
+              href="/coa"
+              className="mt-4 inline-flex text-sm font-medium text-petrol underline underline-offset-4 transition-opacity hover:opacity-80"
+            >
+              COA / Batch Lookup →
+            </Link>
           </div>
         </AnimateIn>
 

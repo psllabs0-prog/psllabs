@@ -1,3 +1,5 @@
+import { TESTING_SCOPE_STATEMENT } from "./testing-scope";
+
 export type SiteFaqItem = {
   id: string;
   question: string;
@@ -15,19 +17,18 @@ export const siteFaqItems: SiteFaqItem[] = [
     id: "retatrutide",
     question: "What is Retatrutide?",
     answer:
-      "Retatrutide is a research peptide supplied in lyophilized form for in vitro and laboratory research applications. Full compound documentation and batch-specific testing data are published for each lot we release.",
+      "Retatrutide is a research peptide supplied in lyophilized form for in vitro and laboratory research applications. Batch-specific laboratory documentation is published for selected lots when available.",
   },
   {
     id: "purity",
     question: "How do you verify purity?",
-    answer:
-      "Every batch undergoes HPLC identity and purity testing at independent, ISO 17025-accredited third-party laboratories. Results must meet our release specifications before a lot ships.",
+    answer: TESTING_SCOPE_STATEMENT,
   },
   {
     id: "coa",
     question: "Where can I find my Certificate of Analysis?",
     answer:
-      "COAs are published on the product page and in our Testing section. Match the lot number on your vial label to the corresponding batch report. If your lot is not yet listed, contact support@psllabs.org.",
+      "When a laboratory report is published for your lot, it appears on the product page, in COA / Batch Lookup, and in our Testing section. Match the lot number on your vial label to the corresponding report. If your lot is not yet listed, contact support@psllabs.org.",
   },
   {
     id: "storage",

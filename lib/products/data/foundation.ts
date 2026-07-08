@@ -56,7 +56,7 @@ export const foundation: Product = {
       step: 2,
       title: "Verify specifications",
       description:
-        "Confirm identity, purity, and contaminant panel results meet your laboratory requirements. Contact support@psllabs.org for institutional documentation requests.",
+        "Review lot-specific laboratory documentation when published. Contact support@psllabs.org for institutional documentation requests.",
     },
     {
       step: 3,
@@ -107,7 +107,7 @@ export const foundation: Product = {
     {
       question: "What documentation is available for Foundation?",
       answer:
-        "Each lot includes a published Certificate of Analysis with identity (HPLC), potency, and contaminant panel results from an independent ISO 17025-accredited laboratory.",
+        "When a laboratory report is published for your lot, testing scope and results are shown on that original report. Contact support@psllabs.org for institutional or compliance documentation requests.",
     },
     {
       question: "Are ingredient amounts fully disclosed?",
@@ -122,7 +122,7 @@ export const foundation: Product = {
     {
       question: "How is each batch tested?",
       answer:
-        "Every lot is tested by an independent ISO 17025-accredited laboratory for identity (HPLC), potency, and heavy metals (ICP-MS). Full COAs are published per batch—not marketing summaries.",
+        "Testing scope and results are shown on each original laboratory report when published for a lot.",
     },
     {
       question: "Can I request additional documentation?",
@@ -132,7 +132,7 @@ export const foundation: Product = {
   ],
   testing: {
     description:
-      "Foundation batches are verified by independent third-party laboratories before release. Every lot receives full-panel testing against published specifications.",
+      "When third-party laboratory reports are published for Foundation lots, they are linked from the product page and COA / Batch Lookup.",
   },
   stackBlurb:
     "Foundation is one compound profile in the PSL catalog. See Cellular Energy for NAD+ pathway reference materials and Recovery for mitochondrial research compounds.",

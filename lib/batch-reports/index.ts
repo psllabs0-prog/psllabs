@@ -24,3 +24,19 @@ export function hasAvailableReport(handle: string): boolean {
     (report) => report.status === "report_available"
   );
 }
+
+/** Match by task number or batch name (case-insensitive, partial OK). */
+export function findBatchReport(query: string): BatchReport | undefined {
+  const normalized = query.trim().toLowerCase();
+  if (!normalized) return undefined;
+
+  return batchReports.find((report) => {
+    if (report.status !== "report_available") return false;
+    return (
+      report.taskNumber.toLowerCase() === normalized ||
+      report.batch.toLowerCase() === normalized ||
+      report.batch.toLowerCase().includes(normalized) ||
+      report.sku.toLowerCase() === normalized
+    );
+  });
+}

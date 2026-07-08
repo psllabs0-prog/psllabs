@@ -1,4 +1,5 @@
 import type { LabIllustrationId } from "@/components/illustrations/lab-illustrations";
+import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 import { getCatalogProductByHandle } from "@/lib/products/catalog";
 import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
 
@@ -6,7 +7,7 @@ export const heroCopy = {
   eyebrow: "PSL LABS",
   headline: "Verified research compounds.",
   subheadline:
-    "Third-party tested · independent batch documentation for selected lots.",
+    "Independent batch documentation for selected lots · laboratory reports when published.",
   ctaLabel: "Shop Products",
   ctaHref: "/products",
   productImageAlt: PRODUCT_VIAL_IMAGE.alt,
@@ -21,7 +22,7 @@ export type HeroTrustCardData = {
 export const heroTrustCards: HeroTrustCardData[] = [
   {
     illustration: "third-party-tested",
-    title: "Third-party testing",
+    title: "Laboratory reports",
   },
   {
     illustration: "batch-coa",
@@ -40,7 +41,7 @@ export type TrustElementData = {
 
 export const trustElements: TrustElementData[] = [
   { illustration: "usa-shipping", label: "USA Shipping" },
-  { illustration: "third-party-tested", label: "Third-Party Tested" },
+  { illustration: "third-party-tested", label: "Laboratory Reports" },
   { illustration: "certificate", label: "Certificate of Analysis" },
   { illustration: "research-docs", label: "Research Documentation" },
 ];
@@ -54,21 +55,20 @@ export type WhyChooseCardData = {
 export const whyChooseCards: WhyChooseCardData[] = [
   {
     illustration: "batch-coa",
-    title: "Batch-matched COAs",
+    title: "Batch-matched reports",
     description:
       "Independent batch documentation available for selected lots.",
   },
   {
     illustration: "hplc",
-    title: "HPLC identity testing",
-    description:
-      "Compound identity confirmed against analytical reference standards—not supplier paperwork alone.",
+    title: "Original laboratory reports",
+    description: TESTING_SCOPE_STATEMENT,
   },
   {
     illustration: "quality-panel",
-    title: "Documented quality panels",
+    title: "Published lot documentation",
     description:
-      "Purity and identity results are disclosed on published lot-specific reports when testing documentation is available.",
+      "Identity and purity results are disclosed on published lot-specific reports when testing documentation is available.",
   },
   {
     illustration: "us-fulfillment",

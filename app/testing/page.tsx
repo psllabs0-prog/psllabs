@@ -28,7 +28,13 @@ export default function TestingPage() {
             <p className="mt-2 text-sm leading-relaxed text-ash md:text-base">
               Published third-party laboratory reports for selected lots. Results
               apply only to the tested sample and batch identified in each
-              report.
+              report.{" "}
+              <a
+                href="/coa"
+                className="font-medium text-petrol underline underline-offset-4"
+              >
+                COA / Batch Lookup →
+              </a>
             </p>
           </div>
           <BatchReportsList reports={reports} />

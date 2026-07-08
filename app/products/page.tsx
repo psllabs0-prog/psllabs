@@ -7,7 +7,7 @@ import { createPageMetadata } from "@/lib/seo";
 export const metadata: Metadata = createPageMetadata({
   title: "Products",
   description:
-    "Premium research peptides with third-party HPLC verification, batch-matched COAs, and full laboratory documentation.",
+    "Research peptides with published batch documentation for selected lots. Laboratory reports available when published.",
   path: "/products",
 });
 
@@ -24,9 +24,9 @@ export default function ProductsPage() {
               Laboratory-grade research compounds.
             </h1>
             <p className="text-body-lg text-ash">
-              Each product is released with independent verification, published
-              Certificates of Analysis, and complete batch traceability—for
-              research use only.
+              Each product includes disclosed specifications and batch documentation
+              when published—for research use only. Testing scope and results are
+              shown on each original laboratory report.
             </p>
           </div>
         </div>

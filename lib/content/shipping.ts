@@ -1,4 +1,5 @@
 import type { ContentPageMeta, ContentSection } from "./types";
+import { PUBLIC_CLAIM_WINDOW_NOTICE } from "./testing-scope";
 
 export const shippingPageMeta: ContentPageMeta = {
   label: "SHIPPING",
@@ -37,7 +38,7 @@ export const shippingSections: ContentSection[] = [
     id: "issues",
     title: "Lost or damaged packages",
     paragraphs: [
-      "If your package is lost or arrives damaged, contact support@psllabs.org within 14 days of the estimated delivery date with your order number and photos (if damaged). We will work with the carrier to resolve the issue.",
+      `If your package is lost or arrives damaged, contact support@psllabs.org with your order number and photos (if damaged). ${PUBLIC_CLAIM_WINDOW_NOTICE}`,
     ],
   },
 ];

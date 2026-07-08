@@ -44,6 +44,7 @@ export const footerColumns: { title: string; links: NavLink[] }[] = [
     links: [
       { label: "FAQ", href: "/faq" },
       { label: "Testing", href: "/testing" },
+      { label: "COA / Batch Lookup", href: "/coa" },
       { label: "Shipping", href: "/shipping" },
       { label: "Returns", href: "/returns" },
     ],

@@ -53,6 +53,18 @@ export function ReturnsPage() {
             </AnimateIn>
           </header>
 
+          {/* Reporting order issues */}
+          <AnimateIn delay={0.06}>
+            <section className={cn(cardClass, "flex flex-col gap-4")}>
+              <h2 className="font-display text-xl font-bold text-ink md:text-2xl">
+                {content.claimWindow.title}
+              </h2>
+              <p className="text-base leading-[1.7] text-ash md:text-body-lg">
+                {content.claimWindow.body}
+              </p>
+            </section>
+          </AnimateIn>
+
           {/* Protection policy */}
           <AnimateIn delay={0.08}>
             <section className={cn(cardClass, "flex flex-col gap-4")}>

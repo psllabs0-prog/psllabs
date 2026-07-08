@@ -1,14 +1,16 @@
 import type { BatchReport } from "./types";
+import { retatrutideSource } from "@/lib/products/retatrutide-source";
 
 export const retatrutideBlackTopReport: BatchReport = {
-  product: "Retatrutide",
-  productHandle: "retatrutide",
+  product: retatrutideSource.name,
+  productHandle: retatrutideSource.handle,
+  sku: retatrutideSource.sku,
   batch: "Black Top",
   taskNumber: "199788",
   laboratory: "Janoshik",
   manufacturer: "HXTNT",
   identityResult: "Retatrutide",
-  nominalStrength: "10mg",
+  nominalStrength: retatrutideSource.nominalStrength,
   reportedAmountMg: 13.03,
   purityPercent: 99.805,
   testingOrderedDate: "June 25, 2026",

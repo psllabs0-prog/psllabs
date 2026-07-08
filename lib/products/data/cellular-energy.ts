@@ -44,7 +44,7 @@ export const cellularEnergy: Product = {
       step: 2,
       title: "Verify specifications",
       description:
-        "Confirm identity, potency, and contaminant results meet your requirements. Contact support@psllabs.org for additional documentation.",
+        "Review lot-specific laboratory documentation when published. Contact support@psllabs.org for additional documentation.",
     },
     {
       step: 3,
@@ -107,7 +107,7 @@ export const cellularEnergy: Product = {
     {
       question: "How is each batch tested?",
       answer:
-        "Third-party verification for identity, potency, and heavy metals. Full COAs are published per lot—the same standard as every PSL product.",
+        "Testing scope and results are shown on each original laboratory report when published for a lot.",
     },
     {
       question: "Where can I find the COA for my lot?",
@@ -117,7 +117,7 @@ export const cellularEnergy: Product = {
   ],
   testing: {
     description:
-      "Cellular Energy batches are verified by independent third-party laboratories before release. Identity, label potency, and contaminant panels are tested against specifications.",
+      "When third-party laboratory reports are published for Cellular Energy lots, they are linked from the product page and COA / Batch Lookup.",
   },
   stackBlurb:
     "Cellular Energy covers NAD+ pathway reference compounds in the PSL catalog. See Foundation for base-layer compound profiles and Recovery for mitochondrial research materials.",

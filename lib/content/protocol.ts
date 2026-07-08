@@ -1,4 +1,5 @@
 import type { ContentPageMeta, ContentSection } from "./types";
+import { TESTING_SCOPE_STATEMENT } from "./testing-scope";
 
 export const protocolPageMeta: ContentPageMeta = {
   label: "CATALOG REFERENCE",
@@ -15,7 +16,7 @@ export const protocolSections: ContentSection[] = [
     id: "overview",
     title: "Overview",
     paragraphs: [
-      "The PSL catalog includes compound reference profiles organized by research area: Foundation (multi-compound base profile), Cellular Energy (NAD+ pathway materials), and Recovery (mitochondrial research compounds). Each profile lists disclosed actives, published citations, and batch-matched testing records.",
+      "The PSL catalog includes compound reference profiles organized by research area: Foundation (multi-compound base profile), Cellular Energy (NAD+ pathway materials), and Recovery (mitochondrial research compounds). Each profile lists disclosed actives, published citations, and batch documentation when published.",
       "Products can be reviewed independently. Select materials based on your laboratory requirements and verify lot documentation before use.",
     ],
   },
@@ -23,8 +24,8 @@ export const protocolSections: ContentSection[] = [
     id: "foundation",
     title: "Foundation — compound profile",
     paragraphs: [
-      "Foundation documents trans-resveratrol, spermidine, fisetin, and methylated B vitamins at disclosed doses with per-ingredient mechanisms and batch COAs.",
-      "Review the lot-specific Certificate of Analysis and reference citations before integrating into any research workflow.",
+      "Foundation documents trans-resveratrol, spermidine, fisetin, and methylated B vitamins at disclosed doses with per-ingredient mechanisms and batch documentation when published.",
+      "Review the lot-specific laboratory report and reference citations before integrating into any research workflow.",
     ],
   },
   {
@@ -32,7 +33,7 @@ export const protocolSections: ContentSection[] = [
     title: "Cellular Energy — NAD+ pathway",
     paragraphs: [
       "Cellular Energy documents NMN, NR, and TMG at disclosed doses referenced in NAD+ pathway research literature.",
-      "Batch identity, potency, and contaminant results are published per lot on the product page and in the Testing section.",
+      "When a laboratory report is published for your lot, review it on the product page or in COA / Batch Lookup.",
     ],
   },
   {
@@ -40,14 +41,14 @@ export const protocolSections: ContentSection[] = [
     title: "Recovery — mitochondrial compounds",
     paragraphs: [
       "Recovery documents urolithin A, ubiquinol, and PQQ at disclosed doses cited in mitochondrial research publications.",
-      "Match your lot number to the published COA and confirm specifications meet your laboratory requirements.",
+      "Match your lot number to any published report and confirm specifications meet your laboratory requirements.",
     ],
   },
   {
     id: "documentation",
     title: "Documentation standards",
     paragraphs: [
-      "Every batch receives independent third-party testing before release. Full Certificates of Analysis are published within 48 hours of batch release—linked from each product page.",
+      `When third-party laboratory reports are published for a lot, they are linked from the product page and COA / Batch Lookup. ${TESTING_SCOPE_STATEMENT}`,
       "For institutional requests or documentation questions, contact support@psllabs.org with your lot number.",
     ],
   },

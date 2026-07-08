@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 
 import type { BatchReport } from "@/lib/batch-reports";
@@ -6,6 +7,7 @@ import {
   formatReportedAmount,
   formatReportedPurity,
 } from "@/lib/batch-reports";
+import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 
 const BATCH_REPORT_DISCLAIMER =
   "This third-party laboratory report applies only to the specific sample and batch identified in the report. Results do not establish safety, efficacy, sterility, regulatory approval, or suitability for human use.";
@@ -35,19 +37,20 @@ export function BatchTestingCard({ report }: BatchTestingCardProps) {
   return (
     <div className="premium-card overflow-hidden p-6 md:p-7">
       <div className="mb-5 flex flex-wrap gap-2">
-        <span className="badge-verified">Third-party tested</span>
-        <span className="badge-accent">Third-Party Report Available</span>
+        <span className="badge-verified">Original laboratory report</span>
+        <span className="badge-accent">Report available</span>
       </div>
 
       <h3 className="font-display text-lg font-bold text-ink">
         Batch Testing — {report.batch}
       </h3>
       <p className="mt-2 text-sm text-ash">
-        Laboratory-reported results for the sample and batch identified below.
-        These results are batch-specific and do not apply to other lots.
+        {TESTING_SCOPE_STATEMENT} Results are batch-specific and do not apply
+        to other lots.
       </p>
 
       <dl className="mt-5 rounded-xl border border-linen bg-soft-blue/30 px-4 py-1">
+        <DetailRow label="SKU" value={report.sku} />
         <DetailRow label="Laboratory" value={report.laboratory} />
         <DetailRow label="Batch" value={report.batch} />
         <DetailRow label="Task Number" value={report.taskNumber} />
@@ -71,6 +74,7 @@ export function BatchTestingCard({ report }: BatchTestingCardProps) {
           <p className="mt-1 font-display text-xl font-bold text-ink">
             {report.nominalStrength}
           </p>
+          <p className="mt-1 text-xs text-ash">Labeled vial strength</p>
         </div>
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-ash">
@@ -78,6 +82,9 @@ export function BatchTestingCard({ report }: BatchTestingCardProps) {
           </p>
           <p className="mt-1 font-display text-xl font-bold text-ink">
             {amountLabel}
+          </p>
+          <p className="mt-1 text-xs text-ash">
+            Amount reported for the tested sample
           </p>
         </div>
       </div>
@@ -112,7 +119,7 @@ export function BatchTestingCard({ report }: BatchTestingCardProps) {
           rel="noopener noreferrer"
           className="inline-flex items-center justify-center gap-2 rounded-pill bg-ink px-5 py-3 text-sm font-medium text-lab-white transition-opacity hover:opacity-90"
         >
-          View Test Report
+          View original report
           <ExternalLink className="size-3.5" aria-hidden />
         </a>
         <a
@@ -124,6 +131,12 @@ export function BatchTestingCard({ report }: BatchTestingCardProps) {
           Verify with Janoshik
           <ExternalLink className="size-3.5" aria-hidden />
         </a>
+        <Link
+          href="/coa"
+          className="inline-flex items-center justify-center gap-2 rounded-pill border border-linen bg-lab-white px-5 py-3 text-sm font-medium text-ink transition-colors hover:border-primary-blue/40"
+        >
+          COA / Batch Lookup
+        </Link>
       </div>
       <p className="mt-2 text-xs leading-relaxed text-ash">
         Use the unique verification key shown on the original report.

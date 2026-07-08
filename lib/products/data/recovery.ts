@@ -44,7 +44,7 @@ export const recovery: Product = {
       step: 2,
       title: "Verify specifications",
       description:
-        "Confirm identity, potency, and contaminant results meet your requirements. Contact support@psllabs.org for institutional requests.",
+        "Review lot-specific laboratory documentation when published. Contact support@psllabs.org for institutional requests.",
     },
     {
       step: 3,
@@ -94,7 +94,7 @@ export const recovery: Product = {
     {
       question: "What documentation is available for Recovery?",
       answer:
-        "Each lot includes a published Certificate of Analysis with identity, potency, and contaminant panel results from an independent accredited laboratory.",
+        "When a laboratory report is published for your lot, testing scope and results are shown on that original report.",
     },
     {
       question: "Is ubiquinol the same as CoQ10?",
@@ -114,12 +114,12 @@ export const recovery: Product = {
     {
       question: "How is each batch verified?",
       answer:
-        "Independent third-party testing for identity, potency, and heavy metals. Full Certificates of Analysis are published for every lot.",
+        "Testing scope and results are shown on each original laboratory report when published for a lot.",
     },
   ],
   testing: {
     description:
-      "Recovery undergoes the same third-party verification pipeline as every PSL product. No batch ships without passing identity, potency, and contaminant thresholds.",
+      "When third-party laboratory reports are published for Recovery lots, they are linked from the product page and COA / Batch Lookup.",
   },
   stackBlurb:
     "Recovery covers mitochondrial research compounds in the PSL catalog. See Foundation for base-layer profiles and Cellular Energy for NAD+ pathway reference materials.",

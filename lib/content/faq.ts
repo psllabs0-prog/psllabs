@@ -1,4 +1,5 @@
 import type { ContentPageMeta, FaqCategory } from "./types";
+import { TESTING_SCOPE_STATEMENT } from "./testing-scope";
 
 export const faqPageMeta: ContentPageMeta = {
   label: "FAQ",
@@ -18,17 +19,17 @@ export const faqCategories: FaqCategory[] = [
       {
         question: "What products does PSL Labs offer?",
         answer:
-          "PSL Labs publishes research compound profiles with disclosed ingredients, batch-matched Certificates of Analysis, and reference citations. See the product catalog for current listings including Retatrutide and compound reference profiles.",
+          "PSL Labs publishes research compound profiles with disclosed ingredients and reference citations. Batch-matched laboratory reports are published for selected lots when available. See the product catalog for current listings including Retatrutide.",
       },
       {
         question: "Are ingredient amounts fully disclosed?",
         answer:
-          "Yes. Every active and dose appears on the label, product page, and batch COA. We do not use proprietary blends or undisclosed complexes.",
+          "Yes. Every active and dose appears on the label and product page. When a laboratory report is published for your lot, review that report for batch-specific testing results.",
       },
       {
         question: "Where can I find batch documentation?",
         answer:
-          "COAs are published on each product page and in our Testing section. Match the lot number on your label to the corresponding batch report.",
+          "When a laboratory report is published for your lot, it appears on the product page, in COA / Batch Lookup, and in our Testing section. Match the lot number on your label to the corresponding report.",
       },
       {
         question: "Can I request additional documentation?",
@@ -54,13 +55,12 @@ export const faqCategories: FaqCategory[] = [
     items: [
       {
         question: "How do you test each batch?",
-        answer:
-          "Every batch is tested by an independent ISO 17025-accredited lab for identity (HPLC), potency, and heavy metals (ICP-MS). We publish full COAs for every lot—see our Testing page for details.",
+        answer: `${TESTING_SCOPE_STATEMENT} See our Testing page and COA / Batch Lookup for published reports.`,
       },
       {
         question: "Where can I find the COA for my batch?",
         answer:
-          "COAs are published on each product page and in our Testing section. Match the lot number on your bottle label to the corresponding COA document.",
+          "When a laboratory report is published for your lot, it appears on the product page, in COA / Batch Lookup, and in our Testing section. Match the lot number on your bottle label to the corresponding report.",
       },
     ],
   },

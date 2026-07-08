@@ -3,6 +3,7 @@ export type BatchReportStatus = "report_available" | "pending";
 export type BatchReport = {
   product: string;
   productHandle: string;
+  sku: string;
   batch: string;
   taskNumber: string;
   laboratory: string;

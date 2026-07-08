@@ -1,3 +1,5 @@
+import { PUBLIC_CLAIM_WINDOW_NOTICE } from "./testing-scope";
+
 export const returnsPageMeta = {
   title: "Returns & Refunds",
   description:
@@ -10,6 +12,10 @@ export const returnsPageContent = {
   subtitle:
     "If an order arrives damaged, incorrect, or has a verified documentation issue, contact PSL Labs with your order number and clear photos so the issue can be reviewed.",
   badge: "Reviewed case-by-case",
+  claimWindow: {
+    title: "Reporting order issues",
+    body: PUBLIC_CLAIM_WINDOW_NOTICE,
+  },
   protectionPolicy: {
     title: "Damage / Issue Protection Policy",
     body: "PSL Labs reviews order issues on a case-by-case basis. If an item arrives damaged in transit, incorrect, or does not match the available batch documentation, customers should contact support with clear photo evidence and their order number. Approved claims may be eligible for a one-time replacement or another resolution at PSL Labs' discretion.",
@@ -43,7 +49,7 @@ export const returnsPageContent = {
     "Products without proof of purchase",
     "Products altered, opened, mishandled, or improperly stored after delivery",
     "Change-of-mind returns",
-    "Requests made after the claim window",
+    "Requests submitted outside the applicable review period once stated in the final policy",
     "Suspicious, excessive, or unverifiable claims",
   ],
   timeline: [
