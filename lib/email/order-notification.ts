@@ -57,11 +57,6 @@ export async function sendOrderEmail(order: Order): Promise<void> {
     )
     .join("");
 
-  const taxRow =
-    order.tax > 0
-      ? `<tr><td colspan="4" style="padding:4px 8px;text-align:right;">Tax (${(order.taxRate * 100).toFixed(2)}%)</td><td style="padding:4px 8px;text-align:right;">${money(order.tax)}</td></tr>`
-      : "";
-
   const html = `
   <div style="font-family:Arial,Helvetica,sans-serif;color:#0b1220;line-height:1.5;">
     <h2 style="margin:0 0 12px;">New paid order #${escapeHtml(order.orderId)}</h2>
@@ -83,7 +78,6 @@ export async function sendOrderEmail(order: Order): Promise<void> {
       <tbody>${rows}</tbody>
       <tfoot>
         <tr><td colspan="4" style="padding:4px 8px;text-align:right;">Subtotal</td><td style="padding:4px 8px;text-align:right;">${money(order.subtotal)}</td></tr>
-        ${taxRow}
         <tr><td colspan="4" style="padding:4px 8px;text-align:right;">Shipping</td><td style="padding:4px 8px;text-align:right;">${shippingLabel(order.shippingCost)}</td></tr>
         <tr><td colspan="4" style="padding:8px;text-align:right;font-weight:bold;">Order total</td><td style="padding:8px;text-align:right;font-weight:bold;">${money(order.total)}</td></tr>
       </tfoot>
@@ -109,9 +103,6 @@ export async function sendOrderEmail(order: Order): Promise<void> {
     ),
     "",
     `Subtotal: ${money(order.subtotal)}`,
-    ...(order.tax > 0
-      ? [`Tax (${(order.taxRate * 100).toFixed(2)}%): ${money(order.tax)}`]
-      : []),
     `Shipping: ${shippingLabel(order.shippingCost)}`,
     `Order total: ${money(order.total)}`,
     "",

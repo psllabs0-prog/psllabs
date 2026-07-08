@@ -137,12 +137,6 @@ export function OrderStatus({
               <dt>Subtotal</dt>
               <dd className="text-ink">{money(order.subtotal)}</dd>
             </div>
-            {order.tax > 0 && (
-              <div className="flex justify-between text-ash">
-                <dt>Tax ({(order.taxRate * 100).toFixed(2)}%)</dt>
-                <dd className="text-ink">{money(order.tax)}</dd>
-              </div>
-            )}
             <div className="flex justify-between text-ash">
               <dt>Shipping</dt>
               <dd className="text-ink">{shippingLabel(order.shippingCost)}</dd>

@@ -509,12 +509,6 @@ function CheckoutSummary({
             {totals.shipping === 0 ? "Free" : formatPrice(totals.shipping)}
           </dd>
         </div>
-        {totals.tax > 0 && (
-          <div className="flex justify-between text-ash">
-            <dt>Tax ({(totals.taxRate * 100).toFixed(2)}%)</dt>
-            <dd className="text-ink">{formatPrice(totals.tax)}</dd>
-          </div>
-        )}
         <div className="mt-2 flex justify-between border-t border-linen pt-3">
           <dt className="font-display font-bold text-ink">Total</dt>
           <dd className="font-display text-lg font-bold text-ink">
@@ -523,7 +517,7 @@ function CheckoutSummary({
         </div>
       </dl>
       <p className="text-xs leading-relaxed text-ash">
-        Free U.S. shipping over $150. Tax applies to Arizona addresses.
+        Free U.S. shipping over $150.
       </p>
     </div>
   );

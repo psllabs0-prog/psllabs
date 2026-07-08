@@ -49,8 +49,6 @@ export type PublicOrder = Pick<
   | "items"
   | "shipping"
   | "subtotal"
-  | "tax"
-  | "taxRate"
   | "shippingCost"
   | "total"
 >;
@@ -64,8 +62,6 @@ export function toPublicOrder(order: Order): PublicOrder {
     items: order.items,
     shipping: order.shipping,
     subtotal: order.subtotal,
-    tax: order.tax,
-    taxRate: order.taxRate,
     shippingCost: order.shippingCost,
     total: order.total,
   };
