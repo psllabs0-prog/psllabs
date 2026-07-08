@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { SITE_URL } from "@/lib/seo";
 import type {
   CheckoutSession,
+  CreateInvoiceInput,
   InvoiceStatus,
   InvoiceStatusResult,
   PaymentProcessor,
@@ -11,8 +12,8 @@ import type {
 import { getCheckoutProduct } from "./products";
 
 function getServerUrl(): string {
-  const url = process.env.BTCPAY_SERVER_URL;
-  if (!url) throw new Error("BTCPAY_SERVER_URL is not set");
+  const url = process.env.BTCPAY_URL;
+  if (!url) throw new Error("BTCPAY_URL is not set");
   return url.replace(/\/+$/, "");
 }
 
@@ -135,6 +136,39 @@ export class BTCPayProcessor implements PaymentProcessor {
             redirectURL: `${siteUrl}/success`,
             redirectAutomatically: true,
             defaultLanguage: "en",
+          },
+          receipt: {
+            enabled: true,
+          },
+        }),
+      }
+    );
+
+    return {
+      id: invoice.id,
+      url: invoice.checkoutLink,
+      processor: this.name,
+    };
+  }
+
+  async createInvoice(input: CreateInvoiceInput): Promise<CheckoutSession> {
+    const storeId = getStoreId();
+
+    const invoice = await btcpayFetch<BTCPayInvoiceResponse>(
+      `/stores/${storeId}/invoices`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          amount: input.amount.toFixed(2),
+          currency: input.currency,
+          checkout: {
+            redirectURL: `${SITE_URL}${input.redirectPath}`,
+            redirectAutomatically: true,
+            defaultLanguage: "en",
+          },
+          metadata: {
+            orderId: input.orderId,
+            items: input.items,
           },
           receipt: {
             enabled: true,

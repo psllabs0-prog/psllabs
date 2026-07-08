@@ -4,6 +4,20 @@ export type CheckoutSession = {
   processor: string;
 };
 
+export type InvoiceItem = {
+  productId: string;
+  name: string;
+  quantity: number;
+};
+
+export type CreateInvoiceInput = {
+  amount: number;
+  currency: string;
+  orderId: string;
+  redirectPath: string;
+  items: InvoiceItem[];
+};
+
 export type InvoiceStatus =
   | "new"
   | "processing"
@@ -32,6 +46,8 @@ export interface PaymentProcessor {
     productId: string,
     quantity: number
   ): Promise<CheckoutSession>;
+
+  createInvoice(input: CreateInvoiceInput): Promise<CheckoutSession>;
 
   verifyWebhook(
     payload: string,

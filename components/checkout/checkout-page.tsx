@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Bitcoin, CreditCard } from "lucide-react";
+import { Bitcoin, Check, CreditCard } from "lucide-react";
 
 import { useCart } from "@/components/cart/cart-provider";
 import { formatPrice } from "@/lib/cart/format";
@@ -117,6 +117,9 @@ export function CheckoutPage() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitted, setSubmitted] = useState(false);
+  const [method, setMethod] = useState<"btcpay" | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
 
   const isEmpty = !isHydrated || lines.length === 0;
 
@@ -127,14 +130,48 @@ export function CheckoutPage() {
     }
   }
 
-  function handleSubmit(event: React.FormEvent) {
+  async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     const nextErrors = validateForm(form);
     setErrors(nextErrors);
     setSubmitted(true);
     if (Object.keys(nextErrors).length > 0) return;
-    // Demo flow — no order creation yet.
-    // TODO: Send order receipt email via lib/email/order-receipt.ts after payment setup is finalized.
+
+    if (method !== "btcpay") {
+      setPayError("Select a payment method to continue.");
+      return;
+    }
+
+    setPayError(null);
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currency: "USD",
+          items: lines.map((line) => ({
+            handle: line.handle,
+            quantity: line.quantity,
+          })),
+        }),
+      });
+
+      const data = (await res.json()) as {
+        checkoutLink?: string;
+        error?: string;
+      };
+
+      if (!res.ok || !data.checkoutLink) {
+        throw new Error(data.error ?? "Checkout failed");
+      }
+
+      window.location.href = data.checkoutLink;
+    } catch {
+      setPayError("We couldn't start checkout. Please try again.");
+      setIsSubmitting(false);
+    }
   }
 
   if (isHydrated && isEmpty) {
@@ -165,8 +202,8 @@ export function CheckoutPage() {
             Review your order
           </h1>
           <p className="mt-3 max-w-2xl text-sm text-ash md:text-base">
-            Complete your contact and shipping details. Payment is not active
-            yet—this is an inquiry and review flow only.
+            Complete your contact and shipping details, then pay securely with
+            Bitcoin.
           </p>
         </header>
 
@@ -334,6 +371,44 @@ export function CheckoutPage() {
                 Payment Method
               </h2>
               <div className="mt-5 flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMethod("btcpay");
+                    setPayError(null);
+                  }}
+                  aria-pressed={method === "btcpay"}
+                  className={cn(
+                    "flex items-start gap-3 rounded-xl border p-4 text-left transition-colors",
+                    method === "btcpay"
+                      ? "border-primary-blue bg-soft-blue/40 ring-2 ring-primary-blue/20"
+                      : "border-linen bg-lab-white hover:border-primary-blue/50"
+                  )}
+                >
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-linen bg-soft-blue/50">
+                    <Bitcoin
+                      className="size-5 text-biotech-deep"
+                      strokeWidth={1.6}
+                      aria-hidden
+                    />
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="text-sm font-medium text-ink">
+                      Bitcoin via BTCPay
+                    </span>
+                    <span className="text-xs leading-relaxed text-ash">
+                      Pay with Bitcoin. You&apos;ll be redirected to our secure
+                      BTCPay checkout.
+                    </span>
+                  </div>
+                  {method === "btcpay" && (
+                    <Check
+                      className="mt-0.5 size-5 shrink-0 text-primary-blue"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                  )}
+                </button>
                 <PaymentOption
                   icon={
                     <CreditCard
@@ -345,22 +420,26 @@ export function CheckoutPage() {
                   label="Card or bank payment"
                   helperText="Available after payment processor approval."
                 />
-                <PaymentOption
-                  icon={
-                    <Bitcoin
-                      className="size-5 text-biotech-deep"
-                      strokeWidth={1.6}
-                      aria-hidden
-                    />
-                  }
-                  label="Bitcoin via BTCPay"
-                  helperText="Available after final review."
-                />
               </div>
-              <p className="mt-5 rounded-lg border border-linen bg-soft-blue/40 px-4 py-3 text-center text-sm leading-relaxed text-ash">
-                Payment options are currently unavailable. Checkout will be
-                enabled after final review.
-              </p>
+
+              {payError && (
+                <p
+                  role="alert"
+                  className="mt-4 rounded-lg border border-signal/30 bg-signal/5 px-4 py-3 text-sm text-signal"
+                >
+                  {payError}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={isSubmitting || method !== "btcpay"}
+                className="mt-5 inline-flex w-full items-center justify-center rounded-pill bg-ink px-6 py-3.5 text-base font-medium text-lab-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isSubmitting
+                  ? "Starting checkout…"
+                  : "Continue to Bitcoin payment"}
+              </button>
             </section>
           </form>
 
