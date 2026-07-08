@@ -180,7 +180,9 @@ export function CheckoutPage() {
       };
 
       if (!res.ok || !data.checkoutLink) {
-        throw new Error(data.error ?? "Checkout failed");
+        setPayError(data.error ?? "Checkout failed");
+        setIsSubmitting(false);
+        return;
       }
 
       window.location.href = data.checkoutLink;

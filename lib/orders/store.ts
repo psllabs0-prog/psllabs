@@ -1,23 +1,10 @@
-import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
+import { getSql } from "@/lib/db/sql";
 
 import type { Order, OrderStatus } from "./types";
 
-let sqlClient: NeonQueryFunction<false, false> | null = null;
 let schemaReady: Promise<void> | null = null;
 
-function getSql(): NeonQueryFunction<false, false> {
-  if (sqlClient) return sqlClient;
-  const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL;
-  if (!url) {
-    throw new Error(
-      "Order store is not configured: set DATABASE_URL (Vercel Postgres / Neon)."
-    );
-  }
-  sqlClient = neon(url);
-  return sqlClient;
-}
-
-async function ensureSchema(): Promise<void> {
+export async function ensureOrdersSchema(): Promise<void> {
   if (schemaReady) return schemaReady;
   const sql = getSql();
   schemaReady = (async () => {
@@ -65,9 +52,11 @@ type OrderRow = {
   shipping_cost: string | number;
   total: string | number;
   invoice_id: string | null;
+  invoice_created_at: string | null;
   paid_at: string | null;
   email_sent: boolean;
   email_error: string | null;
+  stock_decremented: boolean;
 };
 
 function parseJson<T>(value: T | string): T {
@@ -90,31 +79,18 @@ function rowToOrder(row: OrderRow): Order {
     shippingCost: Number(row.shipping_cost),
     total: Number(row.total),
     invoiceId: row.invoice_id ?? null,
+    invoiceCreatedAt: row.invoice_created_at
+      ? new Date(row.invoice_created_at).toISOString()
+      : null,
     paidAt: row.paid_at ? new Date(row.paid_at).toISOString() : null,
     emailSent: row.email_sent,
     emailError: row.email_error ?? null,
+    stockDecremented: row.stock_decremented ?? false,
   };
 }
 
-export async function createOrder(order: Order): Promise<void> {
-  await ensureSchema();
-  const sql = getSql();
-  await sql`
-    INSERT INTO orders (
-      order_id, status, currency, email, shipping, items,
-      subtotal, tax_rate, tax, shipping_cost, total,
-      invoice_id, paid_at, email_sent, email_error
-    ) VALUES (
-      ${order.orderId}, ${order.status}, ${order.currency}, ${order.email},
-      ${JSON.stringify(order.shipping)}::jsonb, ${JSON.stringify(order.items)}::jsonb,
-      ${order.subtotal}, ${order.taxRate}, ${order.tax}, ${order.shippingCost}, ${order.total},
-      ${order.invoiceId}, ${order.paidAt}, ${order.emailSent}, ${order.emailError}
-    )
-  `;
-}
-
 export async function getOrder(orderId: string): Promise<Order | null> {
-  await ensureSchema();
+  await ensureOrdersSchema();
   const sql = getSql();
   const rows = (await sql`
     SELECT * FROM orders WHERE order_id = ${orderId} LIMIT 1
@@ -125,7 +101,7 @@ export async function getOrder(orderId: string): Promise<Order | null> {
 export async function getOrderByInvoice(
   invoiceId: string
 ): Promise<Order | null> {
-  await ensureSchema();
+  await ensureOrdersSchema();
   const sql = getSql();
   const rows = (await sql`
     SELECT * FROM orders WHERE invoice_id = ${invoiceId} LIMIT 1
@@ -137,37 +113,22 @@ export async function setInvoiceId(
   orderId: string,
   invoiceId: string
 ): Promise<void> {
-  await ensureSchema();
+  await ensureOrdersSchema();
   const sql = getSql();
   await sql`
-    UPDATE orders SET invoice_id = ${invoiceId}, updated_at = now()
+    UPDATE orders
+    SET invoice_id = ${invoiceId},
+        invoice_created_at = now(),
+        updated_at = now()
     WHERE order_id = ${orderId}
   `;
 }
 
-// Idempotent: only transitions to paid once; safe under duplicate webhooks.
-export async function markPaid(
-  orderId: string,
-  invoiceId: string | null
-): Promise<void> {
-  await ensureSchema();
-  const sql = getSql();
-  await sql`
-    UPDATE orders
-    SET status = 'paid',
-        paid_at = COALESCE(paid_at, now()),
-        invoice_id = COALESCE(invoice_id, ${invoiceId}),
-        updated_at = now()
-    WHERE order_id = ${orderId} AND status <> 'paid'
-  `;
-}
-
-// Only fails/cancels an order that is still pending — never overrides a paid order.
 export async function markStatusIfPending(
   orderId: string,
   status: Extract<OrderStatus, "cancelled" | "failed">
 ): Promise<void> {
-  await ensureSchema();
+  await ensureOrdersSchema();
   const sql = getSql();
   await sql`
     UPDATE orders SET status = ${status}, updated_at = now()
@@ -175,13 +136,8 @@ export async function markStatusIfPending(
   `;
 }
 
-/**
- * Atomically claim the right to send this order's notification email.
- * Returns true only for the first caller (or after a stale 10-minute claim),
- * guaranteeing one email per order even with duplicate webhook deliveries.
- */
 export async function claimOrderEmail(orderId: string): Promise<boolean> {
-  await ensureSchema();
+  await ensureOrdersSchema();
   const sql = getSql();
   const rows = (await sql`
     UPDATE orders SET email_claimed_at = now(), updated_at = now()
@@ -194,7 +150,7 @@ export async function claimOrderEmail(orderId: string): Promise<boolean> {
 }
 
 export async function markEmailSent(orderId: string): Promise<void> {
-  await ensureSchema();
+  await ensureOrdersSchema();
   const sql = getSql();
   await sql`
     UPDATE orders SET email_sent = true, email_error = NULL, updated_at = now()
@@ -202,12 +158,11 @@ export async function markEmailSent(orderId: string): Promise<void> {
   `;
 }
 
-// Release the claim after a failed send so a webhook redelivery can retry.
 export async function releaseOrderEmail(
   orderId: string,
   error: string
 ): Promise<void> {
-  await ensureSchema();
+  await ensureOrdersSchema();
   const sql = getSql();
   await sql`
     UPDATE orders SET email_claimed_at = NULL, email_error = ${error}, updated_at = now()

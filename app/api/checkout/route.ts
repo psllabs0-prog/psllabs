@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 import { computeTotals } from "@/lib/checkout/totals";
 import { US_COUNTRY, US_STATES } from "@/lib/checkout/us-states";
-import { createOrder, setInvoiceId } from "@/lib/orders/store";
+import { checkoutWithStockCheck } from "@/lib/inventory/store";
+import { setInvoiceId } from "@/lib/orders/store";
 import type { Order, OrderItem } from "@/lib/orders/types";
 import { getPaymentProcessor } from "@/lib/payments";
 import { getCheckoutProduct } from "@/lib/payments/products";
@@ -143,13 +144,18 @@ export async function POST(request: Request) {
     shippingCost: totals.shipping,
     total: totals.total,
     invoiceId: null,
+    invoiceCreatedAt: null,
     paidAt: null,
     emailSent: false,
     emailError: null,
+    stockDecremented: false,
   };
 
   try {
-    await createOrder(order);
+    const stockCheck = await checkoutWithStockCheck(order);
+    if (!stockCheck.ok) {
+      return NextResponse.json({ error: stockCheck.error }, { status: 409 });
+    }
   } catch (error) {
     console.error("[checkout] Failed to persist order:", error);
     return NextResponse.json(

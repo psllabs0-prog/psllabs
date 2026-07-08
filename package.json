@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "set-stock": "tsx scripts/set-stock.ts",
+    "migrate-inventory": "tsx scripts/migrate-inventory.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -32,6 +34,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
+    "tsx": "^4.20.3",
     "typescript": "^5"
   }
 }

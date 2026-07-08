@@ -34,9 +34,11 @@ export type Order = {
   shippingCost: number;
   total: number;
   invoiceId: string | null;
+  invoiceCreatedAt: string | null;
   paidAt: string | null;
   emailSent: boolean;
   emailError: string | null;
+  stockDecremented: boolean;
 };
 
 // Safe subset returned to the browser (no email, invoice id, or internal flags).

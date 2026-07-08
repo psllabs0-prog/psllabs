@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 
+import { getStockLevels } from "@/lib/inventory/store";
 import type { Order } from "@/lib/orders/types";
 
 const FROM_EMAIL = "PSL Labs Orders <support@psllabs.org>";
@@ -43,17 +44,26 @@ export async function sendOrderEmail(order: Order): Promise<void> {
       : "";
   const placedAt = new Date(order.paidAt ?? order.createdAt).toUTCString();
   const name = `${order.shipping.firstName} ${order.shipping.lastName}`.trim();
+  const stockLevels = await getStockLevels(order.items.map((it) => it.handle));
 
   const rows = order.items
     .map(
-      (it) => `
+      (it) => {
+        const remaining = stockLevels[it.handle];
+        const stockNote =
+          remaining !== null && remaining !== undefined
+            ? `Stock remaining: ${remaining}`
+            : "";
+        return `
       <tr>
         <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">${escapeHtml(it.name)}</td>
         <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">${escapeHtml(it.strength || "—")}</td>
         <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:center;">${it.quantity}</td>
         <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${money(it.unitPrice)}</td>
         <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${money(it.lineTotal)}</td>
-      </tr>`
+      </tr>
+      ${stockNote ? `<tr><td colspan="5" style="padding:0 8px 8px;font-size:12px;color:#64748b;">${escapeHtml(stockNote)}</td></tr>` : ""}`;
+      }
     )
     .join("");
 
@@ -97,10 +107,16 @@ export async function sendOrderEmail(order: Order): Promise<void> {
     `${order.shipping.city}, ${order.shipping.state} ${order.shipping.zip}`,
     order.shipping.country,
     "",
-    ...order.items.map(
-      (it) =>
-        `- ${it.name} (${it.strength || "—"}) x${it.quantity} @ ${money(it.unitPrice)} = ${money(it.lineTotal)}`
-    ),
+    ...order.items.flatMap((it) => {
+      const remaining = stockLevels[it.handle];
+      const stockNote =
+        remaining !== null && remaining !== undefined
+          ? ` (stock remaining: ${remaining})`
+          : "";
+      return [
+        `- ${it.name} (${it.strength || "—"}) x${it.quantity} @ ${money(it.unitPrice)} = ${money(it.lineTotal)}${stockNote}`,
+      ];
+    }),
     "",
     `Subtotal: ${money(order.subtotal)}`,
     `Shipping: ${shippingLabel(order.shippingCost)}`,

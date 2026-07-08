@@ -6,6 +6,7 @@ import { AddToCartButton } from "@/components/commerce/AddToCartButton";
 import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
 import { hasAvailableReport } from "@/lib/batch-reports";
 import { formatPrice } from "@/lib/cart/format";
+import type { ProductAvailability } from "@/lib/inventory/availability";
 import type { StockStatus } from "@/lib/products/stock";
 import { cn } from "@/lib/utils";
 
@@ -14,16 +15,32 @@ import { useProductQuantity } from "./product-quantity-provider";
 type ProductPurchaseProps = {
   productHandle: string;
   stockStatus: StockStatus;
+  availability?: ProductAvailability;
   className?: string;
 };
+
+const MAX_QUANTITY = 10;
 
 export function ProductPurchase({
   productHandle,
   stockStatus,
+  availability,
   className,
 }: ProductPurchaseProps) {
   const { quantity, setQuantity, unitPrice, totalPrice } = useProductQuantity();
-  const isOutOfStock = stockStatus === "out_of_stock";
+  const status = availability?.status ?? stockStatus;
+  const available = availability?.available;
+  const maxQuantity =
+    available !== undefined
+      ? Math.min(MAX_QUANTITY, Math.max(0, available))
+      : MAX_QUANTITY;
+  const isOutOfStock = status === "out_of_stock" || maxQuantity <= 0;
+  const lowStockNote =
+    availability?.tracked &&
+    availability.available > 0 &&
+    availability.available <= 5
+      ? `Only ${availability.available} left`
+      : null;
   const purchaseTrustItems = [
     "Third-Party Tested",
     hasAvailableReport(productHandle)
@@ -66,8 +83,8 @@ export function ProductPurchase({
           </span>
           <button
             type="button"
-            onClick={() => setQuantity(quantity + 1)}
-            disabled={isOutOfStock}
+            onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
+            disabled={isOutOfStock || quantity >= maxQuantity}
             className="px-4 py-2 text-lg transition-opacity duration-200 ease-out hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Increase quantity"
           >
@@ -77,7 +94,12 @@ export function ProductPurchase({
       </div>
 
       <div className="flex flex-col gap-5 border-t border-linen pt-6">
-        <StockStatusBadge status={stockStatus} />
+        <div className="flex flex-col gap-2">
+          <StockStatusBadge status={status} />
+          {lowStockNote && (
+            <p className="text-sm font-medium text-amber-800">{lowStockNote}</p>
+          )}
+        </div>
 
         <AddToCartButton
           productId={productHandle}

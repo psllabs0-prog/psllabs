@@ -1,11 +1,18 @@
 import type { Product } from "@/lib/products";
+import type { ProductAvailability } from "@/lib/inventory/availability";
 
 import { AnimateIn } from "./animate-in";
 import { ProductGallery } from "./product-gallery";
 import { ProductPurchase } from "./product-purchase";
 import { StarRating } from "./star-rating";
 
-export function ProductHero({ product }: { product: Product }) {
+export function ProductHero({
+  product,
+  availability,
+}: {
+  product: Product;
+  availability: ProductAvailability;
+}) {
   return (
     <section className="section-surface-ice mx-auto max-w-[1440px] px-6 py-10 md:px-12 md:py-16 lg:px-24 lg:py-20">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-16">
@@ -51,6 +58,7 @@ export function ProductHero({ product }: { product: Product }) {
               <ProductPurchase
                 productHandle={product.handle}
                 stockStatus={product.stockStatus}
+                availability={availability}
               />
             </AnimateIn>
 

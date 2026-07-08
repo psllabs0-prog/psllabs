@@ -1,4 +1,5 @@
 import type { Product } from "@/lib/products";
+import type { ProductAvailability } from "@/lib/inventory/availability";
 
 import { AnimateIn } from "./animate-in";
 import { MobileStickyCart } from "./mobile-sticky-cart";
@@ -13,10 +14,12 @@ import { SectionShell } from "./section-shell";
 
 type ResearchPeptideTemplateProps = {
   product: Product;
+  availability: ProductAvailability;
 };
 
 export function ResearchPeptideTemplate({
   product,
+  availability,
 }: ResearchPeptideTemplateProps) {
   return (
     <ProductQuantityProvider unitPrice={product.price}>
@@ -56,6 +59,7 @@ export function ResearchPeptideTemplate({
                 <ProductPurchase
                   productHandle={product.handle}
                   stockStatus={product.stockStatus}
+                  availability={availability}
                 />
               </AnimateIn>
             </div>
@@ -102,7 +106,7 @@ export function ResearchPeptideTemplate({
         <MobileStickyCart
           productHandle={product.handle}
           productName={product.name}
-          stockStatus={product.stockStatus}
+          stockStatus={availability.status}
         />
       </main>
     </ProductQuantityProvider>

@@ -2,12 +2,12 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 
 import { sendOrderEmail } from "@/lib/email/order-notification";
+import { settlePaidOrder } from "@/lib/inventory/store";
 import {
   claimOrderEmail,
   getOrder,
   getOrderByInvoice,
   markEmailSent,
-  markPaid,
   markStatusIfPending,
   releaseOrderEmail,
 } from "@/lib/orders/store";
@@ -87,8 +87,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true });
     }
 
-    // InvoiceSettled — mark paid (idempotent), then send exactly one email.
-    await markPaid(order.orderId, order.invoiceId ?? invoiceId);
+    const settled = await settlePaidOrder(
+      order.orderId,
+      order.invoiceId ?? invoiceId
+    );
+    if (settled.stockDecrementFailed) {
+      console.error(
+        `[btcpay-webhook] stock decrement failed for ${order.orderId}`
+      );
+    }
 
     if (!order.emailSent && (await claimOrderEmail(order.orderId))) {
       // Reload so the email reflects the persisted paid state / invoice id.
