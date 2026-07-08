@@ -3,10 +3,12 @@ import { CartProvider } from "@/components/cart/cart-provider";
 import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
+import { ResearcherVerificationGate } from "@/components/layout/ResearcherVerificationGate";
 
 export function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <CartProvider>
+      <ResearcherVerificationGate />
       <div className="flex min-h-screen flex-col">
         <Header />
         <AnnouncementBar />
