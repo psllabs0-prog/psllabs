@@ -2,8 +2,14 @@ import type { Metadata } from "next";
 
 const SITE_NAME = "PSL Labs";
 
-export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://psllabs.org";
+function resolveSiteUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  if (!raw) return "https://psllabs.org";
+  if (/^https?:\/\//i.test(raw)) return raw.replace(/\/+$/, "");
+  return `https://${raw.replace(/\/+$/, "")}`;
+}
+
+export const SITE_URL = resolveSiteUrl();
 
 export function createPageMetadata({
   title,

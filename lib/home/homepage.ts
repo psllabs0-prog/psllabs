@@ -5,7 +5,8 @@ import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
 export const heroCopy = {
   eyebrow: "PSL LABS",
   headline: "Verified research compounds.",
-  subheadline: "Third-party tested · batch-matched documentation.",
+  subheadline:
+    "Third-party tested · independent batch documentation for selected lots.",
   ctaLabel: "Shop Products",
   ctaHref: "/products",
   productImageAlt: PRODUCT_VIAL_IMAGE.alt,
@@ -55,7 +56,7 @@ export const whyChooseCards: WhyChooseCardData[] = [
     illustration: "batch-coa",
     title: "Batch-matched COAs",
     description:
-      "Lot-specific Certificates of Analysis are published when available.",
+      "Independent batch documentation available for selected lots.",
   },
   {
     illustration: "hplc",
@@ -67,7 +68,7 @@ export const whyChooseCards: WhyChooseCardData[] = [
     illustration: "quality-panel",
     title: "Documented quality panels",
     description:
-      "Purity, identity, and contaminant results disclosed openly on every batch we release.",
+      "Purity and identity results are disclosed on published lot-specific reports when testing documentation is available.",
   },
   {
     illustration: "us-fulfillment",
@@ -107,7 +108,7 @@ export const featuredProduct: FeaturedProductData = {
   tag: retatrutideListing.tag,
   name: retatrutideListing.name,
   description:
-    "Lyophilized Retatrutide for laboratory and research use. Batch-specific COA included. Not for human consumption.",
+    "Lyophilized Retatrutide for laboratory and research use. Independent batch documentation available for selected lots. Not for human consumption.",
   price: retatrutideListing.price,
   href: retatrutideListing.href,
   imageSrc: retatrutideListing.imageSrc,

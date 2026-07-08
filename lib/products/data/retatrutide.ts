@@ -1,8 +1,16 @@
 import type { Product } from "../types";
 import { getCatalogProductByHandle } from "../catalog";
 import { PRODUCT_VIAL_IMAGE } from "../images";
+import {
+  formatReportedAmount,
+  formatReportedPurity,
+  retatrutideBlackTopReport,
+} from "@/lib/batch-reports";
 
 const listing = getCatalogProductByHandle("retatrutide")!;
+const blackTop = retatrutideBlackTopReport;
+const blackTopAmount = formatReportedAmount(blackTop.reportedAmountMg);
+const blackTopPurity = formatReportedPurity(blackTop.purityPercent);
 
 export const retatrutide: Product = {
   handle: "retatrutide",
@@ -19,7 +27,7 @@ export const retatrutide: Product = {
     "Retatrutide is an investigational triple-receptor agonist designed to interact with three incretin-related pathways: GLP-1, GIP, and glucagon receptors. This multi-pathway profile is what makes the compound scientifically notable in metabolic research.\n\nGLP-1 receptor activity is associated with appetite regulation, glucose-dependent insulin signaling, and delayed gastric emptying.\n\nGIP receptor activity is involved in nutrient handling, insulin response, and adipose tissue signaling.\n\nGlucagon receptor activity is associated with hepatic energy metabolism and increased energy expenditure pathways.\n\nRetatrutide remains an investigational research compound and is not approved for human use.",
   bullets: [
     "Lyophilized research peptide",
-    "Batch-matched COA published",
+    "Independent batch documentation for selected lots",
     "Third-party HPLC verification",
     "For laboratory and research use only",
   ],
@@ -61,25 +69,32 @@ export const retatrutide: Product = {
     {
       question: "Where is the COA for my batch?",
       answer:
-        "Batch-specific Certificates of Analysis are published on this product page when available. Match your vial lot number to the corresponding report.",
+        "When a third-party laboratory report is published for your lot, it appears on this product page under Testing & Quality. Results apply only to the tested sample and batch identified in that report.",
     },
   ],
   testing: {
     description:
-      "Every batch is verified by an independent third-party laboratory before release. Full panel details appear on the lot-specific COA.",
+      "Independent third-party laboratory documentation is published for selected lots. Available reports list laboratory-reported identity, amount, and purity for the specific sample tested.",
   },
   stackBlurb:
-    "Retatrutide is supplied as a standalone research peptide with full batch documentation.",
+    "Retatrutide is supplied as a standalone research peptide with lot-specific documentation when published.",
   specifications: [
     { label: "Compound", value: "Retatrutide" },
     { label: "Alternate Name", value: "LY3437943" },
     { label: "Class", value: "Triple receptor agonist" },
     { label: "Receptor Targets", value: "GLP-1, GIP, Glucagon" },
     { label: "Format", value: "Lyophilized powder" },
-    { label: "Strength", value: "10mg" },
-    { label: "Purity", value: "Batch-specific, shown on COA" },
-    { label: "Testing", value: "Third-party analysis" },
-    { label: "COA Status", value: "Lot-specific COA" },
+    { label: "Nominal Strength", value: blackTop.nominalStrength },
+    {
+      label: `Laboratory-Reported Amount — Batch ${blackTop.batch}`,
+      value: blackTopAmount,
+    },
+    {
+      label: `Laboratory-Reported Purity — Batch ${blackTop.batch}`,
+      value: blackTopPurity,
+    },
+    { label: "Testing", value: "Third-party analysis (selected lots)" },
+    { label: "COA Status", value: "Third-Party Report Available" },
     { label: "Intended Use", value: "Laboratory research only" },
     { label: "Human Use", value: "Not approved for human use" },
   ],

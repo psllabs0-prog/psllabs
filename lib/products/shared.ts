@@ -2,7 +2,7 @@ import type { Product } from "./types";
 
 export const defaultBullets = [
   "Independent third-party testing",
-  "Batch-matched COA published",
+  "Independent batch documentation for selected lots",
   "Research use only",
 ] as const;
 

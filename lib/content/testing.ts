@@ -4,9 +4,9 @@ export const testingPageMeta: ContentPageMeta = {
   label: "TESTING & QUALITY",
   title: "Verified by a lab we don't own.",
   description:
-    "How PSL Labs tests every batch—and how to read your Certificate of Analysis.",
+    "How PSL Labs approaches third-party testing—and how to review published batch documentation.",
   intro: [
-    "Every batch is third-party tested before it ships. We publish full COAs—not summaries, not marketing PDFs. If we wouldn't stake our name on the results, the batch doesn't ship.",
+    "Independent batch documentation is published for selected lots. When a third-party laboratory report is available, we show the laboratory-reported identity, amount, and purity for the specific sample tested—not a marketing summary.",
   ],
 };
 
@@ -29,7 +29,7 @@ export const testingSections: ContentSection[] = [
     id: "batch-documentation",
     title: "Batch Documentation",
     paragraphs: [
-      "Each tested batch is tied to a specific report so customers can review the available documentation connected to that lot. Batch-level documentation helps make quality easier to verify instead of relying on claims alone.",
+      "Selected batches are tied to a specific third-party report so researchers can review the documentation connected to that lot. Laboratory results apply only to the tested sample and batch identified in the report.",
     ],
   },
   {

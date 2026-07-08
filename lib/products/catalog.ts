@@ -20,12 +20,12 @@ export const catalogProducts: CatalogProduct[] = [
     name: "Retatrutide",
     strength: "10mg",
     description:
-      "Lyophilized research peptide for laboratory and in vitro use. Every batch is identity-verified by independent HPLC with lot-specific documentation when available.",
+      "Lyophilized research peptide for laboratory and in vitro use. Independent batch documentation available for selected lots.",
     price: 69.99,
     href: "/products/retatrutide",
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: PRODUCT_VIAL_IMAGE.alt,
-    purityBadge: "99%+ Purity",
+    purityBadge: "Batch-specific purity",
   },
 ];
 

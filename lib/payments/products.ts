@@ -33,7 +33,7 @@ const catalog: Record<string, CheckoutProduct> = {
     id: "retatrutide",
     name: "Retatrutide",
     description:
-      "Lyophilized Retatrutide for laboratory and research use. Batch-specific COA included.",
+      "Lyophilized Retatrutide for laboratory and research use. Independent batch documentation available for selected lots.",
     priceUsd: getCatalogProductByHandle("retatrutide")!.price,
   },
 };

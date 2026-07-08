@@ -48,7 +48,7 @@ export function ProductCatalogCard({
 
         <div className="flex flex-wrap gap-2">
           <span className="rounded-pill border border-biotech-pale bg-biotech-mist/50 px-3 py-1 font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-wider text-biotech-deep">
-            99%+ Purity
+            {product.purityBadge}
           </span>
           <span className="rounded-pill border border-linen bg-paper/60 px-3 py-1 font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-wider text-ash">
             Research Use Only

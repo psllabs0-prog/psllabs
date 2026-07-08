@@ -4,6 +4,7 @@ import { Check } from "lucide-react";
 
 import { AddToCartButton } from "@/components/commerce/AddToCartButton";
 import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
+import { hasAvailableReport } from "@/lib/batch-reports";
 import { formatPrice } from "@/lib/cart/format";
 import type { StockStatus } from "@/lib/products/stock";
 import { cn } from "@/lib/utils";
@@ -16,8 +17,6 @@ type ProductPurchaseProps = {
   className?: string;
 };
 
-const purchaseTrustItems = ["Third-Party Tested", "COA Pending"] as const;
-
 export function ProductPurchase({
   productHandle,
   stockStatus,
@@ -25,6 +24,12 @@ export function ProductPurchase({
 }: ProductPurchaseProps) {
   const { quantity, setQuantity, unitPrice, totalPrice } = useProductQuantity();
   const isOutOfStock = stockStatus === "out_of_stock";
+  const purchaseTrustItems = [
+    "Third-Party Tested",
+    hasAvailableReport(productHandle)
+      ? "Third-Party Report Available"
+      : "COA Pending",
+  ] as const;
 
   return (
     <div
