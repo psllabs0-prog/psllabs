@@ -16,6 +16,7 @@ export type CreateInvoiceInput = {
   orderId: string;
   redirectPath: string;
   items: InvoiceItem[];
+  buyerEmail?: string;
 };
 
 export type InvoiceStatus =

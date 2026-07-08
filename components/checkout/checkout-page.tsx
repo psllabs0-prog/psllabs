@@ -6,6 +6,7 @@ import { Bitcoin, Check, CreditCard } from "lucide-react";
 
 import { useCart } from "@/components/cart/cart-provider";
 import { formatPrice } from "@/lib/cart/format";
+import { computeTotals, type OrderTotals } from "@/lib/checkout/totals";
 import { US_COUNTRY, US_STATES } from "@/lib/checkout/us-states";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -112,8 +113,7 @@ function validateForm(form: FormState): FormErrors {
 }
 
 export function CheckoutPage() {
-  const { lines, subtotal, estimatedTotal, shippingDisplay, isHydrated } =
-    useCart();
+  const { lines, isHydrated } = useCart();
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitted, setSubmitted] = useState(false);
@@ -122,6 +122,12 @@ export function CheckoutPage() {
   const [payError, setPayError] = useState<string | null>(null);
 
   const isEmpty = !isHydrated || lines.length === 0;
+
+  const subtotalRaw = lines.reduce(
+    (sum, line) => sum + line.unitPrice * line.quantity,
+    0
+  );
+  const totals = computeTotals(subtotalRaw, form.state);
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -151,6 +157,16 @@ export function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           currency: "USD",
+          email: form.email,
+          shipping: {
+            firstName: form.firstName,
+            lastName: form.lastName,
+            address: form.address,
+            city: form.city,
+            state: form.state,
+            zip: form.zip,
+            country: US_COUNTRY,
+          },
           items: lines.map((line) => ({
             handle: line.handle,
             quantity: line.quantity,
@@ -358,12 +374,7 @@ export function CheckoutPage() {
             </section>
 
             <div className="premium-card p-5 md:p-6 lg:hidden">
-              <CheckoutSummary
-                lines={lines}
-                subtotal={subtotal}
-                estimatedTotal={estimatedTotal}
-                shippingDisplay={shippingDisplay}
-              />
+              <CheckoutSummary lines={lines} totals={totals} />
             </div>
 
             <section className="premium-card p-5 md:p-6">
@@ -445,12 +456,7 @@ export function CheckoutPage() {
 
           <aside className="hidden lg:block">
             <div className="sticky top-24 premium-card p-6">
-              <CheckoutSummary
-                lines={lines}
-                subtotal={subtotal}
-                estimatedTotal={estimatedTotal}
-                shippingDisplay={shippingDisplay}
-              />
+              <CheckoutSummary lines={lines} totals={totals} />
             </div>
           </aside>
         </div>
@@ -461,14 +467,10 @@ export function CheckoutPage() {
 
 function CheckoutSummary({
   lines,
-  subtotal,
-  estimatedTotal,
-  shippingDisplay,
+  totals,
 }: {
   lines: ReturnType<typeof useCart>["lines"];
-  subtotal: number;
-  estimatedTotal: number;
-  shippingDisplay: ReturnType<typeof useCart>["shippingDisplay"];
+  totals: OrderTotals;
 }) {
   return (
     <div className="flex flex-col gap-5">
@@ -494,26 +496,35 @@ function CheckoutSummary({
       <dl className="flex flex-col gap-2 text-sm">
         <div className="flex justify-between text-ash">
           <dt>Subtotal</dt>
-          <dd className="text-ink">{formatPrice(subtotal)}</dd>
+          <dd className="text-ink">{formatPrice(totals.subtotal)}</dd>
         </div>
-        <div className="flex justify-between gap-4 text-ash">
+        <div className="flex justify-between text-ash">
           <dt>Shipping</dt>
           <dd
             className={cn(
-              "max-w-[12rem] text-right text-xs leading-relaxed",
-              shippingDisplay.isFreeShipping && "font-medium text-verified-green"
+              "text-ink",
+              totals.shipping === 0 && "font-medium text-verified-green"
             )}
           >
-            {shippingDisplay.message}
+            {totals.shipping === 0 ? "Free" : formatPrice(totals.shipping)}
           </dd>
         </div>
+        {totals.tax > 0 && (
+          <div className="flex justify-between text-ash">
+            <dt>Tax ({(totals.taxRate * 100).toFixed(2)}%)</dt>
+            <dd className="text-ink">{formatPrice(totals.tax)}</dd>
+          </div>
+        )}
         <div className="mt-2 flex justify-between border-t border-linen pt-3">
-          <dt className="font-display font-bold text-ink">Estimated total</dt>
+          <dt className="font-display font-bold text-ink">Total</dt>
           <dd className="font-display text-lg font-bold text-ink">
-            {formatPrice(estimatedTotal)}
+            {formatPrice(totals.total)}
           </dd>
         </div>
       </dl>
+      <p className="text-xs leading-relaxed text-ash">
+        Free U.S. shipping over $150. Tax applies to Arizona addresses.
+      </p>
     </div>
   );
 }

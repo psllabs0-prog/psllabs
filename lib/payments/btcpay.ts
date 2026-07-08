@@ -165,10 +165,12 @@ export class BTCPayProcessor implements PaymentProcessor {
             redirectURL: `${SITE_URL}${input.redirectPath}`,
             redirectAutomatically: true,
             defaultLanguage: "en",
+            ...(input.buyerEmail ? { buyerEmail: input.buyerEmail } : {}),
           },
           metadata: {
             orderId: input.orderId,
             items: input.items,
+            ...(input.buyerEmail ? { buyerEmail: input.buyerEmail } : {}),
           },
           receipt: {
             enabled: true,
