@@ -38,6 +38,8 @@ export type Order = {
   paidAt: string | null;
   emailSent: boolean;
   emailError: string | null;
+  customerEmailSent: boolean;
+  customerEmailError: string | null;
   stockDecremented: boolean;
 };
 

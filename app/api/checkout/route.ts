@@ -148,6 +148,8 @@ export async function POST(request: Request) {
     paidAt: null,
     emailSent: false,
     emailError: null,
+    customerEmailSent: false,
+    customerEmailError: null,
     stockDecremented: false,
   };
 

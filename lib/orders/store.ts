@@ -33,6 +33,18 @@ export async function ensureOrdersSchema(): Promise<void> {
     await sql`
       CREATE INDEX IF NOT EXISTS orders_invoice_id_idx ON orders (invoice_id)
     `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS customer_email_sent BOOLEAN NOT NULL DEFAULT false
+    `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS customer_email_claimed_at TIMESTAMPTZ
+    `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS customer_email_error TEXT
+    `;
   })();
   return schemaReady;
 }
@@ -56,6 +68,8 @@ type OrderRow = {
   paid_at: string | null;
   email_sent: boolean;
   email_error: string | null;
+  customer_email_sent: boolean;
+  customer_email_error: string | null;
   stock_decremented: boolean;
 };
 
@@ -85,6 +99,8 @@ function rowToOrder(row: OrderRow): Order {
     paidAt: row.paid_at ? new Date(row.paid_at).toISOString() : null,
     emailSent: row.email_sent,
     emailError: row.email_error ?? null,
+    customerEmailSent: row.customer_email_sent ?? false,
+    customerEmailError: row.customer_email_error ?? null,
     stockDecremented: row.stock_decremented ?? false,
   };
 }
@@ -166,6 +182,51 @@ export async function releaseOrderEmail(
   const sql = getSql();
   await sql`
     UPDATE orders SET email_claimed_at = NULL, email_error = ${error}, updated_at = now()
+    WHERE order_id = ${orderId}
+  `;
+}
+
+export async function claimCustomerOrderEmail(
+  orderId: string
+): Promise<boolean> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    UPDATE orders SET customer_email_claimed_at = now(), updated_at = now()
+    WHERE order_id = ${orderId}
+      AND customer_email_sent = false
+      AND (
+        customer_email_claimed_at IS NULL
+        OR customer_email_claimed_at < now() - interval '10 minutes'
+      )
+    RETURNING order_id
+  `) as { order_id: string }[];
+  return rows.length > 0;
+}
+
+export async function markCustomerEmailSent(orderId: string): Promise<void> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  await sql`
+    UPDATE orders
+    SET customer_email_sent = true,
+        customer_email_error = NULL,
+        updated_at = now()
+    WHERE order_id = ${orderId}
+  `;
+}
+
+export async function releaseCustomerOrderEmail(
+  orderId: string,
+  error: string
+): Promise<void> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  await sql`
+    UPDATE orders
+    SET customer_email_claimed_at = NULL,
+        customer_email_error = ${error},
+        updated_at = now()
     WHERE order_id = ${orderId}
   `;
 }
