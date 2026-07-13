@@ -1,19 +1,11 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 
-import { sendCustomerOrderConfirmation } from "@/lib/email/order-confirmation";
-import { sendOrderEmail } from "@/lib/email/order-notification";
-import { settlePaidOrder } from "@/lib/inventory/store";
+import { fulfillPaidOrder } from "@/lib/orders/fulfill-paid-order";
 import {
-  claimCustomerOrderEmail,
-  claimOrderEmail,
   getOrder,
   getOrderByInvoice,
-  markCustomerEmailSent,
-  markEmailSent,
   markStatusIfPending,
-  releaseCustomerOrderEmail,
-  releaseOrderEmail,
 } from "@/lib/orders/store";
 
 export const runtime = "nodejs";
@@ -91,68 +83,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true });
     }
 
-    const settled = await settlePaidOrder(
+    await fulfillPaidOrder(
       order.orderId,
-      order.invoiceId ?? invoiceId
+      order.invoiceId ?? invoiceId,
+      "[btcpay-webhook]"
     );
-    if (settled.stockDecrementFailed) {
-      console.error(
-        `[btcpay-webhook] stock decrement failed for ${order.orderId}`
-      );
-    }
-
-    // Reload after settle so both email paths see paid state / invoice id.
-    const paidOrder = (await getOrder(order.orderId)) ?? order;
-
-    // Support notification and customer confirmation are independent:
-    // failure or claim-skip on one must not block the other.
-    if (!paidOrder.emailSent && (await claimOrderEmail(paidOrder.orderId))) {
-      try {
-        await sendOrderEmail(paidOrder);
-        await markEmailSent(paidOrder.orderId);
-      } catch (error) {
-        const message =
-          error instanceof Error ? error.message : "email send failed";
-        console.error("[btcpay-webhook] support order email failed:", message);
-        await releaseOrderEmail(paidOrder.orderId, message);
-      }
-    } else if (paidOrder.emailSent) {
-      console.info(
-        `[btcpay-webhook] support email already sent for ${paidOrder.orderId}`
-      );
-    } else {
-      console.info(
-        `[btcpay-webhook] support email claim held for ${paidOrder.orderId}`
-      );
-    }
-
-    if (
-      !paidOrder.customerEmailSent &&
-      (await claimCustomerOrderEmail(paidOrder.orderId))
-    ) {
-      try {
-        await sendCustomerOrderConfirmation(paidOrder);
-        await markCustomerEmailSent(paidOrder.orderId);
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : "customer email send failed";
-        console.error(
-          "[btcpay-webhook] customer confirmation email failed:",
-          message
-        );
-        await releaseCustomerOrderEmail(paidOrder.orderId, message);
-      }
-    } else if (paidOrder.customerEmailSent) {
-      console.info(
-        `[btcpay-webhook] customer email already sent for ${paidOrder.orderId}`
-      );
-    } else {
-      console.info(
-        `[btcpay-webhook] customer email claim held for ${paidOrder.orderId}`
-      );
-    }
 
     return NextResponse.json({ received: true });
   } catch (error) {

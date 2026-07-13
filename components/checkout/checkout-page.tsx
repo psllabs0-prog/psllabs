@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Bitcoin, Check, CreditCard } from "lucide-react";
 
+import {
+  AcceptUiLauncher,
+  useAuthNetConfig,
+} from "@/components/checkout/accept-ui-launcher";
 import { useCart } from "@/components/cart/cart-provider";
 import { formatPrice } from "@/lib/cart/format";
 import { computeTotals, type OrderTotals } from "@/lib/checkout/totals";
@@ -24,6 +28,7 @@ type FormState = {
 };
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
+type PaymentMethod = "btcpay" | "card";
 
 const initialForm: FormState = {
   email: "",
@@ -38,7 +43,7 @@ const initialForm: FormState = {
 const selectClassName =
   "h-11 w-full rounded-lg border border-linen bg-lab-white px-3 text-base text-ink outline-none focus-visible:border-primary-blue focus-visible:ring-3 focus-visible:ring-primary-blue/20 md:text-sm";
 
-function PaymentOption({
+function ComingSoonPaymentOption({
   icon,
   label,
   helperText,
@@ -114,10 +119,13 @@ function validateForm(form: FormState): FormErrors {
 
 export function CheckoutPage() {
   const { lines, isHydrated } = useCart();
+  const authNetConfig = useAuthNetConfig();
+  const cardEnabled = authNetConfig?.enabled === true;
+
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitted, setSubmitted] = useState(false);
-  const [method, setMethod] = useState<"btcpay" | null>(null);
+  const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
 
@@ -136,18 +144,27 @@ export function CheckoutPage() {
     }
   }
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    const nextErrors = validateForm(form);
-    setErrors(nextErrors);
-    setSubmitted(true);
-    if (Object.keys(nextErrors).length > 0) return;
+  function buildCheckoutPayload() {
+    return {
+      currency: "USD",
+      email: form.email,
+      shipping: {
+        firstName: form.firstName,
+        lastName: form.lastName,
+        address: form.address,
+        city: form.city,
+        state: form.state,
+        zip: form.zip,
+        country: US_COUNTRY,
+      },
+      items: lines.map((line) => ({
+        handle: line.handle,
+        quantity: line.quantity,
+      })),
+    };
+  }
 
-    if (method !== "btcpay") {
-      setPayError("Select a payment method to continue.");
-      return;
-    }
-
+  async function handleBtcpaySubmit() {
     setPayError(null);
     setIsSubmitting(true);
 
@@ -155,23 +172,7 @@ export function CheckoutPage() {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currency: "USD",
-          email: form.email,
-          shipping: {
-            firstName: form.firstName,
-            lastName: form.lastName,
-            address: form.address,
-            city: form.city,
-            state: form.state,
-            zip: form.zip,
-            country: US_COUNTRY,
-          },
-          items: lines.map((line) => ({
-            handle: line.handle,
-            quantity: line.quantity,
-          })),
-        }),
+        body: JSON.stringify(buildCheckoutPayload()),
       });
 
       const data = (await res.json()) as {
@@ -190,6 +191,66 @@ export function CheckoutPage() {
       setPayError("We couldn't start checkout. Please try again.");
       setIsSubmitting(false);
     }
+  }
+
+  const handleCardToken = useCallback(
+    async (opaque: { dataDescriptor: string; dataValue: string }) => {
+      setPayError(null);
+      setIsSubmitting(true);
+
+      try {
+        const res = await fetch("/api/checkout-card", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...buildCheckoutPayload(),
+            opaqueDataDescriptor: opaque.dataDescriptor,
+            opaqueDataValue: opaque.dataValue,
+          }),
+        });
+
+        const data = (await res.json()) as {
+          redirectTo?: string;
+          orderId?: string;
+          error?: string;
+        };
+
+        if (!res.ok || !data.redirectTo) {
+          setPayError(data.error ?? "Card payment failed");
+          setIsSubmitting(false);
+          return;
+        }
+
+        window.location.href = data.redirectTo;
+      } catch {
+        setPayError("We couldn't complete card payment. Please try again.");
+        setIsSubmitting(false);
+      }
+    },
+    // form/lines captured via buildCheckoutPayload closure — refresh each token
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [form, lines]
+  );
+
+  function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    const nextErrors = validateForm(form);
+    setErrors(nextErrors);
+    setSubmitted(true);
+    if (Object.keys(nextErrors).length > 0) return;
+
+    if (method === "btcpay") {
+      void handleBtcpaySubmit();
+      return;
+    }
+
+    if (method === "card") {
+      // Card path uses Accept UI launcher button (hosted form), not this submit.
+      setPayError("Use the card payment button to continue.");
+      return;
+    }
+
+    setPayError("Select a payment method to continue.");
   }
 
   if (isHydrated && isEmpty) {
@@ -221,7 +282,7 @@ export function CheckoutPage() {
           </h1>
           <p className="mt-3 max-w-2xl text-sm text-ash md:text-base">
             Complete your contact and shipping details, then pay securely with
-            Bitcoin.
+            Bitcoin or card.
           </p>
         </header>
 
@@ -422,17 +483,59 @@ export function CheckoutPage() {
                     />
                   )}
                 </button>
-                <PaymentOption
-                  icon={
-                    <CreditCard
-                      className="size-5 text-biotech-deep"
-                      strokeWidth={1.6}
-                      aria-hidden
-                    />
-                  }
-                  label="Card or bank payment"
-                  helperText="Available after payment processor approval."
-                />
+
+                {cardEnabled && authNetConfig ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMethod("card");
+                      setPayError(null);
+                    }}
+                    aria-pressed={method === "card"}
+                    className={cn(
+                      "flex items-start gap-3 rounded-xl border p-4 text-left transition-colors",
+                      method === "card"
+                        ? "border-primary-blue bg-soft-blue/40 ring-2 ring-primary-blue/20"
+                        : "border-linen bg-lab-white hover:border-primary-blue/50"
+                    )}
+                  >
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-linen bg-soft-blue/50">
+                      <CreditCard
+                        className="size-5 text-biotech-deep"
+                        strokeWidth={1.6}
+                        aria-hidden
+                      />
+                    </span>
+                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="text-sm font-medium text-ink">
+                        Card or bank payment
+                      </span>
+                      <span className="text-xs leading-relaxed text-ash">
+                        Pay with a card or bank account via Authorize.net
+                        (sandbox). Card details never touch our servers.
+                      </span>
+                    </div>
+                    {method === "card" && (
+                      <Check
+                        className="mt-0.5 size-5 shrink-0 text-primary-blue"
+                        strokeWidth={2}
+                        aria-hidden
+                      />
+                    )}
+                  </button>
+                ) : (
+                  <ComingSoonPaymentOption
+                    icon={
+                      <CreditCard
+                        className="size-5 text-biotech-deep"
+                        strokeWidth={1.6}
+                        aria-hidden
+                      />
+                    }
+                    label="Card or bank payment"
+                    helperText="Available after payment processor approval."
+                  />
+                )}
               </div>
 
               {payError && (
@@ -444,15 +547,40 @@ export function CheckoutPage() {
                 </p>
               )}
 
-              <button
-                type="submit"
-                disabled={isSubmitting || method !== "btcpay"}
-                className="mt-5 inline-flex w-full items-center justify-center rounded-pill bg-ink px-6 py-3.5 text-base font-medium text-lab-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                {isSubmitting
-                  ? "Starting checkout…"
-                  : "Continue to Bitcoin payment"}
-              </button>
+              {method === "card" && cardEnabled && authNetConfig ? (
+                <AcceptUiLauncher
+                  config={authNetConfig}
+                  disabled={isSubmitting}
+                  onError={(message) => {
+                    setPayError(message);
+                    setIsSubmitting(false);
+                  }}
+                  onBeforeOpen={() => {
+                    const nextErrors = validateForm(form);
+                    setErrors(nextErrors);
+                    setSubmitted(true);
+                    if (Object.keys(nextErrors).length > 0) {
+                      setPayError("Complete the required fields above first.");
+                      return false;
+                    }
+                    setPayError(null);
+                    return true;
+                  }}
+                  onToken={(opaque) => {
+                    void handleCardToken(opaque);
+                  }}
+                />
+              ) : (
+                <button
+                  type="submit"
+                  disabled={isSubmitting || method !== "btcpay"}
+                  className="mt-5 inline-flex w-full items-center justify-center rounded-pill bg-ink px-6 py-3.5 text-base font-medium text-lab-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isSubmitting
+                    ? "Starting checkout…"
+                    : "Continue to Bitcoin payment"}
+                </button>
+              )}
             </section>
           </form>
 

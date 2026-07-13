@@ -40,6 +40,30 @@ export type WebhookEvent = {
   raw: unknown;
 };
 
+export type ChargeCardInput = {
+  amount: number;
+  currency: string;
+  orderId: string;
+  opaqueDataDescriptor: string;
+  opaqueDataValue: string;
+  buyerEmail?: string;
+  billTo?: {
+    firstName: string;
+    lastName: string;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    country: string;
+  };
+};
+
+export type ChargeCardResult = {
+  transactionId: string;
+  authCode?: string;
+  processor: string;
+};
+
 export interface PaymentProcessor {
   readonly name: string;
 
@@ -56,6 +80,9 @@ export interface PaymentProcessor {
   ): Promise<WebhookEvent>;
 
   getInvoiceStatus(invoiceId: string): Promise<InvoiceStatusResult>;
+
+  /** Tokenized card charge (Accept.js / Accept UI opaqueData). */
+  chargeCard?(input: ChargeCardInput): Promise<ChargeCardResult>;
 }
 
 export { getPaymentProcessor } from "./factory";
