@@ -8,7 +8,7 @@ import { createPageMetadata } from "@/lib/seo";
 export const metadata: Metadata = createPageMetadata({
   title: "PSL Labs - Research Peptides",
   description:
-    "Research peptides with third-party testing and certificate of analysis.",
+    "Batch-specific research documentation and analytical testing information from PSL Labs.",
   path: "/",
 });
 

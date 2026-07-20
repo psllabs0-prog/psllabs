@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Archivo, Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 
 import { SiteLayout } from "@/components/layout/SiteLayout";
-import { SITE_URL } from "@/lib/seo";
+import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
 const archivo = Archivo({
@@ -34,18 +34,22 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "PSL Labs - Research Peptides",
+    default: SITE_TITLE,
     template: "%s",
   },
-  description:
-    "Research peptides with third-party testing and certificate of analysis.",
+  description: SITE_DESCRIPTION,
   openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
     siteName: "PSL Labs",
     locale: "en_US",
     type: "website",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
   },
 };
 

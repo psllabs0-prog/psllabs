@@ -1,7 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
+
+import { PSLLogo } from "@/components/branding/psl-logo";
 
 const STORAGE_KEY = "psl_researcher_verified_v1";
 
@@ -61,14 +62,8 @@ export function ResearcherVerificationGate() {
       <div className="w-full max-w-[560px]">
         <div className="premium-card p-6 md:p-8">
           <div className="flex flex-col items-center text-center">
-            <div className="relative mb-4 h-10 w-36">
-              <Image
-                src="/logo.png"
-                alt="PSL Labs"
-                fill
-                className="object-contain"
-                priority
-              />
+            <div className="mb-5 flex justify-center">
+              <PSLLogo size={48} showWordmark className="text-left text-lg" />
             </div>
 
             <p className="mono text-ash">RESEARCHER VERIFICATION</p>

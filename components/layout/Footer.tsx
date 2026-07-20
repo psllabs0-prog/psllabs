@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { PSLLogo } from "@/components/branding/psl-logo";
 import { FooterColumn } from "@/components/layout/footer-column";
 import { footerColumns, footerDisclaimer } from "@/lib/navigation";
 
@@ -11,9 +12,10 @@ export function Footer() {
           <div className="flex flex-col gap-4 lg:col-span-1">
             <Link
               href="/"
-              className="font-display text-lg font-bold tracking-[-0.03em] text-ink transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-blue"
+              className="inline-flex w-fit transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary-blue"
+              aria-label="PSL Labs home"
             >
-              PSL Labs
+              <PSLLogo size={40} showWordmark className="text-base" />
             </Link>
             <p className="max-w-xs text-xs leading-relaxed text-ash">
               {footerDisclaimer}
