@@ -1,5 +1,7 @@
 import { cn } from "@/lib/utils";
 
+import { PslMarkSvg } from "@/components/branding/psl-mark";
+
 export type PSLLogoProps = {
   size?: number;
   className?: string;
@@ -9,8 +11,8 @@ export type PSLLogoProps = {
 };
 
 /**
- * Minimal PSL mark: rounded-square navy field, bold white letters,
- * thin ice-blue accent. Readable at favicon sizes.
+ * PSL brand lockup: shared mark + optional wordmark.
+ * Mark geometry lives in psl-mark.tsx (same source as favicon / OG).
  */
 export function PSLLogo({
   size = 32,
@@ -19,7 +21,6 @@ export function PSLLogo({
   decorative = false,
 }: PSLLogoProps) {
   const markDecorative = decorative || showWordmark;
-  const titleId = "psl-logo-title";
 
   return (
     <span
@@ -29,40 +30,15 @@ export function PSLLogo({
         className
       )}
     >
-      <svg
-        width={size}
-        height={size}
-        viewBox="0 0 64 64"
-        xmlns="http://www.w3.org/2000/svg"
-        className="shrink-0"
-        role={markDecorative ? undefined : "img"}
-        aria-hidden={markDecorative ? true : undefined}
-        aria-labelledby={markDecorative ? undefined : titleId}
-      >
-        {!markDecorative && <title id={titleId}>PSL Labs</title>}
-        <rect width="64" height="64" rx="12" fill="#0b1220" />
-        <rect
-          x="4"
-          y="56"
-          width="56"
-          height="2.5"
-          rx="1.25"
-          fill="#38bdf8"
-          opacity="0.85"
+      {markDecorative ? (
+        <PslMarkSvg size={size} decorative className="shrink-0" />
+      ) : (
+        <PslMarkSvg
+          size={size}
+          titleId="psl-logo-title"
+          className="shrink-0"
         />
-        <text
-          x="32"
-          y="38"
-          textAnchor="middle"
-          fill="#ffffff"
-          fontFamily="system-ui, -apple-system, 'Segoe UI', Arial, sans-serif"
-          fontSize="22"
-          fontWeight="700"
-          letterSpacing="1.5"
-        >
-          PSL
-        </text>
-      </svg>
+      )}
 
       {showWordmark && (
         <span className="flex min-w-0 flex-col leading-none">

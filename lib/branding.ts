@@ -1,6 +1,6 @@
 /**
- * Shared mark geometry for favicon / apple / OG ImageResponse renders.
- * Keep in sync visually with components/branding/psl-logo.tsx.
+ * Brand colors and site metadata strings.
+ * Mark geometry lives in components/branding/psl-mark.tsx (single source).
  */
 export const PSL_MARK = {
   navy: "#0b1220",

@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 
+import { PslMarkImage } from "@/components/branding/psl-mark";
 import { PSL_MARK, SITE_TITLE } from "@/lib/branding";
 
 export const alt = SITE_TITLE;
@@ -48,44 +49,11 @@ export default function OpenGraphImage() {
           }}
         />
 
-        {/* Logo mark */}
-        <div
-          style={{
-            display: "flex",
-            width: 96,
-            height: 96,
-            borderRadius: 20,
-            background: PSL_MARK.navy,
-            border: `1px solid rgba(56, 189, 248, 0.35)`,
-            alignItems: "center",
-            justifyContent: "center",
-            position: "relative",
-            marginBottom: 40,
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              fontSize: 36,
-              fontWeight: 700,
-              color: PSL_MARK.white,
-              letterSpacing: "0.14em",
-              fontFamily:
-                "ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif",
-            }}
-          >
-            PSL
-          </div>
-          <div
-            style={{
-              position: "absolute",
-              bottom: 10,
-              left: 14,
-              right: 14,
-              height: 4,
-              background: PSL_MARK.ice,
-              borderRadius: 2,
-            }}
+        {/* Logo mark — shared PslMarkImage (same geometry as favicon / header) */}
+        <div style={{ display: "flex", marginBottom: 40 }}>
+          <PslMarkImage
+            size={96}
+            border="1px solid rgba(56, 189, 248, 0.35)"
           />
         </div>
 
