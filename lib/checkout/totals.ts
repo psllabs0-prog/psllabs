@@ -23,8 +23,17 @@ export function calculateArizonaTpt(subtotal: number): number {
   return roundMoney(subtotal * AZ_TPT_RATE);
 }
 
+export type AppliedDiscount = {
+  code: string;
+  percent: number;
+};
+
 export type OrderTotals = {
+  /** Product subtotal before discount. */
   subtotal: number;
+  discountCode: string | null;
+  discountPercent: number;
+  discountAmount: number;
   /** Always 0 while tax is absorbed in pricing; kept for easy re-enable. */
   taxRate: number;
   /** Always 0 while tax is absorbed in pricing; kept for easy re-enable. */
@@ -34,21 +43,44 @@ export type OrderTotals = {
 };
 
 /**
- * Compute order totals from a raw subtotal.
- * Shipping is free at or above FREE_SHIPPING_THRESHOLD, otherwise flat rate.
- * Total = subtotal + shipping only (no itemized tax).
+ * Compute order totals from a raw product subtotal.
+ * Discount applies to the product subtotal before tax.
+ * Shipping free-threshold uses the post-discount subtotal.
  */
-export function computeTotals(subtotalRaw: number, _state = ""): OrderTotals {
+export function computeTotals(
+  subtotalRaw: number,
+  _state = "",
+  discount: AppliedDiscount | null = null
+): OrderTotals {
   const subtotal = roundMoney(subtotalRaw);
-  // Tax intentionally not itemized. Arizona TPT is absorbed in pricing.
-  // To re-enable itemized AZ tax:
-  //   const taxRate = _state.trim().toUpperCase() === "AZ" ? AZ_TPT_RATE : 0;
-  //   const tax = taxRate > 0 ? calculateArizonaTpt(subtotal) : 0;
-  //   const total = roundMoney(subtotal + tax + shipping);
   void _state;
+
+  const discountCode =
+    discount && discount.percent > 0 ? discount.code : null;
+  const discountPercent =
+    discountCode && discount ? Math.min(100, Math.max(0, discount.percent)) : 0;
+  const discountAmount =
+    discountPercent > 0
+      ? roundMoney(subtotal * (discountPercent / 100))
+      : 0;
+  const afterDiscount = roundMoney(Math.max(0, subtotal - discountAmount));
+
+  // Tax intentionally not itemized. Arizona TPT is absorbed in pricing.
+  // To re-enable itemized AZ tax, compute tax from `afterDiscount`.
   const taxRate = 0;
   const tax = 0;
-  const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING_USD;
-  const total = roundMoney(subtotal + shipping);
-  return { subtotal, taxRate, tax, shipping, total };
+  const shipping =
+    afterDiscount >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING_USD;
+  const total = roundMoney(afterDiscount + tax + shipping);
+
+  return {
+    subtotal,
+    discountCode,
+    discountPercent,
+    discountAmount,
+    taxRate,
+    tax,
+    shipping,
+    total,
+  };
 }

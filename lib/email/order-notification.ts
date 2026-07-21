@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 
+import { formatDiscountEmailLine } from "@/lib/email/discount-line";
 import { getStockLevels } from "@/lib/inventory/store";
 import type { Order } from "@/lib/orders/types";
 
@@ -45,6 +46,7 @@ export async function sendOrderEmail(order: Order): Promise<void> {
   const placedAt = new Date(order.paidAt ?? order.createdAt).toUTCString();
   const name = `${order.shipping.firstName} ${order.shipping.lastName}`.trim();
   const stockLevels = await getStockLevels(order.items.map((it) => it.handle));
+  const discountLine = formatDiscountEmailLine(order);
 
   const rows = order.items
     .map(
@@ -92,6 +94,11 @@ export async function sendOrderEmail(order: Order): Promise<void> {
         <tr><td colspan="4" style="padding:8px;text-align:right;font-weight:bold;">Order total</td><td style="padding:8px;text-align:right;font-weight:bold;">${money(order.total)}</td></tr>
       </tfoot>
     </table>
+    ${
+      discountLine
+        ? `<p style="margin:12px 0 4px;"><strong>${escapeHtml(discountLine)}</strong></p>`
+        : ""
+    }
     <p style="margin:12px 0 4px;"><strong>BTCPay invoice:</strong> ${escapeHtml(order.invoiceId ?? "—")}</p>
     ${invoiceLink ? `<p style="margin:0;"><a href="${invoiceLink}">${escapeHtml(invoiceLink)}</a></p>` : ""}
   </div>`;
@@ -122,6 +129,7 @@ export async function sendOrderEmail(order: Order): Promise<void> {
     `Shipping: ${shippingLabel(order.shippingCost)}`,
     `Order total: ${money(order.total)}`,
     "",
+    ...(discountLine ? [discountLine, ""] : []),
     `BTCPay invoice: ${order.invoiceId ?? "—"}`,
     ...(invoiceLink ? [invoiceLink] : []),
   ].join("\n");

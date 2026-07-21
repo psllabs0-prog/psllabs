@@ -1,4 +1,5 @@
 import { computeTotals } from "@/lib/checkout/totals";
+import { lookupActiveDiscountCode } from "@/lib/checkout/discount-codes";
 import { US_COUNTRY, US_STATES } from "@/lib/checkout/us-states";
 import { checkoutWithStockCheck } from "@/lib/inventory/store";
 import type { Order, OrderItem } from "@/lib/orders/types";
@@ -14,6 +15,8 @@ export type CheckoutBody = {
   email?: unknown;
   shipping?: unknown;
   currency?: unknown;
+  /** Optional promo code — re-validated server-side; amount never trusted from client. */
+  discountCode?: unknown;
 };
 
 type RawItem = { handle?: unknown; quantity?: unknown };
@@ -137,7 +140,34 @@ export async function prepareReservedOrder(
     });
   }
 
-  const totals = computeTotals(subtotalRaw, shipping.state);
+  // Re-validate promo on the server — never trust client discount amounts.
+  let appliedDiscount: { code: string; percent: number } | null = null;
+  const requestedCode = str(body.discountCode);
+  if (requestedCode) {
+    try {
+      const discount = await lookupActiveDiscountCode(requestedCode);
+      if (!discount) {
+        return {
+          ok: false,
+          error: "Invalid or expired code",
+          status: 400,
+        };
+      }
+      appliedDiscount = {
+        code: discount.code,
+        percent: discount.discountPercent,
+      };
+    } catch (error) {
+      console.error("[checkout] discount lookup failed:", error);
+      return {
+        ok: false,
+        error: "Unable to validate discount code. Please try again.",
+        status: 500,
+      };
+    }
+  }
+
+  const totals = computeTotals(subtotalRaw, shipping.state, appliedDiscount);
   if (totals.total <= 0) {
     return {
       ok: false,
@@ -158,6 +188,8 @@ export async function prepareReservedOrder(
     shipping,
     items,
     subtotal: totals.subtotal,
+    discountCode: totals.discountCode,
+    discountAmount: totals.discountAmount,
     taxRate: totals.taxRate,
     tax: totals.tax,
     shippingCost: totals.shipping,

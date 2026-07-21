@@ -45,6 +45,14 @@ export async function ensureOrdersSchema(): Promise<void> {
       ALTER TABLE orders
       ADD COLUMN IF NOT EXISTS customer_email_error TEXT
     `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS discount_code TEXT
+    `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(10,2) NOT NULL DEFAULT 0
+    `;
   })();
   return schemaReady;
 }
@@ -59,6 +67,8 @@ type OrderRow = {
   shipping: Order["shipping"] | string;
   items: Order["items"] | string;
   subtotal: string | number;
+  discount_code: string | null;
+  discount_amount: string | number;
   tax_rate: string | number;
   tax: string | number;
   shipping_cost: string | number;
@@ -88,6 +98,8 @@ function rowToOrder(row: OrderRow): Order {
     shipping: parseJson(row.shipping),
     items: parseJson(row.items),
     subtotal: Number(row.subtotal),
+    discountCode: row.discount_code ?? null,
+    discountAmount: Number(row.discount_amount ?? 0),
     taxRate: Number(row.tax_rate),
     tax: Number(row.tax),
     shippingCost: Number(row.shipping_cost),

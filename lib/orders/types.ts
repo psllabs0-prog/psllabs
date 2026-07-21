@@ -29,6 +29,8 @@ export type Order = {
   shipping: OrderShippingAddress;
   items: OrderItem[];
   subtotal: number;
+  discountCode: string | null;
+  discountAmount: number;
   taxRate: number;
   tax: number;
   shippingCost: number;
@@ -53,6 +55,8 @@ export type PublicOrder = Pick<
   | "items"
   | "shipping"
   | "subtotal"
+  | "discountCode"
+  | "discountAmount"
   | "shippingCost"
   | "total"
 >;
@@ -66,6 +70,8 @@ export function toPublicOrder(order: Order): PublicOrder {
     items: order.items,
     shipping: order.shipping,
     subtotal: order.subtotal,
+    discountCode: order.discountCode,
+    discountAmount: order.discountAmount,
     shippingCost: order.shippingCost,
     total: order.total,
   };

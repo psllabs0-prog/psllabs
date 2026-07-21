@@ -137,6 +137,12 @@ export function OrderStatus({
               <dt>Subtotal</dt>
               <dd className="text-ink">{money(order.subtotal)}</dd>
             </div>
+            {order.discountAmount > 0 && order.discountCode && (
+              <div className="flex justify-between text-verified-green">
+                <dt>Discount ({order.discountCode})</dt>
+                <dd>-{money(order.discountAmount)}</dd>
+              </div>
+            )}
             <div className="flex justify-between text-ash">
               <dt>Shipping</dt>
               <dd className="text-ink">{shippingLabel(order.shippingCost)}</dd>

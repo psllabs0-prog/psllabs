@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "set-stock": "tsx scripts/set-stock.ts",
-    "migrate-inventory": "tsx scripts/migrate-inventory.ts"
+    "migrate-inventory": "tsx scripts/migrate-inventory.ts",
+    "migrate-discounts": "tsx scripts/migrate-discounts.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 
+import { formatDiscountEmailLine } from "@/lib/email/discount-line";
 import type { Order } from "@/lib/orders/types";
 
 const FROM_EMAIL = "PSL Labs <support@psllabs.org>";
@@ -72,6 +73,8 @@ export async function sendCustomerOrderConfirmation(
       ? `<tr><td colspan="4" style="padding:4px 8px;text-align:right;">Tax</td><td style="padding:4px 8px;text-align:right;">${money(order.tax)}</td></tr>`
       : "";
 
+  const discountLine = formatDiscountEmailLine(order);
+
   const html = `
   <div style="font-family:Arial,Helvetica,sans-serif;color:#0b1220;line-height:1.5;">
     <p style="margin:0 0 12px;">${escapeHtml(greeting)}</p>
@@ -99,6 +102,11 @@ export async function sendCustomerOrderConfirmation(
         <tr><td colspan="4" style="padding:8px;text-align:right;font-weight:bold;">Order total</td><td style="padding:8px;text-align:right;font-weight:bold;">${money(order.total)}</td></tr>
       </tfoot>
     </table>
+    ${
+      discountLine
+        ? `<p style="margin:16px 0 0;font-size:14px;"><strong>${escapeHtml(discountLine)}</strong></p>`
+        : ""
+    }
     <p style="margin:20px 0 0;font-size:13px;color:#475569;">
       Questions about your order? Reply to this email or contact
       <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.
@@ -127,6 +135,7 @@ export async function sendCustomerOrderConfirmation(
     `Shipping: ${shippingLabel(order.shippingCost)}`,
     ...(order.tax > 0 ? [`Tax: ${money(order.tax)}`] : []),
     `Order total: ${money(order.total)}`,
+    ...(discountLine ? ["", discountLine] : []),
     "",
     `Questions? Reply to this email or contact ${SUPPORT_EMAIL}.`,
   ].join("\n");

@@ -66,6 +66,14 @@ export async function ensureInventorySchema(): Promise<void> {
     `;
 
     await sql`
+      DROP FUNCTION IF EXISTS checkout_create_order(
+        text, text, text, jsonb, jsonb,
+        numeric, numeric, numeric, numeric, numeric,
+        int, int
+      )
+    `;
+
+    await sql`
       CREATE OR REPLACE FUNCTION checkout_create_order(
         p_order_id text,
         p_currency text,
@@ -77,6 +85,8 @@ export async function ensureInventorySchema(): Promise<void> {
         p_tax numeric,
         p_shipping_cost numeric,
         p_total numeric,
+        p_discount_code text,
+        p_discount_amount numeric,
         p_expiry_minutes int,
         p_grace_minutes int
       ) RETURNS jsonb AS $$
@@ -121,10 +131,12 @@ export async function ensureInventorySchema(): Promise<void> {
         INSERT INTO orders (
           order_id, status, currency, email, shipping, items,
           subtotal, tax_rate, tax, shipping_cost, total,
+          discount_code, discount_amount,
           invoice_id, paid_at, email_sent, email_error, stock_decremented
         ) VALUES (
           p_order_id, 'pending', p_currency, p_email, p_shipping, p_items,
           p_subtotal, p_tax_rate, p_tax, p_shipping_cost, p_total,
+          p_discount_code, p_discount_amount,
           NULL, NULL, false, NULL, false
         );
 
@@ -239,6 +251,8 @@ export async function checkoutWithStockCheck(
       ${order.tax},
       ${order.shippingCost},
       ${order.total},
+      ${order.discountCode},
+      ${order.discountAmount},
       ${INVOICE_EXPIRY_MINUTES},
       ${PENDING_GRACE_MINUTES}
     ) AS result

@@ -128,6 +128,13 @@ export function CheckoutPage() {
   const [method, setMethod] = useState<PaymentMethod | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [discountInput, setDiscountInput] = useState("");
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    code: string;
+    percent: number;
+  } | null>(null);
+  const [discountError, setDiscountError] = useState<string | null>(null);
+  const [discountApplying, setDiscountApplying] = useState(false);
 
   const isEmpty = !isHydrated || lines.length === 0;
 
@@ -135,7 +142,7 @@ export function CheckoutPage() {
     (sum, line) => sum + line.unitPrice * line.quantity,
     0
   );
-  const totals = computeTotals(subtotalRaw, form.state);
+  const totals = computeTotals(subtotalRaw, form.state, appliedDiscount);
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -161,7 +168,54 @@ export function CheckoutPage() {
         handle: line.handle,
         quantity: line.quantity,
       })),
+      ...(appliedDiscount ? { discountCode: appliedDiscount.code } : {}),
     };
+  }
+
+  async function handleApplyDiscount() {
+    setDiscountError(null);
+    const code = discountInput.trim();
+    if (!code) {
+      setDiscountError("Enter a discount code.");
+      return;
+    }
+
+    setDiscountApplying(true);
+    try {
+      const res = await fetch("/api/checkout/apply-discount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, subtotal: subtotalRaw }),
+      });
+      const data = (await res.json()) as {
+        code?: string;
+        discountPercent?: number;
+        error?: string;
+      };
+
+      if (!res.ok || !data.code || typeof data.discountPercent !== "number") {
+        setAppliedDiscount(null);
+        setDiscountError(data.error ?? "Invalid or expired code");
+        return;
+      }
+
+      setAppliedDiscount({
+        code: data.code,
+        percent: data.discountPercent,
+      });
+      setDiscountInput(data.code);
+      setDiscountError(null);
+    } catch {
+      setDiscountError("Unable to validate discount code. Please try again.");
+    } finally {
+      setDiscountApplying(false);
+    }
+  }
+
+  function handleRemoveDiscount() {
+    setAppliedDiscount(null);
+    setDiscountInput("");
+    setDiscountError(null);
   }
 
   async function handleBtcpaySubmit() {
@@ -227,9 +281,9 @@ export function CheckoutPage() {
         setIsSubmitting(false);
       }
     },
-    // form/lines captured via buildCheckoutPayload closure — refresh each token
+    // form/lines/appliedDiscount captured via buildCheckoutPayload closure
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [form, lines]
+    [form, lines, appliedDiscount]
   );
 
   function handleSubmit(event: React.FormEvent) {
@@ -437,7 +491,17 @@ export function CheckoutPage() {
             </section>
 
             <div className="premium-card p-5 md:p-6 lg:hidden">
-              <CheckoutSummary lines={lines} totals={totals} />
+              <CheckoutSummary
+                lines={lines}
+                totals={totals}
+                discountInput={discountInput}
+                onDiscountInputChange={setDiscountInput}
+                onApplyDiscount={() => void handleApplyDiscount()}
+                onRemoveDiscount={handleRemoveDiscount}
+                discountApplying={discountApplying}
+                discountError={discountError}
+                applied={!!appliedDiscount}
+              />
             </div>
 
             <section className="premium-card p-5 md:p-6">
@@ -586,7 +650,17 @@ export function CheckoutPage() {
 
           <aside className="hidden lg:block">
             <div className="sticky top-24 premium-card p-6">
-              <CheckoutSummary lines={lines} totals={totals} />
+              <CheckoutSummary
+                lines={lines}
+                totals={totals}
+                discountInput={discountInput}
+                onDiscountInputChange={setDiscountInput}
+                onApplyDiscount={() => void handleApplyDiscount()}
+                onRemoveDiscount={handleRemoveDiscount}
+                discountApplying={discountApplying}
+                discountError={discountError}
+                applied={!!appliedDiscount}
+              />
             </div>
           </aside>
         </div>
@@ -598,9 +672,23 @@ export function CheckoutPage() {
 function CheckoutSummary({
   lines,
   totals,
+  discountInput,
+  onDiscountInputChange,
+  onApplyDiscount,
+  onRemoveDiscount,
+  discountApplying,
+  discountError,
+  applied,
 }: {
   lines: ReturnType<typeof useCart>["lines"];
   totals: OrderTotals;
+  discountInput: string;
+  onDiscountInputChange: (value: string) => void;
+  onApplyDiscount: () => void;
+  onRemoveDiscount: () => void;
+  discountApplying: boolean;
+  discountError: string | null;
+  applied: boolean;
 }) {
   return (
     <div className="flex flex-col gap-5">
@@ -623,11 +711,66 @@ function CheckoutSummary({
           </li>
         ))}
       </ul>
+
+      <div className="flex flex-col gap-2">
+        <label
+          htmlFor="checkout-discount"
+          className="text-sm font-medium text-ink"
+        >
+          Discount code
+        </label>
+        <div className="flex gap-2">
+          <Input
+            id="checkout-discount"
+            value={discountInput}
+            onChange={(e) => onDiscountInputChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                onApplyDiscount();
+              }
+            }}
+            placeholder="Enter code"
+            autoComplete="off"
+            disabled={discountApplying}
+            className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base uppercase md:text-sm"
+          />
+          <button
+            type="button"
+            onClick={onApplyDiscount}
+            disabled={discountApplying}
+            className="inline-flex shrink-0 items-center justify-center rounded-lg border border-linen bg-lab-white px-4 text-sm font-medium text-ink transition-colors hover:border-primary-blue/50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {discountApplying ? "…" : "Apply"}
+          </button>
+        </div>
+        {discountError && (
+          <p role="alert" className="text-xs text-signal">
+            {discountError}
+          </p>
+        )}
+        {applied && totals.discountCode && (
+          <button
+            type="button"
+            onClick={onRemoveDiscount}
+            className="self-start text-xs font-medium text-primary-blue underline underline-offset-2"
+          >
+            Remove {totals.discountCode}
+          </button>
+        )}
+      </div>
+
       <dl className="flex flex-col gap-2 text-sm">
         <div className="flex justify-between text-ash">
           <dt>Subtotal</dt>
           <dd className="text-ink">{formatPrice(totals.subtotal)}</dd>
         </div>
+        {totals.discountAmount > 0 && totals.discountCode && (
+          <div className="flex justify-between text-verified-green">
+            <dt>Discount ({totals.discountCode})</dt>
+            <dd>-{formatPrice(totals.discountAmount)}</dd>
+          </div>
+        )}
         <div className="flex justify-between text-ash">
           <dt>Shipping</dt>
           <dd
