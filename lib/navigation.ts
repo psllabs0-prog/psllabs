@@ -45,6 +45,7 @@ export const footerColumns: { title: string; links: NavLink[] }[] = [
       { label: "FAQ", href: "/faq" },
       { label: "Testing", href: "/testing" },
       { label: "COA / Batch Lookup", href: "/coa" },
+      { label: "COA Verification Guide", href: "/guides/verify-peptide-coa" },
       { label: "Shipping", href: "/shipping" },
       { label: "Returns", href: "/returns" },
     ],
