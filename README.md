@@ -1,6 +1,13 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Structured data (JSON-LD)
+
+Product, FAQ, Article, and Organization schema are embedded on key pages as
+`<script type="application/ld+json">` tags. After deploy, validate with Google’s
+[Rich Results Test](https://search.google.com/test/rich-results).
+
 ## Getting Started
+
 
 First, run the development server:
 

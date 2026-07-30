@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 
 import { AnimateIn } from "@/components/product/animate-in";
-import { createPageMetadata } from "@/lib/seo";
+import { JsonLd } from "@/components/seo/json-ld";
+import { createPageMetadata, SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Lyophilized Peptide Storage and Stability Guide",
@@ -11,9 +12,24 @@ export const metadata: Metadata = createPageMetadata({
   type: "article",
 });
 
+const GUIDE_DATE = "2026-07-29";
+
+const articleLd = {
+  "@context": "https://schema.org",
+  "@type": "Article",
+  headline: "Lyophilized Peptide Storage and Stability Guide",
+  author: { "@type": "Organization", name: "PSL Labs" },
+  publisher: { "@type": "Organization", name: "PSL Labs" },
+  datePublished: GUIDE_DATE,
+  dateModified: GUIDE_DATE,
+  url: `${SITE_URL}/guides/peptide-storage-stability`,
+};
+
 export default function PeptideStorageStabilityGuidePage() {
   return (
     <main className="section-surface-ice min-h-screen">
+      {/* Validate Article markup: https://search.google.com/test/rich-results */}
+      <JsonLd data={articleLd} />
       <article className="mx-auto max-w-[720px] px-6 py-16 md:px-12 md:py-20 lg:px-24 lg:py-24">
         <header className="mb-10 border-b border-linen pb-10 md:mb-12 md:pb-12">
           <AnimateIn>
