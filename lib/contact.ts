@@ -37,12 +37,7 @@ export const contactPage: ContactPageContent = {
     {
       id: "response",
       label: "Response time",
-      value: "Within one business day",
-    },
-    {
-      id: "hours",
-      label: "Business hours",
-      value: "Monday–Friday, 9:00 AM – 5:00 PM Arizona Time",
+      value: "Within one day",
     },
   ],
   topics: [

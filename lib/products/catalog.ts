@@ -18,11 +18,6 @@ export type CatalogProduct = {
   status: CatalogProductStatus;
 };
 
-const PLACEHOLDER_IMAGE = {
-  src: PRODUCT_VIAL_IMAGE.src,
-  alt: "Research peptide vial",
-} as const;
-
 export const catalogProducts: CatalogProduct[] = [
   {
     handle: retatrutideSource.handle,
@@ -39,30 +34,16 @@ export const catalogProducts: CatalogProduct[] = [
     status: "active",
   },
   {
-    handle: "reconstitution-solution",
-    sku: "PSL-RS-30ML",
-    tag: "LABORATORY REAGENT",
-    name: "Reconstitution Solution",
-    strength: "30mL",
-    description:
-      "Sterile bacteriostatic water for reconstituting lyophilized research peptides in the laboratory.",
-    price: 14.99,
-    href: "/products/reconstitution-solution",
-    imageSrc: PLACEHOLDER_IMAGE.src,
-    imageAlt: "Reconstitution solution vial",
-    purityBadge: "Laboratory use",
-    status: "active",
-  },
-  {
     handle: "ghk-cu",
     sku: "PSL-GHK-50MG",
     tag: "RESEARCH PEPTIDE",
     name: "GHK-Cu",
     strength: "50mg",
-    description: "Copper peptide for tissue remodeling research.",
+    description:
+      "A copper peptide studied for skin repair and tissue remodeling.",
     price: 19.99,
     href: "/products#coming-soon",
-    imageSrc: PLACEHOLDER_IMAGE.src,
+    imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "GHK-Cu research peptide",
     purityBadge: "Coming soon",
     status: "coming_soon",
@@ -74,10 +55,10 @@ export const catalogProducts: CatalogProduct[] = [
     name: "BPC-157",
     strength: "10mg",
     description:
-      "Pentadecapeptide for connective tissue and wound healing research.",
+      "A healing peptide researched for gut health and injury recovery.",
     price: 39.99,
     href: "/products#coming-soon",
-    imageSrc: PLACEHOLDER_IMAGE.src,
+    imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "BPC-157 research peptide",
     purityBadge: "Coming soon",
     status: "coming_soon",
@@ -89,10 +70,10 @@ export const catalogProducts: CatalogProduct[] = [
     name: "MOTS-c",
     strength: "10mg",
     description:
-      "Mitochondrial-derived peptide for metabolic function research.",
+      "A peptide involved in metabolism and cellular energy production.",
     price: 29.99,
     href: "/products#coming-soon",
-    imageSrc: PLACEHOLDER_IMAGE.src,
+    imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "MOTS-c research peptide",
     purityBadge: "Coming soon",
     status: "coming_soon",
@@ -104,10 +85,10 @@ export const catalogProducts: CatalogProduct[] = [
     name: "Tesamorelin",
     strength: "10mg",
     description:
-      "Growth hormone-releasing hormone analog for metabolic research.",
+      "A peptide that stimulates growth hormone release, studied for fat reduction.",
     price: 99.99,
     href: "/products#coming-soon",
-    imageSrc: PLACEHOLDER_IMAGE.src,
+    imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "Tesamorelin research peptide",
     purityBadge: "Coming soon",
     status: "coming_soon",
@@ -118,11 +99,27 @@ export const catalogProducts: CatalogProduct[] = [
     tag: "RESEARCH PEPTIDE",
     name: "KPV",
     strength: "10mg",
-    description: "Tripeptide for inflammatory pathway research.",
+    description:
+      "A small peptide researched for its anti-inflammatory properties.",
     price: 29.99,
     href: "/products#coming-soon",
-    imageSrc: PLACEHOLDER_IMAGE.src,
+    imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "KPV research peptide",
+    purityBadge: "Coming soon",
+    status: "coming_soon",
+  },
+  {
+    handle: "reconstitution-solution",
+    sku: "PSL-RS-10ML",
+    tag: "LABORATORY REAGENT",
+    name: "Reconstitution Solution",
+    strength: "10ml",
+    description:
+      "A sterile solution used to prepare research compounds.",
+    price: 14.99,
+    href: "/products#coming-soon",
+    imageSrc: PRODUCT_VIAL_IMAGE.src,
+    imageAlt: "Reconstitution solution",
     purityBadge: "Coming soon",
     status: "coming_soon",
   },

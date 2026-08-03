@@ -15,7 +15,7 @@ async function main() {
   await setProductStock(
     "reconstitution-solution",
     "Reconstitution Solution",
-    50
+    0
   );
   await setProductStock("ghk-cu", "GHK-Cu", 0);
   await setProductStock("bpc-157", "BPC-157", 0);

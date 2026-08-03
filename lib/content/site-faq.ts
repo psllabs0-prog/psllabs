@@ -14,12 +14,6 @@ export const siteFaqItems: SiteFaqItem[] = [
       "No. PSL Labs products—including Retatrutide—are sold strictly for laboratory and research use only. They are not intended for human or animal consumption, diagnosis, treatment, cure, or prevention of any disease.",
   },
   {
-    id: "retatrutide",
-    question: "What is Retatrutide?",
-    answer:
-      "Retatrutide is a research peptide supplied in lyophilized form for in vitro and laboratory research applications. Batch-specific laboratory documentation is published for selected lots when available.",
-  },
-  {
     id: "purity",
     question: "How do you verify purity?",
     answer: TESTING_SCOPE_STATEMENT,
