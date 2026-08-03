@@ -6,6 +6,7 @@ import { ResearchPeptideTemplate } from "@/components/product/research-peptide-t
 import { JsonLd } from "@/components/seo/json-ld";
 import { getProductAvailability } from "@/lib/inventory/availability";
 import { getOtherProducts, getProduct, productHandles } from "@/lib/products";
+import { getCatalogProductByHandle } from "@/lib/products/catalog";
 import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
 
@@ -76,7 +77,7 @@ export default async function ProductPage({ params }: PageProps) {
       },
       offers: {
         "@type": "Offer",
-        price: "69.99",
+        price: String(product.price),
         priceCurrency: "USD",
         availability: "https://schema.org/InStock",
         priceValidUntil: priceValidUntilOneYear(),
@@ -96,11 +97,40 @@ export default async function ProductPage({ params }: PageProps) {
     );
   }
 
+  const catalog = getCatalogProductByHandle(handle);
+  const productLd =
+    catalog?.status === "active"
+      ? {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: `${product.name}${catalog.strength ? ` ${catalog.strength}` : ""}`,
+          sku: catalog.sku,
+          description: product.shortDescription,
+          url: `${SITE_URL}/products/${handle}`,
+          image: `${SITE_URL}${product.imageSrc ?? PRODUCT_VIAL_IMAGE.src}`,
+          brand: {
+            "@type": "Brand",
+            name: "PSL Labs",
+          },
+          offers: {
+            "@type": "Offer",
+            price: String(product.price),
+            priceCurrency: "USD",
+            availability: "https://schema.org/InStock",
+            priceValidUntil: priceValidUntilOneYear(),
+            url: `${SITE_URL}/products/${handle}`,
+          },
+        }
+      : null;
+
   return (
-    <ProductTemplate
-      product={product}
-      otherProducts={otherProducts}
-      availability={availability}
-    />
+    <>
+      {productLd && <JsonLd data={productLd} />}
+      <ProductTemplate
+        product={product}
+        otherProducts={otherProducts}
+        availability={availability}
+      />
+    </>
   );
 }

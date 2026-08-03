@@ -30,7 +30,7 @@ export const shippingSections: ContentSection[] = [
     id: "rates",
     title: "Shipping rates",
     paragraphs: [
-      "Standard shipping is calculated at checkout based on weight and destination.",
+      "Standard shipping is calculated at checkout based on destination. Free U.S. shipping applies on orders over $100.",
       "Expedited shipping may be available at checkout for an additional fee.",
     ],
   },

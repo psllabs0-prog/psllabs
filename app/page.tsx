@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { HeroSection } from "@/components/home/hero-section";
+import { NewsletterSignup } from "@/components/home/newsletter-signup";
 import { WhyChooseSection } from "@/components/home/why-choose-section";
 import { JsonLd } from "@/components/seo/json-ld";
 import { whyChooseCards } from "@/lib/home/homepage";
@@ -36,6 +37,7 @@ export default function Home() {
       <JsonLd data={organizationLd} />
       <HeroSection />
       <WhyChooseSection cards={whyChooseCards} />
+      <NewsletterSignup />
     </main>
   );
 }

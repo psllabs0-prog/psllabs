@@ -9,7 +9,9 @@ import {
   useAuthNetConfig,
 } from "@/components/checkout/accept-ui-launcher";
 import { useCart } from "@/components/cart/cart-provider";
+import { FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 import { formatPrice } from "@/lib/cart/format";
+import { DISCOUNT_CODES_ENABLED } from "@/lib/checkout/discount-codes";
 import { computeTotals, type OrderTotals } from "@/lib/checkout/totals";
 import { US_COUNTRY, US_STATES } from "@/lib/checkout/us-states";
 import { Input } from "@/components/ui/input";
@@ -501,6 +503,7 @@ export function CheckoutPage() {
                 discountApplying={discountApplying}
                 discountError={discountError}
                 applied={!!appliedDiscount}
+                showDiscount={DISCOUNT_CODES_ENABLED}
               />
             </div>
 
@@ -660,6 +663,7 @@ export function CheckoutPage() {
                 discountApplying={discountApplying}
                 discountError={discountError}
                 applied={!!appliedDiscount}
+                showDiscount={DISCOUNT_CODES_ENABLED}
               />
             </div>
           </aside>
@@ -679,6 +683,7 @@ function CheckoutSummary({
   discountApplying,
   discountError,
   applied,
+  showDiscount,
 }: {
   lines: ReturnType<typeof useCart>["lines"];
   totals: OrderTotals;
@@ -689,6 +694,7 @@ function CheckoutSummary({
   discountApplying: boolean;
   discountError: string | null;
   applied: boolean;
+  showDiscount: boolean;
 }) {
   return (
     <div className="flex flex-col gap-5">
@@ -712,60 +718,63 @@ function CheckoutSummary({
         ))}
       </ul>
 
-      <div className="flex flex-col gap-2">
-        <label
-          htmlFor="checkout-discount"
-          className="text-sm font-medium text-ink"
-        >
-          Discount code
-        </label>
-        <div className="flex gap-2">
-          <Input
-            id="checkout-discount"
-            value={discountInput}
-            onChange={(e) => onDiscountInputChange(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                onApplyDiscount();
-              }
-            }}
-            placeholder="Enter code"
-            autoComplete="off"
-            disabled={discountApplying}
-            className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base uppercase md:text-sm"
-          />
-          <button
-            type="button"
-            onClick={onApplyDiscount}
-            disabled={discountApplying}
-            className="inline-flex shrink-0 items-center justify-center rounded-lg border border-linen bg-lab-white px-4 text-sm font-medium text-ink transition-colors hover:border-primary-blue/50 disabled:cursor-not-allowed disabled:opacity-50"
+      {/* Discount codes temporarily disabled — infrastructure kept for re-enable. */}
+      {showDiscount && (
+        <div className="flex flex-col gap-2">
+          <label
+            htmlFor="checkout-discount"
+            className="text-sm font-medium text-ink"
           >
-            {discountApplying ? "…" : "Apply"}
-          </button>
+            Discount code
+          </label>
+          <div className="flex gap-2">
+            <Input
+              id="checkout-discount"
+              value={discountInput}
+              onChange={(e) => onDiscountInputChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  onApplyDiscount();
+                }
+              }}
+              placeholder="Enter code"
+              autoComplete="off"
+              disabled={discountApplying}
+              className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base uppercase md:text-sm"
+            />
+            <button
+              type="button"
+              onClick={onApplyDiscount}
+              disabled={discountApplying}
+              className="inline-flex shrink-0 items-center justify-center rounded-lg border border-linen bg-lab-white px-4 text-sm font-medium text-ink transition-colors hover:border-primary-blue/50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {discountApplying ? "…" : "Apply"}
+            </button>
+          </div>
+          {discountError && (
+            <p role="alert" className="text-xs text-signal">
+              {discountError}
+            </p>
+          )}
+          {applied && totals.discountCode && (
+            <button
+              type="button"
+              onClick={onRemoveDiscount}
+              className="self-start text-xs font-medium text-primary-blue underline underline-offset-2"
+            >
+              Remove {totals.discountCode}
+            </button>
+          )}
         </div>
-        {discountError && (
-          <p role="alert" className="text-xs text-signal">
-            {discountError}
-          </p>
-        )}
-        {applied && totals.discountCode && (
-          <button
-            type="button"
-            onClick={onRemoveDiscount}
-            className="self-start text-xs font-medium text-primary-blue underline underline-offset-2"
-          >
-            Remove {totals.discountCode}
-          </button>
-        )}
-      </div>
+      )}
 
       <dl className="flex flex-col gap-2 text-sm">
         <div className="flex justify-between text-ash">
           <dt>Subtotal</dt>
           <dd className="text-ink">{formatPrice(totals.subtotal)}</dd>
         </div>
-        {totals.discountAmount > 0 && totals.discountCode && (
+        {showDiscount && totals.discountAmount > 0 && totals.discountCode && (
           <div className="flex justify-between text-verified-green">
             <dt>Discount ({totals.discountCode})</dt>
             <dd>-{formatPrice(totals.discountAmount)}</dd>
@@ -790,7 +799,7 @@ function CheckoutSummary({
         </div>
       </dl>
       <p className="text-xs leading-relaxed text-ash">
-        Free U.S. shipping over $150.
+        Free U.S. shipping over ${FREE_SHIPPING_THRESHOLD}.
       </p>
     </div>
   );

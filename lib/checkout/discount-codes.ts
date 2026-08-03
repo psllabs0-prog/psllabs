@@ -7,6 +7,9 @@ export type DiscountCodeRow = {
   expiresAt: string | null;
 };
 
+/** Set true to re-enable checkout promo codes (table + lookup remain in place). */
+export const DISCOUNT_CODES_ENABLED = false;
+
 let schemaReady: Promise<void> | null = null;
 
 export function normalizeDiscountCode(raw: string): string {
@@ -28,25 +31,21 @@ export async function ensureDiscountCodesSchema(): Promise<void> {
           CHECK (discount_percent > 0 AND discount_percent <= 100)
       )
     `;
-
-    // Seed launch codes — idempotent; do not overwrite existing rows.
-    await sql`
-      INSERT INTO discount_codes (code, discount_percent, active, expires_at)
-      VALUES
-        ('SUMMER20', 20, true, NULL),
-        ('GRANDOPEN20', 20, true, NULL)
-      ON CONFLICT (code) DO NOTHING
-    `;
+    // Codes temporarily disabled — keep table, clear all rows.
+    await sql`DELETE FROM discount_codes`;
   })();
   return schemaReady;
 }
 
 /**
- * Look up a normalized code. Returns null when missing, inactive, or expired.
+ * Look up a normalized code. Returns null when missing, inactive, expired,
+ * or when discount codes are disabled site-wide.
  */
 export async function lookupActiveDiscountCode(
   rawCode: string
 ): Promise<DiscountCodeRow | null> {
+  if (!DISCOUNT_CODES_ENABLED) return null;
+
   const code = normalizeDiscountCode(rawCode);
   if (!code) return null;
 

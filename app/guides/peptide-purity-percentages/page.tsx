@@ -13,6 +13,7 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 const GUIDE_DATE = "2026-07-29";
+const GUIDE_MODIFIED = "2026-08-02";
 
 const articleLd = {
   "@context": "https://schema.org",
@@ -21,7 +22,7 @@ const articleLd = {
   author: { "@type": "Organization", name: "PSL Labs" },
   publisher: { "@type": "Organization", name: "PSL Labs" },
   datePublished: GUIDE_DATE,
-  dateModified: GUIDE_DATE,
+  dateModified: GUIDE_MODIFIED,
   url: `${SITE_URL}/guides/peptide-purity-percentages`,
 };
 
@@ -42,10 +43,9 @@ export default function PeptidePurityPercentagesGuidePage() {
           </AnimateIn>
           <AnimateIn delay={0.1}>
             <p className="mt-5 text-base leading-relaxed text-ash md:text-[1.0625rem]">
-              A plain-language explanation of HPLC purity numbers on research
-              peptide Certificates of Analysis: how they are calculated, what
-              the remainder can include, and why purity is only one part of
-              quality documentation.
+              How to read an HPLC purity number on a research peptide COA—what
+              it counts, what it leaves out, and why a few tenths of a percent
+              can matter when you compare lots.
             </p>
           </AnimateIn>
         </header>
@@ -57,19 +57,17 @@ export default function PeptidePurityPercentagesGuidePage() {
                 What a purity percentage represents
               </h2>
               <p className="text-ash">
-                On a typical peptide Certificate of Analysis (COA), a purity
-                percentage estimates how much of the detected material in the
-                tested sample is the target peptide versus everything else the
-                method sees. If a report lists 99.5% purity by HPLC, that figure
-                means that—under the laboratory’s method—about 99.5% of the
-                integrated signal is attributed to the main peptide peak, and
-                about 0.5% is attributed to other detected peaks.
+                On a peptide Certificate of Analysis (COA), purity is a share of
+                what the lab’s method actually detected. If the report says 99.5%
+                by HPLC, that means roughly 99.5% of the integrated detector
+                signal sits under the main peptide peak. The other ~0.5% sits
+                under other peaks the method picked up.
               </p>
               <p className="text-ash">
-                Purity is therefore a relative composition metric for that
-                analytical run. It is not a statement about biological activity,
-                and it applies only to the sample and batch identified in the
-                report.
+                So it’s a relative composition number for that run—not a claim
+                about biology, and not a blank check for every vial with a
+                similar label. It only describes the sample and batch named on
+                that report.
               </p>
             </section>
           </AnimateIn>
@@ -80,24 +78,23 @@ export default function PeptidePurityPercentagesGuidePage() {
                 How purity is measured
               </h2>
               <p className="text-ash">
-                Most research peptide purity values come from HPLC
-                (high-performance liquid chromatography). In HPLC, the dissolved
-                sample is pushed through a column packed with a specialized
-                material. Different compounds travel at different rates, so they
-                exit the column at different times and are recorded by a
-                detector.
+                Most research peptide purity figures come from HPLC
+                (high-performance liquid chromatography). You dissolve the
+                sample, push it through a packed column, and different compounds
+                move at different speeds. They hit the detector at different
+                times.
               </p>
               <p className="text-ash">
-                The chromatogram is the graph of detector response versus time.
-                Each peak corresponds to a component (or unresolved group of
-                components) that eluted at that time. Analysts integrate peak
-                areas—the area under each peak. For a common area-percent purity
-                calculation, the area of the main (target) peak is divided by
-                the total area of all integrated peaks, then expressed as a
-                percentage. Method details, detection wavelength, and
-                integration rules can all influence the number, which is why the
-                full report and chromatogram matter more than a lone percentage
-                copied into a summary.
+                The chromatogram is that detector trace over time. Each peak is
+                something that eluted. Analysts integrate the area under each
+                peak. For a typical area-percent purity, you take the main peak
+                area, divide by the total area of all integrated peaks, and
+                convert to a percentage.
+              </p>
+              <p className="text-ash">
+                Method details matter—wavelength, column, integration rules. That’s
+                why a lone percentage stripped into a summary is weaker than the
+                full report with the chromatogram attached.
               </p>
             </section>
           </AnimateIn>
@@ -108,17 +105,18 @@ export default function PeptidePurityPercentagesGuidePage() {
                 What the remaining percentage could be
               </h2>
               <p className="text-ash">
-                The fraction that is not the main peak is the impurity load
-                visible to that HPLC method. Depending on the synthesis, workup,
-                and storage history, it may include residual solvents (if they
-                are detected under the method), synthesis byproducts, truncated
-                or deletion sequences, closely related peptide sequences,
-                degradation products formed after synthesis, or other process
-                impurities. Some impurities may not appear at the detection
-                settings used, so “100% minus purity” is best read as “other
-                peaks seen here,” not a complete chemical inventory of the
-                vial. Complementary tests on the same COA—when present—help
-                narrow what those other peaks might represent.
+                Whatever isn’t the main peak is the impurity load that HPLC saw.
+                Depending on synthesis, cleanup, and storage, that can include
+                residual solvents (if the method detects them), synthesis
+                byproducts, truncated sequences, closely related peptides, or
+                degradation products.
+              </p>
+              <p className="text-ash">
+                Here’s the catch: some impurities won’t show up at the settings
+                used. So “100% minus purity” means “other peaks on this
+                chromatogram,” not a complete inventory of everything in the
+                vial. Other tests on the same COA can help you interpret those
+                peaks when they’re listed.
               </p>
             </section>
           </AnimateIn>
@@ -129,21 +127,21 @@ export default function PeptidePurityPercentagesGuidePage() {
                 The difference between 99.0% and 99.8%
               </h2>
               <p className="text-ash">
-                Small gaps in purity look minor on a label but scale the amount
-                of non-target signal. A sample reported at 99.0% purity has about
-                1.0% other integrated material. A sample at 99.6% has about 0.4%
-                other material. That means the 99.0% result carries roughly 2.5
-                times as much non-target peak area as the 99.6% result (1.0 ÷
-                0.4 = 2.5). Comparing 99.0% with 99.8% is similar in spirit: 1.0%
-                versus 0.2% other material is a fivefold difference in impurity
-                peak load under the same style of calculation.
+                The gap looks tiny on a label. The impurity load doesn’t.
               </p>
               <p className="text-ash">
-                Those ratios do not automatically tell you whether the
-                impurities are consequential for a given experiment—that depends
-                on what they are and what your assay measures—but they explain
-                why laboratories and researchers often care about tenths of a
-                percent when comparing lots.
+                At 99.0% purity you’ve got about 1.0% other integrated material.
+                At 99.6% you’ve got about 0.4%. That’s roughly 2.5× more
+                non-target peak area at 99.0% than at 99.6% (1.0 ÷ 0.4 = 2.5).
+                Stack 99.0% against 99.8% and you’re comparing 1.0% vs 0.2%—a
+                fivefold difference in that impurity-peak load under the same
+                style of calculation.
+              </p>
+              <p className="text-ash">
+                Those ratios don’t tell you whether the impurities matter for
+                your assay. That depends on what they are and what you’re
+                measuring. They do explain why people comparing lots still care
+                about tenths of a percent.
               </p>
             </section>
           </AnimateIn>
@@ -154,19 +152,18 @@ export default function PeptidePurityPercentagesGuidePage() {
                 Why purity is not the only metric
               </h2>
               <p className="text-ash">
-                Identity confirmation matters as much as purity. A material that
-                is 99.9% “pure” by HPLC is still the wrong tool if the main peak
-                is not the intended peptide. Identity is typically supported by
-                methods such as mass spectrometry or other orthogonal tests
-                listed on the report, alongside the chromatogram.
+                Identity matters just as much. A sample that’s 99.9% “pure” by
+                HPLC is useless if the main peak isn’t the peptide you think it
+                is. Labs usually back identity with mass spectrometry or another
+                orthogonal test on the report—read those fields with the
+                chromatogram.
               </p>
               <p className="text-ash">
-                Quantity matters too. Purity describes composition of what was
-                detected; it does not by itself state how many milligrams are in
-                the vial. Content or assay results (when reported) address how
-                much material is present. A useful COA for research documentation
-                therefore ties together identity, purity, and quantity for the
-                named batch—each answering a different question.
+                Quantity matters too. Purity says how the detected signal
+                splits; it doesn’t say how many milligrams are in the vial.
+                Content or assay results (when reported) answer that. A solid
+                research COA ties identity, purity, and quantity to the same
+                batch. Each answers a different question.
               </p>
             </section>
           </AnimateIn>
@@ -177,14 +174,12 @@ export default function PeptidePurityPercentagesGuidePage() {
                 How to verify a purity claim
               </h2>
               <p className="text-ash">
-                Independent laboratory verification helps confirm that the
-                purity number on a document matches what the testing lab
-                recorded. When a third-party lab provides a public check,
-                compare the task or report identifier on the COA with the lab’s
-                own record rather than relying only on a reseller’s screenshot.
+                Don’t stop at a screenshot. If the testing lab offers a public
+                check, match the task or report ID on the COA to the lab’s own
+                record.
               </p>
               <p className="text-ash">
-                One example is Janoshik’s verification tool at{" "}
+                One option is Janoshik’s tool at{" "}
                 <a
                   href="https://janoshik.com/verify"
                   target="_blank"
@@ -193,10 +188,9 @@ export default function PeptidePurityPercentagesGuidePage() {
                 >
                   janoshik.com/verify
                 </a>
-                . Entering the task number from a Janoshik report retrieves the
-                original laboratory record so you can confirm that the reported
-                purity (and related fields) match what the lab issued for that
-                analysis.
+                . Enter the task number from a Janoshik report and you’ll pull
+                the original lab record—so you can confirm the purity (and the
+                rest of the fields) match what the lab actually issued.
               </p>
             </section>
           </AnimateIn>
@@ -207,15 +201,12 @@ export default function PeptidePurityPercentagesGuidePage() {
                 Purity as one part of the quality picture
               </h2>
               <p className="text-ash">
-                Use purity percentages as one documented measurement among
-                several: read them with the chromatogram, identity results,
-                quantity data, batch identifiers, and storage history. A single
-                high number is helpful, but it is not a complete substitute for
-                a full, verifiable laboratory report tied to the lot in hand.
-                When purity, identity, and quantity agree with the labeled
-                material—and the lab record can be checked independently—you
-                have a stronger documentation trail for research use of that
-                batch.
+                Treat purity as one measurement in a set: chromatogram, identity,
+                quantity, batch ID, and how the material was stored. A high
+                number is useful. It isn’t a substitute for a full, verifiable
+                lab report on the lot you actually have. When those pieces line
+                up—and you can check the lab record yourself—you’ve got a much
+                stronger paper trail for that batch.
               </p>
             </section>
           </AnimateIn>

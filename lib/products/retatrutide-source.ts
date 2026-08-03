@@ -10,7 +10,7 @@ export const retatrutideSource = {
   name: "Retatrutide",
   tag: "RESEARCH PEPTIDE",
   nominalStrength: "10mg",
-  price: 69.99,
+  price: 49.99,
   stockStatus: "in_stock" satisfies StockStatus,
   description:
     "Lyophilized research peptide for laboratory and in vitro use. Independent batch documentation available for selected lots.",

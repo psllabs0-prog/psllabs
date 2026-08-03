@@ -36,6 +36,13 @@ const catalog: Record<string, CheckoutProduct> = {
       "Lyophilized Retatrutide for laboratory and research use. Independent batch documentation available for selected lots.",
     priceUsd: getCatalogProductByHandle("retatrutide")!.price,
   },
+  "reconstitution-solution": {
+    id: "reconstitution-solution",
+    name: "Reconstitution Solution",
+    description:
+      "Sterile bacteriostatic water for reconstituting lyophilized research peptides in the laboratory.",
+    priceUsd: getCatalogProductByHandle("reconstitution-solution")!.price,
+  },
 };
 
 export function getCheckoutProduct(

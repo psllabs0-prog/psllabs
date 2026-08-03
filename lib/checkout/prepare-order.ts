@@ -1,5 +1,8 @@
 import { computeTotals } from "@/lib/checkout/totals";
-import { lookupActiveDiscountCode } from "@/lib/checkout/discount-codes";
+import {
+  DISCOUNT_CODES_ENABLED,
+  lookupActiveDiscountCode,
+} from "@/lib/checkout/discount-codes";
 import { US_COUNTRY, US_STATES } from "@/lib/checkout/us-states";
 import { checkoutWithStockCheck } from "@/lib/inventory/store";
 import type { Order, OrderItem } from "@/lib/orders/types";
@@ -144,26 +147,28 @@ export async function prepareReservedOrder(
   let appliedDiscount: { code: string; percent: number } | null = null;
   const requestedCode = str(body.discountCode);
   if (requestedCode) {
-    try {
-      const discount = await lookupActiveDiscountCode(requestedCode);
-      if (!discount) {
+    if (DISCOUNT_CODES_ENABLED) {
+      try {
+        const discount = await lookupActiveDiscountCode(requestedCode);
+        if (!discount) {
+          return {
+            ok: false,
+            error: "Invalid or expired code",
+            status: 400,
+          };
+        }
+        appliedDiscount = {
+          code: discount.code,
+          percent: discount.discountPercent,
+        };
+      } catch (error) {
+        console.error("[checkout] discount lookup failed:", error);
         return {
           ok: false,
-          error: "Invalid or expired code",
-          status: 400,
+          error: "Unable to validate discount code. Please try again.",
+          status: 500,
         };
       }
-      appliedDiscount = {
-        code: discount.code,
-        percent: discount.discountPercent,
-      };
-    } catch (error) {
-      console.error("[checkout] discount lookup failed:", error);
-      return {
-        ok: false,
-        error: "Unable to validate discount code. Please try again.",
-        status: 500,
-      };
     }
   }
 

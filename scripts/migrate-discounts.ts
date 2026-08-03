@@ -10,7 +10,7 @@ async function main() {
   await ensureInventorySchema();
   await ensureDiscountCodesSchema();
   console.log(
-    "Discount schema ready. Seeded SUMMER20 and GRANDOPEN20 (20%, active, no expiry)."
+    "Discount schema ready. All discount_codes rows cleared (codes disabled)."
   );
 }
 

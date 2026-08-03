@@ -61,4 +61,5 @@ export type ProductHandle =
   | "foundation"
   | "cellular-energy"
   | "recovery"
-  | "retatrutide";
+  | "retatrutide"
+  | "reconstitution-solution";

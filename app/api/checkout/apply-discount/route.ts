@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { lookupActiveDiscountCode } from "@/lib/checkout/discount-codes";
+import {
+  DISCOUNT_CODES_ENABLED,
+  lookupActiveDiscountCode,
+} from "@/lib/checkout/discount-codes";
 import { computeTotals } from "@/lib/checkout/totals";
 
 export const runtime = "nodejs";
@@ -15,6 +18,13 @@ type Body = {
  * Checkout create routes re-validate independently — never trust client amounts.
  */
 export async function POST(request: Request) {
+  if (!DISCOUNT_CODES_ENABLED) {
+    return NextResponse.json(
+      { error: "Discount codes are not available." },
+      { status: 404 }
+    );
+  }
+
   let body: Body;
   try {
     body = (await request.json()) as Body;

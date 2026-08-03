@@ -13,14 +13,19 @@ export function ProductCatalogCard({
   product,
   className,
 }: ProductCatalogCardProps) {
+  const comingSoon = product.status === "coming_soon";
+
   return (
     <article
       className={cn(
-        "premium-card premium-card-hover flex flex-col overflow-hidden",
+        "premium-card flex flex-col overflow-hidden",
+        comingSoon
+          ? "opacity-90 ring-1 ring-linen"
+          : "premium-card-hover",
         className
       )}
     >
-      <div className="relative">
+      <div className={cn("relative", comingSoon && "grayscale-[0.35]")}>
         <ProductVialImage
           src={product.imageSrc}
           alt={product.imageAlt}
@@ -29,9 +34,15 @@ export function ProductCatalogCard({
           rounded="none"
           className="rounded-none"
         />
-        <span className="badge-verified absolute left-4 top-4 z-20 backdrop-blur-sm">
-          {product.purityBadge}
-        </span>
+        {comingSoon ? (
+          <span className="badge-accent absolute left-4 top-4 z-20 backdrop-blur-sm">
+            Coming Soon
+          </span>
+        ) : (
+          <span className="badge-verified absolute left-4 top-4 z-20 backdrop-blur-sm">
+            {product.purityBadge}
+          </span>
+        )}
         <span className="badge-accent absolute right-4 top-4 z-20 backdrop-blur-sm">
           Research Use Only
         </span>
@@ -44,24 +55,39 @@ export function ProductCatalogCard({
             {product.name}
           </h2>
           <p className="text-sm text-ash">{product.strength}</p>
+          <p className="text-sm leading-relaxed text-ash">
+            {product.description}
+          </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
           <span className="rounded-pill border border-biotech-pale bg-biotech-mist/50 px-3 py-1 font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-wider text-biotech-deep">
-            {product.purityBadge}
+            {comingSoon ? "Coming Soon" : product.purityBadge}
           </span>
           <span className="rounded-pill border border-linen bg-paper/60 px-3 py-1 font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-wider text-ash">
             Research Use Only
           </span>
         </div>
 
-        <p className="mt-auto font-display text-3xl font-bold tracking-[-0.02em] text-ink">
-          {formatPrice(product.price)}
-        </p>
-
-        <PillButton href={product.href} className="w-full">
-          View Details
-        </PillButton>
+        {comingSoon ? (
+          <>
+            <p className="mt-auto font-display text-2xl font-bold tracking-[-0.02em] text-ash">
+              Coming Soon
+            </p>
+            <PillButton href="/#newsletter" className="w-full">
+              Notify Me
+            </PillButton>
+          </>
+        ) : (
+          <>
+            <p className="mt-auto font-display text-3xl font-bold tracking-[-0.02em] text-ink">
+              {formatPrice(product.price)}
+            </p>
+            <PillButton href={product.href} className="w-full">
+              View Details
+            </PillButton>
+          </>
+        )}
       </div>
     </article>
   );
