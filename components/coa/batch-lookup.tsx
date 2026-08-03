@@ -7,11 +7,11 @@ import { ExternalLink, Search } from "lucide-react";
 
 import {
   batchReports,
+  batchReportToCertificateRows,
   findBatchReport,
-  formatReportedAmount,
-  formatReportedPurity,
 } from "@/lib/batch-reports";
 import { BatchTestingCard } from "@/components/product/batch-testing-card";
+import { CertificatePanel } from "@/components/ui/certificate-panel";
 import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 
 export function BatchLookup() {
@@ -32,7 +32,7 @@ export function BatchLookup() {
           find the original laboratory report. {TESTING_SCOPE_STATEMENT}
         </p>
         <label className="flex flex-col gap-2">
-          <span className="mono text-ash">Task number or batch name</span>
+          <span className="mono text-stone">Task number or batch name</span>
           <div className="relative">
             <Search
               className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-ash"
@@ -43,7 +43,7 @@ export function BatchLookup() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="199788 or Black Top"
-              className="w-full rounded-xl border border-linen bg-lab-white py-3 pl-11 pr-4 text-sm text-ink outline-none transition-colors focus:border-primary-blue/50"
+              className="w-full rounded-md border border-linen bg-paper py-3 pl-11 pr-4 font-mono text-sm text-ink outline-none transition-colors placeholder:text-stone focus:border-accent/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             />
           </div>
         </label>
@@ -53,7 +53,7 @@ export function BatchLookup() {
             batch name on your vial label, or contact{" "}
             <a
               href="mailto:support@psllabs.org"
-              className="text-petrol underline underline-offset-4"
+              className="text-accent underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               support@psllabs.org
             </a>
@@ -76,25 +76,15 @@ export function BatchLookup() {
         </div>
         <div className="grid gap-4">
           {publishedReports.map((report) => (
-            <article
+            <CertificatePanel
               key={`${report.productHandle}-${report.batch}-${report.taskNumber}`}
-              className="premium-card flex flex-col gap-4 p-5 md:flex-row md:items-center md:justify-between"
+              headerLabel={`${report.product} · ${report.batch}`}
+              rows={batchReportToCertificateRows(report)}
             >
-              <div>
-                <p className="font-display text-lg font-bold text-ink">
-                  {report.product} — Batch {report.batch}
-                </p>
-                <p className="mt-1 text-sm text-ash">
-                  Task {report.taskNumber} · {report.laboratory} · Nominal{" "}
-                  {report.nominalStrength} · Lab amount{" "}
-                  {formatReportedAmount(report.reportedAmountMg)} ·{" "}
-                  {formatReportedPurity(report.purityPercent)} purity
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-3 border-t border-linen px-4 py-4 md:px-5">
                 <Link
                   href={`/products/${report.productHandle}`}
-                  className="inline-flex items-center justify-center rounded-pill border border-linen bg-lab-white px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:border-primary-blue/40"
+                  className="inline-flex items-center justify-center rounded-pill border border-border-strong bg-paper px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:border-accent/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   Product page
                 </Link>
@@ -102,19 +92,19 @@ export function BatchLookup() {
                   href={report.reportUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center gap-2 rounded-pill bg-ink px-4 py-2.5 text-sm font-medium text-lab-white transition-opacity hover:opacity-90"
+                  className="inline-flex items-center justify-center gap-2 rounded-pill bg-accent px-4 py-2.5 text-sm font-medium text-page transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   View report
                   <ExternalLink className="size-3.5" aria-hidden />
                 </a>
               </div>
-            </article>
+            </CertificatePanel>
           ))}
         </div>
       </section>
 
-      <section className="premium-card overflow-hidden p-2">
-        <div className="relative aspect-[4/5] w-full max-h-[720px] bg-lab-white">
+      <section className="overflow-hidden rounded-md border border-linen bg-surface p-2">
+        <div className="relative aspect-[4/5] w-full max-h-[720px] bg-paper">
           <Image
             src={publishedReports[0]?.reportUrl ?? ""}
             alt={publishedReports[0]?.reportAltText ?? "Laboratory report"}

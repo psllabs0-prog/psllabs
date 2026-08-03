@@ -22,11 +22,11 @@ export function MobileStickyCart({
   const isOutOfStock = stockStatus === "out_of_stock";
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-linen bg-lab-white px-6 py-4 lg:hidden">
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-linen bg-surface px-6 py-4 lg:hidden">
       <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
         <div className="min-w-0">
           <p className="truncate text-sm text-ash">{productName}</p>
-          <p className="font-display text-xl font-bold text-ink">
+          <p className="font-mono text-xl font-medium text-ink">
             {formatPrice(totalPrice)}
           </p>
         </div>

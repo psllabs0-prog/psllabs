@@ -3,11 +3,11 @@
  * Mark geometry lives in components/branding/psl-mark.tsx (single source).
  */
 export const PSL_MARK = {
-  navy: "#0b1220",
-  ice: "#38bdf8",
-  white: "#ffffff",
-  deepBlue: "#0f172a",
-  accentBlue: "#1e3a8a",
+  navy: "#0B0C0E",
+  ice: "#2FB6E0",
+  white: "#E8E9EB",
+  deepBlue: "#0B0C0E",
+  accentBlue: "#2FB6E0",
 } as const;
 
 export const SITE_TITLE = "PSL Labs - Research Peptides";

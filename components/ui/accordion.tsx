@@ -39,7 +39,7 @@ function AccordionTrigger({
         data-slot="accordion-trigger"
         className={cn(
           "group/accordion-trigger flex w-full min-h-[3.25rem] flex-1 cursor-pointer items-center justify-between gap-4 border border-transparent text-left text-sm font-medium transition-colors duration-300 ease-out outline-none",
-          "hover:bg-biotech-mist/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-petrol",
+          "hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
           "aria-disabled:pointer-events-none aria-disabled:opacity-50",
           className
         )}

@@ -4,6 +4,7 @@ export {
   formatReportedPurity,
   statusLabel,
 } from "./types";
+export { batchReportToCertificateRows } from "./certificate-rows";
 export { retatrutideBlackTopReport } from "./retatrutide-black-top";
 
 import { retatrutideBlackTopReport } from "./retatrutide-black-top";

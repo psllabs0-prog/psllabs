@@ -23,7 +23,7 @@ export function TrustElement({
       )}
     >
       <div
-        className="size-16 overflow-hidden rounded-lg border border-biotech-pale shadow-[0_8px_24px_rgba(26,77,109,0.08)]"
+        className="size-16 overflow-hidden rounded-lg border border-border-strong"
         aria-hidden
       >
         <LabIllustration id={illustration} />

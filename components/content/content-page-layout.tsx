@@ -8,7 +8,7 @@ type ContentPageLayoutProps = {
 
 export function ContentPageLayout({ meta, children }: ContentPageLayoutProps) {
   return (
-    <main className="section-surface-ice min-h-screen">
+    <main className="min-h-screen bg-paper">
       <div className="mx-auto max-w-[720px] px-6 py-16 md:px-12 md:py-20 lg:px-24 lg:py-24">
         <header className="mb-10 md:mb-12">
           <AnimateIn>

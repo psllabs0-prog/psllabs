@@ -166,7 +166,7 @@ export function OrderStatus({
       <div className="mt-10">
         <Link
           href="/"
-          className="inline-flex rounded-pill bg-ink px-6 py-3.5 text-base font-medium text-lab-white transition-opacity hover:opacity-90"
+          className="inline-flex rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page transition-opacity hover:opacity-90"
         >
           Back to Home
         </Link>

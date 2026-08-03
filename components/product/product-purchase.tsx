@@ -53,17 +53,19 @@ export function ProductPurchase({
   return (
     <div
       className={cn(
-        "flex flex-col gap-8 rounded-2xl border border-linen bg-lab-white p-6 shadow-[0_2px_16px_rgba(26,77,109,0.06)] md:p-8",
+        "flex flex-col gap-8 rounded-md border border-linen bg-surface p-6 md:p-8",
         className
       )}
     >
       <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-baseline gap-3">
-          <span className="font-display text-4xl font-bold tracking-[-0.02em] text-ink">
+          <span className="font-mono text-4xl font-medium tracking-tight text-ink">
             {formatPrice(totalPrice)}
           </span>
           {quantity > 1 && (
-            <span className="text-sm text-ash">{formatPrice(unitPrice)} each</span>
+            <span className="font-mono text-sm text-ash">
+              {formatPrice(unitPrice)} each
+            </span>
           )}
         </div>
       </div>
@@ -75,19 +77,19 @@ export function ProductPurchase({
             type="button"
             onClick={() => setQuantity(Math.max(1, quantity - 1))}
             disabled={isOutOfStock}
-            className="px-4 py-2 text-lg transition-opacity duration-200 ease-out hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
+            className="px-4 py-2 text-lg transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Decrease quantity"
           >
             −
           </button>
-          <span className="min-w-12 border-x border-linen px-4 py-2 text-center font-[family-name:var(--font-mono)]">
+          <span className="min-w-12 border-x border-linen px-4 py-2 text-center font-mono">
             {quantity}
           </span>
           <button
             type="button"
             onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
             disabled={isOutOfStock || quantity >= maxQuantity}
-            className="px-4 py-2 text-lg transition-opacity duration-200 ease-out hover:opacity-70 disabled:cursor-not-allowed disabled:opacity-40"
+            className="px-4 py-2 text-lg transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
             aria-label="Increase quantity"
           >
             +
@@ -99,7 +101,7 @@ export function ProductPurchase({
         <div className="flex flex-col gap-2">
           <StockStatusBadge status={status} />
           {lowStockNote && (
-            <p className="text-sm font-medium text-amber-800">{lowStockNote}</p>
+            <p className="text-sm font-medium text-signal">{lowStockNote}</p>
           )}
         </div>
 

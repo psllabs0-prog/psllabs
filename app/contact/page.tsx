@@ -16,7 +16,7 @@ export const metadata: Metadata = createPageMetadata({
 
 export default function ContactPage() {
   return (
-    <main className="relative overflow-hidden bg-gradient-to-br from-paper via-lab-white to-biotech-mist/40">
+    <main className="relative overflow-hidden bg-paper">
       <ContactBackground />
 
       <div className="relative mx-auto max-w-[1440px] px-6 py-16 md:px-16 md:py-20 lg:px-24 lg:py-24">

@@ -110,7 +110,7 @@ export function ResearcherVerificationGate() {
               type="button"
               onClick={handleEnter}
               disabled={!canEnter}
-              className="inline-flex w-full items-center justify-center rounded-pill bg-ink px-6 py-3.5 text-base font-medium text-lab-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+              className="inline-flex w-full items-center justify-center rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
             >
               Enter Site
             </button>

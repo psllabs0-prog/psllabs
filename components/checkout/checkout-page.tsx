@@ -311,7 +311,7 @@ export function CheckoutPage() {
 
   if (isHydrated && isEmpty) {
     return (
-      <main className="section-surface-ice min-h-[60vh] px-6 py-16 md:px-16 md:py-20 lg:px-24">
+      <main className="min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
         <div className="mx-auto max-w-lg text-center">
           <h1 className="font-display text-display-md font-bold text-ink">
             Checkout
@@ -319,7 +319,7 @@ export function CheckoutPage() {
           <p className="mt-4 text-ash">Your cart is empty.</p>
           <Link
             href="/products"
-            className="mt-6 inline-flex rounded-pill bg-ink px-6 py-3.5 text-base font-medium text-lab-white transition-opacity hover:opacity-90"
+            className="mt-6 inline-flex rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page transition-opacity hover:opacity-90"
           >
             Start Shopping
           </Link>
@@ -329,7 +329,7 @@ export function CheckoutPage() {
   }
 
   return (
-    <main className="section-surface-ice min-h-screen px-6 py-12 md:px-16 md:py-16 lg:px-24 lg:py-20">
+    <main className="min-h-screen bg-paper px-6 py-12 md:px-16 md:py-16 lg:px-24 lg:py-20">
       <div className="mx-auto max-w-[1100px]">
         <header className="mb-8 md:mb-10">
           <p className="mono text-ash">CHECKOUT</p>
@@ -641,7 +641,7 @@ export function CheckoutPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting || method !== "btcpay"}
-                  className="mt-5 inline-flex w-full items-center justify-center rounded-pill bg-ink px-6 py-3.5 text-base font-medium text-lab-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="mt-5 inline-flex w-full items-center justify-center rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSubmitting
                     ? "Starting checkout…"
@@ -711,7 +711,7 @@ function CheckoutSummary({
                 {line.strength} · Qty {line.quantity}
               </p>
             </div>
-            <p className="shrink-0 font-medium text-ink">
+            <p className="shrink-0 font-mono font-medium text-ink">
               {formatPrice(line.unitPrice * line.quantity)}
             </p>
           </li>
@@ -772,28 +772,28 @@ function CheckoutSummary({
       <dl className="flex flex-col gap-2 text-sm">
         <div className="flex justify-between text-ash">
           <dt>Subtotal</dt>
-          <dd className="text-ink">{formatPrice(totals.subtotal)}</dd>
+          <dd className="font-mono text-ink">{formatPrice(totals.subtotal)}</dd>
         </div>
         {showDiscount && totals.discountAmount > 0 && totals.discountCode && (
-          <div className="flex justify-between text-verified-green">
+          <div className="flex justify-between text-accent">
             <dt>Discount ({totals.discountCode})</dt>
-            <dd>-{formatPrice(totals.discountAmount)}</dd>
+            <dd className="font-mono">-{formatPrice(totals.discountAmount)}</dd>
           </div>
         )}
         <div className="flex justify-between text-ash">
           <dt>Shipping</dt>
           <dd
             className={cn(
-              "text-ink",
-              totals.shipping === 0 && "font-medium text-verified-green"
+              "font-mono text-ink",
+              totals.shipping === 0 && "font-medium text-accent"
             )}
           >
             {totals.shipping === 0 ? "Free" : formatPrice(totals.shipping)}
           </dd>
         </div>
         <div className="mt-2 flex justify-between border-t border-linen pt-3">
-          <dt className="font-display font-bold text-ink">Total</dt>
-          <dd className="font-display text-lg font-bold text-ink">
+          <dt className="font-medium text-ink">Total</dt>
+          <dd className="font-mono text-lg font-medium text-ink">
             {formatPrice(totals.total)}
           </dd>
         </div>

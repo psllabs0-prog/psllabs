@@ -1,46 +1,52 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Surfaces */
-  --color-paper: #faf8f3;
-  --color-lab-white: #ffffff;
-  --color-porcelain: #f6fbff;
-  --color-canvas: #eef6ff;
-  --color-panel: #e8f0fa;
+  /* Page / surfaces */
+  --color-page: #0b0c0e;
+  --color-paper: #0b0c0e;
+  --color-lab-white: #16181c;
+  --color-surface: #16181c;
+  --color-porcelain: #16181c;
+  --color-canvas: #0b0c0e;
+  --color-panel: #16181c;
 
   /* Section bands */
-  --color-section-hero: #f6fbff;
-  --color-section-warm: #faf8f3;
-  --color-section-cool: #eef6ff;
-  --color-section-panel: #e8f0fa;
+  --color-section-hero: #0b0c0e;
+  --color-section-warm: #0b0c0e;
+  --color-section-cool: #0b0c0e;
+  --color-section-panel: #16181c;
 
   /* Text */
-  --color-ink: #0b1220;
-  --color-near-black: #0b1220;
-  --color-graphite: #64748b;
-  --color-ash: #64748b;
-  --color-slate-muted: #64748b;
-  --color-stone: #64748b;
+  --color-ink: #e8e9eb;
+  --color-near-black: #e8e9eb;
+  --color-graphite: #8a8d93;
+  --color-ash: #8a8d93;
+  --color-slate-muted: #6e7178;
+  --color-stone: #6e7178;
 
-  /* Borders & accents */
-  --color-linen: #dce7f3;
-  --color-petrol: #1e40af;
-  --color-petrol-muted: #2563eb;
-  --color-sage: #1e40af;
-  --color-brass: #9a7b5a;
+  /* Borders */
+  --color-linen: #1d1f24;
+  --color-border-strong: #24262b;
+
+  /* Accent — verification / data / primary CTA / links only */
+  --color-accent: #2fb6e0;
+  --color-on-accent: #0b0c0e;
+  --color-petrol: #2fb6e0;
+  --color-petrol-muted: #2fb6e0;
+  --color-sage: #2fb6e0;
+  --color-brass: #8a8d93;
   --color-signal: #b8483a;
 
-  /* Biotech palette */
-  --color-primary-blue: #2563eb;
-  --color-soft-blue: #eef6ff;
-  --color-ice-blue: #f6fbff;
-  --color-cyan-accent: #38bdf8;
-  --color-verified-green: #10b981;
-  --color-biotech-deep: #1e40af;
-  --color-biotech-blue: #2563eb;
-  --color-biotech-light: #38bdf8;
-  --color-biotech-pale: #eef6ff;
-  --color-biotech-mist: #f6fbff;
+  --color-primary-blue: #2fb6e0;
+  --color-soft-blue: #16181c;
+  --color-ice-blue: #0b0c0e;
+  --color-cyan-accent: #2fb6e0;
+  --color-verified-green: #2fb6e0;
+  --color-biotech-deep: #2fb6e0;
+  --color-biotech-blue: #2fb6e0;
+  --color-biotech-light: #2fb6e0;
+  --color-biotech-pale: #16181c;
+  --color-biotech-mist: #0b0c0e;
 
   /* Typography */
   --font-display: var(--font-display);
@@ -56,10 +62,8 @@
   --radius-pill: 9999px;
 
   /* Shadow */
-  --shadow-soft-card: 0 1px 2px rgb(11 18 32 / 0.04),
-    0 8px 24px rgb(37 99 235 / 0.08);
-  --shadow-card-hover: 0 4px 12px rgb(37 99 235 / 0.1),
-    0 16px 40px rgb(11 18 32 / 0.08);
+  --shadow-soft-card: 0 1px 0 rgb(0 0 0 / 0.4);
+  --shadow-card-hover: 0 1px 0 rgb(0 0 0 / 0.4);
 
   /* Motion */
   --ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -73,24 +77,24 @@
 
 :root {
   --color-border-default: var(--color-linen);
-  --color-border-focus: var(--color-primary-blue);
-  --color-surface-elevated: var(--color-lab-white);
-  --color-surface-section: var(--color-ice-blue);
-  --color-interactive: var(--color-primary-blue);
-  --color-interactive-hover: var(--color-biotech-deep);
+  --color-border-focus: var(--color-accent);
+  --color-surface-elevated: var(--color-surface);
+  --color-surface-section: var(--color-page);
+  --color-interactive: var(--color-accent);
+  --color-interactive-hover: var(--color-accent);
 
   --font-body: var(--font-sans);
 }
 
 html {
-  background-color: var(--color-paper);
+  background-color: var(--color-page);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
 body {
-  background-color: var(--color-paper);
+  background-color: var(--color-page);
 }
 
 h1,
@@ -159,20 +163,16 @@ h4 {
   align-items: center;
   justify-content: center;
   border: 1px solid var(--color-linen);
-  background-color: var(--color-lab-white);
+  background-color: var(--color-surface);
   border-radius: var(--radius-md);
 }
 
 /* Premium surfaces & cards */
 .premium-card {
   border: 1px solid var(--color-linen);
-  background: linear-gradient(
-    180deg,
-    var(--color-lab-white) 0%,
-    var(--color-ice-blue) 100%
-  );
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-soft-card);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: none;
 }
 
 .premium-card-hover {
@@ -183,40 +183,32 @@ h4 {
 }
 
 .premium-card-hover:hover {
-  transform: translateY(-2px);
-  border-color: rgb(37 99 235 / 0.25);
-  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-1px);
+  border-color: var(--color-border-strong);
+  box-shadow: none;
 }
 
 .section-surface-ice {
-  background: linear-gradient(
-    180deg,
-    var(--color-ice-blue) 0%,
-    var(--color-paper) 100%
-  );
+  background: var(--color-page);
 }
 
 .section-surface-soft {
-  background: linear-gradient(
-    180deg,
-    var(--color-soft-blue) 0%,
-    var(--color-ice-blue) 100%
-  );
+  background: var(--color-page);
 }
 
 .badge-accent {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  border: 1px solid rgb(37 99 235 / 0.2);
-  background: rgb(238 246 255 / 0.9);
+  border: 1px solid rgb(47 182 224 / 0.35);
+  background: rgb(47 182 224 / 0.08);
   border-radius: var(--radius-pill);
   padding: 0.25rem 0.75rem;
   font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--color-biotech-deep);
+  color: var(--color-accent);
 }
 
 .badge-accent::before {
@@ -224,22 +216,22 @@ h4 {
   width: 0.375rem;
   height: 0.375rem;
   border-radius: 9999px;
-  background: var(--color-cyan-accent);
+  background: var(--color-accent);
 }
 
 .badge-verified {
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;
-  border: 1px solid rgb(16 185 129 / 0.25);
-  background: rgb(16 185 129 / 0.08);
+  border: 1px solid rgb(47 182 224 / 0.35);
+  background: rgb(47 182 224 / 0.08);
   border-radius: var(--radius-pill);
   padding: 0.25rem 0.75rem;
   font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #047857;
+  color: var(--color-accent);
 }
 
 .badge-verified::before {
@@ -247,7 +239,7 @@ h4 {
   width: 0.375rem;
   height: 0.375rem;
   border-radius: 9999px;
-  background: var(--color-verified-green);
+  background: var(--color-accent);
 }
 
 @keyframes float {

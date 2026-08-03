@@ -79,7 +79,7 @@ export function NewsletterSignup() {
           <button
             type="submit"
             disabled={status === "loading" || status === "success"}
-            className="inline-flex h-12 items-center justify-center rounded-pill bg-ink px-6 text-base font-medium text-lab-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex h-12 items-center justify-center rounded-pill bg-accent px-6 text-base font-medium text-page transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {status === "loading" ? "Submitting…" : "Subscribe"}
           </button>

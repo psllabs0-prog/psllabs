@@ -17,10 +17,10 @@ const ERROR_MESSAGE =
   "We couldn't send your message. Please try again or email support@psllabs.org directly.";
 
 const fieldClassName = cn(
-  "w-full rounded-lg border border-linen bg-paper/50 px-4 py-3.5 text-base text-ink",
-  "placeholder:text-ash/80",
+  "w-full rounded-md border border-linen bg-paper px-4 py-3.5 text-base text-ink",
+  "placeholder:text-stone",
   "transition-colors duration-200 ease-out",
-  "focus-visible:border-biotech-blue/40 focus-visible:bg-lab-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-petrol"
+  "focus-visible:border-accent/50 focus-visible:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
 );
 
 function isValidEmail(email: string): boolean {
@@ -131,9 +131,9 @@ export function ContactForm({ title, description }: ContactFormProps) {
   };
 
   return (
-    <div className="flex flex-col gap-8 rounded-2xl border border-linen bg-lab-white p-8 shadow-[0_4px_32px_rgba(26,77,109,0.08),0_12px_48px_rgba(26,77,109,0.04)] md:p-10 lg:p-12">
-      <div className="flex flex-col gap-3 border-b border-biotech-pale/80 pb-8">
-        <p className="mono text-biotech-deep/80">INQUIRY</p>
+    <div className="flex flex-col gap-8 rounded-md border border-linen bg-surface p-8 md:p-10 lg:p-12">
+      <div className="flex flex-col gap-3 border-b border-linen pb-8">
+        <p className="mono text-accent">INQUIRY</p>
         <h2 className="font-display text-2xl font-bold text-ink md:text-3xl">
           {title}
         </h2>

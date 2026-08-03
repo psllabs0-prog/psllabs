@@ -26,9 +26,9 @@ export function NavLinkItem({
       onClick={onNavigate}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "text-sm transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-petrol",
+        "text-sm transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent",
         active
-          ? "text-ink underline decoration-petrol underline-offset-4"
+          ? "text-ink underline decoration-accent underline-offset-4"
           : "text-ash",
         className
       )}

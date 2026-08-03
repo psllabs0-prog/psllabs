@@ -123,7 +123,7 @@ function ReportCard({ report }: { report: BatchReport }) {
               href={report.reportUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex items-center gap-2 rounded-pill bg-ink px-4 py-2.5 text-sm font-medium text-lab-white transition-opacity hover:opacity-90"
+              className="mt-4 inline-flex items-center gap-2 rounded-pill bg-accent px-4 py-2.5 text-sm font-medium text-page transition-opacity hover:opacity-90"
             >
               View Report
               <ExternalLink className="size-3.5" aria-hidden />

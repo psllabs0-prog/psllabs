@@ -49,12 +49,12 @@ export function ProductCatalogCard({
 
         <div className="flex flex-col gap-2">
           {!comingSoon && (
-            <p className="mono text-biotech-deep/80">{product.tag}</p>
+            <p className="mono text-accent">{product.tag}</p>
           )}
           <h2 className="font-display text-2xl font-bold tracking-[-0.02em] text-ink">
             {product.name}
           </h2>
-          <p className="text-sm text-ash">{product.strength}</p>
+          <p className="font-mono text-sm text-ash">{product.strength}</p>
           <p className="text-sm leading-relaxed text-ash">
             {product.description}
           </p>
@@ -67,14 +67,14 @@ export function ProductCatalogCard({
         ) : (
           <>
             <div className="flex flex-wrap gap-2">
-              <span className="rounded-pill border border-biotech-pale bg-biotech-mist/50 px-3 py-1 font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-wider text-biotech-deep">
+              <span className="rounded-pill border border-border-strong bg-paper px-3 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-accent">
                 {product.purityBadge}
               </span>
-              <span className="rounded-pill border border-linen bg-paper/60 px-3 py-1 font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-wider text-ash">
+              <span className="rounded-pill border border-linen bg-paper px-3 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-ash">
                 Research Use Only
               </span>
             </div>
-            <p className="mt-auto font-display text-3xl font-bold tracking-[-0.02em] text-ink">
+            <p className="mt-auto font-mono text-3xl font-medium tracking-tight text-ink">
               {formatPrice(product.price)}
             </p>
             <PillButton href={product.href} className="w-full">

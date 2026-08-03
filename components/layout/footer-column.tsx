@@ -16,7 +16,7 @@ export function FooterColumn({ title, links }: FooterColumnProps) {
           <li key={`${title}-${link.href}`}>
             <Link
               href={link.href}
-              className="text-sm text-ash transition-opacity duration-200 ease-out hover:text-ink hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-petrol"
+              className="text-sm text-ash transition-opacity duration-200 ease-out hover:text-ink hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               {link.label}
             </Link>

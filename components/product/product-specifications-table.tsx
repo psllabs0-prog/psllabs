@@ -13,7 +13,7 @@ export function ProductSpecificationsTable({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-2xl border border-linen bg-lab-white shadow-[0_4px_24px_rgba(37,99,235,0.08)]",
+        "overflow-hidden rounded-md border border-linen bg-surface",
         className
       )}
     >

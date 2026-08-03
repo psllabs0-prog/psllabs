@@ -17,7 +17,7 @@ export function ProductHero({
     <section className="section-surface-ice mx-auto max-w-[1440px] px-6 py-10 md:px-12 md:py-16 lg:px-24 lg:py-20">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-16">
           <AnimateIn y={16}>
-            <div className="overflow-hidden rounded-2xl border border-linen shadow-[0_12px_40px_rgba(37,99,235,0.1)]">
+            <div className="overflow-hidden rounded-md border border-linen">
               <ProductGallery
                 productName={product.name}
                 imageSrc={product.imageSrc}

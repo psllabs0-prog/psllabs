@@ -14,11 +14,11 @@ export const metadata: Metadata = createPageMetadata({
 
 export default function CoaPage() {
   return (
-    <main className="section-surface-ice">
+    <main className="bg-paper">
       <div className="mx-auto max-w-[960px] px-6 py-16 md:px-16 md:py-20 lg:px-24 lg:py-24">
         <header className="mb-10 flex max-w-3xl flex-col gap-5 md:mb-12">
           <AnimateIn>
-            <p className="mono text-biotech-deep/90">DOCUMENTATION</p>
+            <p className="mono text-accent">DOCUMENTATION</p>
           </AnimateIn>
           <AnimateIn delay={0.06}>
             <h1 className="font-display text-display-lg font-bold text-ink">

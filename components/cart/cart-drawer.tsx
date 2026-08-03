@@ -47,14 +47,14 @@ function CartLineRow({
               {line.name}
             </h3>
             <p className="mt-0.5 text-xs text-ash">{line.strength}</p>
-            <p className="mt-1 text-sm text-ash">
+            <p className="mt-1 font-mono text-sm text-ash">
               {formatPrice(line.unitPrice)} each
             </p>
           </div>
           <button
             type="button"
             onClick={onRemove}
-            className="shrink-0 rounded-md p-1.5 text-ash transition-colors hover:bg-soft-blue hover:text-ink"
+            className="shrink-0 rounded-md p-1.5 text-ash transition-colors hover:bg-surface hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             aria-label={`Remove ${line.name} from cart`}
           >
             <Trash2 className="size-4" strokeWidth={1.5} aria-hidden />
@@ -62,28 +62,28 @@ function CartLineRow({
         </div>
 
         <div className="flex items-center justify-between gap-3">
-          <div className="inline-flex items-center rounded-lg border border-linen bg-lab-white">
+          <div className="inline-flex items-center rounded-md border border-linen bg-surface">
             <button
               type="button"
               onClick={onDecrease}
-              className="flex size-9 items-center justify-center text-lg transition-opacity hover:opacity-70"
+              className="flex size-9 items-center justify-center text-lg transition-opacity hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               aria-label="Decrease quantity"
             >
               <Minus className="size-3.5" strokeWidth={2} aria-hidden />
             </button>
-            <span className="min-w-10 border-x border-linen px-2 py-1.5 text-center font-[family-name:var(--font-mono)] text-sm">
+            <span className="min-w-10 border-x border-linen px-2 py-1.5 text-center font-mono text-sm">
               {line.quantity}
             </span>
             <button
               type="button"
               onClick={onIncrease}
-              className="flex size-9 items-center justify-center text-lg transition-opacity hover:opacity-70"
+              className="flex size-9 items-center justify-center text-lg transition-opacity hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               aria-label="Increase quantity"
             >
               <Plus className="size-3.5" strokeWidth={2} aria-hidden />
             </button>
           </div>
-          <p className="font-display text-lg font-bold text-ink">
+          <p className="font-mono text-lg font-medium text-ink">
             {formatPrice(lineTotal)}
           </p>
         </div>
@@ -124,7 +124,7 @@ export function CartDrawer() {
         side="right"
         showCloseButton
         overlayClassName="bg-black/[0.03] backdrop-blur-none supports-backdrop-filter:backdrop-blur-none"
-        className="flex w-full flex-col border-linen bg-paper p-0 shadow-[0_0_48px_rgba(37,99,235,0.12)] sm:max-w-md"
+        className="flex w-full flex-col border-linen bg-paper p-0 shadow-none sm:max-w-md"
       >
         <SheetHeader className="border-b border-linen px-5 py-4 pr-14">
           <SheetTitle className="font-display text-xl font-bold text-ink">
@@ -158,11 +158,11 @@ export function CartDrawer() {
                 ))}
               </div>
 
-              <div className="border-t border-linen bg-lab-white px-5 py-5">
+              <div className="border-t border-linen bg-surface px-5 py-5">
                 <dl className="flex flex-col gap-2 text-sm">
                   <div className="flex items-center justify-between text-ash">
                     <dt>Subtotal</dt>
-                    <dd className="font-medium text-ink">
+                    <dd className="font-mono font-medium text-ink">
                       {formatPrice(subtotal)}
                     </dd>
                   </div>
@@ -170,19 +170,19 @@ export function CartDrawer() {
                     <dt>Shipping</dt>
                     <dd
                       className={cn(
-                        "max-w-[14rem] text-right text-xs leading-relaxed md:text-sm",
+                        "max-w-[14rem] text-right font-mono text-xs leading-relaxed md:text-sm",
                         shippingDisplay.isFreeShipping &&
-                          "font-medium text-verified-green"
+                          "font-medium text-accent"
                       )}
                     >
                       {shippingDisplay.message}
                     </dd>
                   </div>
                   <div className="mt-2 flex items-center justify-between border-t border-linen pt-3">
-                    <dt className="font-display text-base font-bold text-ink">
+                    <dt className="text-base font-medium text-ink">
                       Estimated total
                     </dt>
-                    <dd className="font-display text-xl font-bold text-ink">
+                    <dd className="font-mono text-xl font-medium text-ink">
                       {formatPrice(estimatedTotal)}
                     </dd>
                   </div>
@@ -191,7 +191,7 @@ export function CartDrawer() {
                 <button
                   type="button"
                   onClick={handleProceedToCheckout}
-                  className="mt-5 inline-flex w-full items-center justify-center rounded-pill bg-ink px-6 py-4 text-base font-medium text-lab-white transition-opacity hover:opacity-90"
+                  className="mt-5 inline-flex w-full items-center justify-center rounded-pill bg-accent px-6 py-4 text-base font-medium text-page transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   Proceed to Checkout
                 </button>

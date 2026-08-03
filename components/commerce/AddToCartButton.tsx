@@ -28,7 +28,7 @@ export function AddToCartButton({
   }
 
   const baseStyles =
-    "rounded-pill bg-ink font-medium text-lab-white transition-opacity duration-200 ease-out hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50";
+    "rounded-pill bg-accent font-medium text-page transition-opacity duration-200 ease-out hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50";
 
   const variantStyles =
     variant === "primary"

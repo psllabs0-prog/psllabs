@@ -35,7 +35,7 @@ export function ContactInfoPanel({ content }: ContactInfoPanelProps) {
       </div>
 
       <AnimateIn delay={0.14}>
-        <div className="relative overflow-hidden rounded-2xl border border-linen bg-lab-white/80 p-6 shadow-[0_4px_24px_rgba(26,77,109,0.06)] backdrop-blur-sm md:p-8">
+        <div className="relative overflow-hidden rounded-md border border-linen bg-surface p-6 md:p-8">
           <div className="absolute -right-6 -top-6 size-24 opacity-20">
             <LabIllustration id="research-support" className="size-full" />
           </div>

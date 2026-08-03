@@ -148,7 +148,7 @@ export function AcceptUiLauncher({
           if (onBeforeOpen && !onBeforeOpen()) return;
           buttonRef.current?.click();
         }}
-        className="mt-5 inline-flex w-full items-center justify-center rounded-pill bg-ink px-6 py-3.5 text-base font-medium text-lab-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-5 inline-flex w-full items-center justify-center rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
       >
         {disabled
           ? "Processing payment…"

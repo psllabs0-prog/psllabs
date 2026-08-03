@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Archivo, Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
+import { Archivo, IBM_Plex_Mono, Inter, Source_Serif_4 } from "next/font/google";
 
 import { SiteLayout } from "@/components/layout/SiteLayout";
 import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from "@/lib/seo";
@@ -25,9 +25,10 @@ const sourceSerif = Source_Serif_4({
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
+const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+  weight: ["400", "500", "600"],
   display: "swap",
 });
 
@@ -61,7 +62,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${archivo.variable} ${inter.variable} ${sourceSerif.variable} ${jetbrainsMono.variable}`}
+      className={`${archivo.variable} ${inter.variable} ${sourceSerif.variable} ${ibmPlexMono.variable}`}
     >
       <body className="font-sans">
         <SiteLayout>{children}</SiteLayout>

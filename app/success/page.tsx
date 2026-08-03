@@ -23,7 +23,7 @@ export default async function SuccessPage({
 
   if (!orderId) {
     return (
-      <main className="section-surface-ice min-h-[60vh]">
+      <main className="min-h-[60vh] bg-paper">
         <div className="mx-auto max-w-[720px] px-6 py-24 text-center md:px-12">
           <p className="mono text-ash">ORDER CONFIRMED</p>
           <h1 className="mt-4 font-display text-display-md font-bold text-ink">
@@ -35,7 +35,7 @@ export default async function SuccessPage({
           </p>
           <Link
             href="/"
-            className="mt-8 inline-flex rounded-pill bg-ink px-6 py-3.5 text-base font-medium text-lab-white transition-opacity hover:opacity-90"
+            className="mt-8 inline-flex rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page transition-opacity hover:opacity-90"
           >
             Back to Home
           </Link>
@@ -53,7 +53,7 @@ export default async function SuccessPage({
   }
 
   return (
-    <main className="section-surface-ice min-h-[60vh]">
+    <main className="min-h-[60vh] bg-paper">
       <OrderStatus orderId={orderId} initialOrder={initialOrder} />
     </main>
   );

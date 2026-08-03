@@ -3,10 +3,10 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 const variants = {
-  primary: "bg-ink text-lab-white hover:opacity-90",
+  primary: "bg-accent text-page hover:opacity-90",
   secondary:
-    "border border-ink bg-transparent text-ink hover:bg-ink/5",
-  ghost: "bg-transparent text-petrol underline-offset-4 hover:underline",
+    "border border-border-strong bg-transparent text-ink hover:bg-surface",
+  ghost: "bg-transparent text-accent underline-offset-4 hover:underline",
 };
 
 const sizes = {
@@ -34,7 +34,7 @@ export function PillButton({
   disabled?: boolean;
 }) {
   const classes = cn(
-    "inline-flex items-center justify-center rounded-pill font-medium transition-opacity duration-200 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-petrol disabled:cursor-not-allowed disabled:opacity-50",
+    "inline-flex items-center justify-center rounded-pill font-medium transition-opacity duration-200 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50",
     variants[variant],
     sizes[size],
     className
