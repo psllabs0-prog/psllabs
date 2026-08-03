@@ -13,7 +13,7 @@ export function WhyChooseSection({ cards }: WhyChooseSectionProps) {
         <header className="mb-10 max-w-2xl md:mb-12">
           <p className="mono text-ash">WHY PSL LABS</p>
           <h2 className="font-display text-display-lg font-bold text-ink">
-            Quality you can verify—not just trust.
+            The label is a claim. The report is proof.
           </h2>
         </header>
 

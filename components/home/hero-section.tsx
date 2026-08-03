@@ -1,22 +1,35 @@
+import Image from "next/image";
+
 import { PillButton } from "@/components/ui/pill-button";
 import { CertificatePanel } from "@/components/ui/certificate-panel";
-import { HeroTrustCards } from "@/components/home/hero-trust-cards";
 import {
   batchReportToCertificateRows,
   retatrutideBlackTopReport,
 } from "@/lib/batch-reports";
-import { heroCopy, heroTrustCards } from "@/lib/home/homepage";
+import { heroCopy } from "@/lib/home/homepage";
 
 export function HeroSection() {
   return (
-    <section className="relative overflow-hidden bg-paper px-6 pb-12 pt-16 md:px-16 md:pb-16 md:pt-20 lg:px-24 lg:pb-20 lg:pt-24">
-      <div className="relative mx-auto flex max-w-[1440px] flex-col gap-10 md:gap-12 lg:gap-14">
+    <section className="relative overflow-hidden bg-paper px-6 pb-10 pt-16 md:px-16 md:pb-12 md:pt-20 lg:px-24 lg:pb-14 lg:pt-24">
+      <div className="relative mx-auto max-w-[1440px]">
         <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16 xl:gap-20">
-          <div className="order-1 flex w-full justify-center lg:order-2 lg:justify-end">
+          <div className="order-1 flex w-full flex-col items-center gap-6 md:flex-row md:items-stretch md:justify-center lg:order-2 lg:justify-end lg:gap-8 xl:gap-10">
+            <div className="relative flex h-48 w-auto max-w-[10.5rem] shrink-0 items-center justify-center md:h-auto md:max-w-[12rem] lg:max-w-[13.5rem]">
+              <Image
+                src={heroCopy.productImageSrc}
+                alt={heroCopy.productImageAlt}
+                width={420}
+                height={560}
+                priority
+                className="h-full w-auto object-contain object-center"
+                sizes="(max-width: 768px) 168px, 216px"
+              />
+            </div>
+
             <CertificatePanel
               headerLabel="Featured batch · Retatrutide"
               rows={batchReportToCertificateRows(retatrutideBlackTopReport)}
-              className="w-full max-w-md lg:max-w-lg"
+              className="w-full max-w-md md:min-w-0 md:flex-1 md:max-w-sm lg:max-w-md"
             />
           </div>
 
@@ -36,8 +49,6 @@ export function HeroSection() {
             </PillButton>
           </div>
         </div>
-
-        <HeroTrustCards cards={heroTrustCards} />
       </div>
     </section>
   );
