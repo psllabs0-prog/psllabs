@@ -10,11 +10,15 @@
     "set-stock": "tsx scripts/set-stock.ts",
     "migrate-inventory": "tsx scripts/migrate-inventory.ts",
     "migrate-discounts": "tsx scripts/migrate-discounts.ts",
-    "seed-catalog": "tsx scripts/seed-catalog-inventory.ts"
+    "seed-catalog": "tsx scripts/seed-catalog-inventory.ts",
+    "sync-tagada": "tsx scripts/sync-tagada.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@neondatabase/serverless": "^1.1.0",
+    "@tagadapay/core-js": "^3.1.0",
+    "@tagadapay/headless-sdk": "^1.8.0",
+    "@tagadapay/node-sdk": "^3.16.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.40.0",

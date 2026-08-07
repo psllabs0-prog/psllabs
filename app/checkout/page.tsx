@@ -6,7 +6,7 @@ import { createPageMetadata } from "@/lib/seo";
 export const metadata: Metadata = createPageMetadata({
   title: "Checkout",
   description:
-    "Review your PSL Labs order, enter shipping details, and prepare for checkout.",
+    "Complete institutional procurement of PSL Labs laboratory research materials. Review order details and shipping information.",
   path: "/checkout",
 });
 

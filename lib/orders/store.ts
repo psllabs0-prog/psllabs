@@ -1,6 +1,6 @@
 import { getSql } from "@/lib/db/sql";
 
-import type { Order, OrderStatus } from "./types";
+import type { Order, OrderStatus, PaymentMethod } from "./types";
 
 let schemaReady: Promise<void> | null = null;
 
@@ -53,6 +53,18 @@ export async function ensureOrdersSchema(): Promise<void> {
       ALTER TABLE orders
       ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(10,2) NOT NULL DEFAULT 0
     `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS payment_method VARCHAR
+    `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS tagada_webhook_sent BOOLEAN NOT NULL DEFAULT false
+    `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS tagada_webhook_claimed_at TIMESTAMPTZ
+    `;
   })();
   return schemaReady;
 }
@@ -76,11 +88,14 @@ type OrderRow = {
   invoice_id: string | null;
   invoice_created_at: string | null;
   paid_at: string | null;
+  payment_method: string | null;
   email_sent: boolean;
   email_error: string | null;
   customer_email_sent: boolean;
   customer_email_error: string | null;
   stock_decremented: boolean;
+  tagada_webhook_sent: boolean;
+  tagada_webhook_claimed_at: string | null;
 };
 
 function parseJson<T>(value: T | string): T {
@@ -109,6 +124,10 @@ function rowToOrder(row: OrderRow): Order {
       ? new Date(row.invoice_created_at).toISOString()
       : null,
     paidAt: row.paid_at ? new Date(row.paid_at).toISOString() : null,
+    paymentMethod:
+      row.payment_method === "bitcoin" || row.payment_method === "card"
+        ? row.payment_method
+        : null,
     emailSent: row.email_sent,
     emailError: row.email_error ?? null,
     customerEmailSent: row.customer_email_sent ?? false,
@@ -148,6 +167,60 @@ export async function setInvoiceId(
     SET invoice_id = ${invoiceId},
         invoice_created_at = now(),
         updated_at = now()
+    WHERE order_id = ${orderId}
+  `;
+}
+
+export async function setPaymentMethod(
+  orderId: string,
+  paymentMethod: PaymentMethod
+): Promise<void> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  await sql`
+    UPDATE orders
+    SET payment_method = ${paymentMethod},
+        updated_at = now()
+    WHERE order_id = ${orderId}
+  `;
+}
+
+/** Idempotent claim for Tagada webhook fulfillment path. */
+export async function claimTagadaWebhook(orderId: string): Promise<boolean> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    UPDATE orders
+    SET tagada_webhook_claimed_at = now(), updated_at = now()
+    WHERE order_id = ${orderId}
+      AND tagada_webhook_sent = false
+      AND (
+        tagada_webhook_claimed_at IS NULL
+        OR tagada_webhook_claimed_at < now() - interval '10 minutes'
+      )
+    RETURNING order_id
+  `) as { order_id: string }[];
+  return rows.length > 0;
+}
+
+export async function markTagadaWebhookSent(orderId: string): Promise<void> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  await sql`
+    UPDATE orders
+    SET tagada_webhook_sent = true, updated_at = now()
+    WHERE order_id = ${orderId}
+  `;
+}
+
+export async function releaseTagadaWebhookClaim(
+  orderId: string
+): Promise<void> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  await sql`
+    UPDATE orders
+    SET tagada_webhook_claimed_at = NULL, updated_at = now()
     WHERE order_id = ${orderId}
   `;
 }

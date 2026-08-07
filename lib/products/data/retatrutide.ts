@@ -23,7 +23,7 @@ export const retatrutide: Product = {
   imageAlt: PRODUCT_VIAL_IMAGE.alt,
   stackRole: "Research peptide · laboratory use only",
   whyThisExists:
-    "Retatrutide is an investigational triple-receptor agonist designed to interact with three incretin-related pathways: GLP-1, GIP, and glucagon receptors. This multi-pathway profile is what makes the compound scientifically notable in metabolic research.\n\nGLP-1 receptor activity is associated with appetite regulation, glucose-dependent insulin signaling, and delayed gastric emptying.\n\nGIP receptor activity is involved in nutrient handling, insulin response, and adipose tissue signaling.\n\nGlucagon receptor activity is associated with hepatic energy metabolism and increased energy expenditure pathways.\n\nRetatrutide remains an investigational research compound and is not approved for human use.",
+    "Retatrutide (CAS 2381089-83-2) is a synthetic peptide analogue with activity at GLP-1, GIP, and glucagon receptors in vitro. Molecular formula: C223H330F3N57O68. Molecular weight: approximately 4845.4 g/mol. Purity: ≥99% by independent HPLC (see Batch Testing section for lot-specific data). Solubility: Soluble in aqueous buffer at pH 7.4. Storage: Lyophilized powder stable at -20°C. Avoid repeated freeze-thaw cycles.\n\nThis product is supplied as a reference standard for receptor-binding assays, cell-signaling studies, and pharmacokinetic research in appropriate model systems. It is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",
   bullets: [
     "Lyophilized research peptide",
     "Independent batch documentation for selected lots",
@@ -49,7 +49,7 @@ export const retatrutide: Product = {
       step: 2,
       title: "Storage",
       description:
-        "Store lyophilized material refrigerated or frozen per your laboratory protocol. Avoid repeated freeze-thaw cycles.",
+        "Store lyophilized material at -20°C. Avoid repeated freeze-thaw cycles.",
     },
     {
       step: 3,
@@ -84,9 +84,12 @@ export const retatrutide: Product = {
   specifications: [
     { label: "SKU", value: retatrutideSource.sku },
     { label: "Compound", value: "Retatrutide" },
+    { label: "CAS", value: "2381089-83-2" },
     { label: "Alternate Name", value: "LY3437943" },
-    { label: "Class", value: "Triple receptor agonist" },
-    { label: "Receptor Targets", value: "GLP-1, GIP, Glucagon" },
+    { label: "Class", value: "Synthetic peptide analogue" },
+    { label: "In vitro receptor targets", value: "GLP-1, GIP, Glucagon" },
+    { label: "Molecular formula", value: "C223H330F3N57O68" },
+    { label: "Molecular weight", value: "≈4845.4 g/mol" },
     { label: "Format", value: "Lyophilized powder" },
     { label: "Nominal Strength", value: retatrutideSource.nominalStrength },
     {
@@ -100,8 +103,8 @@ export const retatrutide: Product = {
     { label: "Testing", value: "Per original laboratory report (selected lots)" },
     { label: "COA Status", value: "Third-Party Report Available" },
     { label: "Intended Use", value: "Laboratory research only" },
-    { label: "Human Use", value: "Not approved for human use" },
+    { label: "Human Use", value: "Not for human or animal use" },
   ],
   researchDisclaimer:
-    "Retatrutide is an investigational compound. This page is for laboratory research and educational reference only. Not for human consumption, medical use, or therapeutic application.",
+    "This product is supplied for laboratory research use only. Not intended for human or animal administration, diagnostic use, or any therapeutic application.",
 };

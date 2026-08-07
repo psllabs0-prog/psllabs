@@ -27,6 +27,19 @@ export async function ensureInventorySchema(): Promise<void> {
     `;
 
     await sql`
+      ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS tagada_product_id VARCHAR
+    `;
+    await sql`
+      ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS tagada_variant_id VARCHAR
+    `;
+    await sql`
+      ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS tagada_price_id VARCHAR
+    `;
+
+    await sql`
       ALTER TABLE orders
       ADD COLUMN IF NOT EXISTS invoice_created_at TIMESTAMPTZ
     `;

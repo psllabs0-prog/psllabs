@@ -10,7 +10,7 @@ import { createPageMetadata } from "@/lib/seo";
 export const metadata: Metadata = createPageMetadata({
   title: "Products",
   description:
-    "Research peptides with published batch documentation for selected lots. Laboratory reports available when published.",
+    "Catalog of high-purity synthetic peptides for laboratory and institutional research. Each product released with independent analytical documentation.",
   path: "/products",
 });
 

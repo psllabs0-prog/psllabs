@@ -37,7 +37,7 @@ export default function CancelPage() {
               href="/products"
               className="inline-flex items-center justify-center rounded-md bg-[var(--color-sage)] px-6 py-3.5 text-base font-medium text-[var(--color-lab-white)] transition-opacity duration-200 ease-out hover:opacity-90"
             >
-              Return to Shop
+              Return to Products
             </Link>
             <Link
               href="/faq"

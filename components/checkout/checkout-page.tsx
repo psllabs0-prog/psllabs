@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import { Bitcoin, Check, CreditCard } from "lucide-react";
 
 import {
-  AcceptUiLauncher,
-  useAuthNetConfig,
-} from "@/components/checkout/accept-ui-launcher";
+  TagadaCardForm,
+  type TagadaCardSession,
+} from "@/components/checkout/tagada-card-form";
 import { useCart } from "@/components/cart/cart-provider";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 import { formatPrice } from "@/lib/cart/format";
@@ -44,32 +44,6 @@ const initialForm: FormState = {
 
 const selectClassName =
   "h-11 w-full rounded-lg border border-linen bg-lab-white px-3 text-base text-ink outline-none focus-visible:border-primary-blue focus-visible:ring-3 focus-visible:ring-primary-blue/20 md:text-sm";
-
-function ComingSoonPaymentOption({
-  icon,
-  label,
-  helperText,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  helperText: string;
-}) {
-  return (
-    <div
-      aria-disabled
-      className="flex cursor-not-allowed items-start gap-3 rounded-xl border border-linen bg-lab-white/70 p-4 opacity-70"
-    >
-      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-linen bg-soft-blue/50">
-        {icon}
-      </span>
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <span className="text-sm font-medium text-ink">{label}</span>
-        <span className="text-xs leading-relaxed text-ash">{helperText}</span>
-      </div>
-      <span className="badge-accent mt-0.5 shrink-0">Coming soon</span>
-    </div>
-  );
-}
 
 function Field({
   id,
@@ -121,15 +95,16 @@ function validateForm(form: FormState): FormErrors {
 
 export function CheckoutPage() {
   const { lines, isHydrated } = useCart();
-  const authNetConfig = useAuthNetConfig();
-  const cardEnabled = authNetConfig?.enabled === true;
 
   const [form, setForm] = useState<FormState>(initialForm);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitted, setSubmitted] = useState(false);
-  const [method, setMethod] = useState<PaymentMethod | null>(null);
+  const [method, setMethod] = useState<PaymentMethod | null>("btcpay");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  const [tagadaSession, setTagadaSession] = useState<TagadaCardSession | null>(
+    null
+  );
   const [discountInput, setDiscountInput] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{
     code: string;
@@ -249,44 +224,44 @@ export function CheckoutPage() {
     }
   }
 
-  const handleCardToken = useCallback(
-    async (opaque: { dataDescriptor: string; dataValue: string }) => {
-      setPayError(null);
-      setIsSubmitting(true);
+  async function handleCardSessionStart() {
+    setPayError(null);
+    setIsSubmitting(true);
+    setTagadaSession(null);
 
-      try {
-        const res = await fetch("/api/checkout-card", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ...buildCheckoutPayload(),
-            opaqueDataDescriptor: opaque.dataDescriptor,
-            opaqueDataValue: opaque.dataValue,
-          }),
-        });
+    try {
+      const res = await fetch("/api/checkout/card/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildCheckoutPayload()),
+      });
 
-        const data = (await res.json()) as {
-          redirectTo?: string;
-          orderId?: string;
-          error?: string;
-        };
+      const data = (await res.json()) as TagadaCardSession & {
+        error?: string;
+        storeId?: string;
+      };
 
-        if (!res.ok || !data.redirectTo) {
-          setPayError(data.error ?? "Card payment failed");
-          setIsSubmitting(false);
-          return;
-        }
-
-        window.location.href = data.redirectTo;
-      } catch {
-        setPayError("We couldn't complete card payment. Please try again.");
+      if (!res.ok || !data.orderId || !data.checkoutToken || !data.storeId) {
+        setPayError(data.error ?? "Unable to start card checkout.");
         setIsSubmitting(false);
+        return;
       }
-    },
-    // form/lines/appliedDiscount captured via buildCheckoutPayload closure
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [form, lines, appliedDiscount]
-  );
+
+      setTagadaSession({
+        orderId: data.orderId,
+        checkoutToken: data.checkoutToken,
+        sessionToken: data.sessionToken ?? null,
+        storeId: data.storeId,
+        customer: data.customer,
+        shippingAddress: data.shippingAddress,
+        items: data.items,
+      });
+      setIsSubmitting(false);
+    } catch {
+      setPayError("We couldn't start card payment. Please try again.");
+      setIsSubmitting(false);
+    }
+  }
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -301,8 +276,7 @@ export function CheckoutPage() {
     }
 
     if (method === "card") {
-      // Card path uses Accept UI launcher button (hosted form), not this submit.
-      setPayError("Use the card payment button to continue.");
+      void handleCardSessionStart();
       return;
     }
 
@@ -321,7 +295,7 @@ export function CheckoutPage() {
             href="/products"
             className="mt-6 inline-flex rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page transition-opacity hover:opacity-90"
           >
-            Start Shopping
+            Browse Catalog
           </Link>
         </div>
       </main>
@@ -517,6 +491,7 @@ export function CheckoutPage() {
                   onClick={() => {
                     setMethod("btcpay");
                     setPayError(null);
+                    setTagadaSession(null);
                   }}
                   aria-pressed={method === "btcpay"}
                   className={cn(
@@ -551,58 +526,45 @@ export function CheckoutPage() {
                   )}
                 </button>
 
-                {cardEnabled && authNetConfig ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMethod("card");
-                      setPayError(null);
-                    }}
-                    aria-pressed={method === "card"}
-                    className={cn(
-                      "flex items-start gap-3 rounded-xl border p-4 text-left transition-colors",
-                      method === "card"
-                        ? "border-primary-blue bg-soft-blue/40 ring-2 ring-primary-blue/20"
-                        : "border-linen bg-lab-white hover:border-primary-blue/50"
-                    )}
-                  >
-                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-linen bg-soft-blue/50">
-                      <CreditCard
-                        className="size-5 text-biotech-deep"
-                        strokeWidth={1.6}
-                        aria-hidden
-                      />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMethod("card");
+                    setPayError(null);
+                    setTagadaSession(null);
+                  }}
+                  aria-pressed={method === "card"}
+                  className={cn(
+                    "flex items-start gap-3 rounded-xl border p-4 text-left transition-colors",
+                    method === "card"
+                      ? "border-primary-blue bg-soft-blue/40 ring-2 ring-primary-blue/20"
+                      : "border-linen bg-lab-white hover:border-primary-blue/50"
+                  )}
+                >
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-linen bg-soft-blue/50">
+                    <CreditCard
+                      className="size-5 text-biotech-deep"
+                      strokeWidth={1.6}
+                      aria-hidden
+                    />
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="text-sm font-medium text-ink">
+                      Credit / Debit Card
                     </span>
-                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                      <span className="text-sm font-medium text-ink">
-                        Card or bank payment
-                      </span>
-                      <span className="text-xs leading-relaxed text-ash">
-                        Pay with a card or bank account via Authorize.net
-                        (sandbox). Card details never touch our servers.
-                      </span>
-                    </div>
-                    {method === "card" && (
-                      <Check
-                        className="mt-0.5 size-5 shrink-0 text-primary-blue"
-                        strokeWidth={2}
-                        aria-hidden
-                      />
-                    )}
-                  </button>
-                ) : (
-                  <ComingSoonPaymentOption
-                    icon={
-                      <CreditCard
-                        className="size-5 text-biotech-deep"
-                        strokeWidth={1.6}
-                        aria-hidden
-                      />
-                    }
-                    label="Card or bank payment"
-                    helperText="Available after payment processor approval."
-                  />
-                )}
+                    <span className="text-xs leading-relaxed text-ash">
+                      Pay with a card. Details are tokenized by Tagada and never
+                      touch our servers.
+                    </span>
+                  </div>
+                  {method === "card" && (
+                    <Check
+                      className="mt-0.5 size-5 shrink-0 text-primary-blue"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                  )}
+                </button>
               </div>
 
               {payError && (
@@ -614,38 +576,27 @@ export function CheckoutPage() {
                 </p>
               )}
 
-              {method === "card" && cardEnabled && authNetConfig ? (
-                <AcceptUiLauncher
-                  config={authNetConfig}
-                  disabled={isSubmitting}
-                  onError={(message) => {
-                    setPayError(message);
-                    setIsSubmitting(false);
-                  }}
-                  onBeforeOpen={() => {
-                    const nextErrors = validateForm(form);
-                    setErrors(nextErrors);
-                    setSubmitted(true);
-                    if (Object.keys(nextErrors).length > 0) {
-                      setPayError("Complete the required fields above first.");
-                      return false;
-                    }
-                    setPayError(null);
-                    return true;
-                  }}
-                  onToken={(opaque) => {
-                    void handleCardToken(opaque);
+              {method === "card" && tagadaSession ? (
+                <TagadaCardForm
+                  session={tagadaSession}
+                  onError={(message) => setPayError(message ? message : null)}
+                  onSuccessRedirect={(redirectTo) => {
+                    window.location.href = redirectTo;
                   }}
                 />
               ) : (
                 <button
                   type="submit"
-                  disabled={isSubmitting || method !== "btcpay"}
+                  disabled={isSubmitting || !method}
                   className="mt-5 inline-flex w-full items-center justify-center rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isSubmitting
-                    ? "Starting checkout…"
-                    : "Continue to Bitcoin payment"}
+                    ? method === "card"
+                      ? "Preparing card payment…"
+                      : "Starting checkout…"
+                    : method === "card"
+                      ? "Continue to card payment"
+                      : "Continue to Bitcoin payment"}
                 </button>
               )}
             </section>

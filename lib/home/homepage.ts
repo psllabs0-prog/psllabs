@@ -8,7 +8,7 @@ export const heroCopy = {
   headline: "Verified research compounds.",
   subheadline:
     "Independent batch documentation for selected lots · laboratory reports when published.",
-  ctaLabel: "Shop Products",
+  ctaLabel: "View Catalog",
   ctaHref: "/products",
   productImageAlt: PRODUCT_VIAL_IMAGE.alt,
   productImageSrc: PRODUCT_VIAL_IMAGE.src,

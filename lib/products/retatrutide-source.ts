@@ -13,9 +13,9 @@ export const retatrutideSource = {
   price: 49.99,
   stockStatus: "in_stock" satisfies StockStatus,
   description:
-    "Lyophilized research peptide for laboratory and in vitro use. Independent batch documentation available for selected lots.",
+    "Synthetic peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific documentation available for selected lots.",
   shortDescription:
-    "Investigational triple-receptor agonist for laboratory research. Not approved for human use.",
+    "Retatrutide (CAS 2381089-83-2) — synthetic peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific Certificate of Analysis available. Not for human or animal use.",
   purityBadge: "Batch-specific purity",
   href: "/products/retatrutide",
 } as const;

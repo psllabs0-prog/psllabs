@@ -8,9 +8,9 @@ import { whyChooseCards } from "@/lib/home/homepage";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "PSL Labs - Research Peptides",
+  title: "PSL Labs — Synthetic Peptides for Laboratory Research",
   description:
-    "Batch-specific research documentation and analytical testing information from PSL Labs.",
+    "Supplier of high-purity synthetic peptides and biochemicals for laboratory and institutional research. HPLC-verified. Batch-level documentation available.",
   path: "/",
 });
 

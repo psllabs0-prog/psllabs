@@ -137,7 +137,7 @@ export function CartDrawer() {
             <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-12 text-center">
               <p className="text-base text-ash">Your cart is empty.</p>
               <PillButton href="/products" onClick={closeCart}>
-                Start Shopping
+                Browse Catalog
               </PillButton>
             </div>
           ) : (

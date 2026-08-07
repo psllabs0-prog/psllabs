@@ -8,7 +8,7 @@ import { createPageMetadata } from "@/lib/seo";
 export const metadata: Metadata = createPageMetadata({
   title: "FAQ",
   description:
-    "Answers about PSL Labs research peptides, purity, COAs, storage, shipping, and orders.",
+    "Answers about PSL Labs laboratory research peptides, analytical documentation, COAs, storage, shipping, and institutional orders.",
   path: "/faq",
 });
 

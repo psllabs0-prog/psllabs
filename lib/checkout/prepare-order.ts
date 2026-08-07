@@ -202,6 +202,7 @@ export async function prepareReservedOrder(
     invoiceId: null,
     invoiceCreatedAt: null,
     paidAt: null,
+    paymentMethod: null,
     emailSent: false,
     emailError: null,
     customerEmailSent: false,

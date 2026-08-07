@@ -4,7 +4,7 @@ import {
   prepareReservedOrder,
   type CheckoutBody,
 } from "@/lib/checkout/prepare-order";
-import { setInvoiceId } from "@/lib/orders/store";
+import { setInvoiceId, setPaymentMethod } from "@/lib/orders/store";
 import { getPaymentProcessor } from "@/lib/payments";
 
 export const runtime = "nodejs";
@@ -31,6 +31,7 @@ export async function POST(request: Request) {
   const { order } = prepared;
 
   try {
+    await setPaymentMethod(order.orderId, "bitcoin");
     const processor = getPaymentProcessor("btcpay");
     const session = await processor.createInvoice({
       amount: order.total,

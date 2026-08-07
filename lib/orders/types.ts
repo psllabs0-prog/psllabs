@@ -1,5 +1,7 @@
 export type OrderStatus = "pending" | "paid" | "cancelled" | "failed";
 
+export type PaymentMethod = "bitcoin" | "card";
+
 export type OrderItem = {
   handle: string;
   name: string;
@@ -38,6 +40,7 @@ export type Order = {
   invoiceId: string | null;
   invoiceCreatedAt: string | null;
   paidAt: string | null;
+  paymentMethod: PaymentMethod | null;
   emailSent: boolean;
   emailError: string | null;
   customerEmailSent: boolean;

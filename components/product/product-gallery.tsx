@@ -22,7 +22,7 @@ export function ProductGallery({
   showThumbnails = false,
 }: ProductGalleryProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const alt = imageAlt ?? `${productName} research peptide vial`;
+  const alt = imageAlt ?? `Vial of lyophilized ${productName} powder`;
 
   if (!showThumbnails) {
     return (

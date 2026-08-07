@@ -10,6 +10,7 @@ export const PSL_MARK = {
   accentBlue: "#2FB6E0",
 } as const;
 
-export const SITE_TITLE = "PSL Labs - Research Peptides";
+export const SITE_TITLE =
+  "PSL Labs — Synthetic Peptides for Laboratory Research";
 export const SITE_DESCRIPTION =
-  "Batch-specific research documentation and analytical testing information from PSL Labs.";
+  "Supplier of high-purity synthetic peptides and biochemicals for laboratory and institutional research. HPLC-verified. Batch-level documentation available.";

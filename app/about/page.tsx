@@ -9,7 +9,7 @@ import { createPageMetadata } from "@/lib/seo";
 export const metadata: Metadata = createPageMetadata({
   title: "About",
   description:
-    "PSL Labs research-use documentation, batch transparency, and product information for laboratory reference.",
+    "PSL Labs supplies high-purity synthetic peptides for laboratory and institutional research, with batch-level analytical documentation.",
   path: "/about",
 });
 

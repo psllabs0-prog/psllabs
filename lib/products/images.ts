@@ -1,6 +1,6 @@
 export const PRODUCT_VIAL_IMAGE = {
   src: "/Retatrutide-transparent.png",
-  alt: "Retatrutide research peptide vial",
+  alt: "Vial of lyophilized Retatrutide powder",
 } as const;
 
 /** Opaque gradient — eliminates checkerboard behind transparent PNGs */

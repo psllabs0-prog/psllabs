@@ -20,5 +20,5 @@ export const retatrutideBlackTopReport: BatchReport = {
   verificationUrl: "https://janoshik.com/verify/",
   status: "report_available",
   reportAltText:
-    "Janoshik laboratory test report for PSL Labs Retatrutide, Batch Black Top, Task Number 199788. Laboratory-reported identity Retatrutide, amount 13.03 mg, purity 99.805%. Analysis conducted July 8, 2026.",
+    "HPLC chromatogram and laboratory Certificate of Analysis for PSL Labs Retatrutide, Batch Black Top, Task Number 199788. Laboratory-reported identity Retatrutide, amount 13.03 mg, purity 99.805%. Analysis conducted July 8, 2026.",
 };
