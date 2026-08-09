@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { PSLLogo } from "@/components/branding/psl-logo";
 import { FooterColumn } from "@/components/layout/footer-column";
+import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { footerColumns, footerDisclaimer } from "@/lib/navigation";
 
 export function Footer() {
@@ -35,7 +36,7 @@ export function Footer() {
 
         <div className="mt-10 border-t border-linen pt-6 md:mt-12">
           <p className="font-mono text-xs text-stone">
-            © {new Date().getFullYear()} PSL Labs. All rights reserved.
+            © {new Date().getFullYear()} {LEGAL_ENTITY_NAME}. All rights reserved.
           </p>
         </div>
       </div>

@@ -1,10 +1,12 @@
 import nodemailer from "nodemailer";
 
 import { formatDiscountEmailLine } from "@/lib/email/discount-line";
+import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import type { Order } from "@/lib/orders/types";
 
 const FROM_EMAIL = "PSL Labs <support@psllabs.org>";
 const SUPPORT_EMAIL = "support@psllabs.org";
+const LEGAL_FOOTER = `${LEGAL_ENTITY_NAME} — Phoenix, AZ. All products are for laboratory research use only. Not for human or animal consumption.`;
 
 function money(n: number): string {
   return `$${n.toFixed(2)}`;
@@ -111,6 +113,9 @@ export async function sendCustomerOrderConfirmation(
       Questions about your order? Reply to this email or contact
       <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.
     </p>
+    <p style="margin:16px 0 0;font-size:11px;color:#94a3b8;">
+      ${escapeHtml(LEGAL_FOOTER)}
+    </p>
   </div>`;
 
   const text = [
@@ -138,6 +143,8 @@ export async function sendCustomerOrderConfirmation(
     ...(discountLine ? ["", discountLine] : []),
     "",
     `Questions? Reply to this email or contact ${SUPPORT_EMAIL}.`,
+    "",
+    LEGAL_FOOTER,
   ].join("\n");
 
   const transporter = createSmtpTransport();

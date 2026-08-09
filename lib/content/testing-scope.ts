@@ -15,7 +15,7 @@ export const CLAIM_WINDOW_PLACEHOLDER =
 export const PUBLIC_CLAIM_WINDOW_NOTICE =
   "Order issues should be reported promptly after carrier-confirmed delivery. The applicable review period will be stated in the final Returns and Shipping policies before checkout is enabled.";
 
-export const LEGAL_ENTITY_NAME = "PSL Labs LLC";
+export const LEGAL_ENTITY_NAME = "PSL Group LLC";
 
 /** Set to the actual production deployment date when Terms and Privacy go live. */
 export const LEGAL_LAST_UPDATED = "July 8, 2026";

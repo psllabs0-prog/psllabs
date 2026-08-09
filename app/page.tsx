@@ -18,6 +18,7 @@ const organizationLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
   name: "PSL Labs",
+  legalName: "PSL Group LLC",
   url: SITE_URL,
   description:
     "US-based research peptide supplier providing batch-level third-party testing documentation.",
