@@ -44,9 +44,7 @@ function TagadaCardFields({
   const [cardNumber, setCardNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [cvc, setCvc] = useState("");
-  const [cardholderName, setCardholderName] = useState(
-    `${session.customer.firstName} ${session.customer.lastName}`.trim()
-  );
+  const [cardholderName, setCardholderName] = useState("");
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [bootstrapped, setBootstrapped] = useState(false);
@@ -247,10 +245,11 @@ function TagadaCardFields({
         <Input
           id="tagada-cardholder"
           autoComplete="cc-name"
+          placeholder="Name on card"
           value={cardholderName}
           onChange={(e) => setCardholderName(e.target.value)}
           disabled={busy || isProcessing}
-          className="h-11 rounded-lg border-linen bg-paper px-3"
+          className="h-11 rounded-lg border-linen bg-paper px-3 placeholder:text-stone"
         />
       </div>
 
@@ -262,11 +261,11 @@ function TagadaCardFields({
           id="tagada-pan"
           inputMode="numeric"
           autoComplete="cc-number"
-          placeholder="4242 4242 4242 4242"
+          placeholder="0000 0000 0000 0000"
           value={cardNumber}
           onChange={(e) => setCardNumber(e.target.value)}
           disabled={busy || isProcessing}
-          className="h-11 rounded-lg border-linen bg-paper px-3 font-mono"
+          className="h-11 rounded-lg border-linen bg-paper px-3 font-mono placeholder:text-stone"
         />
       </div>
 
@@ -279,11 +278,11 @@ function TagadaCardFields({
             id="tagada-exp"
             inputMode="numeric"
             autoComplete="cc-exp"
-            placeholder="12/28"
+            placeholder="MM / YY"
             value={expiryDate}
             onChange={(e) => setExpiryDate(e.target.value)}
             disabled={busy || isProcessing}
-            className="h-11 rounded-lg border-linen bg-paper px-3 font-mono"
+            className="h-11 rounded-lg border-linen bg-paper px-3 font-mono placeholder:text-stone"
           />
         </div>
         <div className="flex flex-col gap-1.5">
@@ -294,11 +293,11 @@ function TagadaCardFields({
             id="tagada-cvc"
             inputMode="numeric"
             autoComplete="cc-csc"
-            placeholder="123"
+            placeholder="CVC"
             value={cvc}
             onChange={(e) => setCvc(e.target.value)}
             disabled={busy || isProcessing}
-            className="h-11 rounded-lg border-linen bg-paper px-3 font-mono"
+            className="h-11 rounded-lg border-linen bg-paper px-3 font-mono placeholder:text-stone"
           />
         </div>
       </div>
