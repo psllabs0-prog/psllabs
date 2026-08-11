@@ -110,10 +110,10 @@ export const catalogProducts: CatalogProduct[] = [
   },
   {
     handle: "reconstitution-solution",
-    sku: "PSL-RS-10ML",
+    sku: "PSL-RS-5ML",
     tag: "LABORATORY REAGENT",
     name: "Reconstitution Solution",
-    strength: "10ml",
+    strength: "5ml",
     description:
       "A sterile solution used to prepare research compounds.",
     price: 14.99,
