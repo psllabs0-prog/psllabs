@@ -8,7 +8,11 @@ import {
   catalogProducts,
   getCatalogProductByHandle,
 } from "../lib/products/catalog";
-import { catalogToTagadaInput, syncProductToTagada } from "../lib/tagada";
+import {
+  catalogToTagadaInput,
+  getAllStoredTagadaRecords,
+  syncProductToTagada,
+} from "../lib/tagada";
 
 function maskSecret(value: string): string {
   if (value.length <= 10) return "[redacted-short]";
@@ -34,6 +38,8 @@ async function main() {
 
   await ensureInventorySchema();
   console.info("[sync-tagada] inventory schema ready");
+
+  const storedTagada = await getAllStoredTagadaRecords();
 
   const toSync = new Map(
     catalogProducts
@@ -63,8 +69,26 @@ async function main() {
     process.exit(1);
   }
 
+  let updateCount = 0;
+  let createCount = 0;
+
+  for (const handle of toSync.keys()) {
+    const stored = storedTagada.get(handle);
+    if (stored?.tagadaProductId) {
+      updateCount += 1;
+      console.info(
+        `[sync-tagada] ${handle}: existing tagada_product_id=${stored.tagadaProductId} → will update`
+      );
+    } else {
+      createCount += 1;
+      console.info(
+        `[sync-tagada] ${handle}: no tagada_product_id stored → will create`
+      );
+    }
+  }
+
   console.info(
-    `[sync-tagada] Syncing ${toSync.size} product(s) to Tagada: ${[...toSync.keys()].join(", ")}`
+    `[sync-tagada] Syncing ${toSync.size} product(s) to Tagada (${updateCount} update, ${createCount} create): ${[...toSync.keys()].join(", ")}`
   );
 
   let failed = 0;
@@ -75,7 +99,7 @@ async function main() {
     const result = await syncProductToTagada(catalogToTagadaInput(product));
     if (result.ok) {
       console.info(
-        `OK ${result.handle} → product=${result.tagadaProductId} variant=${result.tagadaVariantId} price=${result.tagadaPriceId}`
+        `${result.action === "updated" ? "UPDATED" : "CREATED"} ${result.handle} → product=${result.tagadaProductId} variant=${result.tagadaVariantId} price=${result.tagadaPriceId}`
       );
     } else {
       failed += 1;

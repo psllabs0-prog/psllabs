@@ -10,7 +10,7 @@ export const retatrutideSource = {
   name: "Retatrutide",
   tag: "RESEARCH PEPTIDE",
   nominalStrength: "10mg",
-  price: 49.99,
+  price: 59.99,
   stockStatus: "in_stock" satisfies StockStatus,
   description:
     "Synthetic peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific documentation available for selected lots.",
