@@ -35,7 +35,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 border-t border-linen pt-6 md:mt-12">
-          <p className="font-mono text-xs text-stone">
+          <p className="font-mono text-xs text-stone" suppressHydrationWarning>
             © {new Date().getFullYear()} {LEGAL_ENTITY_NAME}. All rights reserved.
           </p>
         </div>

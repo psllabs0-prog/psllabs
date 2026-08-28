@@ -9,15 +9,8 @@ const STORAGE_KEY = "psl_researcher_verified_v1";
 export function ResearcherVerificationGate() {
   const [ageChecked, setAgeChecked] = useState(false);
   const [ruoChecked, setRuoChecked] = useState(false);
-
-  const [isVerified, setIsVerified] = useState(() => {
-    if (typeof window === "undefined") return false;
-    try {
-      return window.localStorage.getItem(STORAGE_KEY) === "1";
-    } catch {
-      return false;
-    }
-  });
+  const [isVerified, setIsVerified] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   const canEnter = useMemo(
     () => ageChecked && ruoChecked,
@@ -25,20 +18,23 @@ export function ResearcherVerificationGate() {
   );
 
   useEffect(() => {
-    if (!isVerified) return;
-    // If verification is already set, allow the user through immediately.
-    return;
-  }, [isVerified]);
+    try {
+      setIsVerified(window.localStorage.getItem(STORAGE_KEY) === "1");
+    } catch {
+      setIsVerified(false);
+    }
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
-    if (isVerified) return;
+    if (!mounted || isVerified) return;
 
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = prevOverflow;
     };
-  }, [isVerified]);
+  }, [mounted, isVerified]);
 
   function handleEnter() {
     if (!canEnter) return;
@@ -50,7 +46,7 @@ export function ResearcherVerificationGate() {
     setIsVerified(true);
   }
 
-  if (isVerified) return null;
+  if (!mounted || isVerified) return null;
 
   return (
     <div

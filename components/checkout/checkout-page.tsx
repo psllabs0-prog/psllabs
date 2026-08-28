@@ -93,6 +93,30 @@ function validateForm(form: FormState): FormErrors {
   return errors;
 }
 
+function CheckoutLoadingShell() {
+  return (
+    <main className="min-h-screen bg-paper px-6 py-12 md:px-16 md:py-16 lg:px-24 lg:py-20">
+      <div className="mx-auto max-w-[1100px]">
+        <header className="mb-8 md:mb-10">
+          <p className="mono text-ash">CHECKOUT</p>
+          <h1 className="font-display text-display-lg font-bold text-ink">
+            Review your order
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm text-ash md:text-base">
+            Loading your cart…
+          </p>
+        </header>
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px] lg:gap-10">
+          <div className="premium-card h-[520px] animate-pulse bg-soft-blue/20 p-5 md:p-6" />
+          <div className="hidden lg:block">
+            <div className="premium-card h-[360px] animate-pulse bg-soft-blue/20 p-6" />
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 export function CheckoutPage() {
   const { lines, isHydrated } = useCart();
 
@@ -112,8 +136,6 @@ export function CheckoutPage() {
   } | null>(null);
   const [discountError, setDiscountError] = useState<string | null>(null);
   const [discountApplying, setDiscountApplying] = useState(false);
-
-  const isEmpty = !isHydrated || lines.length === 0;
 
   const subtotalRaw = lines.reduce(
     (sum, line) => sum + line.unitPrice * line.quantity,
@@ -283,7 +305,11 @@ export function CheckoutPage() {
     setPayError("Select a payment method to continue.");
   }
 
-  if (isHydrated && isEmpty) {
+  if (!isHydrated) {
+    return <CheckoutLoadingShell />;
+  }
+
+  if (lines.length === 0) {
     return (
       <main className="min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
         <div className="mx-auto max-w-lg text-center">

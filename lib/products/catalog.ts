@@ -35,7 +35,7 @@ export const catalogProducts: CatalogProduct[] = [
   },
   {
     handle: "ghk-cu",
-    sku: "PSL-GHK-50MG",
+    sku: "PSL-GHKCU-50MG",
     tag: "RESEARCH PEPTIDE",
     name: "GHK-Cu",
     strength: "50mg",
@@ -50,7 +50,7 @@ export const catalogProducts: CatalogProduct[] = [
   },
   {
     handle: "bpc-157",
-    sku: "PSL-BPC-10MG",
+    sku: "PSL-BPC157-10MG",
     tag: "RESEARCH PEPTIDE",
     name: "BPC-157",
     strength: "10mg",
@@ -65,7 +65,7 @@ export const catalogProducts: CatalogProduct[] = [
   },
   {
     handle: "mots-c",
-    sku: "PSL-MOTS-10MG",
+    sku: "PSL-MOTSC-10MG",
     tag: "RESEARCH PEPTIDE",
     name: "MOTS-c",
     strength: "10mg",
