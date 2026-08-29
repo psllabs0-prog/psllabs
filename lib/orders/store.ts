@@ -256,6 +256,71 @@ export async function markOrderShipped(
   `;
 }
 
+export type OrderTrackingRow = {
+  orderId: string;
+  email: string;
+  total: number;
+  status: OrderStatus;
+  trackingNumber: string | null;
+  paidAt: string | null;
+  createdAt: string;
+};
+
+/** Paid orders awaiting a manually entered tracking number (BTCPostage). */
+export async function getOrdersNeedingTracking(
+  limit = 100
+): Promise<OrderTrackingRow[]> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT order_id, email, total, status, tracking_number, paid_at, created_at
+    FROM orders
+    WHERE status = 'paid'
+      AND (tracking_number IS NULL OR trim(tracking_number) = '')
+    ORDER BY paid_at ASC NULLS LAST, created_at ASC
+    LIMIT ${limit}
+  `) as {
+    order_id: string;
+    email: string;
+    total: string | number;
+    status: OrderStatus;
+    tracking_number: string | null;
+    paid_at: string | null;
+    created_at: string;
+  }[];
+
+  return rows.map((row) => ({
+    orderId: row.order_id,
+    email: row.email,
+    total: Number(row.total),
+    status: row.status,
+    trackingNumber: row.tracking_number,
+    paidAt: row.paid_at ? new Date(row.paid_at).toISOString() : null,
+    createdAt: new Date(row.created_at).toISOString(),
+  }));
+}
+
+export async function setOrderTracking(
+  orderId: string,
+  trackingNumber: string,
+  trackingCarrier = "USPS"
+): Promise<boolean> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    UPDATE orders
+    SET status = 'shipped',
+        shipped_at = COALESCE(shipped_at, now()),
+        tracking_number = ${trackingNumber},
+        tracking_carrier = ${trackingCarrier},
+        updated_at = now()
+    WHERE order_id = ${orderId}
+      AND status IN ('paid', 'shipped')
+    RETURNING order_id
+  `) as { order_id: string }[];
+  return rows.length > 0;
+}
+
 export async function getOrder(orderId: string): Promise<Order | null> {
   await ensureOrdersSchema();
   const sql = getSql();

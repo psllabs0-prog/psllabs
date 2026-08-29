@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import type { AdminInventoryProductRow } from "@/lib/inventory/store";
 import type { LedgerKpi, LedgerRow } from "@/lib/ledger/store";
+import type { OrderTrackingRow } from "@/lib/orders/store";
 import { cn } from "@/lib/utils";
 
 function money(n: number, opts?: { signed?: boolean }): string {
@@ -80,14 +81,24 @@ export function AdminLedgerDashboard() {
   const [expenseError, setExpenseError] = useState<string | null>(null);
   const [expenseSuccess, setExpenseSuccess] = useState<string | null>(null);
 
+  const [trackingOrders, setTrackingOrders] = useState<OrderTrackingRow[]>([]);
+  const [trackingDrafts, setTrackingDrafts] = useState<Record<string, string>>(
+    {}
+  );
+  const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
+  const [trackingMessages, setTrackingMessages] = useState<
+    Record<string, string>
+  >({});
+
   const refreshData = useCallback(async () => {
-    const [kpiRes, inventoryRes, ledgerRes] = await Promise.all([
+    const [kpiRes, inventoryRes, ledgerRes, trackingRes] = await Promise.all([
       fetch("/api/admin/kpi"),
       fetch("/api/admin/inventory"),
       fetch("/api/admin/ledger"),
+      fetch("/api/admin/tracking"),
     ]);
 
-    if (!kpiRes.ok || !inventoryRes.ok || !ledgerRes.ok) {
+    if (!kpiRes.ok || !inventoryRes.ok || !ledgerRes.ok || !trackingRes.ok) {
       throw new Error("Unable to load dashboard data.");
     }
 
@@ -96,10 +107,23 @@ export function AdminLedgerDashboard() {
       products: AdminInventoryProductRow[];
     };
     const ledgerData = (await ledgerRes.json()) as { rows: LedgerRow[] };
+    const trackingData = (await trackingRes.json()) as {
+      orders: OrderTrackingRow[];
+    };
 
     setKpi(kpiData);
     setInventory(inventoryData.products);
     setLedger(ledgerData.rows.slice(0, 50));
+    setTrackingOrders(trackingData.orders);
+    setTrackingDrafts((current) => {
+      const next = { ...current };
+      for (const order of trackingData.orders) {
+        if (next[order.orderId] === undefined) {
+          next[order.orderId] = "";
+        }
+      }
+      return next;
+    });
     setStockDrafts((current) => {
       const next = { ...current };
       for (const product of inventoryData.products) {
@@ -215,6 +239,52 @@ export function AdminLedgerDashboard() {
       setExpenseError("Unable to add expense.");
     } finally {
       setExpenseBusy(false);
+    }
+  }
+
+  async function handleTrackingSave(orderId: string) {
+    const trackingNumber = trackingDrafts[orderId]?.trim() ?? "";
+    if (!trackingNumber) {
+      setTrackingMessages((current) => ({
+        ...current,
+        [orderId]: "Enter a tracking number.",
+      }));
+      return;
+    }
+
+    setBusyOrderId(orderId);
+    setTrackingMessages((current) => ({ ...current, [orderId]: "" }));
+
+    try {
+      const res = await fetch("/api/admin/tracking", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, trackingNumber }),
+      });
+      const data = (await res.json()) as { error?: string };
+
+      if (!res.ok) {
+        setTrackingMessages((current) => ({
+          ...current,
+          [orderId]: data.error ?? "Save failed.",
+        }));
+        return;
+      }
+
+      setTrackingOrders((current) =>
+        current.filter((row) => row.orderId !== orderId)
+      );
+      setTrackingMessages((current) => ({
+        ...current,
+        [orderId]: "Tracking saved.",
+      }));
+    } catch {
+      setTrackingMessages((current) => ({
+        ...current,
+        [orderId]: "Save failed.",
+      }));
+    } finally {
+      setBusyOrderId(null);
     }
   }
 
@@ -342,6 +412,90 @@ export function AdminLedgerDashboard() {
                   </td>
                 </tr>
               ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section className="premium-card overflow-hidden">
+        <div className="border-b border-linen px-5 py-4">
+          <h2 className="font-display text-xl font-bold text-ink">Tracking</h2>
+          <p className="mt-1 text-sm text-ash">
+            Paid orders awaiting a tracking number from BTCPostage. Carrier is
+            saved as USPS by default.
+          </p>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead className="border-b border-linen bg-surface text-left text-ash">
+              <tr>
+                <th className="px-5 py-3 font-medium">Order ID</th>
+                <th className="px-5 py-3 font-medium">Customer email</th>
+                <th className="px-5 py-3 font-medium">Total</th>
+                <th className="px-5 py-3 font-medium">Tracking number</th>
+                <th className="px-5 py-3 font-medium" />
+              </tr>
+            </thead>
+            <tbody>
+              {trackingOrders.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-5 py-8 text-center text-ash">
+                    No paid orders awaiting tracking.
+                  </td>
+                </tr>
+              ) : (
+                trackingOrders.map((row) => (
+                  <tr
+                    key={row.orderId}
+                    className="border-b border-linen last:border-b-0"
+                  >
+                    <td className="px-5 py-4 font-mono text-xs text-ink">
+                      {row.orderId}
+                    </td>
+                    <td className="px-5 py-4 text-ink">{row.email}</td>
+                    <td className="px-5 py-4 font-mono text-ink">
+                      {money(row.total)}
+                    </td>
+                    <td className="px-5 py-4">
+                      <Input
+                        type="text"
+                        autoComplete="off"
+                        value={trackingDrafts[row.orderId] ?? ""}
+                        onChange={(e) =>
+                          setTrackingDrafts((current) => ({
+                            ...current,
+                            [row.orderId]: e.target.value,
+                          }))
+                        }
+                        placeholder="9400..."
+                        className="h-10 min-w-[12rem] rounded-lg border-linen bg-lab-white px-3 font-mono"
+                      />
+                    </td>
+                    <td className="px-5 py-4">
+                      <button
+                        type="button"
+                        disabled={busyOrderId === row.orderId}
+                        onClick={() => void handleTrackingSave(row.orderId)}
+                        className="rounded-pill bg-accent px-4 py-2 text-sm font-medium text-page transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {busyOrderId === row.orderId ? "Saving…" : "Save"}
+                      </button>
+                      {trackingMessages[row.orderId] && (
+                        <p
+                          className={cn(
+                            "mt-2 text-xs",
+                            trackingMessages[row.orderId] === "Tracking saved."
+                              ? "text-verified-green"
+                              : "text-ash"
+                          )}
+                        >
+                          {trackingMessages[row.orderId]}
+                        </p>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

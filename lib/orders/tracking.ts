@@ -93,3 +93,13 @@ export function formatOrderDate(iso: string): string {
     timeZone: "UTC",
   }).format(new Date(iso));
 }
+
+export function uspsTrackingUrl(trackingNumber: string): string {
+  const encoded = encodeURIComponent(trackingNumber.trim());
+  return `https://tools.usps.com/go/TrackConfirmAction?tRef=fullpage&tLc=2&text28777=&tLabels=${encoded}`;
+}
+
+export function upsTrackingUrl(trackingNumber: string): string {
+  const encoded = encodeURIComponent(trackingNumber.trim());
+  return `https://www.ups.com/track?tracknum=${encoded}`;
+}
