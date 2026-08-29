@@ -13,6 +13,7 @@ import { FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 import { formatPrice } from "@/lib/cart/format";
 import { DISCOUNT_CODES_ENABLED } from "@/lib/checkout/discount-codes";
 import { computeTotals, type OrderTotals } from "@/lib/checkout/totals";
+import { trackPlausibleClientEvent } from "@/lib/plausible/client";
 import { US_COUNTRY, US_STATES } from "@/lib/checkout/us-states";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -293,11 +294,13 @@ export function CheckoutPage() {
     if (Object.keys(nextErrors).length > 0) return;
 
     if (method === "btcpay") {
+      trackPlausibleClientEvent("checkout_started", { payment: "bitcoin" });
       void handleBtcpaySubmit();
       return;
     }
 
     if (method === "card") {
+      trackPlausibleClientEvent("checkout_started", { payment: "card" });
       void handleCardSessionStart();
       return;
     }

@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Input } from "@/components/ui/input";
+import { trackPlausibleClientEvent } from "@/lib/plausible/client";
 
 export function NewsletterSignup() {
   const [email, setEmail] = useState("");
@@ -36,6 +37,7 @@ export function NewsletterSignup() {
           "Thank you. You'll receive updates on new batch documentation and product availability."
       );
       setEmail("");
+      trackPlausibleClientEvent("newsletter_signup");
     } catch {
       setStatus("error");
       setMessage("Something went wrong. Please try again.");

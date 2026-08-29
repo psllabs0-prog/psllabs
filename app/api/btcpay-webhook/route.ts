@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 
 import { fulfillPaidOrder } from "@/lib/orders/fulfill-paid-order";
+import { trackPlausiblePurchase } from "@/lib/plausible";
 import {
   getOrder,
   getOrderByInvoice,
@@ -9,6 +10,8 @@ import {
 } from "@/lib/orders/store";
 
 export const runtime = "nodejs";
+
+const BTCPAY_WEBHOOK_URL = "https://psllabs.org/api/btcpay-webhook";
 
 function safeEqual(a: string, b: string): boolean {
   const ab = Buffer.from(a);
@@ -83,11 +86,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true });
     }
 
+    const wasAlreadyPaid = order.status === "paid";
+
     await fulfillPaidOrder(
       order.orderId,
       order.invoiceId ?? invoiceId,
       "[btcpay-webhook]"
     );
+
+    if (!wasAlreadyPaid) {
+      const paidOrder = await getOrder(order.orderId);
+      if (paidOrder?.status === "paid") {
+        await trackPlausiblePurchase(paidOrder, "bitcoin", BTCPAY_WEBHOOK_URL);
+      }
+    }
 
     return NextResponse.json({ received: true });
   } catch (error) {
