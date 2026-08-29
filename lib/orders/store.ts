@@ -75,6 +75,10 @@ export async function ensureOrdersSchema(): Promise<void> {
     `;
     await sql`
       ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS tracking_carrier TEXT
+    `;
+    await sql`
+      ALTER TABLE orders
       ADD COLUMN IF NOT EXISTS feedback_email_sent BOOLEAN NOT NULL DEFAULT false
     `;
     await sql`
@@ -106,6 +110,7 @@ type OrderRow = {
   paid_at: string | null;
   shipped_at: string | null;
   tracking_number: string | null;
+  tracking_carrier: string | null;
   payment_method: string | null;
   email_sent: boolean;
   email_error: string | null;
@@ -145,6 +150,7 @@ function rowToOrder(row: OrderRow): Order {
     paidAt: row.paid_at ? new Date(row.paid_at).toISOString() : null,
     shippedAt: row.shipped_at ? new Date(row.shipped_at).toISOString() : null,
     trackingNumber: row.tracking_number ?? null,
+    trackingCarrier: row.tracking_carrier ?? null,
     paymentMethod:
       row.payment_method === "bitcoin" || row.payment_method === "card"
         ? row.payment_method
@@ -234,7 +240,8 @@ export async function releaseFeedbackEmailClaim(
 
 export async function markOrderShipped(
   orderId: string,
-  trackingNumber?: string | null
+  trackingNumber?: string | null,
+  trackingCarrier?: string | null
 ): Promise<void> {
   await ensureOrdersSchema();
   const sql = getSql();
@@ -243,6 +250,7 @@ export async function markOrderShipped(
     SET status = 'shipped',
         shipped_at = COALESCE(shipped_at, now()),
         tracking_number = COALESCE(${trackingNumber ?? null}, tracking_number),
+        tracking_carrier = COALESCE(${trackingCarrier ?? null}, tracking_carrier),
         updated_at = now()
     WHERE order_id = ${orderId}
   `;

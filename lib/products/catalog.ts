@@ -1,5 +1,6 @@
 import { PRODUCT_VIAL_IMAGE } from "./images";
 import { retatrutideSource } from "./retatrutide-source";
+import { productPathFromSku, skuToSlug } from "./slug";
 
 export type CatalogProductStatus = "active" | "coming_soon";
 
@@ -27,7 +28,7 @@ export const catalogProducts: CatalogProduct[] = [
     strength: retatrutideSource.nominalStrength,
     description: retatrutideSource.description,
     price: retatrutideSource.price,
-    href: retatrutideSource.href,
+    href: productPathFromSku(retatrutideSource.sku),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: PRODUCT_VIAL_IMAGE.alt,
     purityBadge: retatrutideSource.purityBadge,
@@ -42,7 +43,7 @@ export const catalogProducts: CatalogProduct[] = [
     description:
       "Copper peptide for extracellular matrix research. In vitro applications in dermal fibroblast studies.",
     price: 19.99,
-    href: "/products#coming-soon",
+    href: productPathFromSku("PSL-GHKCU-50MG"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "Vial of lyophilized GHK-Cu powder",
     purityBadge: "Coming soon",
@@ -57,7 +58,7 @@ export const catalogProducts: CatalogProduct[] = [
     description:
       "Pentadecapeptide for angiogenic signaling research. Studied in rodent models of connective tissue repair.",
     price: 39.99,
-    href: "/products#coming-soon",
+    href: productPathFromSku("PSL-BPC157-10MG"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "Vial of lyophilized BPC-157 powder",
     purityBadge: "Coming soon",
@@ -72,7 +73,7 @@ export const catalogProducts: CatalogProduct[] = [
     description:
       "Mitochondrial-derived peptide for metabolic pathway research. In vitro studies of glucose utilization and fatty acid oxidation.",
     price: 29.99,
-    href: "/products#coming-soon",
+    href: productPathFromSku("PSL-MOTSC-10MG"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "Vial of lyophilized MOTS-c powder",
     purityBadge: "Coming soon",
@@ -87,7 +88,7 @@ export const catalogProducts: CatalogProduct[] = [
     description:
       "Growth hormone secretagogue receptor agonist for metabolic research. In vitro and animal model applications.",
     price: 99.99,
-    href: "/products#coming-soon",
+    href: productPathFromSku("PSL-TESA-10MG"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "Vial of lyophilized Tesamorelin powder",
     purityBadge: "Coming soon",
@@ -102,7 +103,7 @@ export const catalogProducts: CatalogProduct[] = [
     description:
       "Tripeptide for inflammatory signaling pathway research. In vitro applications.",
     price: 29.99,
-    href: "/products#coming-soon",
+    href: productPathFromSku("PSL-KPV-10MG"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "Vial of lyophilized KPV powder",
     purityBadge: "Coming soon",
@@ -117,7 +118,7 @@ export const catalogProducts: CatalogProduct[] = [
     description:
       "A sterile solution used to prepare research compounds.",
     price: 14.99,
-    href: "/products#coming-soon",
+    href: productPathFromSku("PSL-RS-5ML"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "Bottle of sterile reconstitution solution",
     purityBadge: "Coming soon",
@@ -141,4 +142,28 @@ export function getCatalogProductByHandle(
   handle: string
 ): CatalogProduct | undefined {
   return catalogProducts.find((product) => product.handle === handle);
+}
+
+export function getCatalogProductBySlug(
+  slug: string
+): CatalogProduct | undefined {
+  const normalized = slug.trim().toLowerCase();
+  return catalogProducts.find(
+    (product) => skuToSlug(product.sku) === normalized
+  );
+}
+
+export function getHandleFromSlug(slug: string): string | undefined {
+  return getCatalogProductBySlug(slug)?.handle;
+}
+
+/** Product detail URL for a catalog handle (SKU-based when listed in catalog). */
+export function productPathFromHandle(handle: string): string {
+  const catalog = getCatalogProductByHandle(handle);
+  if (catalog) return productPathFromSku(catalog.sku);
+  return `/products/${handle}`;
+}
+
+export function catalogProductSlugs(): string[] {
+  return catalogProducts.map((product) => skuToSlug(product.sku));
 }

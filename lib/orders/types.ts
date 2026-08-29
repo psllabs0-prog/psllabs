@@ -47,6 +47,7 @@ export type Order = {
   paidAt: string | null;
   shippedAt: string | null;
   trackingNumber: string | null;
+  trackingCarrier: string | null;
   paymentMethod: PaymentMethod | null;
   emailSent: boolean;
   emailError: string | null;

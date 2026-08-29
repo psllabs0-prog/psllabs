@@ -18,7 +18,7 @@ async function main() {
   const catalog = getCatalogProductByHandle(product);
   const name = catalog?.name ?? product;
 
-  await setProductStock(product, name, qty);
+  await setProductStock(product, name, qty, catalog?.sku ?? null);
   console.log(`Set ${product} stock to ${qty}.`);
 }
 

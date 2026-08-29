@@ -5,7 +5,12 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/products/glp-3-rt",
-        destination: "/products/retatrutide",
+        destination: "/products/psl-rt-10mg",
+        permanent: true,
+      },
+      {
+        source: "/products/retatrutide",
+        destination: "/products/psl-rt-10mg",
         permanent: true,
       },
     ];

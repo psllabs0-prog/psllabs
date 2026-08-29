@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, Trash2 } from "lucide-react";
@@ -13,20 +14,29 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { formatPrice } from "@/lib/cart/format";
+import type { ProductAvailability } from "@/lib/inventory/availability";
 import { cn } from "@/lib/utils";
 
 function CartLineRow({
   line,
+  maxAvailable,
   onDecrease,
   onIncrease,
   onRemove,
+  onError,
 }: {
   line: ReturnType<typeof useCart>["lines"][number];
+  maxAvailable?: number;
   onDecrease: () => void;
   onIncrease: () => void;
   onRemove: () => void;
+  onError: (message: string | null) => void;
 }) {
   const lineTotal = line.unitPrice * line.quantity;
+  const atMax =
+    maxAvailable !== undefined &&
+    maxAvailable > 0 &&
+    line.quantity >= maxAvailable;
 
   return (
     <article className="flex gap-4 border-b border-linen py-4 last:border-b-0">
@@ -65,7 +75,10 @@ function CartLineRow({
           <div className="inline-flex items-center rounded-md border border-linen bg-surface">
             <button
               type="button"
-              onClick={onDecrease}
+              onClick={() => {
+                onError(null);
+                onDecrease();
+              }}
               className="flex size-9 items-center justify-center text-lg transition-opacity hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
               aria-label="Decrease quantity"
             >
@@ -76,8 +89,12 @@ function CartLineRow({
             </span>
             <button
               type="button"
-              onClick={onIncrease}
-              className="flex size-9 items-center justify-center text-lg transition-opacity hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              onClick={() => {
+                onError(null);
+                onIncrease();
+              }}
+              disabled={atMax}
+              className="flex size-9 items-center justify-center text-lg transition-opacity hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
               aria-label="Increase quantity"
             >
               <Plus className="size-3.5" strokeWidth={2} aria-hidden />
@@ -95,6 +112,7 @@ function CartLineRow({
 export function CartDrawer() {
   const router = useRouter();
   const {
+    items,
     lines,
     isOpen,
     closeCart,
@@ -105,6 +123,43 @@ export function CartDrawer() {
     removeItem,
     setItemQuantity,
   } = useCart();
+
+  const [availabilityMap, setAvailabilityMap] = useState<
+    Map<string, ProductAvailability>
+  >(new Map());
+  const [cartError, setCartError] = useState<string | null>(null);
+
+  const handlesKey = useMemo(
+    () => items.map((item) => item.handle).sort().join(","),
+    [items]
+  );
+
+  useEffect(() => {
+    if (!isOpen || items.length === 0) return;
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/inventory/availability?handles=${encodeURIComponent(handlesKey)}`
+        );
+        const data = (await res.json()) as {
+          availability?: ProductAvailability[];
+        };
+        if (cancelled || !data.availability) return;
+        setAvailabilityMap(
+          new Map(data.availability.map((row) => [row.handle, row]))
+        );
+      } catch {
+        if (!cancelled) setAvailabilityMap(new Map());
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, handlesKey, items.length]);
 
   const isEmpty = lines.length === 0;
 
@@ -143,22 +198,45 @@ export function CartDrawer() {
           ) : (
             <>
               <div className="flex-1 overflow-y-auto px-5 py-2">
-                {lines.map((line) => (
-                  <CartLineRow
-                    key={line.handle}
-                    line={line}
-                    onDecrease={() =>
-                      setItemQuantity(line.handle, line.quantity - 1)
-                    }
-                    onIncrease={() =>
-                      setItemQuantity(line.handle, line.quantity + 1)
-                    }
-                    onRemove={() => removeItem(line.handle)}
-                  />
-                ))}
+                {lines.map((line) => {
+                  const availability = availabilityMap.get(line.handle);
+                  const maxAvailable = availability?.tracked
+                    ? availability.available
+                    : undefined;
+
+                  return (
+                    <CartLineRow
+                      key={line.handle}
+                      line={line}
+                      maxAvailable={maxAvailable}
+                      onDecrease={() => {
+                        if (line.quantity <= 1) {
+                          removeItem(line.handle);
+                          return;
+                        }
+                        setItemQuantity(line.handle, line.quantity - 1, maxAvailable);
+                      }}
+                      onIncrease={() => {
+                        const result = setItemQuantity(
+                          line.handle,
+                          line.quantity + 1,
+                          maxAvailable
+                        );
+                        if (!result.ok) setCartError(result.error);
+                      }}
+                      onRemove={() => removeItem(line.handle)}
+                      onError={setCartError}
+                    />
+                  );
+                })}
               </div>
 
               <div className="border-t border-linen bg-surface px-5 py-5">
+                {cartError && (
+                  <p role="alert" className="mb-3 text-sm text-signal">
+                    {cartError}
+                  </p>
+                )}
                 <dl className="flex flex-col gap-2 text-sm">
                   <div className="flex items-center justify-between text-ash">
                     <dt>Subtotal</dt>

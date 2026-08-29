@@ -209,6 +209,7 @@ export async function prepareReservedOrder(
     customerEmailError: null,
     shippedAt: null,
     trackingNumber: null,
+    trackingCarrier: null,
     feedbackEmailSent: false,
     stockDecremented: false,
   };

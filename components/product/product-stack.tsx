@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { Product } from "@/lib/products";
+import { productPathFromHandle } from "@/lib/products/catalog";
 
 import { AnimateIn } from "./animate-in";
 import { SectionShell } from "./section-shell";
@@ -28,7 +29,7 @@ export function ProductStack({
         {others.map((other, index) => (
           <AnimateIn key={other.handle} delay={index * 0.08}>
             <Link
-              href={`/products/${other.handle}`}
+              href={productPathFromHandle(other.handle)}
               className="premium-card premium-card-hover group flex flex-col gap-4 p-6 md:p-7"
             >
               <p className="mono text-ash">{other.tag}</p>

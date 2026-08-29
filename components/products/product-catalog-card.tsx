@@ -1,16 +1,20 @@
 import { ProductVialImage } from "@/components/product/product-vial-image";
+import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
 import { PillButton } from "@/components/ui/pill-button";
 import { formatPrice } from "@/lib/cart/format";
+import type { ProductAvailability } from "@/lib/inventory/availability";
 import type { CatalogProduct } from "@/lib/products/catalog";
 import { cn } from "@/lib/utils";
 
 type ProductCatalogCardProps = {
   product: CatalogProduct;
+  availability?: ProductAvailability;
   className?: string;
 };
 
 export function ProductCatalogCard({
   product,
+  availability,
   className,
 }: ProductCatalogCardProps) {
   const comingSoon = product.status === "coming_soon";
@@ -77,6 +81,12 @@ export function ProductCatalogCard({
             <p className="mt-auto font-mono text-3xl font-medium tracking-tight text-ink">
               {formatPrice(product.price)}
             </p>
+            {availability && (
+              <StockStatusBadge
+                status={availability.status}
+                available={availability.available}
+              />
+            )}
             <PillButton href={product.href} className="w-full">
               View Details
             </PillButton>

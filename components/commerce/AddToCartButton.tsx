@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
+
 import { useCart } from "@/components/cart/cart-provider";
 import { cn } from "@/lib/utils";
 
 type AddToCartButtonProps = {
   productId: string;
   quantity?: number;
+  maxAvailable?: number;
   className?: string;
   variant?: "primary" | "compact";
   disabled?: boolean;
@@ -15,16 +18,22 @@ type AddToCartButtonProps = {
 export function AddToCartButton({
   productId,
   quantity = 1,
+  maxAvailable,
   className,
   variant = "primary",
   disabled = false,
   children,
 }: AddToCartButtonProps) {
   const { addItem } = useCart();
+  const [error, setError] = useState<string | null>(null);
 
   function handleAddToCart() {
     if (disabled) return;
-    addItem(productId, quantity);
+    setError(null);
+    const result = addItem(productId, quantity, maxAvailable);
+    if (!result.ok) {
+      setError(result.error);
+    }
   }
 
   const baseStyles =
@@ -36,7 +45,7 @@ export function AddToCartButton({
       : "shrink-0 px-6 py-3.5 text-sm min-h-[44px]";
 
   return (
-    <div className={cn("flex flex-col", className)}>
+    <div className={cn("flex flex-col gap-2", className)}>
       <button
         type="button"
         onClick={handleAddToCart}
@@ -45,6 +54,11 @@ export function AddToCartButton({
       >
         {children ?? "Add to Cart"}
       </button>
+      {error && (
+        <p role="alert" className="text-sm text-signal">
+          {error}
+        </p>
+      )}
     </div>
   );
 }

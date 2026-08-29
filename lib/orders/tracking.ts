@@ -20,6 +20,7 @@ export type TrackedOrder = {
   items: TrackedOrderItem[];
   shippingSummary: string;
   trackingNumber: string | null;
+  trackingCarrier: string | null;
   subtotal: number;
   discountCode: string | null;
   discountAmount: number;
@@ -77,6 +78,7 @@ export function toTrackedOrder(order: Order): TrackedOrder {
     items: order.items.map(itemWithSku),
     shippingSummary: formatPartialShippingAddress(order.shipping),
     trackingNumber: order.trackingNumber,
+    trackingCarrier: order.trackingCarrier,
     subtotal: order.subtotal,
     discountCode: order.discountCode,
     discountAmount: order.discountAmount,

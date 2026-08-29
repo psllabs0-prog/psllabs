@@ -10,6 +10,7 @@ import {
   batchReportToCertificateRows,
   findBatchReport,
 } from "@/lib/batch-reports";
+import { productPathFromHandle } from "@/lib/products/catalog";
 import { BatchTestingCard } from "@/components/product/batch-testing-card";
 import { CertificatePanel } from "@/components/ui/certificate-panel";
 import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
@@ -83,7 +84,7 @@ export function BatchLookup() {
             >
               <div className="flex flex-wrap gap-3 border-t border-linen px-4 py-4 md:px-5">
                 <Link
-                  href={`/products/${report.productHandle}`}
+                  href={productPathFromHandle(report.productHandle)}
                   className="inline-flex items-center justify-center rounded-pill border border-border-strong bg-paper px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:border-accent/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   Product page

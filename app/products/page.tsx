@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { ProductCatalogCard } from "@/components/products/product-catalog-card";
+import { getAvailabilityForCatalogHandles } from "@/lib/inventory/availability";
 import {
   getActiveCatalogProducts,
   getComingSoonCatalogProducts,
@@ -14,9 +15,14 @@ export const metadata: Metadata = createPageMetadata({
   path: "/products",
 });
 
-export default function ProductsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ProductsPage() {
   const active = getActiveCatalogProducts();
   const comingSoon = getComingSoonCatalogProducts();
+  const availabilityMap = await getAvailabilityForCatalogHandles(
+    active.map((product) => product.handle)
+  ).catch(() => new Map());
 
   return (
     <main className="bg-paper">
@@ -40,7 +46,11 @@ export default function ProductsPage() {
         <div className="mx-auto flex max-w-[1200px] flex-col gap-12 md:gap-16">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
             {active.map((product) => (
-              <ProductCatalogCard key={product.handle} product={product} />
+              <ProductCatalogCard
+                key={product.handle}
+                product={product}
+                availability={availabilityMap.get(product.handle)}
+              />
             ))}
           </div>
 

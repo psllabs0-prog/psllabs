@@ -42,6 +42,29 @@ export async function ensureInventorySchema(): Promise<void> {
       ALTER TABLE products
       ADD COLUMN IF NOT EXISTS low_stock_alert_sent_at TIMESTAMPTZ
     `;
+    await sql`
+      ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS sku TEXT
+    `;
+    await sql`
+      CREATE UNIQUE INDEX IF NOT EXISTS products_sku_idx
+      ON products (sku)
+      WHERE sku IS NOT NULL
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS stock_history (
+        id          BIGSERIAL PRIMARY KEY,
+        handle      TEXT NOT NULL,
+        sku         TEXT,
+        old_stock   INTEGER NOT NULL,
+        new_stock   INTEGER NOT NULL,
+        changed_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `;
+    await sql`
+      CREATE INDEX IF NOT EXISTS stock_history_changed_at_idx
+      ON stock_history (changed_at DESC)
+    `;
 
     await sql`
       ALTER TABLE orders
@@ -316,28 +339,193 @@ export async function settlePaidOrder(
   };
 }
 
+export async function ensureProductTracked(
+  handle: string,
+  name: string,
+  sku?: string | null
+): Promise<void> {
+  await ensureInventorySchema();
+  const sql = getSql();
+  await sql`
+    INSERT INTO products (handle, name, stock, sku)
+    VALUES (${handle}, ${name}, 0, ${sku ?? null})
+    ON CONFLICT (handle) DO UPDATE
+    SET sku = COALESCE(products.sku, EXCLUDED.sku)
+  `;
+}
+
 export async function setProductStock(
   handle: string,
   name: string,
-  stock: number
+  stock: number,
+  sku?: string | null
 ): Promise<void> {
   if (!Number.isInteger(stock) || stock < 0) {
     throw new Error("Stock must be a non-negative integer.");
   }
   await ensureInventorySchema();
   const sql = getSql();
+
+  const existing = (await sql`
+    SELECT stock, sku FROM products WHERE handle = ${handle} LIMIT 1
+  `) as { stock: number; sku: string | null }[];
+
+  const oldStock = existing[0]?.stock ?? 0;
+  const resolvedSku = sku ?? existing[0]?.sku ?? null;
+
   await sql`
-    INSERT INTO products (handle, name, stock)
-    VALUES (${handle}, ${name}, ${stock})
+    INSERT INTO products (handle, name, stock, sku)
+    VALUES (${handle}, ${name}, ${stock}, ${resolvedSku})
     ON CONFLICT (handle) DO UPDATE
     SET
       name = EXCLUDED.name,
       stock = EXCLUDED.stock,
+      sku = COALESCE(EXCLUDED.sku, products.sku),
       low_stock_alert_sent_at = CASE
         WHEN EXCLUDED.stock >= ${LOW_STOCK_THRESHOLD} THEN NULL
         ELSE products.low_stock_alert_sent_at
       END
   `;
+
+  if (oldStock !== stock) {
+    await sql`
+      INSERT INTO stock_history (handle, sku, old_stock, new_stock)
+      VALUES (${handle}, ${resolvedSku}, ${oldStock}, ${stock})
+    `;
+  }
+}
+
+export type StockBySkuRow = {
+  handle: string;
+  sku: string;
+  stock: number;
+};
+
+/** Raw stock count from the database by catalog SKU. */
+export async function getStockBySku(sku: string): Promise<StockBySkuRow | null> {
+  await ensureInventorySchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT handle, sku, stock
+    FROM products
+    WHERE sku = ${sku}
+    LIMIT 1
+  `) as StockBySkuRow[];
+  return rows[0] ?? null;
+}
+
+export async function setProductStockBySku(
+  sku: string,
+  stock: number
+): Promise<{ handle: string; sku: string; stock: number }> {
+  await ensureInventorySchema();
+  const sql = getSql();
+
+  const rows = (await sql`
+    SELECT handle, name, sku FROM products WHERE sku = ${sku} LIMIT 1
+  `) as { handle: string; name: string; sku: string | null }[];
+
+  const row = rows[0];
+  if (!row) {
+    throw new Error(`No product found for SKU ${sku}.`);
+  }
+
+  await setProductStock(row.handle, row.name, stock, row.sku ?? sku);
+  return { handle: row.handle, sku, stock };
+}
+
+export type AdminInventoryProductRow = {
+  name: string;
+  sku: string;
+  currentStock: number;
+  status: "active" | "coming_soon" | "untracked";
+};
+
+export async function getAdminInventoryProductRows(): Promise<
+  AdminInventoryProductRow[]
+> {
+  await ensureInventorySchema();
+  const sql = getSql();
+  const { catalogProducts } = await import("@/lib/products/catalog");
+
+  const stockRows = (await sql`
+    SELECT handle, name, sku, stock FROM products ORDER BY name ASC
+  `) as { handle: string; name: string; sku: string | null; stock: number }[];
+
+  const stockByHandle = new Map(stockRows.map((row) => [row.handle, row]));
+  const stockBySku = new Map(
+    stockRows.filter((row) => row.sku).map((row) => [row.sku!, row])
+  );
+
+  return catalogProducts.map((product) => {
+    const tracked =
+      stockByHandle.get(product.handle) ??
+      stockBySku.get(product.sku) ??
+      null;
+
+    return {
+      name: product.name,
+      sku: product.sku,
+      currentStock: tracked?.stock ?? 0,
+      status: product.status,
+    };
+  });
+}
+
+export type StockHistoryRow = {
+  id: string;
+  handle: string;
+  sku: string | null;
+  oldStock: number;
+  newStock: number;
+  changedAt: string;
+};
+
+export async function getRecentStockHistory(
+  limit = 10
+): Promise<StockHistoryRow[]> {
+  await ensureInventorySchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT id, handle, sku, old_stock, new_stock, changed_at
+    FROM stock_history
+    ORDER BY changed_at DESC
+    LIMIT ${limit}
+  `) as {
+    id: string;
+    handle: string;
+    sku: string | null;
+    old_stock: number;
+    new_stock: number;
+    changed_at: string;
+  }[];
+
+  return rows.map((row) => ({
+    id: String(row.id),
+    handle: row.handle,
+    sku: row.sku,
+    oldStock: row.old_stock,
+    newStock: row.new_stock,
+    changedAt: row.changed_at,
+  }));
+}
+
+export type AdminInventoryRow = {
+  handle: string;
+  name: string;
+  sku: string | null;
+  stock: number;
+};
+
+export async function getAdminInventoryRows(): Promise<AdminInventoryRow[]> {
+  await ensureInventorySchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT handle, name, sku, stock
+    FROM products
+    ORDER BY name ASC, handle ASC
+  `) as AdminInventoryRow[];
+  return rows;
 }
 
 export type LowStockProductRow = {

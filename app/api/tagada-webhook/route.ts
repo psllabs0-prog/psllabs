@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { NextResponse } from "next/server";
 
 import { fulfillPaidOrder } from "@/lib/orders/fulfill-paid-order";
+import { logSaleIfNew } from "@/lib/ledger/store";
 import { trackPlausiblePurchase } from "@/lib/plausible";
 import {
   claimTagadaWebhook,
@@ -164,6 +165,7 @@ export async function POST(request: Request) {
       const paidOrder = await getOrder(order.orderId);
       if (paidOrder?.status === "paid") {
         await trackPlausiblePurchase(paidOrder, "card", TAGADA_WEBHOOK_URL);
+        await logSaleIfNew(paidOrder, "card");
       }
 
       return NextResponse.json({ received: true });

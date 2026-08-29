@@ -107,6 +107,7 @@ export function ResearchPeptideTemplate({
           productHandle={product.handle}
           productName={product.name}
           stockStatus={availability.status}
+          availability={availability}
         />
       </main>
     </ProductQuantityProvider>

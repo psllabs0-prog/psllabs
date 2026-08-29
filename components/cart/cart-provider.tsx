@@ -18,6 +18,10 @@ import {
 import { loadCartFromStorage, saveCartToStorage } from "@/lib/cart/storage";
 import type { CartLineItem, CartLineWithMeta } from "@/lib/cart/types";
 
+export type AddItemResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
 type CartContextValue = {
   items: CartLineItem[];
   lines: CartLineWithMeta[];
@@ -29,12 +33,24 @@ type CartContextValue = {
   shippingDisplay: ReturnType<typeof getShippingDisplay>;
   openCart: () => void;
   closeCart: () => void;
-  addItem: (handle: string, quantity: number) => void;
+  addItem: (
+    handle: string,
+    quantity: number,
+    maxAvailable?: number
+  ) => AddItemResult;
   removeItem: (handle: string) => void;
-  setItemQuantity: (handle: string, quantity: number) => void;
+  setItemQuantity: (
+    handle: string,
+    quantity: number,
+    maxAvailable?: number
+  ) => AddItemResult;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
+
+function stockLimitMessage(maxAvailable: number): string {
+  return `Only ${maxAvailable} unit${maxAvailable === 1 ? "" : "s"} available for this batch`;
+}
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartLineItem[]>([]);
@@ -66,34 +82,73 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const openCart = useCallback(() => setIsOpen(true), []);
   const closeCart = useCallback(() => setIsOpen(false), []);
 
-  const addItem = useCallback((handle: string, quantity: number) => {
-    const safeQuantity = Math.max(1, Math.floor(quantity));
-    setItems((current) => {
-      const existing = current.find((item) => item.handle === handle);
-      if (existing) {
-        return current.map((item) =>
-          item.handle === handle
-            ? { ...item, quantity: item.quantity + safeQuantity }
-            : item
-        );
+  const addItem = useCallback(
+    (handle: string, quantity: number, maxAvailable?: number): AddItemResult => {
+      const safeQuantity = Math.max(1, Math.floor(quantity));
+
+      if (maxAvailable !== undefined && maxAvailable <= 0) {
+        return { ok: false, error: "Out of stock" };
       }
-      return [...current, { handle, quantity: safeQuantity }];
-    });
-    setIsOpen(true);
-  }, []);
+
+      let result: AddItemResult = { ok: true };
+
+      setItems((current) => {
+        const existing = current.find((item) => item.handle === handle);
+        const nextQuantity = (existing?.quantity ?? 0) + safeQuantity;
+
+        if (maxAvailable !== undefined && nextQuantity > maxAvailable) {
+          result = { ok: false, error: stockLimitMessage(maxAvailable) };
+          return current;
+        }
+
+        if (existing) {
+          return current.map((item) =>
+            item.handle === handle
+              ? { ...item, quantity: nextQuantity }
+              : item
+          );
+        }
+
+        return [...current, { handle, quantity: safeQuantity }];
+      });
+
+      if (result.ok) {
+        setIsOpen(true);
+      }
+
+      return result;
+    },
+    []
+  );
 
   const removeItem = useCallback((handle: string) => {
     setItems((current) => current.filter((item) => item.handle !== handle));
   }, []);
 
-  const setItemQuantity = useCallback((handle: string, quantity: number) => {
-    const safeQuantity = Math.max(1, Math.floor(quantity));
-    setItems((current) =>
-      current.map((item) =>
-        item.handle === handle ? { ...item, quantity: safeQuantity } : item
-      )
-    );
-  }, []);
+  const setItemQuantity = useCallback(
+    (
+      handle: string,
+      quantity: number,
+      maxAvailable?: number
+    ): AddItemResult => {
+      const safeQuantity = Math.max(1, Math.floor(quantity));
+
+      if (maxAvailable !== undefined && maxAvailable <= 0) {
+        return { ok: false, error: "Out of stock" };
+      }
+      if (maxAvailable !== undefined && safeQuantity > maxAvailable) {
+        return { ok: false, error: stockLimitMessage(maxAvailable) };
+      }
+
+      setItems((current) =>
+        current.map((item) =>
+          item.handle === handle ? { ...item, quantity: safeQuantity } : item
+        )
+      );
+      return { ok: true };
+    },
+    []
+  );
 
   const value = useMemo(
     () => ({

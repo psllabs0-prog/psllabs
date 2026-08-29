@@ -8,6 +8,7 @@ import {
   formatOrderDate,
   type TrackedOrder,
 } from "@/lib/orders/tracking";
+import type { TrackShipmentResult } from "@/lib/shippo";
 import { cn } from "@/lib/utils";
 
 function money(n: number): string {
@@ -33,12 +34,29 @@ function statusTone(status: TrackedOrder["displayStatus"]): string {
   }
 }
 
+function shipmentTone(status: TrackShipmentResult["status"]): string {
+  switch (status) {
+    case "delivered":
+      return "text-verified-green";
+    case "out_for_delivery":
+      return "text-accent";
+    case "in_transit":
+      return "text-primary-blue";
+    case "label_created":
+      return "text-ash";
+    default:
+      return "text-ash";
+  }
+}
+
 export function TrackOrderForm() {
   const [email, setEmail] = useState("");
   const [orderId, setOrderId] = useState("");
+  const [trackingNumber, setTrackingNumber] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<TrackedOrder | null>(null);
+  const [shipment, setShipment] = useState<TrackShipmentResult | null>(null);
   const [notFound, setNotFound] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
@@ -47,23 +65,46 @@ export function TrackOrderForm() {
     setError(null);
     setNotFound(false);
     setOrder(null);
+    setShipment(null);
+
+    const trimmedTracking = trackingNumber.trim();
+    const trimmedEmail = email.trim();
+    const trimmedOrderId = orderId.trim();
+
+    if (!trimmedTracking && (!trimmedEmail || !trimmedOrderId)) {
+      setError("Enter a tracking number, or both email and order number.");
+      setLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch("/api/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), orderId: orderId.trim() }),
+        body: JSON.stringify({
+          email: trimmedEmail,
+          orderId: trimmedOrderId,
+          trackingNumber: trimmedTracking || undefined,
+        }),
       });
-
-      if (!res.ok) {
-        setError("Unable to look up your order. Please try again.");
-        return;
-      }
 
       const data = (await res.json()) as {
         found?: boolean;
+        mode?: "order" | "tracking";
         order?: TrackedOrder;
+        shipment?: TrackShipmentResult;
+        error?: string;
       };
+
+      if (!res.ok) {
+        setError(data.error ?? "Unable to look up tracking. Please try again.");
+        return;
+      }
+
+      if (data.mode === "tracking" && data.shipment) {
+        setShipment(data.shipment);
+        return;
+      }
 
       if (!data.found || !data.order) {
         setNotFound(true);
@@ -71,6 +112,7 @@ export function TrackOrderForm() {
       }
 
       setOrder(data.order);
+      setShipment(data.shipment ?? null);
     } catch {
       setError("Unable to look up your order. Please try again.");
     } finally {
@@ -86,6 +128,28 @@ export function TrackOrderForm() {
         noValidate
       >
         <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="track-tracking-number"
+            className="text-sm font-medium text-ink"
+          >
+            Tracking number
+          </label>
+          <Input
+            id="track-tracking-number"
+            type="text"
+            autoComplete="off"
+            value={trackingNumber}
+            onChange={(e) => setTrackingNumber(e.target.value)}
+            placeholder="9400..."
+            className="h-11 rounded-lg border-linen bg-lab-white px-3 font-mono placeholder:text-stone"
+          />
+        </div>
+
+        <p className="text-center text-xs uppercase tracking-wider text-ash">
+          or look up by order
+        </p>
+
+        <div className="flex flex-col gap-1.5">
           <label htmlFor="track-email" className="text-sm font-medium text-ink">
             Email address
           </label>
@@ -95,7 +159,6 @@ export function TrackOrderForm() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            required
             placeholder="you@institution.edu"
             className="h-11 rounded-lg border-linen bg-lab-white px-3 placeholder:text-stone"
           />
@@ -111,7 +174,6 @@ export function TrackOrderForm() {
             autoComplete="off"
             value={orderId}
             onChange={(e) => setOrderId(e.target.value)}
-            required
             placeholder="psl_..."
             className="h-11 rounded-lg border-linen bg-lab-white px-3 font-mono placeholder:text-stone"
           />
@@ -138,9 +200,36 @@ export function TrackOrderForm() {
           disabled={loading}
           className="inline-flex w-full items-center justify-center rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {loading ? "Looking up order…" : "Track order"}
+          {loading ? "Looking up…" : "Track shipment"}
         </button>
       </form>
+
+      {shipment && !order && (
+        <div className="premium-card p-5 md:p-6">
+          <p className="mono text-xs text-ash">SHIPMENT STATUS</p>
+          <p
+            className={cn(
+              "mt-2 font-display text-xl font-bold",
+              shipmentTone(shipment.status)
+            )}
+          >
+            {shipment.statusLabel}
+          </p>
+          <p className="mt-2 text-sm text-ash">{shipment.statusDetails}</p>
+          <p className="mt-4 text-sm text-ink">
+            Tracking:{" "}
+            <span className="font-mono">{shipment.trackingNumber}</span>
+          </p>
+          {shipment.eta && (
+            <p className="mt-1 text-sm text-ash">
+              Estimated delivery:{" "}
+              {new Intl.DateTimeFormat("en-US", {
+                dateStyle: "medium",
+              }).format(new Date(shipment.eta))}
+            </p>
+          )}
+        </div>
+      )}
 
       {order && (
         <div className="premium-card p-5 md:p-6">
@@ -162,6 +251,22 @@ export function TrackOrderForm() {
                 Tracking:{" "}
                 <span className="font-mono">{order.trackingNumber}</span>
               </p>
+            )}
+            {shipment && (
+              <div className="mt-2 rounded-lg border border-linen bg-surface px-4 py-3">
+                <p className="text-xs uppercase tracking-wider text-ash">
+                  Carrier status
+                </p>
+                <p
+                  className={cn(
+                    "mt-1 font-display text-lg font-bold",
+                    shipmentTone(shipment.status)
+                  )}
+                >
+                  {shipment.statusLabel}
+                </p>
+                <p className="mt-1 text-sm text-ash">{shipment.statusDetails}</p>
+              </div>
             )}
           </div>
 

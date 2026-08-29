@@ -35,12 +35,7 @@ export function ProductPurchase({
       ? Math.min(MAX_QUANTITY, Math.max(0, available))
       : MAX_QUANTITY;
   const isOutOfStock = status === "out_of_stock" || maxQuantity <= 0;
-  const lowStockNote =
-    availability?.tracked &&
-    availability.available > 0 &&
-    availability.available <= 5
-      ? `Only ${availability.available} left`
-      : null;
+
   const purchaseTrustItems = [
     hasAvailableReport(productHandle)
       ? "Original laboratory report available"
@@ -99,15 +94,13 @@ export function ProductPurchase({
 
       <div className="flex flex-col gap-5 border-t border-linen pt-6">
         <div className="flex flex-col gap-2">
-          <StockStatusBadge status={status} />
-          {lowStockNote && (
-            <p className="text-sm font-medium text-signal">{lowStockNote}</p>
-          )}
+          <StockStatusBadge status={status} available={availability?.available} />
         </div>
 
         <AddToCartButton
           productId={productHandle}
           quantity={quantity}
+          maxAvailable={availability?.tracked ? maxQuantity : undefined}
           disabled={isOutOfStock}
           className={cn(isOutOfStock && "opacity-60")}
         >

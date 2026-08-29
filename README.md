@@ -6,6 +6,22 @@ Product, FAQ, Article, and Organization schema are embedded on key pages as
 `<script type="application/ld+json">` tags. After deploy, validate with Google’s
 [Rich Results Test](https://search.google.com/test/rich-results).
 
+## Analytics (Plausible)
+
+Privacy-friendly analytics is loaded on every page via the root layout. Custom events:
+
+| Event | When it fires |
+| --- | --- |
+| `checkout_started` | User clicks Continue to Bitcoin or card payment |
+| `newsletter_signup` | Newsletter form succeeds |
+| `purchase` | BTCPay or Tagada webhook confirms payment (server-side Events API) |
+
+View reports at [plausible.io](https://plausible.io) after signing in to the PSL Labs site dashboard. Goal/conversion funnels can be built from the custom event names above.
+
+## Inventory admin
+
+Password-protected inventory management lives at `/admin-inventory`. Set `ADMIN_PASSWORD` in the environment. Stock updates are written to Postgres and recorded in `stock_history`.
+
 ## Getting Started
 
 

@@ -5,32 +5,47 @@ import { ProductTemplate } from "@/components/product/product-template";
 import { ResearchPeptideTemplate } from "@/components/product/research-peptide-template";
 import { JsonLd } from "@/components/seo/json-ld";
 import { getProductAvailability } from "@/lib/inventory/availability";
-import { getOtherProducts, getProduct, productHandles } from "@/lib/products";
-import { getCatalogProductByHandle } from "@/lib/products/catalog";
+import { getOtherProducts, getProduct } from "@/lib/products";
+import {
+  getCatalogProductByHandle,
+  getCatalogProductBySlug,
+  catalogProductSlugs,
+  getHandleFromSlug,
+} from "@/lib/products/catalog";
 import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
 
 type PageProps = {
-  params: Promise<{ handle: string }>;
+  params: Promise<{ slug: string }>;
 };
 
 export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
-  return productHandles.map((handle) => ({ handle }));
+  return catalogProductSlugs().map((slug) => ({ slug }));
+}
+
+function resolveHandle(slug: string): string | undefined {
+  const fromCatalog = getHandleFromSlug(slug);
+  if (fromCatalog) return fromCatalog;
+  if (getProduct(slug)) return slug;
+  return undefined;
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
-  const { handle } = await params;
+  const { slug } = await params;
+  const handle = resolveHandle(slug);
+  if (!handle) return { title: "Product not found" };
+
   const product = getProduct(handle);
   if (!product) return { title: "Product not found" };
 
   return createPageMetadata({
     title: product.name,
     description: product.shortDescription,
-    path: `/products/${handle}`,
+    path: `/products/${slug}`,
   });
 }
 
@@ -40,11 +55,29 @@ function priceValidUntilOneYear(): string {
   return d.toISOString().slice(0, 10);
 }
 
-export default async function ProductPage({ params }: PageProps) {
-  const { handle } = await params;
-  const product = getProduct(handle);
+function schemaAvailability(
+  status: "in_stock" | "low_stock" | "out_of_stock"
+): string {
+  return status === "out_of_stock"
+    ? "https://schema.org/OutOfStock"
+    : "https://schema.org/InStock";
+}
 
+export default async function ProductPage({ params }: PageProps) {
+  const { slug } = await params;
+  const catalogEntry = getCatalogProductBySlug(slug);
+  const handle = resolveHandle(slug);
+
+  if (!handle) {
+    notFound();
+  }
+
+  const product = getProduct(handle);
   if (!product) {
+    notFound();
+  }
+
+  if (catalogEntry?.status === "coming_soon") {
     notFound();
   }
 
@@ -61,6 +94,8 @@ export default async function ProductPage({ params }: PageProps) {
     status: product.stockStatus,
   }));
 
+  const productUrl = `${SITE_URL}/products/${slug}`;
+
   if (handle === "retatrutide") {
     const productLd = {
       "@context": "https://schema.org",
@@ -69,7 +104,7 @@ export default async function ProductPage({ params }: PageProps) {
       sku: "PSL-RT-10MG",
       description:
         "Lyophilized research peptide for laboratory and in vitro use. Batch-verified with independent third-party Certificate of Analysis.",
-      url: `${SITE_URL}/products/retatrutide`,
+      url: productUrl,
       image: `${SITE_URL}${PRODUCT_VIAL_IMAGE.src}`,
       brand: {
         "@type": "Brand",
@@ -79,15 +114,14 @@ export default async function ProductPage({ params }: PageProps) {
         "@type": "Offer",
         price: String(product.price),
         priceCurrency: "USD",
-        availability: "https://schema.org/InStock",
+        availability: schemaAvailability(availability.status),
         priceValidUntil: priceValidUntilOneYear(),
-        url: `${SITE_URL}/products/retatrutide`,
+        url: productUrl,
       },
     };
 
     return (
       <>
-        {/* Validate Product markup: https://search.google.com/test/rich-results */}
         <JsonLd data={productLd} />
         <ResearchPeptideTemplate
           product={product}
@@ -106,7 +140,7 @@ export default async function ProductPage({ params }: PageProps) {
           name: `${product.name}${catalog.strength ? ` ${catalog.strength}` : ""}`,
           sku: catalog.sku,
           description: product.shortDescription,
-          url: `${SITE_URL}/products/${handle}`,
+          url: productUrl,
           image: `${SITE_URL}${product.imageSrc ?? PRODUCT_VIAL_IMAGE.src}`,
           brand: {
             "@type": "Brand",
@@ -116,9 +150,9 @@ export default async function ProductPage({ params }: PageProps) {
             "@type": "Offer",
             price: String(product.price),
             priceCurrency: "USD",
-            availability: "https://schema.org/InStock",
+            availability: schemaAvailability(availability.status),
             priceValidUntil: priceValidUntilOneYear(),
-            url: `${SITE_URL}/products/${handle}`,
+            url: productUrl,
           },
         }
       : null;
