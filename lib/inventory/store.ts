@@ -38,6 +38,10 @@ export async function ensureInventorySchema(): Promise<void> {
       ALTER TABLE products
       ADD COLUMN IF NOT EXISTS tagada_price_id VARCHAR
     `;
+    await sql`
+      ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS low_stock_alert_sent_at TIMESTAMPTZ
+    `;
 
     await sql`
       ALTER TABLE orders
@@ -326,7 +330,61 @@ export async function setProductStock(
     INSERT INTO products (handle, name, stock)
     VALUES (${handle}, ${name}, ${stock})
     ON CONFLICT (handle) DO UPDATE
-    SET name = EXCLUDED.name, stock = EXCLUDED.stock
+    SET
+      name = EXCLUDED.name,
+      stock = EXCLUDED.stock,
+      low_stock_alert_sent_at = CASE
+        WHEN EXCLUDED.stock >= ${LOW_STOCK_THRESHOLD} THEN NULL
+        ELSE products.low_stock_alert_sent_at
+      END
+  `;
+}
+
+export type LowStockProductRow = {
+  handle: string;
+  name: string;
+  stock: number;
+};
+
+/** Active catalog products tracked in inventory with stock below threshold. */
+export async function getLowStockProducts(
+  threshold = LOW_STOCK_THRESHOLD
+): Promise<LowStockProductRow[]> {
+  await ensureInventorySchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT handle, name, stock
+    FROM products
+    WHERE stock < ${threshold}
+    ORDER BY stock ASC, handle ASC
+  `) as LowStockProductRow[];
+  return rows;
+}
+
+export async function shouldSendLowStockAlert(
+  handle: string,
+  threshold = LOW_STOCK_THRESHOLD
+): Promise<boolean> {
+  await ensureInventorySchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT handle FROM products
+    WHERE handle = ${handle}
+      AND stock < ${threshold}
+      AND (
+        low_stock_alert_sent_at IS NULL
+        OR low_stock_alert_sent_at < now() - interval '23 hours'
+      )
+    LIMIT 1
+  `) as { handle: string }[];
+  return rows.length > 0;
+}
+
+export async function markLowStockAlertSent(handle: string): Promise<void> {
+  await ensureInventorySchema();
+  const sql = getSql();
+  await sql`
+    UPDATE products SET low_stock_alert_sent_at = now() WHERE handle = ${handle}
   `;
 }
 

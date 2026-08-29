@@ -1,6 +1,6 @@
 import type { StockStatus } from "@/lib/products/stock";
 
-export const LOW_STOCK_THRESHOLD = Number(process.env.LOW_STOCK_THRESHOLD ?? 5);
+export const LOW_STOCK_THRESHOLD = Number(process.env.LOW_STOCK_THRESHOLD ?? 15);
 
 export const INVOICE_EXPIRY_MINUTES = Number(
   process.env.BTCPAY_INVOICE_EXPIRY_MINUTES ?? 15

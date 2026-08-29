@@ -23,6 +23,12 @@ function bannerFor(status: PublicOrder["status"] | "pending"): Banner {
         tone: "text-verified-green",
         body: "Thank you. We've received your payment and notified our team to begin fulfillment.",
       };
+    case "shipped":
+      return {
+        title: "Order shipped",
+        tone: "text-verified-green",
+        body: "Your order has shipped. Tracking details are available on the Track Order page.",
+      };
     case "cancelled":
       return {
         title: "Order cancelled",
@@ -56,7 +62,10 @@ export function OrderStatus({
 
   const status = order?.status ?? "pending";
   const isTerminal =
-    status === "paid" || status === "cancelled" || status === "failed";
+    status === "paid" ||
+    status === "shipped" ||
+    status === "cancelled" ||
+    status === "failed";
 
   useEffect(() => {
     if (order && isTerminal) return;

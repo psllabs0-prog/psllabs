@@ -1,45 +1,24 @@
-import nodemailer from "nodemailer";
-
-import { formatDiscountEmailLine } from "@/lib/email/discount-line";
 import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
+import { formatDiscountEmailLine } from "@/lib/email/discount-line";
+import {
+  createSmtpTransport,
+  EMAIL_COLORS,
+  escapeHtml,
+  FROM_EMAIL,
+  money,
+  shippingLabel,
+  SUPPORT_EMAIL,
+  emailPageWrapper,
+} from "@/lib/email/shared";
+import {
+  formatOrderDate,
+  formatPartialShippingAddress,
+} from "@/lib/orders/tracking";
+import { getCatalogProductByHandle } from "@/lib/products/catalog";
 import type { Order } from "@/lib/orders/types";
 
-const FROM_EMAIL = "PSL Labs <support@psllabs.org>";
-const SUPPORT_EMAIL = "support@psllabs.org";
 const LEGAL_FOOTER = `${LEGAL_ENTITY_NAME} — Phoenix, AZ. All products are for laboratory research use only. Not for human or animal consumption.`;
-
-function money(n: number): string {
-  return `$${n.toFixed(2)}`;
-}
-
-function shippingLabel(n: number): string {
-  return n > 0 ? money(n) : "Free";
-}
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
-function createSmtpTransport() {
-  const host = process.env.SMTP_HOST;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASSWORD;
-  if (!host || !user || !pass) {
-    throw new Error("SMTP is not configured for order confirmations.");
-  }
-  return nodemailer.createTransport({
-    host,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: false,
-    requireTLS: true,
-    auth: { user, pass },
-  });
-}
+const TRACK_URL = "https://www.psllabs.org/track";
 
 /**
  * Customer-facing order confirmation.
@@ -54,93 +33,98 @@ export async function sendCustomerOrderConfirmation(
     throw new Error("Order has no customer email for confirmation.");
   }
 
+  const { border, surface, muted, accent } = EMAIL_COLORS;
   const name = `${order.shipping.firstName} ${order.shipping.lastName}`.trim();
   const greeting = name ? `Hi ${name},` : "Hi,";
+  const orderDate = formatOrderDate(order.createdAt);
+  const shipSummary = formatPartialShippingAddress(order.shipping);
 
   const itemRows = order.items
-    .map(
-      (it) => `
+    .map((it) => {
+      const sku = getCatalogProductByHandle(it.handle)?.sku ?? it.handle;
+      return `
       <tr>
-        <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">${escapeHtml(it.name)}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">${escapeHtml(it.strength || "—")}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:center;">${it.quantity}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${money(it.unitPrice)}</td>
-        <td style="padding:6px 8px;border-bottom:1px solid #e5e7eb;text-align:right;">${money(it.lineTotal)}</td>
-      </tr>`
-    )
+        <td style="padding:8px;border-bottom:1px solid ${border};">${escapeHtml(it.name)}</td>
+        <td style="padding:8px;border-bottom:1px solid ${border};font-family:monospace;font-size:12px;">${escapeHtml(sku)}</td>
+        <td style="padding:8px;border-bottom:1px solid ${border};">${escapeHtml(it.strength || "—")}</td>
+        <td style="padding:8px;border-bottom:1px solid ${border};text-align:center;">${it.quantity}</td>
+        <td style="padding:8px;border-bottom:1px solid ${border};text-align:right;font-family:monospace;">${money(it.unitPrice)}</td>
+        <td style="padding:8px;border-bottom:1px solid ${border};text-align:right;font-family:monospace;">${money(it.lineTotal)}</td>
+      </tr>`;
+    })
     .join("");
-
-  const taxRow =
-    order.tax > 0
-      ? `<tr><td colspan="4" style="padding:4px 8px;text-align:right;">Tax</td><td style="padding:4px 8px;text-align:right;">${money(order.tax)}</td></tr>`
-      : "";
 
   const discountLine = formatDiscountEmailLine(order);
 
-  const html = `
-  <div style="font-family:Arial,Helvetica,sans-serif;color:#0b1220;line-height:1.5;">
+  const html = emailPageWrapper(`
     <p style="margin:0 0 12px;">${escapeHtml(greeting)}</p>
-    <p style="margin:0 0 16px;">
-      Thanks for your order! Here's your confirmation. We'll notify you when it ships.
+    <p style="margin:0 0 20px;color:${muted};">
+      Thank you for your order. We&apos;ll notify you when it ships.
     </p>
-    <h2 style="margin:0 0 12px;font-size:18px;">Order #${escapeHtml(order.orderId)}</h2>
-    <p style="margin:12px 0 4px;"><strong>Ship to:</strong></p>
-    <p style="margin:0 0 16px;white-space:pre-line;">${escapeHtml(
-      `${order.shipping.firstName} ${order.shipping.lastName}\n${order.shipping.address}\n${order.shipping.city}, ${order.shipping.state} ${order.shipping.zip}\n${order.shipping.country}`
-    )}</p>
-    <table style="border-collapse:collapse;width:100%;font-size:14px;">
-      <thead><tr style="background:#f1f5f9;">
-        <th style="padding:6px 8px;text-align:left;">Product</th>
-        <th style="padding:6px 8px;text-align:left;">Strength</th>
-        <th style="padding:6px 8px;text-align:center;">Qty</th>
-        <th style="padding:6px 8px;text-align:right;">Unit</th>
-        <th style="padding:6px 8px;text-align:right;">Total</th>
+    <div style="background:${surface};border:1px solid ${border};border-radius:8px;padding:16px;margin-bottom:20px;">
+      <p style="margin:0 0 4px;font-size:13px;color:${muted};">Order number</p>
+      <p style="margin:0 0 12px;font-family:monospace;font-size:15px;">${escapeHtml(order.orderId)}</p>
+      <p style="margin:0 0 4px;font-size:13px;color:${muted};">Order date</p>
+      <p style="margin:0;font-size:15px;">${escapeHtml(orderDate)}</p>
+    </div>
+    <table style="border-collapse:collapse;width:100%;font-size:14px;margin-bottom:16px;">
+      <thead><tr style="background:${surface};">
+        <th style="padding:8px;text-align:left;border-bottom:1px solid ${border};">Product</th>
+        <th style="padding:8px;text-align:left;border-bottom:1px solid ${border};">SKU</th>
+        <th style="padding:8px;text-align:left;border-bottom:1px solid ${border};">Strength</th>
+        <th style="padding:8px;text-align:center;border-bottom:1px solid ${border};">Qty</th>
+        <th style="padding:8px;text-align:right;border-bottom:1px solid ${border};">Unit</th>
+        <th style="padding:8px;text-align:right;border-bottom:1px solid ${border};">Total</th>
       </tr></thead>
       <tbody>${itemRows}</tbody>
       <tfoot>
-        <tr><td colspan="4" style="padding:4px 8px;text-align:right;">Subtotal</td><td style="padding:4px 8px;text-align:right;">${money(order.subtotal)}</td></tr>
-        <tr><td colspan="4" style="padding:4px 8px;text-align:right;">Shipping</td><td style="padding:4px 8px;text-align:right;">${shippingLabel(order.shippingCost)}</td></tr>
-        ${taxRow}
-        <tr><td colspan="4" style="padding:8px;text-align:right;font-weight:bold;">Order total</td><td style="padding:8px;text-align:right;font-weight:bold;">${money(order.total)}</td></tr>
+        <tr><td colspan="5" style="padding:6px 8px;text-align:right;color:${muted};">Subtotal</td><td style="padding:6px 8px;text-align:right;font-family:monospace;">${money(order.subtotal)}</td></tr>
+        <tr><td colspan="5" style="padding:6px 8px;text-align:right;color:${muted};">Shipping</td><td style="padding:6px 8px;text-align:right;font-family:monospace;">${shippingLabel(order.shippingCost)}</td></tr>
+        <tr><td colspan="5" style="padding:10px 8px;text-align:right;font-weight:bold;">Order total</td><td style="padding:10px 8px;text-align:right;font-weight:bold;font-family:monospace;">${money(order.total)}</td></tr>
       </tfoot>
     </table>
     ${
       discountLine
-        ? `<p style="margin:16px 0 0;font-size:14px;"><strong>${escapeHtml(discountLine)}</strong></p>`
+        ? `<p style="margin:0 0 16px;font-size:14px;"><strong>${escapeHtml(discountLine)}</strong></p>`
         : ""
     }
-    <p style="margin:20px 0 0;font-size:13px;color:#475569;">
-      Questions about your order? Reply to this email or contact
-      <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.
+    <p style="margin:0 0 4px;font-size:13px;color:${muted};">Ship to</p>
+    <p style="margin:0 0 20px;white-space:pre-line;font-size:14px;">${escapeHtml(shipSummary)}</p>
+    <p style="margin:0 0 20px;font-size:13px;color:${muted};line-height:1.6;">
+      Batch documentation is available in your account area / COA lookup.
+      Track your order anytime at
+      <a href="${TRACK_URL}" style="color:${accent};">${TRACK_URL.replace("https://", "")}</a>.
     </p>
-    <p style="margin:16px 0 0;font-size:11px;color:#94a3b8;">
+    <p style="margin:0 0 16px;font-size:13px;color:${muted};">
+      Questions? Reply to this email or contact
+      <a href="mailto:${SUPPORT_EMAIL}" style="color:${accent};">${SUPPORT_EMAIL}</a>.
+    </p>
+    <p style="margin:0;font-size:11px;color:${muted};line-height:1.5;">
       ${escapeHtml(LEGAL_FOOTER)}
-    </p>
-  </div>`;
+    </p>`);
 
   const text = [
     greeting,
     "",
-    "Thanks for your order! Here's your confirmation. We'll notify you when it ships.",
+    "Thank you for your order. We'll notify you when it ships.",
     "",
-    `Order #${order.orderId}`,
+    `Order number: ${order.orderId}`,
+    `Order date: ${orderDate}`,
     "",
-    "Ship to:",
-    `${order.shipping.firstName} ${order.shipping.lastName}`,
-    order.shipping.address,
-    `${order.shipping.city}, ${order.shipping.state} ${order.shipping.zip}`,
-    order.shipping.country,
-    "",
-    ...order.items.map(
-      (it) =>
-        `- ${it.name} (${it.strength || "—"}) x${it.quantity} @ ${money(it.unitPrice)} = ${money(it.lineTotal)}`
-    ),
+    ...order.items.map((it) => {
+      const sku = getCatalogProductByHandle(it.handle)?.sku ?? it.handle;
+      return `- ${it.name} (${sku}, ${it.strength || "—"}) x${it.quantity} @ ${money(it.unitPrice)} = ${money(it.lineTotal)}`;
+    }),
     "",
     `Subtotal: ${money(order.subtotal)}`,
     `Shipping: ${shippingLabel(order.shippingCost)}`,
-    ...(order.tax > 0 ? [`Tax: ${money(order.tax)}`] : []),
     `Order total: ${money(order.total)}`,
     ...(discountLine ? ["", discountLine] : []),
+    "",
+    "Ship to:",
+    shipSummary,
+    "",
+    "Batch documentation is available in your account area / COA lookup. Track your order anytime at psllabs.org/track.",
     "",
     `Questions? Reply to this email or contact ${SUPPORT_EMAIL}.`,
     "",

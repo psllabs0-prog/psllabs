@@ -65,6 +65,22 @@ export async function ensureOrdersSchema(): Promise<void> {
       ALTER TABLE orders
       ADD COLUMN IF NOT EXISTS tagada_webhook_claimed_at TIMESTAMPTZ
     `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS shipped_at TIMESTAMPTZ
+    `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS tracking_number TEXT
+    `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS feedback_email_sent BOOLEAN NOT NULL DEFAULT false
+    `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS feedback_email_claimed_at TIMESTAMPTZ
+    `;
   })();
   return schemaReady;
 }
@@ -88,11 +104,14 @@ type OrderRow = {
   invoice_id: string | null;
   invoice_created_at: string | null;
   paid_at: string | null;
+  shipped_at: string | null;
+  tracking_number: string | null;
   payment_method: string | null;
   email_sent: boolean;
   email_error: string | null;
   customer_email_sent: boolean;
   customer_email_error: string | null;
+  feedback_email_sent: boolean;
   stock_decremented: boolean;
   tagada_webhook_sent: boolean;
   tagada_webhook_claimed_at: string | null;
@@ -124,6 +143,8 @@ function rowToOrder(row: OrderRow): Order {
       ? new Date(row.invoice_created_at).toISOString()
       : null,
     paidAt: row.paid_at ? new Date(row.paid_at).toISOString() : null,
+    shippedAt: row.shipped_at ? new Date(row.shipped_at).toISOString() : null,
+    trackingNumber: row.tracking_number ?? null,
     paymentMethod:
       row.payment_method === "bitcoin" || row.payment_method === "card"
         ? row.payment_method
@@ -132,8 +153,99 @@ function rowToOrder(row: OrderRow): Order {
     emailError: row.email_error ?? null,
     customerEmailSent: row.customer_email_sent ?? false,
     customerEmailError: row.customer_email_error ?? null,
+    feedbackEmailSent: row.feedback_email_sent ?? false,
     stockDecremented: row.stock_decremented ?? false,
   };
+}
+
+export async function getOrderByEmailAndId(
+  email: string,
+  orderId: string
+): Promise<Order | null> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  const normalizedEmail = email.trim().toLowerCase();
+  const rows = (await sql`
+    SELECT * FROM orders
+    WHERE order_id = ${orderId}
+      AND lower(trim(email)) = ${normalizedEmail}
+    LIMIT 1
+  `) as OrderRow[];
+  return rows.length ? rowToOrder(rows[0]) : null;
+}
+
+export async function getOrdersDueForFeedbackEmail(
+  limit = 50
+): Promise<Order[]> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT * FROM orders
+    WHERE shipped_at IS NOT NULL
+      AND shipped_at <= now() - interval '7 days'
+      AND feedback_email_sent = false
+      AND status IN ('paid', 'shipped')
+    ORDER BY shipped_at ASC
+    LIMIT ${limit}
+  `) as OrderRow[];
+  return rows.map(rowToOrder);
+}
+
+export async function claimFeedbackEmail(orderId: string): Promise<boolean> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    UPDATE orders
+    SET feedback_email_claimed_at = now(), updated_at = now()
+    WHERE order_id = ${orderId}
+      AND feedback_email_sent = false
+      AND (
+        feedback_email_claimed_at IS NULL
+        OR feedback_email_claimed_at < now() - interval '10 minutes'
+      )
+    RETURNING order_id
+  `) as { order_id: string }[];
+  return rows.length > 0;
+}
+
+export async function markFeedbackEmailSent(orderId: string): Promise<void> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  await sql`
+    UPDATE orders
+    SET feedback_email_sent = true,
+        feedback_email_claimed_at = NULL,
+        updated_at = now()
+    WHERE order_id = ${orderId}
+  `;
+}
+
+export async function releaseFeedbackEmailClaim(
+  orderId: string
+): Promise<void> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  await sql`
+    UPDATE orders
+    SET feedback_email_claimed_at = NULL, updated_at = now()
+    WHERE order_id = ${orderId}
+  `;
+}
+
+export async function markOrderShipped(
+  orderId: string,
+  trackingNumber?: string | null
+): Promise<void> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  await sql`
+    UPDATE orders
+    SET status = 'shipped',
+        shipped_at = COALESCE(shipped_at, now()),
+        tracking_number = COALESCE(${trackingNumber ?? null}, tracking_number),
+        updated_at = now()
+    WHERE order_id = ${orderId}
+  `;
 }
 
 export async function getOrder(orderId: string): Promise<Order | null> {

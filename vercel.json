@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/order-feedback",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/low-stock",
+      "schedule": "0 15 * * *"
+    }
+  ]
+}
