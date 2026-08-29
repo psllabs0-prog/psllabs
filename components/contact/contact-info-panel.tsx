@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { Mail, Clock, CalendarDays } from "lucide-react";
 
+import { DiscordIcon } from "@/components/icons/discord-icon";
 import { AnimateIn } from "@/components/product/animate-in";
 import type { ContactPageContent } from "@/lib/contact";
+import { getDiscordInviteUrl } from "@/lib/social";
 
 const detailIcons = {
   email: Mail,
@@ -15,6 +17,8 @@ type ContactInfoPanelProps = {
 };
 
 export function ContactInfoPanel({ content }: ContactInfoPanelProps) {
+  const discordInviteUrl = getDiscordInviteUrl();
+
   return (
     <div className="flex flex-col gap-10 lg:gap-12">
       <div className="flex flex-col gap-6">
@@ -70,6 +74,19 @@ export function ContactInfoPanel({ content }: ContactInfoPanelProps) {
                 </div>
               );
             })}
+            {discordInviteUrl ? (
+              <div className="flex gap-4">
+                <a
+                  href={discordInviteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Join PSL Labs on Discord"
+                  className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border-strong bg-paper text-ash transition-colors duration-200 ease-out hover:border-[#5865F2]/40 hover:text-[#5865F2] cursor-pointer"
+                >
+                  <DiscordIcon />
+                </a>
+              </div>
+            ) : null}
           </div>
         </div>
       </AnimateIn>
