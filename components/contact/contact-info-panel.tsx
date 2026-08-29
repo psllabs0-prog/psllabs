@@ -1,10 +1,9 @@
 import Link from "next/link";
 import { Mail, Clock, CalendarDays } from "lucide-react";
 
-import { DiscordIcon } from "@/components/icons/discord-icon";
+import { DiscordContactLink } from "@/components/contact/discord-contact-link";
 import { AnimateIn } from "@/components/product/animate-in";
 import type { ContactPageContent } from "@/lib/contact";
-import { getDiscordInviteUrl } from "@/lib/social";
 
 const detailIcons = {
   email: Mail,
@@ -14,11 +13,13 @@ const detailIcons = {
 
 type ContactInfoPanelProps = {
   content: ContactPageContent;
+  discordInviteUrl: string;
 };
 
-export function ContactInfoPanel({ content }: ContactInfoPanelProps) {
-  const discordInviteUrl = getDiscordInviteUrl();
-
+export function ContactInfoPanel({
+  content,
+  discordInviteUrl,
+}: ContactInfoPanelProps) {
   return (
     <div className="flex flex-col gap-10 lg:gap-12">
       <div className="flex flex-col gap-6">
@@ -42,9 +43,10 @@ export function ContactInfoPanel({ content }: ContactInfoPanelProps) {
           <div className="relative flex flex-col gap-6">
             {content.details.map((detail) => {
               const Icon = detailIcons[detail.id as keyof typeof detailIcons];
+              const showDiscord = detail.id === "email";
 
               return (
-                <div key={detail.id} className="flex gap-4">
+                <div key={detail.id} className="flex items-start gap-4">
                   {Icon ? (
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border-strong bg-paper">
                       <Icon
@@ -54,7 +56,7 @@ export function ContactInfoPanel({ content }: ContactInfoPanelProps) {
                       />
                     </div>
                   ) : null}
-                  <div className="flex min-w-0 flex-col gap-1">
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <p className="font-mono text-[0.65rem] uppercase tracking-wider text-ash">
                       {detail.label}
                     </p>
@@ -71,22 +73,15 @@ export function ContactInfoPanel({ content }: ContactInfoPanelProps) {
                       </p>
                     )}
                   </div>
+                  {showDiscord ? (
+                    <DiscordContactLink
+                      href={discordInviteUrl}
+                      className="mt-0.5"
+                    />
+                  ) : null}
                 </div>
               );
             })}
-            {discordInviteUrl ? (
-              <div className="flex gap-4">
-                <a
-                  href={discordInviteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Join PSL Labs on Discord"
-                  className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border-strong bg-paper text-ash transition-colors duration-200 ease-out hover:border-[#5865F2]/40 hover:text-[#5865F2] cursor-pointer"
-                >
-                  <DiscordIcon />
-                </a>
-              </div>
-            ) : null}
           </div>
         </div>
       </AnimateIn>
