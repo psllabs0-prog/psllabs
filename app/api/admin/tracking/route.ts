@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 
 import { requireAdminAuth } from "@/lib/admin/require-auth";
+import { sendOrderShippedEmail } from "@/lib/email/order-shipped";
 import {
+  getOrder,
   getOrdersNeedingTracking,
+  markTrackingEmailSent,
   setOrderTracking,
 } from "@/lib/orders/store";
 
@@ -59,11 +62,33 @@ export async function POST(request: Request) {
       );
     }
 
+    const order = await getOrder(orderId);
+    let shippingEmailSent = false;
+    let shippingEmailError: string | null = null;
+
+    if (order && !order.trackingEmailSent) {
+      try {
+        await sendOrderShippedEmail(order);
+        await markTrackingEmailSent(orderId);
+        shippingEmailSent = true;
+      } catch (error) {
+        shippingEmailError =
+          error instanceof Error
+            ? error.message
+            : "Unable to send shipping confirmation email.";
+        console.error("[admin/tracking POST] shipping email failed:", error);
+      }
+    } else if (order?.trackingEmailSent) {
+      shippingEmailSent = true;
+    }
+
     return NextResponse.json({
       ok: true,
       orderId,
       trackingNumber,
       trackingCarrier: "USPS",
+      shippingEmailSent,
+      shippingEmailError,
     });
   } catch (error) {
     console.error("[admin/tracking POST]", error);

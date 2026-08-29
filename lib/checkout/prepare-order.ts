@@ -211,6 +211,9 @@ export async function prepareReservedOrder(
     trackingNumber: null,
     trackingCarrier: null,
     feedbackEmailSent: false,
+    trackingEmailSent: false,
+    trackingSavedAt: null,
+    deliveryFollowupSent: false,
     stockDecremented: false,
   };
 

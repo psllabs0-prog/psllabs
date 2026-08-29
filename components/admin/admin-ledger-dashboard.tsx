@@ -261,7 +261,11 @@ export function AdminLedgerDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId, trackingNumber }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as {
+        error?: string;
+        shippingEmailSent?: boolean;
+        shippingEmailError?: string | null;
+      };
 
       if (!res.ok) {
         setTrackingMessages((current) => ({
@@ -274,9 +278,14 @@ export function AdminLedgerDashboard() {
       setTrackingOrders((current) =>
         current.filter((row) => row.orderId !== orderId)
       );
+      const successMessage = data.shippingEmailSent
+        ? "Tracking saved. Shipping confirmation email sent."
+        : data.shippingEmailError
+          ? `Tracking saved. Shipping email failed: ${data.shippingEmailError}`
+          : "Tracking saved.";
       setTrackingMessages((current) => ({
         ...current,
-        [orderId]: "Tracking saved.",
+        [orderId]: successMessage,
       }));
     } catch {
       setTrackingMessages((current) => ({
@@ -484,9 +493,15 @@ export function AdminLedgerDashboard() {
                         <p
                           className={cn(
                             "mt-2 text-xs",
-                            trackingMessages[row.orderId] === "Tracking saved."
-                              ? "text-verified-green"
-                              : "text-ash"
+                            trackingMessages[row.orderId]?.includes(
+                              "email failed"
+                            )
+                              ? "text-signal"
+                              : trackingMessages[row.orderId]?.startsWith(
+                                    "Tracking saved"
+                                  )
+                                ? "text-verified-green"
+                                : "text-ash"
                           )}
                         >
                           {trackingMessages[row.orderId]}

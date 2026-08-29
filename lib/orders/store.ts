@@ -85,6 +85,30 @@ export async function ensureOrdersSchema(): Promise<void> {
       ALTER TABLE orders
       ADD COLUMN IF NOT EXISTS feedback_email_claimed_at TIMESTAMPTZ
     `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS tracking_email_sent BOOLEAN NOT NULL DEFAULT false
+    `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS tracking_saved_at TIMESTAMPTZ
+    `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS delivery_followup_sent BOOLEAN NOT NULL DEFAULT false
+    `;
+    await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS delivery_followup_claimed_at TIMESTAMPTZ
+    `;
+    await sql`
+      UPDATE orders
+      SET tracking_saved_at = shipped_at
+      WHERE tracking_saved_at IS NULL
+        AND tracking_number IS NOT NULL
+        AND trim(tracking_number) <> ''
+        AND shipped_at IS NOT NULL
+    `;
   })();
   return schemaReady;
 }
@@ -117,6 +141,9 @@ type OrderRow = {
   customer_email_sent: boolean;
   customer_email_error: string | null;
   feedback_email_sent: boolean;
+  tracking_email_sent: boolean;
+  tracking_saved_at: string | null;
+  delivery_followup_sent: boolean;
   stock_decremented: boolean;
   tagada_webhook_sent: boolean;
   tagada_webhook_claimed_at: string | null;
@@ -160,6 +187,11 @@ function rowToOrder(row: OrderRow): Order {
     customerEmailSent: row.customer_email_sent ?? false,
     customerEmailError: row.customer_email_error ?? null,
     feedbackEmailSent: row.feedback_email_sent ?? false,
+    trackingEmailSent: row.tracking_email_sent ?? false,
+    trackingSavedAt: row.tracking_saved_at
+      ? new Date(row.tracking_saved_at).toISOString()
+      : null,
+    deliveryFollowupSent: row.delivery_followup_sent ?? false,
     stockDecremented: row.stock_decremented ?? false,
   };
 }
@@ -180,60 +212,75 @@ export async function getOrderByEmailAndId(
   return rows.length ? rowToOrder(rows[0]) : null;
 }
 
-export async function getOrdersDueForFeedbackEmail(
+export async function getOrdersDueForDeliveryFollowup(
   limit = 50
 ): Promise<Order[]> {
   await ensureOrdersSchema();
   const sql = getSql();
   const rows = (await sql`
     SELECT * FROM orders
-    WHERE shipped_at IS NOT NULL
-      AND shipped_at <= now() - interval '7 days'
-      AND feedback_email_sent = false
-      AND status IN ('paid', 'shipped')
-    ORDER BY shipped_at ASC
+    WHERE status IN ('paid', 'shipped')
+      AND tracking_number IS NOT NULL
+      AND trim(tracking_number) <> ''
+      AND tracking_saved_at IS NOT NULL
+      AND tracking_saved_at <= now() - interval '7 days'
+      AND tracking_saved_at > now() - interval '8 days'
+      AND delivery_followup_sent = false
+    ORDER BY tracking_saved_at ASC
     LIMIT ${limit}
   `) as OrderRow[];
   return rows.map(rowToOrder);
 }
 
-export async function claimFeedbackEmail(orderId: string): Promise<boolean> {
+export async function claimDeliveryFollowupEmail(
+  orderId: string
+): Promise<boolean> {
   await ensureOrdersSchema();
   const sql = getSql();
   const rows = (await sql`
     UPDATE orders
-    SET feedback_email_claimed_at = now(), updated_at = now()
+    SET delivery_followup_claimed_at = now(), updated_at = now()
     WHERE order_id = ${orderId}
-      AND feedback_email_sent = false
+      AND delivery_followup_sent = false
       AND (
-        feedback_email_claimed_at IS NULL
-        OR feedback_email_claimed_at < now() - interval '10 minutes'
+        delivery_followup_claimed_at IS NULL
+        OR delivery_followup_claimed_at < now() - interval '10 minutes'
       )
     RETURNING order_id
   `) as { order_id: string }[];
   return rows.length > 0;
 }
 
-export async function markFeedbackEmailSent(orderId: string): Promise<void> {
+export async function markDeliveryFollowupSent(orderId: string): Promise<void> {
   await ensureOrdersSchema();
   const sql = getSql();
   await sql`
     UPDATE orders
-    SET feedback_email_sent = true,
-        feedback_email_claimed_at = NULL,
+    SET delivery_followup_sent = true,
+        delivery_followup_claimed_at = NULL,
         updated_at = now()
     WHERE order_id = ${orderId}
   `;
 }
 
-export async function releaseFeedbackEmailClaim(
+export async function releaseDeliveryFollowupClaim(
   orderId: string
 ): Promise<void> {
   await ensureOrdersSchema();
   const sql = getSql();
   await sql`
     UPDATE orders
-    SET feedback_email_claimed_at = NULL, updated_at = now()
+    SET delivery_followup_claimed_at = NULL, updated_at = now()
+    WHERE order_id = ${orderId}
+  `;
+}
+
+export async function markTrackingEmailSent(orderId: string): Promise<void> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  await sql`
+    UPDATE orders
+    SET tracking_email_sent = true, updated_at = now()
     WHERE order_id = ${orderId}
   `;
 }
@@ -313,6 +360,7 @@ export async function setOrderTracking(
         shipped_at = COALESCE(shipped_at, now()),
         tracking_number = ${trackingNumber},
         tracking_carrier = ${trackingCarrier},
+        tracking_saved_at = COALESCE(tracking_saved_at, now()),
         updated_at = now()
     WHERE order_id = ${orderId}
       AND status IN ('paid', 'shipped')

@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { verifyCronRequest } from "@/lib/cron/auth";
-import { sendOrderFeedbackEmail } from "@/lib/email/order-feedback";
+import { sendDeliveryFollowupEmail } from "@/lib/email/delivery-followup";
 import {
-  claimFeedbackEmail,
-  getOrdersDueForFeedbackEmail,
-  markFeedbackEmailSent,
-  releaseFeedbackEmailClaim,
+  claimDeliveryFollowupEmail,
+  getOrdersDueForDeliveryFollowup,
+  markDeliveryFollowupSent,
+  releaseDeliveryFollowupClaim,
 } from "@/lib/orders/store";
 
 export const runtime = "nodejs";
@@ -16,30 +16,30 @@ export async function GET(request: Request) {
   if (authError) return authError;
 
   try {
-    const orders = await getOrdersDueForFeedbackEmail(50);
+    const orders = await getOrdersDueForDeliveryFollowup(50);
     let sent = 0;
     let failed = 0;
     let skipped = 0;
 
     for (const order of orders) {
-      if (!(await claimFeedbackEmail(order.orderId))) {
+      if (!(await claimDeliveryFollowupEmail(order.orderId))) {
         skipped += 1;
         continue;
       }
 
       try {
-        await sendOrderFeedbackEmail(order);
-        await markFeedbackEmailSent(order.orderId);
+        await sendDeliveryFollowupEmail(order);
+        await markDeliveryFollowupSent(order.orderId);
         sent += 1;
       } catch (error) {
         failed += 1;
         const message =
-          error instanceof Error ? error.message : "feedback email failed";
+          error instanceof Error ? error.message : "delivery follow-up failed";
         console.error(
-          `[cron/order-feedback] failed for ${order.orderId}:`,
+          `[cron/delivery-followup] failed for ${order.orderId}:`,
           message
         );
-        await releaseFeedbackEmailClaim(order.orderId);
+        await releaseDeliveryFollowupClaim(order.orderId);
       }
     }
 
@@ -51,7 +51,7 @@ export async function GET(request: Request) {
       skipped,
     });
   } catch (error) {
-    console.error("[cron/order-feedback] job error:", error);
+    console.error("[cron/delivery-followup] job error:", error);
     return NextResponse.json({ error: "Job failed" }, { status: 500 });
   }
 }

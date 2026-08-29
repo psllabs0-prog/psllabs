@@ -54,6 +54,9 @@ export type Order = {
   customerEmailSent: boolean;
   customerEmailError: string | null;
   feedbackEmailSent: boolean;
+  trackingEmailSent: boolean;
+  trackingSavedAt: string | null;
+  deliveryFollowupSent: boolean;
   stockDecremented: boolean;
 };
 

@@ -22,6 +22,31 @@ View reports at [plausible.io](https://plausible.io) after signing in to the PSL
 
 Password-protected inventory management lives at `/admin-inventory`. Set `ADMIN_PASSWORD` in the environment. Stock updates are written to Postgres and recorded in `stock_history`.
 
+## Transactional email
+
+Order emails use Porkbun SMTP (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, optional `SMTP_PORT`). All messages send from `support@psllabs.org`.
+
+| Email | Trigger |
+| --- | --- |
+| Order confirmation | Payment confirmed (BTCPay / Tagada webhook or card checkout) |
+| Order shipped | Admin saves a tracking number on `/admin-ledger` |
+| Delivery follow-up | Daily cron, 7 days after tracking was saved |
+
+### Cron jobs (Vercel)
+
+Set `CRON_SECRET` in the environment. Vercel invokes these routes on the schedule in `vercel.json`:
+
+| Path | Schedule (UTC) | Purpose |
+| --- | --- | --- |
+| `/api/cron/delivery-followup` | `0 14 * * *` (daily at 14:00 UTC) | Post-delivery follow-up email with Trustpilot link |
+| `/api/cron/low-stock` | `0 15 * * *` (daily at 15:00 UTC) | Low-stock alert to operations |
+
+Manual test (local or staging):
+
+```bash
+curl -H "Authorization: Bearer $CRON_SECRET" https://your-domain/api/cron/delivery-followup
+```
+
 ## Getting Started
 
 
