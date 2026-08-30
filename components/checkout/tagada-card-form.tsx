@@ -8,6 +8,7 @@ import {
 } from "@tagadapay/headless-sdk/react";
 
 import { Input } from "@/components/ui/input";
+import { PAYMENTS_URL } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
 export type TagadaCardSession = {
@@ -128,7 +129,7 @@ function TagadaCardFields({
         await createSession({
           items: session.items,
           currency: "USD",
-          returnUrl: `${window.location.origin}/checkout`,
+          returnUrl: `${PAYMENTS_URL}/checkout`,
           customerEmail: session.customer.email,
         });
       } catch (error) {

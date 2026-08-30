@@ -11,7 +11,16 @@ function resolveSiteUrl(): string {
   return `https://${raw.replace(/\/+$/, "")}`;
 }
 
+/** Card checkout return URL host (Tagada redirect). Falls back to SITE_URL. */
+function resolvePaymentsUrl(): string {
+  const raw = process.env.NEXT_PUBLIC_PAYMENTS_URL?.trim();
+  if (!raw) return resolveSiteUrl();
+  if (/^https?:\/\//i.test(raw)) return raw.replace(/\/+$/, "");
+  return `https://${raw.replace(/\/+$/, "")}`;
+}
+
 export const SITE_URL = resolveSiteUrl();
+export const PAYMENTS_URL = resolvePaymentsUrl();
 
 export function createPageMetadata({
   title,

@@ -1,6 +1,6 @@
 import Tagada from "@tagadapay/node-sdk";
 
-import { SITE_URL } from "@/lib/seo";
+import { PAYMENTS_URL, SITE_URL } from "@/lib/seo";
 import { getTagadaApiKey, getTagadaStoreId } from "@/lib/tagada";
 
 let client: Tagada | null = null;
@@ -37,7 +37,7 @@ export async function createTagadaCheckoutSession(params: {
     items: params.items,
     currency: "USD",
     checkoutUrl: `${SITE_URL}/checkout`,
-    returnUrl: `${SITE_URL}/checkout`,
+    returnUrl: `${PAYMENTS_URL}/checkout`,
     customerEmail: params.email,
     customerFirstName: params.firstName,
     customerLastName: params.lastName,
