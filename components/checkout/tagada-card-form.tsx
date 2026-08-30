@@ -8,6 +8,7 @@ import {
 } from "@tagadapay/headless-sdk/react";
 
 import { Input } from "@/components/ui/input";
+import { normalizeCountryCode } from "@/lib/checkout/us-states";
 import { PAYMENTS_URL } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
@@ -197,7 +198,7 @@ function TagadaCardFields({
           city: session.shippingAddress.city,
           state: session.shippingAddress.state,
           postalCode: session.shippingAddress.postalCode,
-          country: session.shippingAddress.country,
+          country: normalizeCountryCode(session.shippingAddress.country),
           firstName: session.customer.firstName,
           lastName: session.customer.lastName,
         },

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 
+import { normalizeCountryCode } from "@/lib/checkout/us-states";
+
 import {
   prepareReservedOrder,
   type CheckoutBody,
@@ -90,7 +92,7 @@ export async function POST(request: Request) {
         city: order.shipping.city,
         state: order.shipping.state,
         postalCode: order.shipping.zip,
-        country: order.shipping.country || "US",
+        country: normalizeCountryCode(order.shipping.country || "US"),
       },
       items: sessionItems,
       total: order.total,

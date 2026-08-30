@@ -14,7 +14,7 @@ import { formatPrice } from "@/lib/cart/format";
 import { DISCOUNT_CODES_ENABLED } from "@/lib/checkout/discount-codes";
 import { computeTotals, type OrderTotals } from "@/lib/checkout/totals";
 import { trackPlausibleClientEvent } from "@/lib/plausible/client";
-import { US_COUNTRY, US_STATES } from "@/lib/checkout/us-states";
+import { US_COUNTRY, US_COUNTRY_LABEL, US_STATES } from "@/lib/checkout/us-states";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -482,7 +482,7 @@ export function CheckoutPage() {
                     <Input
                       id="checkout-country"
                       autoComplete="country-name"
-                      value={US_COUNTRY}
+                      value={US_COUNTRY_LABEL}
                       disabled
                       readOnly
                       className="h-11 cursor-not-allowed rounded-lg border-linen bg-soft-blue/40 px-3 text-base text-ash md:text-sm"

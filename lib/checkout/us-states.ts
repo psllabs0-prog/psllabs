@@ -53,4 +53,29 @@ export const US_STATES = [
   { label: "Wyoming", value: "WY" },
 ] as const;
 
-export const US_COUNTRY = "United States" as const;
+/** ISO 3166-1 alpha-2 — use for APIs (Tagada, payment processors). */
+export const US_COUNTRY = "US" as const;
+
+/** Human-readable label for checkout UI and customer-facing copy. */
+export const US_COUNTRY_LABEL = "United States" as const;
+
+/** Map common U.S. country strings to ISO alpha-2 for payment APIs. */
+export function normalizeCountryCode(country: string): string {
+  const trimmed = country.trim();
+  if (!trimmed) return US_COUNTRY;
+
+  const upper = trimmed.toUpperCase();
+  if (
+    upper === "US" ||
+    upper === "USA" ||
+    upper === "U.S." ||
+    upper === "U.S.A." ||
+    upper === "UNITED STATES" ||
+    upper === "UNITED STATES OF AMERICA"
+  ) {
+    return US_COUNTRY;
+  }
+
+  if (/^[A-Z]{2}$/.test(upper)) return upper;
+  return trimmed;
+}

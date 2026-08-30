@@ -3,7 +3,7 @@ import {
   DISCOUNT_CODES_ENABLED,
   lookupActiveDiscountCode,
 } from "@/lib/checkout/discount-codes";
-import { US_COUNTRY, US_STATES } from "@/lib/checkout/us-states";
+import { normalizeCountryCode, US_COUNTRY, US_STATES } from "@/lib/checkout/us-states";
 import { checkoutWithStockCheck } from "@/lib/inventory/store";
 import type { Order, OrderItem } from "@/lib/orders/types";
 import { getCheckoutProduct } from "@/lib/payments/products";
@@ -67,7 +67,7 @@ export async function prepareReservedOrder(
     city: str(rawShipping.city),
     state: str(rawShipping.state).toUpperCase(),
     zip: str(rawShipping.zip),
-    country: US_COUNTRY,
+    country: normalizeCountryCode(str(rawShipping.country) || US_COUNTRY),
   };
   if (
     !shipping.firstName ||
