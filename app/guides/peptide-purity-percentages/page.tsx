@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { AnimateIn } from "@/components/product/animate-in";
 import { JsonLd } from "@/components/seo/json-ld";
+import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
@@ -19,8 +20,8 @@ const articleLd = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "Peptide Purity Percentages — What Do They Actually Mean?",
-  author: { "@type": "Organization", name: "PSL Labs" },
-  publisher: { "@type": "Organization", name: "PSL Labs" },
+  author: { "@type": "Organization", name: LEGAL_ENTITY_NAME },
+  publisher: { "@type": "Organization", name: LEGAL_ENTITY_NAME },
   datePublished: GUIDE_DATE,
   dateModified: GUIDE_MODIFIED,
   url: `${SITE_URL}/guides/peptide-purity-percentages`,

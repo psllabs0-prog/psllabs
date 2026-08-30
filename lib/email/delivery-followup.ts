@@ -6,12 +6,12 @@ import {
   emailPageWrapper,
   SUPPORT_EMAIL,
 } from "@/lib/email/shared";
+import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import type { Order } from "@/lib/orders/types";
 
 const SUBJECT = "Following up on your order — PSL Labs";
 const TRUSTPILOT_URL = "https://www.trustpilot.com/review/psllabs.org";
-const RUO_DISCLAIMER =
-  "All products are for laboratory research use only. Not for human or animal consumption.";
+const LEGAL_FOOTER = `${LEGAL_ENTITY_NAME} — Phoenix, AZ. All products are for laboratory research use only. Not for human or animal consumption.`;
 
 export async function sendDeliveryFollowupEmail(order: Order): Promise<void> {
   const to = order.email.trim();
@@ -36,9 +36,7 @@ export async function sendDeliveryFollowupEmail(order: Order): Promise<void> {
     `Order #${order.orderId}`,
     trackingNumber ? `Tracking: ${trackingNumber}` : "",
     "",
-    RUO_DISCLAIMER,
-    "",
-    "— PSL Labs",
+    LEGAL_FOOTER,
   ]
     .filter(Boolean)
     .join("\n");
@@ -73,9 +71,8 @@ export async function sendDeliveryFollowupEmail(order: Order): Promise<void> {
         : ""
     }
     <p style="margin:0 0 16px;font-size:13px;color:${muted};line-height:1.6;">
-      ${escapeHtml(RUO_DISCLAIMER)}
-    </p>
-    <p style="margin:0;">— PSL Labs</p>`);
+      ${escapeHtml(LEGAL_FOOTER)}
+    </p>`);
 
   const transporter = createSmtpTransport();
   await transporter.sendMail({

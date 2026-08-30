@@ -120,7 +120,7 @@ export const catalogProducts: CatalogProduct[] = [
     price: 14.99,
     href: productPathFromSku("PSL-RS-5ML"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
-    imageAlt: "Bottle of sterile reconstitution solution",
+    imageAlt: "Vial of sterile reconstitution solution",
     purityBadge: "Coming soon",
     status: "coming_soon",
   },

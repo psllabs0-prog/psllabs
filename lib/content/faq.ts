@@ -60,7 +60,7 @@ export const faqCategories: FaqCategory[] = [
       {
         question: "Where can I find the COA for my batch?",
         answer:
-          "When a laboratory report is published for your lot, it appears on the product page, in COA / Batch Lookup, and in our Testing section. Match the lot number on your bottle label to the corresponding report.",
+          "When a laboratory report is published for your lot, it appears on the product page, in COA / Batch Lookup, and in our Testing section. Match the lot number on your vial label to the corresponding report.",
       },
     ],
   },

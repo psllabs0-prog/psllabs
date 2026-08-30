@@ -6,14 +6,14 @@ import {
   emailPageWrapper,
   SUPPORT_EMAIL,
 } from "@/lib/email/shared";
+import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import type { Order } from "@/lib/orders/types";
 
 const SUBJECT = "Your Order Has Shipped — PSL Labs";
 const TRACK_PAGE_URL = "https://www.psllabs.org/track";
 const STORAGE_GUIDE_URL =
   "https://www.psllabs.org/guides/peptide-storage-stability";
-const RUO_DISCLAIMER =
-  "All products are for laboratory research use only. Not for human or animal consumption.";
+const LEGAL_FOOTER = `${LEGAL_ENTITY_NAME} — Phoenix, AZ. All products are for laboratory research use only. Not for human or animal consumption.`;
 
 function uspsTrackUrl(trackingNumber: string): string {
   return `https://tools.usps.com/go/TrackConfirmAction?tLabels=${encodeURIComponent(trackingNumber.trim())}`;
@@ -50,9 +50,7 @@ export async function sendOrderShippedEmail(order: Order): Promise<void> {
     "Storage note: Lyophilized research compounds should be stored in a freezer upon receipt. Refer to our Storage Guide for recommendations.",
     STORAGE_GUIDE_URL,
     "",
-    RUO_DISCLAIMER,
-    "",
-    "— PSL Labs",
+    LEGAL_FOOTER,
   ].join("\n");
 
   const html = emailPageWrapper(`
@@ -86,9 +84,8 @@ export async function sendOrderShippedEmail(order: Order): Promise<void> {
       for recommendations.
     </p>
     <p style="margin:0 0 16px;font-size:13px;color:${muted};line-height:1.6;">
-      ${escapeHtml(RUO_DISCLAIMER)}
-    </p>
-    <p style="margin:0;">— PSL Labs</p>`);
+      ${escapeHtml(LEGAL_FOOTER)}
+    </p>`);
 
   const transporter = createSmtpTransport();
   await transporter.sendMail({

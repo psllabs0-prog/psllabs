@@ -1,11 +1,13 @@
 import nodemailer from "nodemailer";
 
+import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { formatDiscountEmailLine } from "@/lib/email/discount-line";
 import { getStockLevels } from "@/lib/inventory/store";
 import type { Order } from "@/lib/orders/types";
 
 const FROM_EMAIL = "PSL Labs Orders <support@psllabs.org>";
 const DEFAULT_TO = "support@psllabs.org";
+const LEGAL_FOOTER = `${LEGAL_ENTITY_NAME} — Phoenix, AZ. All products are for laboratory research use only. Not for human or animal consumption.`;
 
 function money(n: number): string {
   return `$${n.toFixed(2)}`;
@@ -101,6 +103,7 @@ export async function sendOrderEmail(order: Order): Promise<void> {
     }
     <p style="margin:12px 0 4px;"><strong>BTCPay invoice:</strong> ${escapeHtml(order.invoiceId ?? "—")}</p>
     ${invoiceLink ? `<p style="margin:0;"><a href="${invoiceLink}">${escapeHtml(invoiceLink)}</a></p>` : ""}
+    <p style="margin:16px 0 0;font-size:12px;color:#64748b;line-height:1.5;">${escapeHtml(LEGAL_FOOTER)}</p>
   </div>`;
 
   const text = [
@@ -132,6 +135,8 @@ export async function sendOrderEmail(order: Order): Promise<void> {
     ...(discountLine ? [discountLine, ""] : []),
     `BTCPay invoice: ${order.invoiceId ?? "—"}`,
     ...(invoiceLink ? [invoiceLink] : []),
+    "",
+    LEGAL_FOOTER,
   ].join("\n");
 
   const transporter = nodemailer.createTransport({
