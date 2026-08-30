@@ -278,6 +278,7 @@ export function CheckoutPage() {
         customer: data.customer,
         shippingAddress: data.shippingAddress,
         items: data.items,
+        shippingCost: data.shippingCost ?? totals.shipping,
       });
       setIsSubmitting(false);
     } catch {

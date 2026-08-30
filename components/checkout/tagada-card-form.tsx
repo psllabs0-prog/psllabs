@@ -9,6 +9,7 @@ import {
 
 import { Input } from "@/components/ui/input";
 import { normalizeCountryCode } from "@/lib/checkout/us-states";
+import { pickTagadaShippingRate } from "@/lib/tagada/select-shipping-rate";
 import { PAYMENTS_URL } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +31,7 @@ export type TagadaCardSession = {
     country: string;
   };
   items: Array<{ variantId: string; quantity: number }>;
+  shippingCost: number;
 };
 
 type TagadaCardFormProps = {
@@ -56,6 +58,9 @@ function TagadaCardFields({
     isLoading,
     createSession,
     updateCustomerAndAddress,
+    getShippingRates,
+    selectShippingRate,
+    refresh,
     error: checkoutError,
   } = useCheckout(
     session.checkoutToken || null,
@@ -204,12 +209,47 @@ function TagadaCardFields({
         },
       });
 
+      const rates = await getShippingRates();
+      const pickedRate = pickTagadaShippingRate(rates, session.shippingCost);
+
+      if (process.env.NODE_ENV === "development") {
+        console.info("[tagada] shipping rates:", rates);
+        console.info("[tagada] expected shipping (USD):", session.shippingCost);
+        console.info("[tagada] picked shipping rate:", pickedRate);
+        console.info("[tagada] checkout session before shipping select:", {
+          items: checkoutSession.items,
+          totals: checkoutSession.totals,
+          selectedShippingRateId: checkoutSession.selectedShippingRateId,
+        });
+      }
+
+      if (pickedRate) {
+        if (checkoutSession.selectedShippingRateId !== pickedRate.id) {
+          await selectShippingRate(pickedRate.id);
+        }
+        await refresh();
+      } else if (process.env.NODE_ENV === "development") {
+        console.warn(
+          "[tagada] no shipping rates returned — pay-with-token may fail for shippable products"
+        );
+      }
+
       const { tagadaToken } = await tokenizeCard({
         cardNumber: digits,
         expiryDate: expiryDate.trim(),
         cvc: cvc.trim(),
         cardholderName: cardholderName.trim() || undefined,
       });
+
+      const paymentPayload = {
+        checkoutSessionId: checkoutSession.id,
+        tagadaToken: "[redacted]",
+      };
+
+      if (process.env.NODE_ENV === "development") {
+        console.info("[tagada] pay-with-token payload:", paymentPayload);
+        console.info("[tagada] checkout session at pay time:", checkoutSession);
+      }
 
       await processPayment({
         checkoutSessionId: checkoutSession.id,
@@ -303,6 +343,11 @@ function TagadaCardFields({
           />
         </div>
       </div>
+
+      <p className="text-xs leading-relaxed text-stone">
+        Capital One-issued cards may be declined. Please use a card from another
+        issuer.
+      </p>
 
       <button
         type="button"

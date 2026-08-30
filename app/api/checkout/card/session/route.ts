@@ -96,6 +96,7 @@ export async function POST(request: Request) {
       },
       items: sessionItems,
       total: order.total,
+      shippingCost: order.shippingCost,
     });
   } catch (error) {
     const message =
