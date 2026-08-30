@@ -14,12 +14,23 @@ export function FooterColumn({ title, links }: FooterColumnProps) {
       <ul className="flex flex-col gap-3">
         {links.map((link) => (
           <li key={`${title}-${link.href}`}>
-            <Link
-              href={link.href}
-              className="text-sm text-ash transition-opacity duration-200 ease-out hover:text-ink hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-            >
-              {link.label}
-            </Link>
+            {link.external ? (
+              <a
+                href={link.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-ash transition-opacity duration-200 ease-out hover:text-ink hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                {link.label}
+              </a>
+            ) : (
+              <Link
+                href={link.href}
+                className="text-sm text-ash transition-opacity duration-200 ease-out hover:text-ink hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              >
+                {link.label}
+              </Link>
+            )}
           </li>
         ))}
       </ul>
