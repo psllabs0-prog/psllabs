@@ -30,6 +30,7 @@ type RawShipping = {
   city?: unknown;
   state?: unknown;
   zip?: unknown;
+  country?: unknown;
 };
 
 export type PrepareOrderResult =
