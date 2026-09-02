@@ -11,8 +11,6 @@ import type { Order } from "@/lib/orders/types";
 
 const SUBJECT = "Your Order Has Shipped — PSL Labs";
 const TRACK_PAGE_URL = "https://www.psllabs.org/track";
-const STORAGE_GUIDE_URL =
-  "https://www.psllabs.org/guides/peptide-storage-stability";
 const LEGAL_FOOTER = `${LEGAL_ENTITY_NAME} — Phoenix, AZ. All products are for laboratory research use only. Not for human or animal consumption.`;
 
 function uspsTrackUrl(trackingNumber: string): string {
@@ -47,9 +45,6 @@ export async function sendOrderShippedEmail(order: Order): Promise<void> {
     "",
     "Domestic delivery typically takes 3–5 business days. Tracking updates may take up to 24 hours to appear in the USPS system.",
     "",
-    "Storage note: Lyophilized research compounds should be stored in a freezer upon receipt. Refer to our Storage Guide for recommendations.",
-    STORAGE_GUIDE_URL,
-    "",
     LEGAL_FOOTER,
   ].join("\n");
 
@@ -76,12 +71,6 @@ export async function sendOrderShippedEmail(order: Order): Promise<void> {
     <p style="margin:0 0 16px;font-size:14px;color:${muted};line-height:1.6;">
       Domestic delivery typically takes 3–5 business days. Tracking updates may take up to
       24 hours to appear in the USPS system.
-    </p>
-    <p style="margin:0 0 16px;font-size:14px;color:${muted};line-height:1.6;">
-      <strong>Storage note:</strong> Lyophilized research compounds should be stored in a
-      freezer upon receipt. Refer to our
-      <a href="${STORAGE_GUIDE_URL}" style="color:${accent};">Storage Guide</a>
-      for recommendations.
     </p>
     <p style="margin:0 0 16px;font-size:13px;color:${muted};line-height:1.6;">
       ${escapeHtml(LEGAL_FOOTER)}
