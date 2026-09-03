@@ -1,9 +1,10 @@
 import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 import { reconstitutionSolution5mlReport } from "@/lib/batch-reports";
-import { PRODUCT_VIAL_IMAGE } from "../images";
+import { getProductImage } from "../images";
 import type { Product } from "../types";
 
 const report = reconstitutionSolution5mlReport;
+const image = getProductImage("reconstitution-solution");
 
 export const reconstitutionSolution: Product = {
   handle: "reconstitution-solution",
@@ -13,8 +14,8 @@ export const reconstitutionSolution: Product = {
     "Laboratory reconstitution solution for preparing research compounds. Batch-specific Certificate of Analysis available. Not for human or animal use.",
   price: 12.99,
   stockStatus: "in_stock",
-  imageSrc: PRODUCT_VIAL_IMAGE.src,
-  imageAlt: "Vial of reconstitution solution",
+  imageSrc: image.src,
+  imageAlt: image.alt,
   stackRole: "Laboratory reagent · research use only",
   whyThisExists:
     "Reconstitution Solution is a laboratory reagent supplied for preparing research compounds in in vitro workflows. Benzyl alcohol concentration is reported on published lot-specific laboratory reports when available.\n\nThis product is supplied for laboratory research applications only. It is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",

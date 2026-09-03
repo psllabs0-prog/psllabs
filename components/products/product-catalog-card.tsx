@@ -37,12 +37,14 @@ export function ProductCatalogCard({
             rounded="none"
             className="rounded-none"
           />
-          <span className="badge-verified absolute left-4 top-4 z-20 backdrop-blur-sm">
-            {product.purityBadge}
-          </span>
-          <span className="badge-accent absolute right-4 top-4 z-20 backdrop-blur-sm">
-            Research Use Only
-          </span>
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-wrap items-start gap-2 p-4">
+            <span className="badge-verified max-w-full whitespace-normal text-left backdrop-blur-sm">
+              {product.purityBadge}
+            </span>
+            <span className="badge-accent max-w-full whitespace-normal text-left backdrop-blur-sm">
+              Research Use Only
+            </span>
+          </div>
         </div>
       )}
 

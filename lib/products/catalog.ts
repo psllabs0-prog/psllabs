@@ -1,4 +1,4 @@
-import { PRODUCT_VIAL_IMAGE } from "./images";
+import { getProductImage } from "./images";
 import { retatrutideSource } from "./retatrutide-source";
 import { productPathFromSku, skuToSlug } from "./slug";
 
@@ -19,6 +19,14 @@ export type CatalogProduct = {
   status: CatalogProductStatus;
 };
 
+const retatrutideImage = getProductImage("retatrutide");
+const ghkCuImage = getProductImage("ghk-cu");
+const bpc157Image = getProductImage("bpc-157");
+const motsCImage = getProductImage("mots-c");
+const tesamorelinImage = getProductImage("tesamorelin");
+const kpvImage = getProductImage("kpv");
+const reconstitutionImage = getProductImage("reconstitution-solution");
+
 export const catalogProducts: CatalogProduct[] = [
   {
     handle: retatrutideSource.handle,
@@ -29,8 +37,8 @@ export const catalogProducts: CatalogProduct[] = [
     description: retatrutideSource.description,
     price: retatrutideSource.price,
     href: productPathFromSku(retatrutideSource.sku),
-    imageSrc: PRODUCT_VIAL_IMAGE.src,
-    imageAlt: PRODUCT_VIAL_IMAGE.alt,
+    imageSrc: retatrutideImage.src,
+    imageAlt: retatrutideImage.alt,
     purityBadge: retatrutideSource.purityBadge,
     status: "active",
   },
@@ -44,8 +52,8 @@ export const catalogProducts: CatalogProduct[] = [
       "Copper peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific documentation available for selected lots.",
     price: 24.99,
     href: productPathFromSku("PSL-GHKCU-50MG"),
-    imageSrc: PRODUCT_VIAL_IMAGE.src,
-    imageAlt: "Vial of lyophilized GHK-Cu powder",
+    imageSrc: ghkCuImage.src,
+    imageAlt: ghkCuImage.alt,
     purityBadge: "Batch-specific purity",
     status: "active",
   },
@@ -59,8 +67,8 @@ export const catalogProducts: CatalogProduct[] = [
       "Pentadecapeptide for angiogenic signaling research. Studied in rodent models of connective tissue repair.",
     price: 39.99,
     href: productPathFromSku("PSL-BPC157-10MG"),
-    imageSrc: PRODUCT_VIAL_IMAGE.src,
-    imageAlt: "Vial of lyophilized BPC-157 powder",
+    imageSrc: bpc157Image.src,
+    imageAlt: bpc157Image.alt,
     purityBadge: "Coming soon",
     status: "coming_soon",
   },
@@ -74,8 +82,8 @@ export const catalogProducts: CatalogProduct[] = [
       "Mitochondrial-derived peptide for metabolic pathway research. In vitro studies of glucose utilization and fatty acid oxidation.",
     price: 29.99,
     href: productPathFromSku("PSL-MOTSC-10MG"),
-    imageSrc: PRODUCT_VIAL_IMAGE.src,
-    imageAlt: "Vial of lyophilized MOTS-c powder",
+    imageSrc: motsCImage.src,
+    imageAlt: motsCImage.alt,
     purityBadge: "Coming soon",
     status: "coming_soon",
   },
@@ -89,8 +97,8 @@ export const catalogProducts: CatalogProduct[] = [
       "Synthetic peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific documentation available for selected lots.",
     price: 89.99,
     href: productPathFromSku("PSL-TESA-10MG"),
-    imageSrc: PRODUCT_VIAL_IMAGE.src,
-    imageAlt: "Vial of lyophilized Tesamorelin powder",
+    imageSrc: tesamorelinImage.src,
+    imageAlt: tesamorelinImage.alt,
     purityBadge: "Batch-specific purity",
     status: "active",
   },
@@ -104,8 +112,8 @@ export const catalogProducts: CatalogProduct[] = [
       "Tripeptide for inflammatory signaling pathway research. In vitro applications.",
     price: 29.99,
     href: productPathFromSku("PSL-KPV-10MG"),
-    imageSrc: PRODUCT_VIAL_IMAGE.src,
-    imageAlt: "Vial of lyophilized KPV powder",
+    imageSrc: kpvImage.src,
+    imageAlt: kpvImage.alt,
     purityBadge: "Coming soon",
     status: "coming_soon",
   },
@@ -119,8 +127,8 @@ export const catalogProducts: CatalogProduct[] = [
       "Laboratory solution for preparing research compounds. Batch-specific documentation available for selected lots.",
     price: 12.99,
     href: productPathFromSku("PSL-RS-5ML"),
-    imageSrc: PRODUCT_VIAL_IMAGE.src,
-    imageAlt: "Vial of reconstitution solution",
+    imageSrc: reconstitutionImage.src,
+    imageAlt: reconstitutionImage.alt,
     purityBadge: "Batch-specific documentation",
     status: "active",
   },

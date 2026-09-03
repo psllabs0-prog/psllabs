@@ -4,13 +4,14 @@ import {
   formatReportedPurity,
   retatrutideBlackTopReport,
 } from "@/lib/batch-reports";
-import { PRODUCT_VIAL_IMAGE } from "../images";
+import { getProductImage } from "../images";
 import { retatrutideSource } from "../retatrutide-source";
 import type { Product } from "../types";
 
 const blackTop = retatrutideBlackTopReport;
 const blackTopAmount = formatReportedAmount(blackTop.reportedAmountMg ?? 0);
 const blackTopPurity = formatReportedPurity(blackTop.purityPercent ?? 0);
+const image = getProductImage("retatrutide");
 
 export const retatrutide: Product = {
   handle: retatrutideSource.handle,
@@ -19,8 +20,8 @@ export const retatrutide: Product = {
   shortDescription: retatrutideSource.shortDescription,
   price: retatrutideSource.price,
   stockStatus: retatrutideSource.stockStatus,
-  imageSrc: PRODUCT_VIAL_IMAGE.src,
-  imageAlt: PRODUCT_VIAL_IMAGE.alt,
+  imageSrc: image.src,
+  imageAlt: image.alt,
   stackRole: "Research peptide · laboratory use only",
   whyThisExists:
     "Retatrutide (CAS 2381089-83-2) is a synthetic peptide analogue with activity at GLP-1, GIP, and glucagon receptors in vitro. Molecular formula: C223H330F3N57O68. Molecular weight: approximately 4845.4 g/mol. Purity: ≥99% by independent HPLC (see Batch Testing section for lot-specific data). Solubility: Soluble in aqueous buffer at pH 7.4. Storage: Lyophilized powder stable at -20°C. Avoid repeated freeze-thaw cycles.\n\nThis product is supplied as a reference standard for receptor-binding assays, cell-signaling studies, and pharmacokinetic research in appropriate model systems. It is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",

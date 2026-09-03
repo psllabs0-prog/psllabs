@@ -4,12 +4,13 @@ import {
   formatReportedPurity,
   ghkCu50mgReport,
 } from "@/lib/batch-reports";
-import { PRODUCT_VIAL_IMAGE } from "../images";
+import { getProductImage } from "../images";
 import type { Product } from "../types";
 
 const report = ghkCu50mgReport;
 const amount = formatReportedAmount(report.reportedAmountMg!);
 const purity = formatReportedPurity(report.purityPercent!);
+const image = getProductImage("ghk-cu");
 
 export const ghkCu: Product = {
   handle: "ghk-cu",
@@ -19,8 +20,8 @@ export const ghkCu: Product = {
     "GHK-Cu — copper peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific Certificate of Analysis available. Not for human or animal use.",
   price: 24.99,
   stockStatus: "in_stock",
-  imageSrc: PRODUCT_VIAL_IMAGE.src,
-  imageAlt: PRODUCT_VIAL_IMAGE.alt,
+  imageSrc: image.src,
+  imageAlt: image.alt,
   stackRole: "Research peptide · laboratory use only",
   whyThisExists:
     "GHK-Cu is a copper-binding tripeptide reference standard supplied as a lyophilized powder for laboratory research. Purity: lot-specific by independent HPLC (see Batch Testing section for published data).\n\nThis product is supplied as a reference standard for analytical and in vitro laboratory applications. It is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",

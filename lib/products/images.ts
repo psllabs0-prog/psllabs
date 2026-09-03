@@ -1,7 +1,52 @@
+/** Shared Retatrutide vial — used as featured/hero fallback. */
 export const PRODUCT_VIAL_IMAGE = {
   src: "/Retatrutide-transparent.png",
   alt: "Vial of lyophilized Retatrutide powder",
 } as const;
+
+/** Per-product vial / bottle images (transparent PNGs). */
+export const PRODUCT_IMAGES = {
+  retatrutide: {
+    src: "/Retatrutide-transparent.png",
+    alt: "Vial of lyophilized Retatrutide powder",
+  },
+  "ghk-cu": {
+    src: "/products/ghk-cu-transparent.png",
+    alt: "Vial of lyophilized GHK-Cu powder",
+  },
+  "bpc-157": {
+    src: "/products/bpc-157-transparent.png",
+    alt: "Vial of lyophilized BPC-157 powder",
+  },
+  "mots-c": {
+    src: "/products/mots-c-transparent.png",
+    alt: "Vial of lyophilized MOTS-c powder",
+  },
+  tesamorelin: {
+    src: "/products/tesamorelin-transparent.png",
+    alt: "Vial of lyophilized Tesamorelin powder",
+  },
+  kpv: {
+    src: "/products/kpv-transparent.png",
+    alt: "Vial of lyophilized KPV powder",
+  },
+  "reconstitution-solution": {
+    src: "/products/reconstitution-solution.png",
+    alt: "Vial of reconstitution solution",
+  },
+} as const;
+
+export type ProductImageHandle = keyof typeof PRODUCT_IMAGES;
+
+export function getProductImage(handle: string): {
+  src: string;
+  alt: string;
+} {
+  if (handle in PRODUCT_IMAGES) {
+    return PRODUCT_IMAGES[handle as ProductImageHandle];
+  }
+  return PRODUCT_VIAL_IMAGE;
+}
 
 /** Opaque gradient — eliminates checkerboard behind transparent PNGs */
 export const PRODUCT_CARD_GRADIENT =
