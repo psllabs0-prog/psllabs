@@ -11,7 +11,7 @@ export const reconstitutionSolution: Product = {
   name: "Reconstitution Solution",
   shortDescription:
     "Sterile reconstitution solution for preparing research compounds in the laboratory. Batch-specific Certificate of Analysis available. Not for human or animal use.",
-  price: 14.99,
+  price: 12.99,
   stockStatus: "in_stock",
   imageSrc: PRODUCT_VIAL_IMAGE.src,
   imageAlt: "Vial of sterile reconstitution solution",

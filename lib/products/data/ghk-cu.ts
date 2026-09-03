@@ -17,7 +17,7 @@ export const ghkCu: Product = {
   name: "GHK-Cu",
   shortDescription:
     "GHK-Cu — copper peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific Certificate of Analysis available. Not for human or animal use.",
-  price: 19.99,
+  price: 24.99,
   stockStatus: "in_stock",
   imageSrc: PRODUCT_VIAL_IMAGE.src,
   imageAlt: PRODUCT_VIAL_IMAGE.alt,

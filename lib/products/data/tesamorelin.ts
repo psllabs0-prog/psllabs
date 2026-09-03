@@ -17,7 +17,7 @@ export const tesamorelin: Product = {
   name: "Tesamorelin",
   shortDescription:
     "Tesamorelin — growth hormone secretagogue receptor agonist for laboratory research. HPLC-verified purity. Batch-specific Certificate of Analysis available. Not for human or animal use.",
-  price: 99.99,
+  price: 89.99,
   stockStatus: "in_stock",
   imageSrc: PRODUCT_VIAL_IMAGE.src,
   imageAlt: PRODUCT_VIAL_IMAGE.alt,

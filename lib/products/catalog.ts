@@ -42,7 +42,7 @@ export const catalogProducts: CatalogProduct[] = [
     strength: "50mg",
     description:
       "Copper peptide for extracellular matrix research. In vitro applications in dermal fibroblast studies.",
-    price: 19.99,
+    price: 24.99,
     href: productPathFromSku("PSL-GHKCU-50MG"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "Vial of lyophilized GHK-Cu powder",
@@ -87,7 +87,7 @@ export const catalogProducts: CatalogProduct[] = [
     strength: "10mg",
     description:
       "Growth hormone secretagogue receptor agonist for metabolic research. In vitro and animal model applications.",
-    price: 99.99,
+    price: 89.99,
     href: productPathFromSku("PSL-TESA-10MG"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "Vial of lyophilized Tesamorelin powder",
@@ -117,7 +117,7 @@ export const catalogProducts: CatalogProduct[] = [
     strength: "5ml",
     description:
       "A sterile solution used to prepare research compounds.",
-    price: 14.99,
+    price: 12.99,
     href: productPathFromSku("PSL-RS-5ML"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "Vial of sterile reconstitution solution",
