@@ -11,7 +11,9 @@ import {
 import {
   catalogToTagadaInput,
   getAllStoredTagadaRecords,
+  planTagadaSync,
   syncProductToTagada,
+  TAGADA_CANONICAL_PRODUCT_IDS,
 } from "../lib/tagada";
 
 function maskSecret(value: string): string {
@@ -19,7 +21,14 @@ function maskSecret(value: string): string {
   return `${value.slice(0, 6)}…${value.slice(-4)}`;
 }
 
+function parseFlags(argv: string[]): { dryRun: boolean } {
+  return {
+    dryRun: argv.includes("--dry-run") || argv.includes("-n"),
+  };
+}
+
 async function main() {
+  const { dryRun } = parseFlags(process.argv.slice(2));
   const apiKey = process.env.TAGADA_API_KEY?.trim() ?? "";
   const storeId = process.env.TAGADA_STORE_ID?.trim() ?? "";
 
@@ -28,6 +37,12 @@ async function main() {
     `[sync-tagada] TAGADA_API_KEY present=${Boolean(apiKey)} masked=${apiKey ? maskSecret(apiKey) : "(empty)"}`
   );
   console.info(`[sync-tagada] TAGADA_STORE_ID=${storeId || "(empty)"}`);
+  console.info(`[sync-tagada] mode=${dryRun ? "DRY-RUN (no mutations)" : "APPLY"}`);
+  console.info(
+    `[sync-tagada] canonical pins: ${Object.entries(TAGADA_CANONICAL_PRODUCT_IDS)
+      .map(([handle, id]) => `${handle}=${id}`)
+      .join(", ")}`
+  );
 
   if (!apiKey || !storeId) {
     console.error(
@@ -69,27 +84,47 @@ async function main() {
     process.exit(1);
   }
 
-  let updateCount = 0;
-  let createCount = 0;
-
+  // Local-db preview (before remote resolution)
   for (const handle of toSync.keys()) {
     const stored = storedTagada.get(handle);
-    if (stored?.tagadaProductId) {
-      updateCount += 1;
-      console.info(
-        `[sync-tagada] ${handle}: existing tagada_product_id=${stored.tagadaProductId} → will update`
-      );
-    } else {
-      createCount += 1;
-      console.info(
-        `[sync-tagada] ${handle}: no tagada_product_id stored → will create`
-      );
-    }
+    const canonical = TAGADA_CANONICAL_PRODUCT_IDS[handle];
+    console.info(
+      `[sync-tagada] ${handle}: local=${stored?.tagadaProductId ?? "(none)"} canonical=${canonical ?? "(none)"}`
+    );
   }
 
+  const inputs = [...toSync.values()].map(catalogToTagadaInput);
+  console.info("[sync-tagada] resolving create vs update plan…");
+  const plan = await planTagadaSync(inputs);
+
+  const updateCount = plan.filter((item) => item.action === "update").length;
+  const createCount = plan.filter((item) => item.action === "create").length;
+
+  console.info("");
+  console.info("======== SYNC PLAN ========");
+  for (const item of plan) {
+    console.info(
+      `  [${item.action.toUpperCase()}] ${item.handle} (${item.displayName}) sku=${item.sku}`
+    );
+    console.info(`           ${item.note}`);
+  }
   console.info(
-    `[sync-tagada] Syncing ${toSync.size} product(s) to Tagada (${updateCount} update, ${createCount} create): ${[...toSync.keys()].join(", ")}`
+    `======== ${updateCount} update(s), ${createCount} create(s) ========`
   );
+  console.info("");
+
+  if (dryRun) {
+    console.info(
+      "[sync-tagada] dry-run complete — no Tagada mutations were made. Re-run without --dry-run to apply."
+    );
+    return;
+  }
+
+  if (createCount > 0) {
+    console.warn(
+      `[sync-tagada] WARNING: ${createCount} product(s) will be CREATED. Confirm these are not duplicates before leaving this run.`
+    );
+  }
 
   let failed = 0;
   for (const product of toSync.values()) {

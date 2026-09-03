@@ -11,7 +11,8 @@
     "migrate-inventory": "tsx scripts/migrate-inventory.ts",
     "migrate-discounts": "tsx scripts/migrate-discounts.ts",
     "seed-catalog": "tsx scripts/seed-catalog-inventory.ts",
-    "sync-tagada": "tsx scripts/sync-tagada.ts"
+    "sync-tagada": "tsx scripts/sync-tagada.ts",
+    "sync-tagada:dry-run": "tsx scripts/sync-tagada.ts --dry-run"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

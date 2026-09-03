@@ -5,6 +5,18 @@ import { getCatalogProductByHandle } from "@/lib/products/catalog";
 
 const TAGADA_API_BASE = "https://api.tagada.io";
 
+/**
+ * Hard-pinned Tagada product IDs for handles we already created.
+ * Prevents accidental duplicates when local `tagada_product_id` is missing/cleared.
+ * Retatrutide MUST stay on product_98cfd793a08d.
+ */
+export const TAGADA_CANONICAL_PRODUCT_IDS: Readonly<Record<string, string>> = {
+  retatrutide: "product_98cfd793a08d",
+  "ghk-cu": "product_28f28923a58d",
+  tesamorelin: "product_b03321ffa25f",
+  "reconstitution-solution": "product_011a7e3b6d3f",
+};
+
 export function getTagadaStoreId(): string {
   const id = process.env.TAGADA_STORE_ID?.trim();
   if (!id) throw new Error("TAGADA_STORE_ID is not configured.");
@@ -62,10 +74,13 @@ export type StoredTagadaRecord = {
 
 type TagadaProductResponse = {
   id?: string;
+  name?: string;
+  storeId?: string;
   variants?: Array<{
     id?: string;
     default?: boolean;
-    sku?: string;
+    sku?: string | null;
+    name?: string;
     prices?: Array<{
       id?: string;
       default?: boolean;
@@ -74,6 +89,20 @@ type TagadaProductResponse = {
       };
     }>;
   }>;
+};
+
+export type TagadaSyncPlanAction = "update" | "create";
+
+export type TagadaSyncPlanItem = {
+  handle: string;
+  sku: string;
+  displayName: string;
+  action: TagadaSyncPlanAction;
+  /** Existing Tagada product id when action is update. */
+  tagadaProductId: string | null;
+  /** How the existing id was resolved. */
+  matchSource: "local_db" | "canonical" | "remote_sku" | "none";
+  note: string;
 };
 
 async function ensureTagadaProductColumns(): Promise<void> {
@@ -151,6 +180,177 @@ function extractRemotePriceCents(body: TagadaProductResponse): number | null {
   const price =
     variant?.prices?.find((p) => p.default) ?? variant?.prices?.[0] ?? null;
   return price?.currencyOptions?.USD?.amount ?? null;
+}
+
+function asProductArray(data: unknown): TagadaProductResponse[] {
+  if (Array.isArray(data)) return data as TagadaProductResponse[];
+  if (typeof data === "object" && data) {
+    const obj = data as Record<string, unknown>;
+    for (const key of ["items", "data", "products"]) {
+      if (Array.isArray(obj[key])) {
+        return obj[key] as TagadaProductResponse[];
+      }
+    }
+  }
+  return [];
+}
+
+/** List products in the configured Tagada store (paginated). */
+export async function listTagadaStoreProducts(): Promise<
+  TagadaProductResponse[]
+> {
+  const storeId = getTagadaStoreId();
+  const all: TagadaProductResponse[] = [];
+  let page = 1;
+  const perPage = 100;
+
+  while (page <= 20) {
+    const response = await tagadaApiRequest(
+      "POST",
+      "/api/public/v1/products/list",
+      {
+        storeId,
+        page,
+        per_page: perPage,
+        includeVariants: true,
+      }
+    );
+
+    if (!response.ok) {
+      // Fallback used by headless catalog module
+      const fallback = await tagadaApiRequest("POST", "/api/v1/products", {
+        storeId,
+        includeVariants: true,
+        includePrices: true,
+      });
+      if (!fallback.ok) {
+        throw new Error(
+          parseApiErrorMessage(
+            response.data,
+            `Tagada product list failed (${response.status})`
+          )
+        );
+      }
+      return asProductArray(fallback.data);
+    }
+
+    const batch = asProductArray(response.data);
+    all.push(...batch);
+
+    const total =
+      typeof response.data === "object" &&
+      response.data &&
+      "total" in response.data &&
+      typeof (response.data as { total: unknown }).total === "number"
+        ? (response.data as { total: number }).total
+        : null;
+
+    if (batch.length < perPage) break;
+    if (total !== null && all.length >= total) break;
+    page += 1;
+  }
+
+  return all;
+}
+
+/** Find a remote Tagada product by variant SKU (case-insensitive). */
+export async function findTagadaProductBySku(
+  sku: string,
+  remoteProducts?: TagadaProductResponse[]
+): Promise<TagadaProductResponse | null> {
+  const normalized = sku.trim().toLowerCase();
+  if (!normalized) return null;
+
+  const products = remoteProducts ?? (await listTagadaStoreProducts());
+  for (const product of products) {
+    const match = product.variants?.some(
+      (variant) => (variant.sku ?? "").trim().toLowerCase() === normalized
+    );
+    if (match) return product;
+  }
+  return null;
+}
+
+/**
+ * Resolve which Tagada product id to update for a catalog handle.
+ * Order: canonical pin → local DB → remote SKU match.
+ * Canonical wins so pinned products (e.g. retatrutide → product_98cfd793a08d)
+ * never drift to a duplicate id stored locally.
+ */
+export async function resolveExistingTagadaProductId(params: {
+  handle: string;
+  sku: string;
+  remoteProducts?: TagadaProductResponse[];
+}): Promise<{
+  productId: string | null;
+  matchSource: TagadaSyncPlanItem["matchSource"];
+}> {
+  const canonical = TAGADA_CANONICAL_PRODUCT_IDS[params.handle];
+  if (canonical) {
+    return { productId: canonical, matchSource: "canonical" };
+  }
+
+  const stored = await getStoredTagadaRecord(params.handle);
+  if (stored?.tagadaProductId) {
+    return { productId: stored.tagadaProductId, matchSource: "local_db" };
+  }
+
+  const remote = await findTagadaProductBySku(params.sku, params.remoteProducts);
+  if (remote?.id) {
+    return { productId: remote.id, matchSource: "remote_sku" };
+  }
+
+  return { productId: null, matchSource: "none" };
+}
+
+/** Build a create/update plan without mutating Tagada. */
+export async function planTagadaSync(
+  products: TagadaSyncProductInput[]
+): Promise<TagadaSyncPlanItem[]> {
+  await ensureTagadaProductColumns();
+  let remoteProducts: TagadaProductResponse[] | undefined;
+  try {
+    remoteProducts = await listTagadaStoreProducts();
+  } catch (error) {
+    console.warn(
+      "[tagada] could not list remote products for plan (will still use local/canonical ids):",
+      error instanceof Error ? error.message : error
+    );
+  }
+
+  const plan: TagadaSyncPlanItem[] = [];
+  for (const product of products) {
+    const displayName = `${product.name} ${product.strength}`.trim();
+    const resolved = await resolveExistingTagadaProductId({
+      handle: product.handle,
+      sku: product.sku,
+      remoteProducts,
+    });
+
+    if (resolved.productId) {
+      plan.push({
+        handle: product.handle,
+        sku: product.sku,
+        displayName,
+        action: "update",
+        tagadaProductId: resolved.productId,
+        matchSource: resolved.matchSource,
+        note: `Will UPDATE ${resolved.productId} (matched via ${resolved.matchSource})`,
+      });
+    } else {
+      plan.push({
+        handle: product.handle,
+        sku: product.sku,
+        displayName,
+        action: "create",
+        tagadaProductId: null,
+        matchSource: "none",
+        note: "No local/canonical/SKU match — will CREATE a new Tagada product",
+      });
+    }
+  }
+
+  return plan;
 }
 
 async function tagadaApiRequest(
@@ -294,9 +494,25 @@ async function updateExistingTagadaProduct(
 
   if (updateResponse.status === 404) {
     console.warn(
-      `[tagada] stored product ${existingProductId} not found in Tagada for handle=${product.handle}; will create a replacement`
+      `[tagada] stored product ${existingProductId} not found in Tagada for handle=${product.handle}; refusing to create a duplicate — searching by SKU`
     );
-    return createNewTagadaProduct(product, displayName, amountCents);
+    const remote = await findTagadaProductBySku(product.sku);
+    if (remote?.id && remote.id !== existingProductId) {
+      console.info(
+        `[tagada] found SKU ${product.sku} on product ${remote.id}; updating that instead`
+      );
+      return updateExistingTagadaProduct(
+        product,
+        remote.id,
+        displayName,
+        amountCents
+      );
+    }
+    return {
+      ok: false,
+      handle: product.handle,
+      error: `Tagada product ${existingProductId} not found (404). Refusing to create a duplicate. Re-link the local tagada_product_id or add a canonical pin.`,
+    };
   }
 
   if (!updateResponse.ok) {
@@ -448,8 +664,9 @@ async function createNewTagadaProduct(
 }
 
 /**
- * Sync a catalog product to Tagada. Updates an existing remote product when
- * tagada_product_id is stored locally; otherwise creates a new one.
+ * Sync a catalog product to Tagada.
+ * Resolves existing products via local DB → canonical pin → remote SKU match.
+ * Creates only when no existing product can be found.
  */
 export async function syncProductToTagada(
   product: TagadaSyncProductInput
@@ -458,19 +675,25 @@ export async function syncProductToTagada(
 
   const displayName = `${product.name} ${product.strength}`.trim();
   const amountCents = dollarsToCents(product.priceUsd);
-  const stored = await getStoredTagadaRecord(product.handle);
+  const resolved = await resolveExistingTagadaProductId({
+    handle: product.handle,
+    sku: product.sku,
+  });
 
-  if (stored?.tagadaProductId) {
+  if (resolved.productId) {
+    console.info(
+      `[tagada] syncing handle=${product.handle} as UPDATE of ${resolved.productId} (matched via ${resolved.matchSource})`
+    );
     return updateExistingTagadaProduct(
       product,
-      stored.tagadaProductId,
+      resolved.productId,
       displayName,
       amountCents
     );
   }
 
   console.info(
-    `[tagada] no stored tagada_product_id for handle=${product.handle}; creating new Tagada product`
+    `[tagada] no existing Tagada product for handle=${product.handle} sku=${product.sku}; creating new Tagada product`
   );
   return createNewTagadaProduct(product, displayName, amountCents);
 }
