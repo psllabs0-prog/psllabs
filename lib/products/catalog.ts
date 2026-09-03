@@ -46,8 +46,8 @@ export const catalogProducts: CatalogProduct[] = [
     href: productPathFromSku("PSL-GHKCU-50MG"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "Vial of lyophilized GHK-Cu powder",
-    purityBadge: "Coming soon",
-    status: "coming_soon",
+    purityBadge: "Batch-specific purity",
+    status: "active",
   },
   {
     handle: "bpc-157",
@@ -91,8 +91,8 @@ export const catalogProducts: CatalogProduct[] = [
     href: productPathFromSku("PSL-TESA-10MG"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "Vial of lyophilized Tesamorelin powder",
-    purityBadge: "Coming soon",
-    status: "coming_soon",
+    purityBadge: "Batch-specific purity",
+    status: "active",
   },
   {
     handle: "kpv",
@@ -121,8 +121,8 @@ export const catalogProducts: CatalogProduct[] = [
     href: productPathFromSku("PSL-RS-5ML"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
     imageAlt: "Vial of sterile reconstitution solution",
-    purityBadge: "Coming soon",
-    status: "coming_soon",
+    purityBadge: "Batch-specific documentation",
+    status: "active",
   },
 ];
 

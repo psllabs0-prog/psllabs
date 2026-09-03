@@ -11,8 +11,18 @@ export type BatchReport = {
   identityResult: string;
   /** Labeled vial / catalog strength — not the laboratory-reported amount. */
   nominalStrength: string;
-  reportedAmountMg: number;
-  purityPercent: number;
+  /** Peptide amount in mg when the lab reports a mass. Omit for concentration-only reports. */
+  reportedAmountMg?: number;
+  /** HPLC purity when reported. Omit when the COA has no purity line. */
+  purityPercent?: number;
+  /**
+   * Non-mass primary result (e.g. Benzyl Alcohol concentration).
+   * When set, used in the certificate panel and amount grid instead of mg.
+   */
+  reportedResult?: {
+    label: string;
+    value: string;
+  };
   testingOrderedDate: string;
   sampleReceivedDate: string;
   analysisDate: string;

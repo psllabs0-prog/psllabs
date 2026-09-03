@@ -61,4 +61,7 @@ export type ProductHandle =
   | "foundation"
   | "cellular-energy"
   | "recovery"
-  | "retatrutide";
+  | "retatrutide"
+  | "ghk-cu"
+  | "tesamorelin"
+  | "reconstitution-solution";

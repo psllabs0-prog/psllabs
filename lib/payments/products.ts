@@ -1,4 +1,7 @@
-import { getCatalogProductByHandle } from "@/lib/products/catalog";
+import {
+  getActiveCatalogProducts,
+  getCatalogProductByHandle,
+} from "@/lib/products/catalog";
 
 export type CheckoutProduct = {
   id: string;
@@ -7,7 +10,7 @@ export type CheckoutProduct = {
   priceUsd: number;
 };
 
-const catalog: Record<string, CheckoutProduct> = {
+const legacyCatalog: Record<string, CheckoutProduct> = {
   foundation: {
     id: "foundation",
     name: "Foundation",
@@ -29,21 +32,40 @@ const catalog: Record<string, CheckoutProduct> = {
       "Urolithin A, ubiquinol, and PQQ. The mitochondrial biogenesis stack. 60 capsules / 30-day supply.",
     priceUsd: 84,
   },
-  retatrutide: {
-    id: "retatrutide",
-    name: "Retatrutide",
-    description:
-      "Lyophilized Retatrutide for laboratory and research use. Independent batch documentation available for selected lots.",
-    priceUsd: getCatalogProductByHandle("retatrutide")!.price,
-  },
 };
+
+function fromCatalogHandle(handle: string): CheckoutProduct | undefined {
+  const catalog = getCatalogProductByHandle(handle);
+  if (!catalog || catalog.status !== "active") return undefined;
+  return {
+    id: catalog.handle,
+    name: catalog.name,
+    description: catalog.description,
+    priceUsd: catalog.price,
+  };
+}
 
 export function getCheckoutProduct(
   productId: string
 ): CheckoutProduct | undefined {
-  return catalog[productId];
+  return legacyCatalog[productId] ?? fromCatalogHandle(productId);
 }
 
 export function getAllCheckoutProducts(): CheckoutProduct[] {
-  return Object.values(catalog);
+  const byId = new Map<string, CheckoutProduct>();
+
+  for (const product of Object.values(legacyCatalog)) {
+    byId.set(product.id, product);
+  }
+
+  for (const catalog of getActiveCatalogProducts()) {
+    byId.set(catalog.handle, {
+      id: catalog.handle,
+      name: catalog.name,
+      description: catalog.description,
+      priceUsd: catalog.price,
+    });
+  }
+
+  return [...byId.values()];
 }

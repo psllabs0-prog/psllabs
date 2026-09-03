@@ -96,16 +96,25 @@ export default async function ProductPage({ params }: PageProps) {
 
   const productUrl = `${SITE_URL}/products/${slug}`;
 
-  if (handle === "retatrutide") {
+  const researchPeptideHandles = new Set([
+    "retatrutide",
+    "ghk-cu",
+    "tesamorelin",
+    "reconstitution-solution",
+  ]);
+
+  if (researchPeptideHandles.has(handle)) {
+    const catalog = getCatalogProductByHandle(handle);
     const productLd = {
       "@context": "https://schema.org",
       "@type": "Product",
-      name: "Retatrutide 10mg",
-      sku: "PSL-RT-10MG",
-      description:
-        "Lyophilized research peptide for laboratory and in vitro use. Batch-verified with independent third-party Certificate of Analysis.",
+      name: catalog
+        ? `${product.name}${catalog.strength ? ` ${catalog.strength}` : ""}`
+        : product.name,
+      sku: catalog?.sku,
+      description: product.shortDescription,
       url: productUrl,
-      image: `${SITE_URL}${PRODUCT_VIAL_IMAGE.src}`,
+      image: `${SITE_URL}${product.imageSrc ?? PRODUCT_VIAL_IMAGE.src}`,
       brand: {
         "@type": "Brand",
         name: "PSL Labs",

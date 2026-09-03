@@ -9,8 +9,8 @@ import { retatrutideSource } from "../retatrutide-source";
 import type { Product } from "../types";
 
 const blackTop = retatrutideBlackTopReport;
-const blackTopAmount = formatReportedAmount(blackTop.reportedAmountMg);
-const blackTopPurity = formatReportedPurity(blackTop.purityPercent);
+const blackTopAmount = formatReportedAmount(blackTop.reportedAmountMg ?? 0);
+const blackTopPurity = formatReportedPurity(blackTop.purityPercent ?? 0);
 
 export const retatrutide: Product = {
   handle: retatrutideSource.handle,

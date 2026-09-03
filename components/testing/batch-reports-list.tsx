@@ -17,8 +17,17 @@ type BatchReportsListProps = {
 
 function ReportCard({ report }: { report: BatchReport }) {
   const [open, setOpen] = useState(false);
-  const amount = formatReportedAmount(report.reportedAmountMg);
-  const purity = formatReportedPurity(report.purityPercent);
+  const amount =
+    report.reportedResult?.value ??
+    (report.reportedAmountMg !== undefined
+      ? formatReportedAmount(report.reportedAmountMg)
+      : "—");
+  const purity =
+    report.purityPercent !== undefined
+      ? formatReportedPurity(report.purityPercent)
+      : null;
+  const amountLabel = report.reportedResult?.label ?? "Reported Amount";
+  const summaryBits = [amount, purity, report.analysisDate].filter(Boolean);
 
   return (
     <article className="premium-card overflow-hidden">
@@ -40,7 +49,7 @@ function ReportCard({ report }: { report: BatchReport }) {
             {report.laboratory}
           </p>
           <p className="mt-1 text-xs text-ash md:hidden">
-            {amount} · {purity} · {report.analysisDate}
+            {summaryBits.join(" · ")}
           </p>
         </div>
         <ChevronDown
@@ -99,16 +108,18 @@ function ReportCard({ report }: { report: BatchReport }) {
               </div>
               <div>
                 <dt className="text-xs uppercase tracking-wide text-ash">
-                  Reported Amount
+                  {amountLabel}
                 </dt>
                 <dd className="mt-0.5 font-medium text-ink">{amount}</dd>
               </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-ash">
-                  Reported Purity
-                </dt>
-                <dd className="mt-0.5 font-medium text-ink">{purity}</dd>
-              </div>
+              {purity ? (
+                <div>
+                  <dt className="text-xs uppercase tracking-wide text-ash">
+                    Reported Purity
+                  </dt>
+                  <dd className="mt-0.5 font-medium text-ink">{purity}</dd>
+                </div>
+              ) : null}
               <div>
                 <dt className="text-xs uppercase tracking-wide text-ash">
                   Status

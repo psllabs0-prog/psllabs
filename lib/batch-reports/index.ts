@@ -6,11 +6,22 @@ export {
 } from "./types";
 export { batchReportToCertificateRows } from "./certificate-rows";
 export { retatrutideBlackTopReport } from "./retatrutide-black-top";
+export { ghkCu50mgReport } from "./ghk-cu-50mg";
+export { tesamorelin10mgReport } from "./tesamorelin-10mg";
+export { reconstitutionSolution5mlReport } from "./reconstitution-solution-5ml";
 
 import { retatrutideBlackTopReport } from "./retatrutide-black-top";
+import { ghkCu50mgReport } from "./ghk-cu-50mg";
+import { tesamorelin10mgReport } from "./tesamorelin-10mg";
+import { reconstitutionSolution5mlReport } from "./reconstitution-solution-5ml";
 import type { BatchReport } from "./types";
 
-export const batchReports: BatchReport[] = [retatrutideBlackTopReport];
+export const batchReports: BatchReport[] = [
+  retatrutideBlackTopReport,
+  ghkCu50mgReport,
+  tesamorelin10mgReport,
+  reconstitutionSolution5mlReport,
+];
 
 export function getBatchReportsForProduct(handle: string): BatchReport[] {
   return batchReports.filter((report) => report.productHandle === handle);

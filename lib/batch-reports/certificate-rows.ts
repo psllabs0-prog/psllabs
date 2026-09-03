@@ -7,16 +7,30 @@ import { formatReportedPurity } from "./types";
 export function batchReportToCertificateRows(
   report: BatchReport
 ): CertificateRow[] {
-  return [
+  const rows: CertificateRow[] = [
     { label: "SKU", value: report.sku },
     { label: "Batch", value: report.batch },
     { label: "Task", value: report.taskNumber },
-    {
+  ];
+
+  if (report.purityPercent !== undefined) {
+    rows.push({
       label: "Purity",
       value: formatReportedPurity(report.purityPercent),
       highlight: true,
-    },
+    });
+  } else if (report.reportedResult) {
+    rows.push({
+      label: report.reportedResult.label,
+      value: report.reportedResult.value,
+      highlight: true,
+    });
+  }
+
+  rows.push(
     { label: "Laboratory", value: report.laboratory },
-    { label: "Analysis", value: report.analysisDate },
-  ];
+    { label: "Analysis", value: report.analysisDate }
+  );
+
+  return rows;
 }

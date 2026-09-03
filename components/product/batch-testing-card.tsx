@@ -20,8 +20,31 @@ type BatchTestingCardProps = {
   report: BatchReport;
 };
 
+function laboratoryReportedAmount(report: BatchReport): {
+  label: string;
+  value: string;
+  helper: string;
+} {
+  if (report.reportedResult) {
+    return {
+      label: `${report.reportedResult.label} — Batch ${report.batch}`,
+      value: report.reportedResult.value,
+      helper: "Result reported for the tested sample",
+    };
+  }
+
+  return {
+    label: `Laboratory-Reported Amount — Batch ${report.batch}`,
+    value:
+      report.reportedAmountMg !== undefined
+        ? formatReportedAmount(report.reportedAmountMg)
+        : "—",
+    helper: "Amount reported for the tested sample",
+  };
+}
+
 export function BatchTestingCard({ report }: BatchTestingCardProps) {
-  const amountLabel = formatReportedAmount(report.reportedAmountMg);
+  const amount = laboratoryReportedAmount(report);
 
   return (
     <div className="flex flex-col gap-5">
@@ -48,14 +71,12 @@ export function BatchTestingCard({ report }: BatchTestingCardProps) {
           </div>
           <div>
             <p className="font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-stone">
-              Laboratory-Reported Amount — Batch {report.batch}
+              {amount.label}
             </p>
             <p className="mt-1 font-mono text-xl font-medium text-ink">
-              {amountLabel}
+              {amount.value}
             </p>
-            <p className="mt-1 text-xs text-ash">
-              Amount reported for the tested sample
-            </p>
+            <p className="mt-1 text-xs text-ash">{amount.helper}</p>
           </div>
         </div>
         <p className="mt-2 text-xs leading-relaxed text-ash">{BATCH_SCOPE_NOTE}</p>

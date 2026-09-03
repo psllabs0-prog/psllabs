@@ -1,7 +1,10 @@
 import { cellularEnergy } from "./data/cellular-energy";
 import { foundation } from "./data/foundation";
+import { ghkCu } from "./data/ghk-cu";
+import { reconstitutionSolution } from "./data/reconstitution-solution";
 import { retatrutide } from "./data/retatrutide";
 import { recovery } from "./data/recovery";
+import { tesamorelin } from "./data/tesamorelin";
 import { getOtherProducts as filterOthers } from "./shared";
 import type { Product, ProductHandle } from "./types";
 
@@ -10,6 +13,9 @@ export const products: Record<ProductHandle, Product> = {
   "cellular-energy": cellularEnergy,
   recovery,
   retatrutide,
+  "ghk-cu": ghkCu,
+  tesamorelin,
+  "reconstitution-solution": reconstitutionSolution,
 };
 
 export const productHandles = Object.keys(products) as ProductHandle[];

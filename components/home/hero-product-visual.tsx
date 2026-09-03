@@ -8,11 +8,11 @@ import { heroCopy } from "@/lib/home/homepage";
 
 function ReportPreviewContent({ compact = false }: { compact?: boolean }) {
   const report = retatrutideBlackTopReport;
-  const amount = formatReportedAmount(report.reportedAmountMg).replace(
+  const amount = formatReportedAmount(report.reportedAmountMg ?? 0).replace(
     "mg",
     " mg"
   );
-  const purity = formatReportedPurity(report.purityPercent);
+  const purity = formatReportedPurity(report.purityPercent ?? 0);
 
   return (
     <>
