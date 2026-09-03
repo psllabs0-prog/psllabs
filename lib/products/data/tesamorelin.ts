@@ -16,14 +16,14 @@ export const tesamorelin: Product = {
   tag: "RESEARCH PEPTIDE",
   name: "Tesamorelin",
   shortDescription:
-    "Tesamorelin — growth hormone secretagogue receptor agonist for laboratory research. HPLC-verified purity. Batch-specific Certificate of Analysis available. Not for human or animal use.",
+    "Tesamorelin — synthetic peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific Certificate of Analysis available. Not for human or animal use.",
   price: 89.99,
   stockStatus: "in_stock",
   imageSrc: PRODUCT_VIAL_IMAGE.src,
   imageAlt: PRODUCT_VIAL_IMAGE.alt,
   stackRole: "Research peptide · laboratory use only",
   whyThisExists:
-    "Tesamorelin is a synthetic peptide analogue studied as a growth hormone secretagogue receptor agonist in metabolic research models. It is supplied as a lyophilized reference standard for in vitro and animal-model laboratory applications.\n\nThis product is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",
+    "Tesamorelin is a synthetic peptide reference standard supplied as a lyophilized powder for laboratory research. Purity: lot-specific by independent HPLC (see Batch Testing section for published data).\n\nThis product is supplied as a reference standard for analytical and in vitro laboratory applications. It is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",
   bullets: [
     "Lyophilized research peptide",
     "Independent batch documentation for selected lots",
@@ -85,7 +85,7 @@ export const tesamorelin: Product = {
   specifications: [
     { label: "SKU", value: "PSL-TESA-10MG" },
     { label: "Compound", value: "Tesamorelin" },
-    { label: "Class", value: "Growth hormone secretagogue receptor agonist" },
+    { label: "Class", value: "Synthetic peptide" },
     { label: "Format", value: "Lyophilized powder" },
     { label: "Nominal Strength", value: "10mg" },
     {

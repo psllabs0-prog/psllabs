@@ -23,7 +23,7 @@ export const ghkCu: Product = {
   imageAlt: PRODUCT_VIAL_IMAGE.alt,
   stackRole: "Research peptide · laboratory use only",
   whyThisExists:
-    "GHK-Cu is a copper-binding tripeptide studied in extracellular matrix and dermal fibroblast research models. It is supplied as a lyophilized reference standard for in vitro laboratory applications.\n\nThis product is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",
+    "GHK-Cu is a copper-binding tripeptide reference standard supplied as a lyophilized powder for laboratory research. Purity: lot-specific by independent HPLC (see Batch Testing section for published data).\n\nThis product is supplied as a reference standard for analytical and in vitro laboratory applications. It is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",
   bullets: [
     "Lyophilized research peptide",
     "Independent batch documentation for selected lots",

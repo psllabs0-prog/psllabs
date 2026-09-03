@@ -41,7 +41,7 @@ export const catalogProducts: CatalogProduct[] = [
     name: "GHK-Cu",
     strength: "50mg",
     description:
-      "Copper peptide for extracellular matrix research. In vitro applications in dermal fibroblast studies.",
+      "Copper peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific documentation available for selected lots.",
     price: 24.99,
     href: productPathFromSku("PSL-GHKCU-50MG"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
@@ -86,7 +86,7 @@ export const catalogProducts: CatalogProduct[] = [
     name: "Tesamorelin",
     strength: "10mg",
     description:
-      "Growth hormone secretagogue receptor agonist for metabolic research. In vitro and animal model applications.",
+      "Synthetic peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific documentation available for selected lots.",
     price: 89.99,
     href: productPathFromSku("PSL-TESA-10MG"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
@@ -116,11 +116,11 @@ export const catalogProducts: CatalogProduct[] = [
     name: "Reconstitution Solution",
     strength: "5ml",
     description:
-      "A sterile solution used to prepare research compounds.",
+      "Laboratory solution for preparing research compounds. Batch-specific documentation available for selected lots.",
     price: 12.99,
     href: productPathFromSku("PSL-RS-5ML"),
     imageSrc: PRODUCT_VIAL_IMAGE.src,
-    imageAlt: "Vial of sterile reconstitution solution",
+    imageAlt: "Vial of reconstitution solution",
     purityBadge: "Batch-specific documentation",
     status: "active",
   },

@@ -10,16 +10,16 @@ export const reconstitutionSolution: Product = {
   tag: "LABORATORY REAGENT",
   name: "Reconstitution Solution",
   shortDescription:
-    "Sterile reconstitution solution for preparing research compounds in the laboratory. Batch-specific Certificate of Analysis available. Not for human or animal use.",
+    "Laboratory reconstitution solution for preparing research compounds. Batch-specific Certificate of Analysis available. Not for human or animal use.",
   price: 12.99,
   stockStatus: "in_stock",
   imageSrc: PRODUCT_VIAL_IMAGE.src,
-  imageAlt: "Vial of sterile reconstitution solution",
+  imageAlt: "Vial of reconstitution solution",
   stackRole: "Laboratory reagent · research use only",
   whyThisExists:
-    "Reconstitution Solution is a sterile laboratory reagent used to prepare research compounds for in vitro workflows. It is supplied for laboratory research applications only.\n\nThis product is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",
+    "Reconstitution Solution is a laboratory reagent supplied for preparing research compounds in in vitro workflows. Benzyl alcohol concentration is reported on published lot-specific laboratory reports when available.\n\nThis product is supplied for laboratory research applications only. It is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",
   bullets: [
-    "Sterile laboratory reagent",
+    "Laboratory reagent",
     "Independent batch documentation for selected lots",
     "Laboratory report available for published lots",
     "For laboratory and research use only",
@@ -29,7 +29,7 @@ export const reconstitutionSolution: Product = {
       name: "Reconstitution Solution",
       dose: "5ml",
       mechanism:
-        "Sterile aqueous solution with benzyl alcohol for laboratory reconstitution of research compounds.",
+        "Aqueous laboratory solution with benzyl alcohol for reconstitution of research compounds in vitro.",
     },
   ],
   howToUse: [
@@ -79,7 +79,7 @@ export const reconstitutionSolution: Product = {
     { label: "SKU", value: "PSL-RS-5ML" },
     { label: "Product", value: "Reconstitution Solution" },
     { label: "Class", value: "Laboratory reagent" },
-    { label: "Format", value: "Sterile solution" },
+    { label: "Format", value: "Liquid solution" },
     { label: "Nominal Strength", value: "5ml" },
     {
       label: `${report.reportedResult!.label} — Batch ${report.batch}`,
