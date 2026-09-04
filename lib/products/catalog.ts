@@ -64,13 +64,13 @@ export const catalogProducts: CatalogProduct[] = [
     name: "BPC-157",
     strength: "10mg",
     description:
-      "Pentadecapeptide for angiogenic signaling research. Studied in rodent models of connective tissue repair.",
-    price: 39.99,
+      "Synthetic peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific documentation available for selected lots.",
+    price: 49.99,
     href: productPathFromSku("PSL-BPC157-10MG"),
     imageSrc: bpc157Image.src,
     imageAlt: bpc157Image.alt,
-    purityBadge: "Coming soon",
-    status: "coming_soon",
+    purityBadge: "Batch-specific purity",
+    status: "active",
   },
   {
     handle: "mots-c",

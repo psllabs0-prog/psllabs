@@ -63,5 +63,6 @@ export type ProductHandle =
   | "recovery"
   | "retatrutide"
   | "ghk-cu"
+  | "bpc-157"
   | "tesamorelin"
   | "reconstitution-solution";

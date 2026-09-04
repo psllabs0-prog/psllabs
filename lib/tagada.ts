@@ -13,6 +13,7 @@ const TAGADA_API_BASE = "https://api.tagada.io";
 export const TAGADA_CANONICAL_PRODUCT_IDS: Readonly<Record<string, string>> = {
   retatrutide: "product_98cfd793a08d",
   "ghk-cu": "product_28f28923a58d",
+  "bpc-157": "product_1af529727253",
   tesamorelin: "product_b03321ffa25f",
   "reconstitution-solution": "product_011a7e3b6d3f",
 };

@@ -1,5 +1,6 @@
 import { cellularEnergy } from "./data/cellular-energy";
 import { foundation } from "./data/foundation";
+import { bpc157 } from "./data/bpc-157";
 import { ghkCu } from "./data/ghk-cu";
 import { reconstitutionSolution } from "./data/reconstitution-solution";
 import { retatrutide } from "./data/retatrutide";
@@ -14,6 +15,7 @@ export const products: Record<ProductHandle, Product> = {
   recovery,
   retatrutide,
   "ghk-cu": ghkCu,
+  "bpc-157": bpc157,
   tesamorelin,
   "reconstitution-solution": reconstitutionSolution,
 };

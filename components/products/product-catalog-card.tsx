@@ -72,14 +72,6 @@ export function ProductCatalogCard({
           </PillButton>
         ) : (
           <>
-            <div className="flex flex-wrap gap-2">
-              <span className="rounded-pill border border-border-strong bg-paper px-3 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-accent">
-                {product.purityBadge}
-              </span>
-              <span className="rounded-pill border border-linen bg-paper px-3 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-ash">
-                Research Use Only
-              </span>
-            </div>
             <p className="mt-auto font-mono text-3xl font-medium tracking-tight text-ink">
               {formatPrice(product.price)}
             </p>

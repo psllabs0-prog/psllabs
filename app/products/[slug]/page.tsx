@@ -99,6 +99,7 @@ export default async function ProductPage({ params }: PageProps) {
   const researchPeptideHandles = new Set([
     "retatrutide",
     "ghk-cu",
+    "bpc-157",
     "tesamorelin",
     "reconstitution-solution",
   ]);
