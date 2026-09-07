@@ -5,7 +5,7 @@ import {
 } from "@/lib/checkout/discount-codes";
 import { normalizeCountryCode, US_COUNTRY, US_STATES } from "@/lib/checkout/us-states";
 import { checkoutWithStockCheck } from "@/lib/inventory/store";
-import type { Order, OrderItem } from "@/lib/orders/types";
+import type { Order, OrderItem, PaymentMethod } from "@/lib/orders/types";
 import { getCheckoutProduct } from "@/lib/payments/products";
 import { getCatalogProductByHandle } from "@/lib/products/catalog";
 
@@ -20,6 +20,12 @@ export type CheckoutBody = {
   currency?: unknown;
   /** Optional promo code — re-validated server-side; amount never trusted from client. */
   discountCode?: unknown;
+  /** Optional payment method — "bitcoin" | "btcpay" | "card". */
+  paymentMethod?: unknown;
+};
+
+export type PrepareOrderOptions = {
+  paymentMethod?: PaymentMethod | "btcpay" | null;
 };
 
 type RawItem = { handle?: unknown; quantity?: unknown };
@@ -45,7 +51,8 @@ const str = (value: unknown): string =>
  * persist a pending order, and reserve inventory. Shared by BTCPay and card paths.
  */
 export async function prepareReservedOrder(
-  body: CheckoutBody
+  body: CheckoutBody,
+  options?: PrepareOrderOptions
 ): Promise<PrepareOrderResult> {
   if (!Array.isArray(body.items) || body.items.length === 0) {
     return { ok: false, error: "Cart is empty.", status: 400 };
@@ -173,7 +180,19 @@ export async function prepareReservedOrder(
     }
   }
 
-  const totals = computeTotals(subtotalRaw, shipping.state, appliedDiscount);
+  const rawMethod =
+    options?.paymentMethod ??
+    (typeof body.paymentMethod === "string" ? body.paymentMethod : null);
+  const paymentMethod: PaymentMethod | null =
+    rawMethod === "bitcoin" || rawMethod === "btcpay"
+      ? "bitcoin"
+      : rawMethod === "card"
+        ? "card"
+        : null;
+
+  const totals = computeTotals(subtotalRaw, shipping.state, appliedDiscount, {
+    paymentMethod,
+  });
   if (totals.total <= 0) {
     return {
       ok: false,
@@ -203,7 +222,7 @@ export async function prepareReservedOrder(
     invoiceId: null,
     invoiceCreatedAt: null,
     paidAt: null,
-    paymentMethod: null,
+    paymentMethod,
     emailSent: false,
     emailError: null,
     customerEmailSent: false,

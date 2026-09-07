@@ -146,9 +146,13 @@ export function OrderStatus({
               <dt>Subtotal</dt>
               <dd className="text-ink">{money(order.subtotal)}</dd>
             </div>
-            {order.discountAmount > 0 && order.discountCode && (
+            {order.discountAmount > 0 && (
               <div className="flex justify-between text-verified-green">
-                <dt>Discount ({order.discountCode})</dt>
+                <dt>
+                  {order.discountCode === "BITCOIN"
+                    ? "Bitcoin discount (5%)"
+                    : `Discount (${order.discountCode ?? "applied"})`}
+                </dt>
                 <dd>-{money(order.discountAmount)}</dd>
               </div>
             )}

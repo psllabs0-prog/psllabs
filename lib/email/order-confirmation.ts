@@ -79,6 +79,11 @@ export async function sendCustomerOrderConfirmation(
       <tbody>${itemRows}</tbody>
       <tfoot>
         <tr><td colspan="5" style="padding:6px 8px;text-align:right;color:${muted};">Subtotal</td><td style="padding:6px 8px;text-align:right;font-family:monospace;">${money(order.subtotal)}</td></tr>
+        ${
+          order.discountAmount > 0
+            ? `<tr><td colspan="5" style="padding:6px 8px;text-align:right;color:${accent};">${order.discountCode === "BITCOIN" || order.paymentMethod === "bitcoin" ? "Bitcoin discount (5%)" : `Discount (${escapeHtml(order.discountCode || "Promo")})`}</td><td style="padding:6px 8px;text-align:right;font-family:monospace;color:${accent};">-${money(order.discountAmount)}</td></tr>`
+            : ""
+        }
         <tr><td colspan="5" style="padding:6px 8px;text-align:right;color:${muted};">Shipping</td><td style="padding:6px 8px;text-align:right;font-family:monospace;">${shippingLabel(order.shippingCost)}</td></tr>
         <tr><td colspan="5" style="padding:10px 8px;text-align:right;font-weight:bold;">Order total</td><td style="padding:10px 8px;text-align:right;font-weight:bold;font-family:monospace;">${money(order.total)}</td></tr>
       </tfoot>
@@ -117,6 +122,11 @@ export async function sendCustomerOrderConfirmation(
     }),
     "",
     `Subtotal: ${money(order.subtotal)}`,
+    ...(order.discountAmount > 0
+      ? [
+          `${order.discountCode === "BITCOIN" || order.paymentMethod === "bitcoin" ? "Bitcoin discount (5%)" : `Discount (${order.discountCode || "Promo"})`}: -${money(order.discountAmount)}`,
+        ]
+      : []),
     `Shipping: ${shippingLabel(order.shippingCost)}`,
     `Order total: ${money(order.total)}`,
     ...(discountLine ? ["", discountLine] : []),

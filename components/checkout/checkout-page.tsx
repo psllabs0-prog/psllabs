@@ -142,7 +142,9 @@ export function CheckoutPage() {
     (sum, line) => sum + line.unitPrice * line.quantity,
     0
   );
-  const totals = computeTotals(subtotalRaw, form.state, appliedDiscount);
+  const totals = computeTotals(subtotalRaw, form.state, appliedDiscount, {
+    paymentMethod: method,
+  });
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -168,6 +170,12 @@ export function CheckoutPage() {
         handle: line.handle,
         quantity: line.quantity,
       })),
+      paymentMethod:
+        method === "btcpay"
+          ? "bitcoin"
+          : method === "card"
+            ? "card"
+            : undefined,
       ...(appliedDiscount ? { discountCode: appliedDiscount.code } : {}),
     };
   }
@@ -539,12 +547,17 @@ export function CheckoutPage() {
                     />
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="text-sm font-medium text-ink">
-                      Bitcoin via BTCPay
-                    </span>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium text-ink">
+                        Pay with Bitcoin
+                      </span>
+                      <span className="inline-flex items-center rounded-pill border border-accent/35 bg-accent/10 px-2 py-0.5 font-mono text-[0.68rem] font-semibold tracking-wide text-accent">
+                        Save 5%
+                      </span>
+                    </div>
                     <span className="text-xs leading-relaxed text-ash">
-                      Pay with Bitcoin. You&apos;ll be redirected to our secure
-                      BTCPay checkout.
+                      Pay with Bitcoin — save 5% on your subtotal. You&apos;ll be
+                      redirected to our secure BTCPay checkout.
                     </span>
                   </div>
                   {method === "btcpay" && (
@@ -755,6 +768,14 @@ function CheckoutSummary({
           <dt>Subtotal</dt>
           <dd className="font-mono text-ink">{formatPrice(totals.subtotal)}</dd>
         </div>
+        {totals.bitcoinDiscountAmount > 0 && (
+          <div className="flex justify-between text-accent">
+            <dt>Bitcoin discount (5%)</dt>
+            <dd className="font-mono">
+              -{formatPrice(totals.bitcoinDiscountAmount)}
+            </dd>
+          </div>
+        )}
         {showDiscount && totals.discountAmount > 0 && totals.discountCode && (
           <div className="flex justify-between text-accent">
             <dt>Discount ({totals.discountCode})</dt>

@@ -6,11 +6,19 @@ function money(n: number): string {
 
 /**
  * Email line shown only when a discount was stored on the order.
- * Example: Discount code used: SUMMER20 (-20%, -$12.00)
+ * Example:
+ * - Bitcoin discount (5%): -$3.00
+ * - Discount code used: SUMMER20 (-20%, -$12.00)
  */
 export function formatDiscountEmailLine(order: Order): string | null {
+  if (!(order.discountAmount > 0)) return null;
+
   const code = order.discountCode?.trim();
-  if (!code || !(order.discountAmount > 0)) return null;
+  if (code === "BITCOIN" || order.paymentMethod === "bitcoin") {
+    return `Bitcoin discount (5%): -${money(order.discountAmount)}`;
+  }
+
+  if (!code) return null;
 
   const percent =
     order.subtotal > 0

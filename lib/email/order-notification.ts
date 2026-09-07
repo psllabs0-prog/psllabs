@@ -92,6 +92,11 @@ export async function sendOrderEmail(order: Order): Promise<void> {
       <tbody>${rows}</tbody>
       <tfoot>
         <tr><td colspan="4" style="padding:4px 8px;text-align:right;">Subtotal</td><td style="padding:4px 8px;text-align:right;">${money(order.subtotal)}</td></tr>
+        ${
+          order.discountAmount > 0
+            ? `<tr><td colspan="4" style="padding:4px 8px;text-align:right;color:#059669;">${order.discountCode === "BITCOIN" || order.paymentMethod === "bitcoin" ? "Bitcoin discount (5%)" : `Discount (${escapeHtml(order.discountCode || "Promo")})`}</td><td style="padding:4px 8px;text-align:right;color:#059669;">-${money(order.discountAmount)}</td></tr>`
+            : ""
+        }
         <tr><td colspan="4" style="padding:4px 8px;text-align:right;">Shipping</td><td style="padding:4px 8px;text-align:right;">${shippingLabel(order.shippingCost)}</td></tr>
         <tr><td colspan="4" style="padding:8px;text-align:right;font-weight:bold;">Order total</td><td style="padding:8px;text-align:right;font-weight:bold;">${money(order.total)}</td></tr>
       </tfoot>
@@ -129,6 +134,11 @@ export async function sendOrderEmail(order: Order): Promise<void> {
     }),
     "",
     `Subtotal: ${money(order.subtotal)}`,
+    ...(order.discountAmount > 0
+      ? [
+          `${order.discountCode === "BITCOIN" || order.paymentMethod === "bitcoin" ? "Bitcoin discount (5%)" : `Discount (${order.discountCode || "Promo"})`}: -${money(order.discountAmount)}`,
+        ]
+      : []),
     `Shipping: ${shippingLabel(order.shippingCost)}`,
     `Order total: ${money(order.total)}`,
     "",

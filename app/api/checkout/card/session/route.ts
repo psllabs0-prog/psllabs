@@ -34,7 +34,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const prepared = await prepareReservedOrder(body);
+  const prepared = await prepareReservedOrder(body, { paymentMethod: "card" });
   if (!prepared.ok) {
     return NextResponse.json(
       { error: prepared.error },
