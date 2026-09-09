@@ -326,13 +326,21 @@ export function AdminLedgerDashboard() {
             Financial overview, inventory control, and live transaction log.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => void handleLogout()}
-          className="rounded-pill border border-linen px-4 py-2 text-sm font-medium text-ash transition-colors hover:border-accent/40 hover:text-ink"
-        >
-          Sign out
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            href="/admin-intelligence"
+            className="rounded-pill border border-linen px-4 py-2 text-sm font-medium text-ash transition-colors hover:border-accent/40 hover:text-ink"
+          >
+            Customer feedback
+          </a>
+          <button
+            type="button"
+            onClick={() => void handleLogout()}
+            className="rounded-pill border border-linen px-4 py-2 text-sm font-medium text-ash transition-colors hover:border-accent/40 hover:text-ink"
+          >
+            Sign out
+          </button>
+        </div>
       </div>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-6">

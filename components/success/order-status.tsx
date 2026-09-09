@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { CustomerFeedbackCard } from "@/components/success/customer-feedback-card";
 import type { PublicOrder } from "@/lib/orders/types";
 
 function money(n: number): string {
@@ -174,6 +175,10 @@ export function OrderStatus({
             </p>
           </div>
         </div>
+      )}
+
+      {order && (status === "paid" || status === "shipped") && (
+        <CustomerFeedbackCard orderId={orderId} />
       )}
 
       <div className="mt-10">
