@@ -12,7 +12,7 @@ export const retatrutideSource = {
   description:
     "Synthetic peptide reference standard for laboratory research. Laboratory-reported purity on third-party COA. Batch-specific documentation available.",
   shortDescription:
-    "Retatrutide (CAS 2381089-83-2) — synthetic peptide reference standard for laboratory research. Laboratory-reported purity on third-party COA. Batch-specific Certificate of Analysis available. Not for human or animal use.",
+    "Retatrutide (CAS 2381089-83-2). Synthetic peptide for laboratory research. Laboratory-reported purity on third-party COA. Batch-specific Certificate of Analysis available. Not for human or animal use.",
   purityBadge: "Batch-specific purity",
   href: productPathFromSku("PSL-RT-10MG"),
 } as const;

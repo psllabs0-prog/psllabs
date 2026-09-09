@@ -32,7 +32,7 @@ export function ProductTesting({ product }: { product: Product }) {
             </div>
             <p className="text-base leading-[1.7] text-ash md:text-body-lg">
               {hasReport
-                ? `Independent third-party laboratory documentation is published for selected lots. ${TESTING_SCOPE_STATEMENT}`
+                ? `Independent third-party laboratory documentation is published for active lots. ${TESTING_SCOPE_STATEMENT}`
                 : (product.testing.description ||
                   "Lot-specific third-party documentation is published when available.")}
             </p>

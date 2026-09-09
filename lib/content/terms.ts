@@ -38,7 +38,7 @@ export const termsSections: ContentSection[] = [
     id: "intellectual-property",
     title: "Intellectual property",
     paragraphs: [
-      `All content on this site—including text, design, logos, and product copy—is owned by ${LEGAL_ENTITY_NAME} and protected by applicable intellectual property laws. You may not reproduce or distribute our content without written permission.`,
+      `All content on this site, including text, design, logos, and product copy, is owned by ${LEGAL_ENTITY_NAME} and protected by applicable intellectual property laws. You may not reproduce or distribute our content without written permission.`,
     ],
   },
   {
@@ -59,7 +59,7 @@ export const termsSections: ContentSection[] = [
     id: "contact",
     title: "Contact",
     paragraphs: [
-      `${LEGAL_ENTITY_NAME} — Questions about these terms: support@psllabs.org.`,
+      `${LEGAL_ENTITY_NAME}. Questions about these terms: support@psllabs.org.`,
     ],
   },
 ];

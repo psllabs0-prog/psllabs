@@ -95,10 +95,10 @@ export function GuideLayout({
         <AnimateIn delay={0.2} className="mt-14 pt-8 border-t border-linen">
           <div className="rounded-xl border border-linen bg-surface p-5 sm:p-6 text-xs text-ash space-y-2">
             <p className="font-mono font-semibold text-stone uppercase tracking-wider">
-              Research Use Compliance Notice
+              Research Use Only
             </p>
             <p className="leading-relaxed">
-              This guide is prepared for institutional researchers, analytical chemists, and laboratory personnel evaluating reference standards and chemical documentation. Materials discussed are intended strictly for in vitro laboratory research and analytical calibration. Not for human or veterinary administration, clinical therapy, or consumer use.
+              This guide is for researchers and lab staff reviewing analytical documentation. Materials discussed are for laboratory research only. They are not for human or veterinary use.
             </p>
           </div>
         </AnimateIn>

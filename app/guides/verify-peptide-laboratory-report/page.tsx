@@ -74,7 +74,7 @@ export default function VerifyPeptideLaboratoryReportPage() {
         {/* Intro */}
         <section className="flex flex-col gap-4">
           <p className="text-ash leading-relaxed">
-            When evaluating third-party testing documentation for research biochemicals, many buyers look straight at the purity percentage, see &ldquo;99%&rdquo;, and assume the material is verified. In rigorous laboratory procurement, that number is the <em>last</em> detail you evaluate—not the first.
+            When evaluating third-party testing documentation for research biochemicals, many buyers look straight at the purity percentage, see &ldquo;99%&rdquo;, and assume the material is verified. In rigorous laboratory procurement, that number is the <em>last</em> detail you evaluate, not the first.
           </p>
           <p className="text-ash leading-relaxed">
             A laboratory report is only as reliable as its provenance. If a document cannot be independently verified on the testing laboratory&apos;s server, if the batch identifier does not match the physical container, or if the test method does not actually measure what is claimed, the purity percentage is scientifically meaningless.
@@ -339,7 +339,7 @@ export default function VerifyPeptideLaboratoryReportPage() {
               href="/guides/what-peptide-testing-can-establish"
               className="font-medium text-accent underline underline-offset-4 hover:opacity-80"
             >
-              What Peptide Analytical Testing Can—and Cannot—Establish
+              What Peptide Analytical Testing Can, and Cannot, Establish
             </Link>.
           </p>
         </section>

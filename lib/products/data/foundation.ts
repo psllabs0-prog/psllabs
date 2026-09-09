@@ -6,12 +6,12 @@ export const foundation: Product = {
   tag: "FOUNDATION · COMPOUND PROFILE",
   name: "Foundation",
   shortDescription:
-    "Reference profile for trans-resveratrol, spermidine, fisetin, and methylated B-complex—four disclosed actives with documented mechanisms in published research.",
+    "Reference profile for trans-resveratrol, spermidine, fisetin, and methylated B-complex, four disclosed actives with documented mechanisms in published research.",
   price: 52,
   stockStatus: "in_stock",
   stackRole: "Compound profile · research reference",
   whyThisExists:
-    "Many compound listings hide doses behind blends or omit per-ingredient documentation. Foundation publishes four actives—sirtuin signaling, autophagy support, senescent-cell research, and methylation cofactors—each at disclosed amounts referenced in the literature, with batch-matched testing records.",
+    "Many compound listings hide doses behind blends or omit per-ingredient documentation. Foundation publishes four actives, sirtuin signaling, autophagy support, senescent-cell research, and methylation cofactors, each at disclosed amounts referenced in the literature, with batch-matched testing records.",
   bullets: [...defaultBullets],
   ingredients: [
     {
@@ -24,7 +24,7 @@ export const foundation: Product = {
       name: "Spermidine",
       dose: "3 mg",
       mechanism:
-        "Polyamine associated with autophagy induction—the intracellular process that clears damaged proteins and organelles.",
+        "Polyamine associated with autophagy induction, the intracellular process that clears damaged proteins and organelles.",
     },
     {
       name: "Fisetin",
@@ -96,7 +96,7 @@ export const foundation: Product = {
     {
       authors: "Kennedy DO.",
       title:
-        "B vitamins and the brain: mechanisms, dose, and efficacy—a review.",
+        "B vitamins and the brain: mechanisms, dose, and efficacy, a review.",
       journal: "Nutrients",
       year: 2016,
       volume: "8",

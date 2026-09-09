@@ -242,7 +242,7 @@ export default function BatchSpecificVsGenericCoaPage() {
             </div>
           </div>
           <p className="text-ash leading-relaxed pt-2">
-            If any link in this chain is broken—such as a missing task number or an unlabelled vial—the chain of custody collapses, and the documentation cannot be verified.
+            If any link in this chain is broken, such as a missing task number or an unlabelled vial, the chain of custody collapses, and the documentation cannot be verified.
           </p>
         </section>
 
@@ -300,7 +300,7 @@ export default function BatchSpecificVsGenericCoaPage() {
             Even with an authentic, batch-matched third-party laboratory report, researchers must recognize an essential statistical truth:
           </p>
           <AnalyticalCallout title="A Batch-Matched Report Does Not Mean Every Vial Was Tested" variant="limitation">
-            Analytical testing is destructive: the submitted sample is dissolved, filtered, and consumed during chromatography and mass spectrometry. Therefore, a batch-matched report represents the specific sample vial delivered to the laboratory—not every single individual vial in that production lot.
+            Analytical testing is destructive: the submitted sample is dissolved, filtered, and consumed during chromatography and mass spectrometry. Therefore, a batch-matched report represents the specific sample vial delivered to the laboratory, not every single individual vial in that production lot.
           </AnalyticalCallout>
           <p className="text-ash leading-relaxed">
             High-integrity production relies on homogeneous bulk synthesis and validated filling automation to ensure consistency across vials. However, no analytical testing facility can test 100% of finished units without destroying 100% of inventory.
@@ -362,7 +362,7 @@ export default function BatchSpecificVsGenericCoaPage() {
               href="/guides/what-peptide-testing-can-establish"
               className="font-medium text-accent underline underline-offset-4 hover:opacity-80"
             >
-              What Peptide Analytical Testing Can—and Cannot—Establish
+              What Peptide Analytical Testing Can, and Cannot, Establish
             </Link>{" "}
             or inspect live reports in our{" "}
             <Link

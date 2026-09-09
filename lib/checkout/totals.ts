@@ -59,7 +59,7 @@ export type OrderTotals = {
  * Compute order totals from a raw product subtotal.
  * Discount applies to the product subtotal before tax.
  * If payment method is Bitcoin (or btcpay), a 5% discount is applied to the subtotal.
- * Shipping free-threshold qualifies if either raw or post-discount subtotal is >= $150.
+ * Shipping free-threshold qualifies if either raw or post-discount subtotal is >= FREE_SHIPPING_THRESHOLD.
  */
 export function computeTotals(
   subtotalRaw: number,

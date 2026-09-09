@@ -6,7 +6,7 @@ export const cellularEnergy: Product = {
   tag: "CELLULAR ENERGY · NAD+",
   name: "Cellular Energy",
   shortDescription:
-    "Reference profile for NMN, NR, and TMG—NAD+ pathway precursors and methylation cofactors at disclosed doses cited in published research.",
+    "Reference profile for NMN, NR, and TMG, NAD+ pathway precursors and methylation cofactors at disclosed doses cited in published research.",
   price: 68,
   stockStatus: "in_stock",
   stackRole: "Compound profile · research reference",

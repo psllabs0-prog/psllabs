@@ -7,7 +7,7 @@ export const protocolPageMeta: ContentPageMeta = {
   description:
     "How PSL Labs organizes research compound profiles, testing records, and batch documentation.",
   intro: [
-    "PSL Labs groups related compound profiles for reference and documentation purposes. All materials are sold for laboratory research use only—not for human consumption or medical application.",
+    "PSL Labs groups related compound profiles for reference and documentation purposes. All materials are sold for laboratory research use only, not for human consumption or medical application.",
   ],
 };
 
@@ -22,7 +22,7 @@ export const protocolSections: ContentSection[] = [
   },
   {
     id: "foundation",
-    title: "Foundation — compound profile",
+    title: "Foundation: compound profile",
     paragraphs: [
       "Foundation documents trans-resveratrol, spermidine, fisetin, and methylated B vitamins at disclosed doses with per-ingredient mechanisms and batch documentation when published.",
       "Review the lot-specific laboratory report and reference citations before integrating into any research workflow.",
@@ -30,7 +30,7 @@ export const protocolSections: ContentSection[] = [
   },
   {
     id: "cellular-energy",
-    title: "Cellular Energy — NAD+ pathway",
+    title: "Cellular Energy: NAD+ pathway",
     paragraphs: [
       "Cellular Energy documents NMN, NR, and TMG at disclosed doses referenced in NAD+ pathway research literature.",
       "When a laboratory report is published for your lot, review it on the product page or in COA / Batch Lookup.",
@@ -38,7 +38,7 @@ export const protocolSections: ContentSection[] = [
   },
   {
     id: "recovery",
-    title: "Recovery — mitochondrial compounds",
+    title: "Recovery: mitochondrial compounds",
     paragraphs: [
       "Recovery documents urolithin A, ubiquinol, and PQQ at disclosed doses cited in mitochondrial research publications.",
       "Match your lot number to any published report and confirm specifications meet your laboratory requirements.",

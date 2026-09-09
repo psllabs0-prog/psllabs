@@ -1,7 +1,7 @@
 import type { Product } from "./types";
 
 export const defaultBullets = [
-  "Independent batch documentation for selected lots",
+  "Independent batch documentation for published lots",
   "Laboratory reports published when available",
   "Research use only",
 ] as const;

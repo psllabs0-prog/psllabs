@@ -28,7 +28,7 @@ export function AvailableMaterialsSection({
               Available Research Materials
             </h2>
             <p className="text-sm leading-relaxed text-ash md:text-base">
-              Standardized reference materials for in vitro laboratory analysis and biochemical investigation. Every active lot is released with published third-party laboratory documentation.
+              Active catalog materials for laboratory research. Each active lot ships with a published third-party lab report.
             </p>
           </div>
           <Link

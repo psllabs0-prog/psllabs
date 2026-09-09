@@ -31,12 +31,10 @@ export default async function ProductsPage() {
           <div className="flex max-w-3xl flex-col gap-5">
             <p className="mono text-accent">PRODUCT CATALOG</p>
             <h1 className="font-display text-display-lg font-bold text-ink">
-              Analytical research reference standards.
+              Research peptides with published lab reports.
             </h1>
             <p className="text-body-lg text-ash">
-              Each product includes disclosed specifications and batch
-              documentation when published—for research use only. Testing scope
-              and results are shown on each original laboratory report.
+              Each product lists disclosed specifications and batch documentation when published. Research use only. Testing scope and results are shown on each original laboratory report.
             </p>
           </div>
         </div>

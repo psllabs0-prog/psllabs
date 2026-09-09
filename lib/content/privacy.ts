@@ -13,7 +13,7 @@ export const privacySections: ContentSection[] = [
     id: "collect",
     title: "Information we collect",
     paragraphs: [
-      "We collect information you provide directly: name, email, shipping address, payment details (processed by our payment provider—we do not store full card numbers), and order history.",
+      "We collect information you provide directly: name, email, shipping address, payment details (processed by our payment provider, we do not store full card numbers), and order history.",
       "We automatically collect usage data: IP address, browser type, pages visited, and referring URL via standard analytics tools.",
     ],
   },
@@ -57,7 +57,7 @@ export const privacySections: ContentSection[] = [
     id: "contact",
     title: "Contact",
     paragraphs: [
-      `${LEGAL_ENTITY_NAME} — Questions about this policy: support@psllabs.org.`,
+      `${LEGAL_ENTITY_NAME}. Questions about this policy: support@psllabs.org.`,
     ],
   },
 ];

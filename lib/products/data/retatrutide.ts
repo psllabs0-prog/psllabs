@@ -27,7 +27,7 @@ export const retatrutide: Product = {
     "Retatrutide (CAS 2381089-83-2) is a synthetic peptide analogue with activity at GLP-1, GIP, and glucagon receptors in vitro. Molecular formula: C223H330F3N57O68. Molecular weight: approximately 4845.4 g/mol. Purity: lot-specific by independent HPLC (see Batch Testing section for published data). Solubility: Soluble in aqueous buffer at pH 7.4. Storage: Lyophilized powder stable at -20°C. Avoid repeated freeze-thaw cycles.\n\nThis product is supplied as a reference standard for receptor-binding assays, cell-signaling studies, and pharmacokinetic research in appropriate model systems. It is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",
   bullets: [
     "Lyophilized research peptide",
-    "Independent batch documentation for selected lots",
+    "Independent batch documentation for published lots",
     "Laboratory report available for published lots",
     "For laboratory and research use only",
   ],
@@ -78,7 +78,7 @@ export const retatrutide: Product = {
     },
   ],
   testing: {
-    description: `Independent third-party laboratory documentation is published for selected lots when available. ${TESTING_SCOPE_STATEMENT}`,
+    description: `Independent third-party laboratory documentation is published for active lots. ${TESTING_SCOPE_STATEMENT}`,
   },
   stackBlurb:
     "Retatrutide is supplied as a standalone research peptide with lot-specific documentation when published.",
@@ -94,14 +94,14 @@ export const retatrutide: Product = {
     { label: "Format", value: "Lyophilized powder" },
     { label: "Nominal Strength", value: retatrutideSource.nominalStrength },
     {
-      label: `Laboratory-Reported Amount — Batch ${blackTop.batch}`,
+      label: `Laboratory-Reported Amount (Batch ${blackTop.batch})`,
       value: blackTopAmount,
     },
     {
-      label: `Laboratory-Reported Purity — Batch ${blackTop.batch}`,
+      label: `Laboratory-Reported Purity (Batch ${blackTop.batch})`,
       value: blackTopPurity,
     },
-    { label: "Testing", value: "Per original laboratory report (selected lots)" },
+    { label: "Testing", value: "Per original laboratory report for published lots" },
     { label: "COA Status", value: "Third-Party Report Available" },
     { label: "Intended Use", value: "Laboratory research only" },
     { label: "Human Use", value: "Not for human or animal use" },

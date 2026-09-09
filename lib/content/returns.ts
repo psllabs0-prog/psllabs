@@ -49,7 +49,7 @@ export const returnsPageContent = {
     "Products without proof of purchase",
     "Products altered, opened, mishandled, or improperly stored after delivery",
     "Change-of-mind returns",
-    "Requests submitted outside the applicable review period once stated in the final policy",
+    "Claims submitted long after delivery without timely notice or supporting evidence",
     "Suspicious, excessive, or unverifiable claims",
   ],
   timeline: [

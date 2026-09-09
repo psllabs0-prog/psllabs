@@ -124,7 +124,7 @@ export const catalogProducts: CatalogProduct[] = [
     name: "Reconstitution Solution",
     strength: "5ml",
     description:
-      "Laboratory solution for preparing research compounds. Batch-specific documentation available for selected lots.",
+      "Laboratory solution for preparing research compounds. Third-party batch documentation available.",
     price: 12.99,
     href: productPathFromSku("PSL-RS-5ML"),
     imageSrc: reconstitutionImage.src,

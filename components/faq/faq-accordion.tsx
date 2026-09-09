@@ -20,12 +20,12 @@ export function FaqAccordion({ items }: FaqAccordionProps) {
         </header>
 
         <div className="premium-card divide-y divide-linen p-6 md:p-8">
-          {items.map((item, index) => (
+          {items.map((item) => (
             <details
               key={item.id}
               id={item.id}
               className="group py-5 first:pt-0 last:pb-0"
-              open={index === 0}
+              open
             >
               <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-display text-lg font-bold text-ink transition-colors hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:text-xl [&::-webkit-details-marker]:hidden">
                 <span className="min-w-0 flex-1">{item.question}</span>

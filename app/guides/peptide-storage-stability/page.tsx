@@ -59,7 +59,7 @@ export default function PeptideStorageStabilityGuidePage() {
               <p className="text-ash">
                 Lyophilization is freeze-drying. The peptide solution is frozen,
                 then water is removed under vacuum as ice turns directly into
-                vapor (sublimation), leaving a dry solid—often a powder or cake
+                vapor (sublimation), leaving a dry solid, often a powder or cake
                 in the vial. Without bulk water, many chemical pathways that
                 break peptides down run more slowly than they do in liquid.
               </p>
@@ -82,7 +82,7 @@ export default function PeptideStorageStabilityGuidePage() {
                 Temperature controls how fast degradation reactions proceed.
                 Lower temperatures generally slow those reactions. For
                 lyophilized peptides, published handling notes and supplier
-                storage guidance often recommend cold storage—commonly a freezer
+                storage guidance often recommend cold storage, commonly a freezer
                 for longer holding, with refrigerated conditions used for
                 shorter periods when that matches the material’s documentation.
                 Room temperature is usually reserved for brief handling, not
@@ -126,7 +126,7 @@ export default function PeptideStorageStabilityGuidePage() {
               <p className="text-ash">
                 Some peptide sequences and related impurities absorb ultraviolet
                 or visible light. Energy from that light can trigger chemical
-                changes—photodegradation—that alter the molecule or create new
+                changes, photodegradation, that alter the molecule or create new
                 byproducts. Storing vials away from direct sunlight and strong
                 lab lighting reduces that exposure.
               </p>
@@ -149,7 +149,7 @@ export default function PeptideStorageStabilityGuidePage() {
                 Scientific literature and industry stability practice generally
                 show that lyophilized peptides can remain analytically suitable
                 for extended periods when kept dry, cold, and protected from
-                light—but “extended” is not infinite. Sequence chemistry,
+                light, but “extended” is not infinite. Sequence chemistry,
                 residual moisture, packaging, and storage history all influence
                 how long a given lot stays close to its original profile.
               </p>
@@ -180,8 +180,8 @@ export default function PeptideStorageStabilityGuidePage() {
                 After reconstitution
               </h2>
               <p className="text-ash">
-                Once a lyophilized peptide is reconstituted—dissolved again in
-                a solvent for laboratory use—stability usually changes
+                Once a lyophilized peptide is reconstituted, dissolved again in
+                a solvent for laboratory use, stability usually changes
                 substantially. Chemical degradation, adsorption to surfaces, and
                 microbial risk (depending on solvent and handling) become more
                 relevant than for the dry solid. Solution storage temperatures,

@@ -6,7 +6,7 @@ export const recovery: Product = {
   tag: "RECOVERY · MITOCHONDRIA",
   name: "Recovery",
   shortDescription:
-    "Reference profile for urolithin A, ubiquinol, and PQQ—mitochondrial research compounds at disclosed doses cited in published studies.",
+    "Reference profile for urolithin A, ubiquinol, and PQQ, mitochondrial research compounds at disclosed doses cited in published studies.",
   price: 84,
   stockStatus: "in_stock",
   stackRole: "Compound profile · research reference",
@@ -18,7 +18,7 @@ export const recovery: Product = {
       name: "Urolithin A",
       dose: "500 mg",
       mechanism:
-        "Postbiotic compound studied for induction of mitophagy—the selective recycling of damaged mitochondria—in published research models.",
+        "Postbiotic compound studied for induction of mitophagy, the selective recycling of damaged mitochondria, in published research models.",
     },
     {
       name: "Ubiquinol (Kaneka QH)",
@@ -104,7 +104,7 @@ export const recovery: Product = {
     {
       question: "Where does urolithin A come from?",
       answer:
-        "Our urolithin A is synthetically produced to documented purity specifications—not reliant on variable microbiome conversion from ellagitannin precursors.",
+        "Our urolithin A is synthetically produced to documented purity specifications, not reliant on variable microbiome conversion from ellagitannin precursors.",
     },
     {
       question: "Is Recovery intended for human use?",

@@ -27,14 +27,14 @@ function laboratoryReportedAmount(report: BatchReport): {
 } {
   if (report.reportedResult) {
     return {
-      label: `${report.reportedResult.label} — Batch ${report.batch}`,
+      label: `${report.reportedResult.label} (Batch ${report.batch})`,
       value: report.reportedResult.value,
       helper: "Result reported for the tested sample",
     };
   }
 
   return {
-    label: `Laboratory-Reported Amount — Batch ${report.batch}`,
+    label: `Laboratory-Reported Amount (Batch ${report.batch})`,
     value:
       report.reportedAmountMg !== undefined
         ? formatReportedAmount(report.reportedAmountMg)
@@ -49,7 +49,7 @@ export function BatchTestingCard({ report }: BatchTestingCardProps) {
   return (
     <div className="flex flex-col gap-5">
       <CertificatePanel
-        headerLabel={`Batch Testing — ${report.batch}`}
+        headerLabel={`Batch Testing: ${report.batch}`}
         rows={batchReportToCertificateRows(report)}
       />
 

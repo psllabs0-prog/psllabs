@@ -19,7 +19,7 @@ export const faqCategories: FaqCategory[] = [
       {
         question: "What products does PSL Labs offer?",
         answer:
-          "PSL Labs publishes research compound profiles with disclosed ingredients and reference citations. Batch-matched laboratory reports are published for selected lots when available. See the product catalog for current listings including Retatrutide.",
+          "PSL Labs publishes research compound profiles with disclosed ingredients and reference citations. Batch-matched laboratory reports are published for active lots. See the product catalog for current listings including Retatrutide.",
       },
       {
         question: "Are ingredient amounts fully disclosed?",

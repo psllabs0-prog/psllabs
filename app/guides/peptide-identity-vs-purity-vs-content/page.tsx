@@ -106,7 +106,7 @@ export default function PeptideIdentityVsPurityVsContentPage() {
         {/* Intro */}
         <section className="flex flex-col gap-4">
           <p className="text-ash leading-relaxed">
-            In research biochemical procurement, laboratory reports and Certificates of Analysis (COAs) are frequently reduced to a single number—most commonly an HPLC purity percentage such as 99.2% or 99.8%. This oversimplification conflates three fundamentally distinct analytical parameters: <strong>identity</strong>, <strong>chromatographic purity</strong>, and <strong>quantitative content</strong>.
+            In research biochemical procurement, laboratory reports and Certificates of Analysis (COAs) are frequently reduced to a single number, most commonly an HPLC purity percentage such as 99.2% or 99.8%. This oversimplification conflates three fundamentally distinct analytical parameters: <strong>identity</strong>, <strong>chromatographic purity</strong>, and <strong>quantitative content</strong>.
           </p>
           <p className="text-ash leading-relaxed">
             Conflating these attributes introduces significant risk into quantitative research protocols. A vial containing an impeccably identified compound may suffer from unacceptable synthesis impurities; conversely, a sample demonstrating a single, sharp 99.5% HPLC peak might contain only half its nominal mass or represent a completely mislabeled peptide sequence.
@@ -232,7 +232,7 @@ export default function PeptideIdentityVsPurityVsContentPage() {
             3. Content / Assay: How Many Milligrams Are Present?
           </h2>
           <p className="text-ash leading-relaxed">
-            Quantitative peptide content—often termed <strong>net peptide content</strong>, <strong>peptide assay</strong>, or <strong>quantitative mass</strong>—measures the absolute physical weight of pure peptide molecules in the container.
+            Quantitative peptide content, often termed <strong>net peptide content</strong>, <strong>peptide assay</strong>, or <strong>quantitative mass</strong>, measures the absolute physical weight of pure peptide molecules in the container.
           </p>
           <p className="text-ash leading-relaxed">
             Synthetic peptides are manufactured as lyophilized salts. When a lyophilized cake is produced, it consists of:
@@ -285,7 +285,7 @@ export default function PeptideIdentityVsPurityVsContentPage() {
             Why Purity Does Not Automatically Establish Content
           </h2>
           <p className="text-ash leading-relaxed">
-            Chromatographic purity is an <em>intensive property</em>—a ratio of relative peak areas. It is completely independent of total vial mass (an <em>extensive property</em>).
+            Chromatographic purity is an <em>intensive property</em>, a ratio of relative peak areas. It is completely independent of total vial mass (an <em>extensive property</em>).
           </p>
           <p className="text-ash leading-relaxed">
             Consider two hypothetical research vials:

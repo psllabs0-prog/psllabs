@@ -164,7 +164,7 @@ export default function PeptidePurityVsContentPage() {
           </p>
           <ul className="list-disc pl-5 space-y-2 text-ash text-sm sm:text-base">
             <li>
-              <strong>Absorption Coefficients Differ:</strong> Different chemical species absorb UV light at different efficiencies (their molar extinction coefficient, ε). An impurity containing aromatic rings (tryptophan, tyrosine, phenylalanine) absorbs far more strongly at 214–280 nm than an impurity composed only of aliphatic residues (glycine, alanine, leucine). Relative peak area equals mass percentage <em>only</em> if all components possess identical extinction coefficients—which is rarely true.
+              <strong>Absorption Coefficients Differ:</strong> Different chemical species absorb UV light at different efficiencies (their molar extinction coefficient, ε). An impurity containing aromatic rings (tryptophan, tyrosine, phenylalanine) absorbs far more strongly at 214–280 nm than an impurity composed only of aliphatic residues (glycine, alanine, leucine). Relative peak area equals mass percentage <em>only</em> if all components possess identical extinction coefficients, which is rarely true.
             </li>
             <li>
               <strong>UV-Silent Materials Are Invisible:</strong> HPLC UV detectors only register molecules that absorb light at the chosen wavelength. Water, inorganic salts, trifluoroacetate, acetate, mannitol, and sugars do not absorb meaningfully at 214 nm or 220 nm. A sample could contain 30% inorganic salts by weight and still yield a 99.8% HPLC peak area!
@@ -222,7 +222,7 @@ export default function PeptidePurityVsContentPage() {
             Synthetic peptides are cationic bases that require counterions (usually trifluoroacetic acid, TFA) to stabilize during purification and lyophilization. Furthermore, lyophilized powders are hygroscopic, naturally binding 3% to 8% ambient water.
           </p>
           <p className="text-ash leading-relaxed">
-            In typical lyophilized peptide preparations, the <strong>net peptide content</strong> ranges from <strong>70% to 85%</strong> of the gross powder weight. The remaining 15% to 30% consists of counterions, water of hydration, and residual processing salts—even when the HPLC purity is 99.8%.
+            In typical lyophilized peptide preparations, the <strong>net peptide content</strong> ranges from <strong>70% to 85%</strong> of the gross powder weight. The remaining 15% to 30% consists of counterions, water of hydration, and residual processing salts, even when the HPLC purity is 99.8%.
           </p>
         </section>
 
@@ -254,7 +254,7 @@ export default function PeptidePurityVsContentPage() {
             Why Chromatograms and Baseline Resolution Matter
           </h2>
           <p className="text-ash leading-relaxed">
-            A trustworthy COA never provides just a numerical table—it provides the full <strong>chromatogram plot</strong> with baseline integration marks.
+            A trustworthy COA never provides just a numerical table, it provides the full <strong>chromatogram plot</strong> with baseline integration marks.
           </p>
           <p className="text-ash leading-relaxed">
             When inspecting a chromatogram, researchers should evaluate:

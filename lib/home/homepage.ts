@@ -5,9 +5,9 @@ import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
 
 export const heroCopy = {
   eyebrow: "RESEARCH-USE ONLY · ANALYTICAL STANDARDS",
-  headline: "Synthetic peptide reference standards with third-party analytical verification.",
+  headline: "Synthetic peptides for laboratory research, with third-party lab reports.",
   paragraph:
-    "PSL Labs supplies synthetic peptide reference standards and biochemicals exclusively for laboratory research, in vitro experimentation, and analytical calibration. Every production lot released for distribution is paired with independent third-party testing documentation—including HPLC chromatographic purity analysis and quantitative mass verification—providing verifiable analytical data for researchers. All materials are strictly for research use only and are not for human or veterinary administration.",
+    "PSL Labs supplies synthetic peptides and related research materials for laboratory work only. Each lot we release comes with an independent third-party lab report covering HPLC purity and measured amount for the tested sample. You can review those reports yourself. These materials are not for human or veterinary use.",
   primaryCtaLabel: "Browse Research Catalog",
   primaryCtaHref: "/products",
   secondaryCtaLabel: "Review Batch Reports",
@@ -59,7 +59,7 @@ export const whyChooseCards: WhyChooseCardData[] = [
     illustration: "batch-coa",
     title: "Batch-matched reports",
     description:
-      "Independent batch documentation available for selected lots.",
+      "Independent batch documentation available for published lots.",
   },
   {
     illustration: "hplc",
@@ -110,7 +110,7 @@ export const featuredProduct: FeaturedProductData = {
   tag: retatrutideListing.tag,
   name: retatrutideListing.name,
   description:
-    "Lyophilized Retatrutide for laboratory and research use. Independent batch documentation available for selected lots. Not for human consumption.",
+    "Lyophilized Retatrutide for laboratory and research use. Independent batch documentation available for published lots. Not for human consumption.",
   price: retatrutideListing.price,
   href: retatrutideListing.href,
   imageSrc: retatrutideListing.imageSrc,

@@ -21,7 +21,7 @@ export const reconstitutionSolution: Product = {
     "Reconstitution Solution is a laboratory reagent supplied for preparing research compounds in in vitro workflows. Benzyl alcohol concentration is reported on published lot-specific laboratory reports when available.\n\nThis product is supplied for laboratory research applications only. It is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",
   bullets: [
     "Laboratory reagent",
-    "Independent batch documentation for selected lots",
+    "Independent batch documentation for published lots",
     "Laboratory report available for published lots",
     "For laboratory and research use only",
   ],
@@ -72,7 +72,7 @@ export const reconstitutionSolution: Product = {
     },
   ],
   testing: {
-    description: `Independent third-party laboratory documentation is published for selected lots when available. ${TESTING_SCOPE_STATEMENT}`,
+    description: `Independent third-party laboratory documentation is published for active lots. ${TESTING_SCOPE_STATEMENT}`,
   },
   stackBlurb:
     "Reconstitution Solution is supplied as a laboratory reagent with lot-specific documentation when published.",
@@ -83,10 +83,10 @@ export const reconstitutionSolution: Product = {
     { label: "Format", value: "Liquid solution" },
     { label: "Nominal Strength", value: "5ml" },
     {
-      label: `${report.reportedResult!.label} — Batch ${report.batch}`,
+      label: `${report.reportedResult!.label} (Batch ${report.batch})`,
       value: report.reportedResult!.value,
     },
-    { label: "Testing", value: "Per original laboratory report (selected lots)" },
+    { label: "Testing", value: "Per original laboratory report for published lots" },
     { label: "COA Status", value: "Third-Party Report Available" },
     { label: "Intended Use", value: "Laboratory research only" },
     { label: "Human Use", value: "Not for human or animal use" },

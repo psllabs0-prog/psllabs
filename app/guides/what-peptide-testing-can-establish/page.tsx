@@ -360,7 +360,7 @@ export default function WhatPeptideTestingCanEstablishPage() {
           </p>
           <div className="rounded-xl border border-linen bg-surface p-6 space-y-3 text-sm leading-relaxed text-ash">
             <p>
-              <strong className="text-ink">1. Unaltered Primary Data:</strong> We publish complete, original laboratory reports from Janoshik Analytical—including chromatograms, integration baselines, and mass spectra—rather than retyped vendor summaries.
+              <strong className="text-ink">1. Unaltered Primary Data:</strong> We publish complete, original laboratory reports from Janoshik Analytical, including chromatograms, integration baselines, and mass spectra, rather than retyped vendor summaries.
             </p>
             <p>
               <strong className="text-ink">2. Independent Digital Verification:</strong> Every report displays an authentic Task Number and Verification Key queryable on verify.janoshik.com.

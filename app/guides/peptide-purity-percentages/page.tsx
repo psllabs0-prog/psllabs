@@ -21,7 +21,7 @@ const GUIDE_MODIFIED = "2026-08-02";
 const articleLd = {
   "@context": "https://schema.org",
   "@type": "Article",
-  headline: "Peptide Purity Percentages — What Do They Actually Mean?",
+  headline: "Peptide Purity Percentages: What Do They Actually Mean?",
   author: { "@type": "Organization", name: LEGAL_ENTITY_NAME },
   publisher: { "@type": "Organization", name: LEGAL_ENTITY_NAME },
   datePublished: GUIDE_DATE,
@@ -41,12 +41,12 @@ export default function PeptidePurityPercentagesGuidePage() {
           </AnimateIn>
           <AnimateIn delay={0.06}>
             <h1 className="mt-4 font-[family-name:var(--font-display)] text-[clamp(2rem,4vw,2.5rem)] leading-[1.15] tracking-[-0.02em] text-ink">
-              Peptide Purity Percentages — What Do They Actually Mean?
+              Peptide Purity Percentages: What Do They Actually Mean?
             </h1>
           </AnimateIn>
           <AnimateIn delay={0.1}>
             <p className="mt-5 text-base leading-relaxed text-ash md:text-[1.0625rem]">
-              How to read an HPLC purity number on a research peptide COA—what
+              How to read an HPLC purity number on a research peptide COA, what
               it counts, what it leaves out, and why a few tenths of a percent
               can matter when you compare lots.
             </p>
@@ -67,7 +67,7 @@ export default function PeptidePurityPercentagesGuidePage() {
                 under other peaks the method picked up.
               </p>
               <p className="text-ash">
-                So it’s a relative composition number for that run—not a claim
+                So it’s a relative composition number for that run, not a claim
                 about biology, and not a blank check for every vial with a
                 similar label. It only describes the sample and batch named on
                 that report.
@@ -95,7 +95,7 @@ export default function PeptidePurityPercentagesGuidePage() {
                 convert to a percentage.
               </p>
               <p className="text-ash">
-                Method details matter—wavelength, column, integration rules. That’s
+                Method details matter, wavelength, column, integration rules. That’s
                 why a lone percentage stripped into a summary is weaker than the
                 full report with the chromatogram attached.
               </p>
@@ -136,7 +136,7 @@ export default function PeptidePurityPercentagesGuidePage() {
                 At 99.0% purity you’ve got about 1.0% other integrated material.
                 At 99.6% you’ve got about 0.4%. That’s roughly 2.5× more
                 non-target peak area at 99.0% than at 99.6% (1.0 ÷ 0.4 = 2.5).
-                Stack 99.0% against 99.8% and you’re comparing 1.0% vs 0.2%—a
+                Stack 99.0% against 99.8% and you’re comparing 1.0% vs 0.2%, a
                 fivefold difference in that impurity-peak load under the same
                 style of calculation.
               </p>
@@ -158,7 +158,7 @@ export default function PeptidePurityPercentagesGuidePage() {
                 Identity matters just as much. A sample that’s 99.9% “pure” by
                 HPLC is useless if the main peak isn’t the peptide you think it
                 is. Labs usually back identity with mass spectrometry or another
-                orthogonal test on the report—read those fields with the
+                orthogonal test on the report, read those fields with the
                 chromatogram.
               </p>
               <p className="text-ash">
@@ -192,7 +192,7 @@ export default function PeptidePurityPercentagesGuidePage() {
                   janoshik.com/verify
                 </a>
                 . Enter the task number from a Janoshik report and you’ll pull
-                the original lab record—so you can confirm the purity (and the
+                the original lab record, so you can confirm the purity (and the
                 rest of the fields) match what the lab actually issued.
               </p>
             </section>
@@ -208,7 +208,7 @@ export default function PeptidePurityPercentagesGuidePage() {
                 quantity, batch ID, and how the material was stored. A high
                 number is useful. It isn’t a substitute for a full, verifiable
                 lab report on the lot you actually have. When those pieces line
-                up—and you can check the lab record yourself—you’ve got a much
+                up, and you can check the lab record yourself, you’ve got a much
                 stronger paper trail for that batch.
               </p>
             </section>

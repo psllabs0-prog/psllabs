@@ -8,7 +8,7 @@ import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "COA Lookup — Batch Reports",
+  title: "COA Lookup: Batch Reports",
   description:
     "Look up published third-party laboratory reports by task number or batch name. Independent HPLC and mass assays from Janoshik Analytical.",
   path: "/coa",

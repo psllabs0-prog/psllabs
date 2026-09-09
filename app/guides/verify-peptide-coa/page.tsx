@@ -47,7 +47,7 @@ export default function VerifyPeptideCoaGuidePage() {
             <p className="mt-5 text-base leading-relaxed text-ash md:text-[1.0625rem]">
               A practical checklist for reading third-party laboratory reports,
               spotting unreliable documents, and confirming results with the
-              testing lab—before you rely on a batch for research work.
+              testing lab, before you rely on a batch for research work.
             </p>
           </AnimateIn>
         </header>
@@ -61,7 +61,7 @@ export default function VerifyPeptideCoaGuidePage() {
               <p className="text-ash">
                 A Certificate of Analysis (COA) is a laboratory report for a
                 specific sample from a specific batch or lot. It documents what
-                was measured—typically identity and purity—using analytical
+                was measured, typically identity and purity, using analytical
                 methods chosen by the laboratory. Results apply only to the
                 tested sample identified in that report, not to every vial that
                 might share a similar label elsewhere.
@@ -95,8 +95,8 @@ export default function VerifyPeptideCoaGuidePage() {
                     A batch or lot number that matches the vial.
                   </strong>{" "}
                   The identifier on the report should correspond to the lot
-                  marked on your container. If the numbers do not match—or if
-                  the report has no lot identifier—you cannot connect the data
+                  marked on your container. If the numbers do not match, or if
+                  the report has no lot identifier, you cannot connect the data
                   to the material in hand.
                 </li>
                 <li>
@@ -153,35 +153,35 @@ export default function VerifyPeptideCoaGuidePage() {
               <ul className="list-disc space-y-3 pl-5 text-ash">
                 <li>
                   <strong className="font-medium text-ink">No lab name</strong>{" "}
-                  — or only a generic phrase such as “independent laboratory”
+                  or only a generic phrase such as “independent laboratory”
                   with no organization you can look up.
                 </li>
                 <li>
                   <strong className="font-medium text-ink">
                     Summary-only pages with no graph
                   </strong>{" "}
-                  — a purity figure without a chromatogram or other primary
+                  : a purity figure without a chromatogram or other primary
                   data is easy to fabricate and hard to evaluate.
                 </li>
                 <li>
                   <strong className="font-medium text-ink">
                     Batch number mismatch or a missing batch number
                   </strong>{" "}
-                  — if you cannot match the report to your vial, the numbers do
+                  : if you cannot match the report to your vial, the numbers do
                   not support that specific material.
                 </li>
                 <li>
                   <strong className="font-medium text-ink">
                     Old or missing dates
                   </strong>{" "}
-                  — undated reports, or dates that look unrelated to the lot you
+                  : undated reports, or dates that look unrelated to the lot you
                   received, weaken the trail from sample to result.
                 </li>
                 <li>
                   <strong className="font-medium text-ink">
                     Cropped or blurry images
                   </strong>{" "}
-                  — heavy cropping, low resolution, or obvious editing can hide
+                  : heavy cropping, low resolution, or obvious editing can hide
                   headers, footers, task numbers, or other fields needed for
                   verification.
                 </li>
@@ -189,7 +189,7 @@ export default function VerifyPeptideCoaGuidePage() {
                   <strong className="font-medium text-ink">
                     No way to verify with the lab
                   </strong>{" "}
-                  — if there is no task number, report ID, or public
+                  : if there is no task number, report ID, or public
                   verification path, you are left trusting a file that cannot be
                   checked at the source.
                 </li>
@@ -222,7 +222,7 @@ export default function VerifyPeptideCoaGuidePage() {
                 number on the verification page. The tool retrieves the original
                 report from the laboratory’s server rather than from a copy
                 stored only by a reseller. If the task number is valid, you see
-                the same underlying record the lab issued—not a retyped summary.
+                the same underlying record the lab issued, not a retyped summary.
               </p>
               <p className="text-ash">
                 This step matters because screenshots and downloaded files can
@@ -247,8 +247,8 @@ export default function VerifyPeptideCoaGuidePage() {
                 Why third-party testing matters
               </h2>
               <p className="text-ash">
-                Third-party testing means an independent laboratory—not the
-                seller’s own quality desk alone—performed the analysis and
+                Third-party testing means an independent laboratory, not the
+                seller’s own quality desk alone, performed the analysis and
                 issued the report. Independence is the key factor. When the same
                 organization both sells the material and writes the only
                 available test summary, conflicts of interest are harder to rule

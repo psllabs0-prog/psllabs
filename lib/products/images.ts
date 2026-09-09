@@ -1,4 +1,4 @@
-/** Shared Retatrutide vial — used as featured/hero fallback. */
+/** Shared Retatrutide vial. Used as featured/hero fallback. */
 export const PRODUCT_VIAL_IMAGE = {
   src: "/Retatrutide-transparent.png",
   alt: "Vial of lyophilized Retatrutide powder",
@@ -48,14 +48,14 @@ export function getProductImage(handle: string): {
   return PRODUCT_VIAL_IMAGE;
 }
 
-/** Opaque gradient — eliminates checkerboard behind transparent PNGs */
+/** Opaque gradient. Eliminates checkerboard behind transparent PNGs */
 export const PRODUCT_CARD_GRADIENT =
   "bg-gradient-to-br from-soft-blue via-lab-white to-ice-blue";
 
 export const PRODUCT_CARD_RADIAL =
   "bg-[radial-gradient(ellipse_80%_65%_at_50%_42%,rgba(37,99,235,0.14),transparent)]";
 
-/** Semantic contexts — vial renders same visual size in every `card` */
+/** Semantic contexts: vial renders same visual size in every `card` */
 export type ProductVialContext = "thumb" | "card" | "product" | "hero";
 
 export const VIAL_CONTEXT_CONFIG: Record<

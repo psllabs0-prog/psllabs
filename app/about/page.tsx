@@ -9,9 +9,9 @@ import { aboutContent } from "@/lib/about";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "About PSL Labs — Verifiable Operating Practices",
+  title: "About PSL Labs: Verifiable Operating Practices",
   description:
-    "PSL Labs operates around empirical verification: independent third-party laboratory reports, lot transparency, U.S. fulfillment, and dedicated research support.",
+    "PSL Labs focuses on independent third-party lab reports, lot transparency, U.S. fulfillment, and research support.",
   path: "/about",
 });
 
@@ -24,8 +24,8 @@ export default function AboutPage() {
       icon: CheckCircle2,
       title: "Built Around Verification",
       paragraphs: [
-        "PSL Labs is founded on a straightforward operating principle: research materials should never rely on marketing assertions, subjective ratings, or unverified claims. We supply synthetic peptide reference standards and biochemicals with transparent, verifiable documentation for laboratory and in vitro investigation.",
-        "Rather than publishing broad generalizations, we ground our catalog in empirical analytical data. Every active compound is documented by laboratory analysis so researchers can evaluate physical compound properties before integrating materials into their research workflows.",
+        "PSL Labs is built on a simple idea: research materials should stand on documents you can check, not on marketing claims. We supply synthetic peptides and related lab materials with clear third-party documentation.",
+        "Instead of broad quality slogans, we publish lab results for active lots so researchers can review identity, purity, and amount data before using the material in their work.",
       ],
       linkText: "Learn about our testing methodology",
       linkHref: "/testing",
@@ -35,8 +35,8 @@ export default function AboutPage() {
       icon: FileCheck,
       title: "Independent Laboratory Documentation",
       paragraphs: [
-        "We do not test our own products or rely on self-reported supplier documentation. All published analytical testing is conducted by Janoshik Analytical—an independent third-party analytical laboratory utilizing High-Performance Liquid Chromatography (HPLC) and Mass Spectrometry (MS).",
-        "Each laboratory Certificate of Analysis (COA) documents chromatographic purity, chemical identity, and quantitative mass content. Every published report includes an original task number and direct verification link, enabling researchers to independently confirm document authenticity on the testing laboratory's server.",
+        "We do not test our own products for published reports, and we do not rely only on supplier paperwork. Published testing is done by Janoshik Analytical, an independent lab using HPLC and mass spectrometry.",
+        "Each Certificate of Analysis covers chromatographic purity, chemical identity, and measured mass for the tested sample. Reports include a task number and a verification link so you can confirm the file on the lab's own server.",
       ],
       linkText: "Review published batch reports in COA Lookup",
       linkHref: "/coa",
@@ -46,8 +46,8 @@ export default function AboutPage() {
       icon: Layers,
       title: "Batch Transparency",
       paragraphs: [
-        "Analytical data is batch-specific. Testing performed on a designated sample applies strictly to that specific production lot and does not guarantee properties of past, separate, or unlisted synthesis runs.",
-        "Every active product in our catalog corresponds to an active published lot report. When a new lot is introduced, independent analytical testing is conducted and published before that lot is released for research fulfillment. Pipeline materials (marked Coming Soon) remain unpurchasable until independent verification is completed.",
+        "Lab results are batch-specific. A report applies to the lot and sample named on that document. It does not cover other lots.",
+        "Every active catalog product has a published lot report. When we bring in a new lot, we finish third-party testing and publish it before that lot ships. Coming Soon items stay unavailable until that step is done.",
       ],
       linkText: "Search reports by lot or task number",
       linkHref: "/coa",
@@ -57,8 +57,8 @@ export default function AboutPage() {
       icon: AlertCircle,
       title: "What Analytical Reports Do Not Establish",
       paragraphs: [
-        "Scientific accuracy requires absolute clarity about testing boundaries. Standard HPLC chromatographic purity and mass spectrometry assays establish chemical identity, chromatographic peak area purity, and measured mass of the tested sample.",
-        "Unless independently tested and explicitly documented by a separate specialized assay, analytical reports do not establish microbiological sterility, bacterial endotoxin/pyrogen status, pharmacokinetic properties, or biological safety. All compounds are distributed strictly for laboratory research and analytical reference—not for human or veterinary administration, medical application, or clinical therapy.",
+        "HPLC purity and mass spectrometry results speak to chemical identity, peak-area purity, and measured mass for the tested sample.",
+        "Unless a separate assay is documented, these reports do not cover sterility, endotoxin status, pharmacokinetics, or biological safety. Materials are for laboratory research only, not for human or veterinary use.",
       ],
       linkText: "Review analytical scope and testing standards",
       linkHref: "/testing",
@@ -68,10 +68,10 @@ export default function AboutPage() {
       icon: Truck,
       title: "U.S. Fulfillment",
       paragraphs: [
-        "PSL Labs operates domestic fulfillment out of Phoenix, Arizona. All shipments are packaged securely using protective materials designed to safeguard vial seals and physical lyophilized compound integrity during transit.",
-        "Orders are processed within 1–2 business days following payment confirmation, with tracked domestic carrier delivery to physical addresses across all 50 U.S. states. Full details on delivery timeframes, tracking procedures, and transit guidelines are documented on our shipping page.",
+        "We fulfill orders from Phoenix, Arizona. Packages are packed to protect vial seals and lyophilized material in normal domestic transit.",
+        "Orders usually process within 1 to 2 business days after payment clears, with tracked shipping to all 50 U.S. states. See the shipping page for rates, timing, and tracking details.",
       ],
-      linkText: "View our domestic shipping policies & thresholds",
+      linkText: "View our domestic shipping policies and thresholds",
       linkHref: "/shipping",
     },
     {
@@ -79,8 +79,8 @@ export default function AboutPage() {
       icon: LifeBuoy,
       title: "Research Support",
       paragraphs: [
-        "We offer direct, responsive support for researchers, laboratories, and institutions. Inquiries concerning lot documentation, order status, carrier tracking, or product specifications are answered directly by our team.",
-        "In accordance with strict research compliance policies, support staff will not provide guidance or consultation regarding human administration, dosage calculation, therapeutic protocols, or clinical use. For assistance with orders or batch documentation, reach out directly.",
+        "We answer questions about lot documentation, order status, tracking, and product specs directly.",
+        "We do not advise on human administration, dosing, therapeutic protocols, or clinical use. For order or documentation help, contact us.",
       ],
       linkText: "Contact our research support team",
       linkHref: "/contact",

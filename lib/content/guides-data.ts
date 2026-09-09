@@ -81,10 +81,10 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
   {
     slug: "what-peptide-testing-can-establish",
     title:
-      "What Peptide Analytical Testing Can—and Cannot—Establish",
-    shortTitle: "What Testing Can & Cannot Establish",
+      "What Peptide Analytical Testing Can and Cannot Establish",
+    shortTitle: "What Testing Can and Cannot Establish",
     description:
-      "The definitive guide to analytical testing boundaries: what HPLC, MS, and mass assays establish, what requires separate assays, and what chemical data does not prove.",
+      "A clear guide to analytical testing boundaries: what HPLC, MS, and mass assays establish, what needs separate assays, and what chemical data does not prove.",
     category: "analytical-foundations",
     categoryLabel: "Analytical Foundations",
     readTime: "10 min read",
@@ -108,10 +108,10 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
   },
   {
     slug: "peptide-purity-percentages",
-    title: "Peptide Purity Percentages — What Do They Actually Mean?",
+    title: "Peptide Purity Percentages: What Do They Actually Mean?",
     shortTitle: "Purity Percentages Explained",
     description:
-      "How to read an HPLC purity number on a research peptide COA—what it counts, what it leaves out, and why small differences matter.",
+      "How to read an HPLC purity number on a research peptide COA: what it counts, what it leaves out, and why small differences matter.",
     category: "analytical-foundations",
     categoryLabel: "Analytical Foundations",
     readTime: "6 min read",
