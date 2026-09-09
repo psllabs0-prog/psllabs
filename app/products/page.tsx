@@ -11,7 +11,7 @@ import { createPageMetadata } from "@/lib/seo";
 export const metadata: Metadata = createPageMetadata({
   title: "Products",
   description:
-    "Catalog of high-purity synthetic peptides for laboratory and institutional research. Each product released with independent analytical documentation.",
+    "Research peptides for laboratory use. Each active product lists specs and a published batch report when available.",
   path: "/products",
 });
 
@@ -34,7 +34,7 @@ export default async function ProductsPage() {
               Research peptides with published lab reports.
             </h1>
             <p className="text-body-lg text-ash">
-              Each product lists disclosed specifications and batch documentation when published. Research use only. Testing scope and results are shown on each original laboratory report.
+              Browse materials for laboratory research. Each active product lists specs and a batch report when published. Research use only.
             </p>
           </div>
         </div>
@@ -77,7 +77,7 @@ export default async function ProductsPage() {
 
       <section className="border-t border-linen bg-paper px-6 py-10 md:px-16 lg:px-24">
         <p className="mx-auto max-w-[720px] text-center text-sm leading-relaxed text-ash">
-          All products are sold strictly for laboratory and research use only.
+          All products are for laboratory and research use only.
           Not for human or animal consumption. These statements have not been
           evaluated by the FDA.
         </p>

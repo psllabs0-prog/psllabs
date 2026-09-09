@@ -45,9 +45,9 @@ export default function VerifyPeptideCoaGuidePage() {
           </AnimateIn>
           <AnimateIn delay={0.1}>
             <p className="mt-5 text-base leading-relaxed text-ash md:text-[1.0625rem]">
-              A practical checklist for reading third-party laboratory reports,
+              A practical checklist for reading third-party lab reports,
               spotting unreliable documents, and confirming results with the
-              testing lab, before you rely on a batch for research work.
+              testing lab before you rely on a batch for research work.
             </p>
           </AnimateIn>
         </header>
@@ -59,12 +59,11 @@ export default function VerifyPeptideCoaGuidePage() {
                 What a Certificate of Analysis is
               </h2>
               <p className="text-ash">
-                A Certificate of Analysis (COA) is a laboratory report for a
-                specific sample from a specific batch or lot. It documents what
-                was measured, typically identity and purity, using analytical
-                methods chosen by the laboratory. Results apply only to the
-                tested sample identified in that report, not to every vial that
-                might share a similar label elsewhere.
+                A Certificate of Analysis (COA) is a lab report for a specific
+                sample from a specific batch or lot. It records what was
+                measured, usually identity and purity, with the methods the lab
+                chose. Results apply only to the sample named on that report, not
+                to every vial that might share a similar label elsewhere.
               </p>
             </section>
           </AnimateIn>
@@ -247,27 +246,25 @@ export default function VerifyPeptideCoaGuidePage() {
                 Why third-party testing matters
               </h2>
               <p className="text-ash">
-                Third-party testing means an independent laboratory, not the
-                seller’s own quality desk alone, performed the analysis and
-                issued the report. Independence is the key factor. When the same
-                organization both sells the material and writes the only
-                available test summary, conflicts of interest are harder to rule
-                out, even when the staff are careful and competent.
+                Third-party testing means an independent lab, not only the
+                seller&apos;s own quality desk, ran the analysis and issued the
+                report. Independence is the point. When the same organization
+                both sells the material and writes the only available test
+                summary, conflicts of interest are harder to rule out, even when
+                the staff are careful.
               </p>
               <p className="text-ash">
-                In-house vendor testing can still be useful for internal
-                process control. It is a weaker substitute for an external COA
-                when the goal is documentation that another party can scrutinize.
-                US-based suppliers that publish third-party reports make it
-                easier for research buyers to compare lots against original lab
-                data rather than against marketing copy.
+                In-house vendor testing can still help with process control. It
+                is a weaker stand-in for an external COA when you need
+                documentation another party can scrutinize. Suppliers that
+                publish third-party reports make it easier to compare lots
+                against original lab data rather than marketing copy.
               </p>
               <p className="text-ash">
-                Equally important is the difference between a full original
-                report and a vendor summary. A summary may list purity in a
-                sentence or table without chromatograms, method details, or
-                verification IDs. An original report from the laboratory
-                includes the primary data and identifiers needed for
+                Also watch the gap between a full original report and a vendor
+                summary. A summary may list purity in a sentence without
+                chromatograms, method details, or verification IDs. An original
+                lab report includes the primary data and identifiers needed for
                 independent checks. When both exist, archive the original; treat
                 the summary as a pointer, not a replacement.
               </p>
@@ -277,15 +274,15 @@ export default function VerifyPeptideCoaGuidePage() {
           <AnimateIn delay={0.22}>
             <section className="flex flex-col gap-4">
               <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
-                Make batch verification part of procurement
+                Make batch checks part of buying
               </h2>
               <p className="text-ash">
                 Build a simple habit: match the lot on the vial, open the full
-                laboratory report, confirm the method and purity figures, and
-                verify the record with the lab when a tool such as Janoshik’s
+                lab report, confirm the method and purity figures, and verify
+                the record with the lab when a tool such as Janoshik&apos;s
                 portal is available. Doing this for every batch takes little
-                time and keeps research documentation tied to primary data
-                instead of unverified files.
+                time and keeps your records tied to primary data instead of
+                unverified files.
               </p>
             </section>
           </AnimateIn>

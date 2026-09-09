@@ -40,7 +40,7 @@ export function ProductGallery({
     <div className="flex flex-col gap-4">
       <ProductVialImage
         src={imageSrc}
-        alt={`${alt} — view ${activeIndex + 1}`}
+        alt={`${alt}, view ${activeIndex + 1}`}
         context="product"
         priority
         className="w-full"

@@ -3,11 +3,11 @@ import { TESTING_SCOPE_STATEMENT } from "./testing-scope";
 
 export const testingPageMeta: ContentPageMeta = {
   label: "TESTING & QUALITY",
-  title: "Verified by a lab we don't own.",
+  title: "Tested by a lab we don't own.",
   description:
-    "How PSL Labs approaches third-party testing, and how to review published batch documentation.",
+    "How PSL Labs publishes third-party lab reports, and how to review them.",
   intro: [
-    "Independent batch documentation is published for released lots. When a third-party laboratory report is available, we show the laboratory-reported identity, amount, and purity for the specific sample tested, not a marketing summary.",
+    "We publish third-party lab reports for released lots. When a report is available, you can see the identity, purity, and measured amount for the sample the lab tested.",
     TESTING_SCOPE_STATEMENT,
   ],
 };
@@ -15,37 +15,39 @@ export const testingPageMeta: ContentPageMeta = {
 export const testingSections: ContentSection[] = [
   {
     id: "identity",
-    title: "Identity Verification",
+    title: "Identity",
     paragraphs: [
-      `When an original laboratory report is published for a lot, identity results for the tested sample appear on that report. ${TESTING_SCOPE_STATEMENT}`,
+      "Identity testing helps confirm what material the lab detected in the tested sample. Look for this on the original report when it is published.",
+      TESTING_SCOPE_STATEMENT,
     ],
   },
   {
     id: "purity",
-    title: "Purity Analysis",
+    title: "Purity",
     paragraphs: [
-      "When purity results appear on a published report, they reflect the methods and scope written on that original laboratory report for the specific sample tested.",
+      "Purity describes how clean the sample looked under the lab's test method. If a purity percentage appears on the report, it applies to that tested sample and method only.",
     ],
   },
   {
     id: "batch-documentation",
-    title: "Batch Documentation",
+    title: "Batch documentation",
     paragraphs: [
-      "Released lots are tied to a specific third-party report so you can review the documentation for that lot. Results apply only to the tested sample and batch named in the report.",
+      "Each published report is tied to a specific lot. You can review the documentation for that batch, not a generic product claim.",
     ],
   },
   {
     id: "coa-review",
-    title: "COA Review",
+    title: "Reading a COA",
     paragraphs: [
-      "Certificates of Analysis summarize the reported testing results for the sample identified in the report. Treat them as supporting lab documentation, not as medical or usage guidance.",
+      "A Certificate of Analysis summarizes what the lab reported for the named sample. Use it as lab documentation, not as medical or usage advice.",
     ],
   },
   {
     id: "quality-standard",
-    title: "Quality Standard",
+    title: "Our standard",
     paragraphs: [
-      `PSL Labs is built around documentation, transparency, and batch-level verification when reports are published. ${TESTING_SCOPE_STATEMENT}`,
+      "We focus on publishing clear, checkable reports for active lots so you can review the data yourself.",
+      TESTING_SCOPE_STATEMENT,
     ],
   },
 ];

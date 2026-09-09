@@ -6,7 +6,7 @@ import { GuideLayout } from "@/components/guides/guide-layout";
 import { AnalyticalCallout } from "@/components/guides/analytical-callout";
 import { ComparisonTable } from "@/components/guides/comparison-table";
 import { getGuideBySlug } from "@/lib/content/guides-data";
-import { ghkCu50mgReport, retatrutideBlackTopReport } from "@/lib/batch-reports";
+import { ghkCu50mgReport } from "@/lib/batch-reports";
 import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
 
@@ -48,16 +48,16 @@ const breadcrumbLd = {
 };
 
 const tocItems = [
-  { id: "what-people-mean", label: "What People Usually Mean by '99% Purity'" },
-  { id: "chromatographic-purity", label: "Basic Explanation of Chromatographic Purity" },
-  { id: "area-percentage", label: "What Peak Area Percentage Actually Measures" },
-  { id: "method-dependence", label: "Why Purity Percentages Are Method-Dependent" },
-  { id: "purity-not-content", label: "Purity Is Not Automatically Content (Net Mass)" },
-  { id: "purity-not-identity", label: "Purity Is Not Automatically Identity" },
-  { id: "chromatogram-context", label: "Why Chromatograms and Baseline Resolution Matter" },
-  { id: "questions-to-ask", label: "Five Questions Researchers Should Ask When Seeing '99%+'" },
-  { id: "empirical-example", label: "Empirical Case Study: GHK-Cu 50mg & Retatrutide" },
-  { id: "analytical-limitations", label: "Analytical Boundaries & Misconceptions" },
+  { id: "what-people-mean", label: "What people usually hear in '99%'" },
+  { id: "chromatographic-purity", label: "What chromatographic purity is" },
+  { id: "area-percentage", label: "What peak area percentage measures" },
+  { id: "method-dependence", label: "Why the method changes the number" },
+  { id: "purity-not-content", label: "Purity vs net peptide content" },
+  { id: "purity-not-identity", label: "Purity vs identity" },
+  { id: "chromatogram-context", label: "Why the chromatogram matters" },
+  { id: "questions-to-ask", label: "Five questions to ask about '99%+'" },
+  { id: "empirical-example", label: "Example: GHK-Cu 50mg" },
+  { id: "analytical-limitations", label: "Boundaries worth remembering" },
 ];
 
 const purityVsContentColumns = [
@@ -84,7 +84,7 @@ const purityVsContentRows = [
     metric: "Gross Powder Weight",
     units: "Milligrams (mg) total cake weight",
     whatItMeasures: "Total weight of lyophilized cake (peptide + TFA counterions + bound water + residual buffer salts).",
-    whatItIgnores: "Does not tell you how much active peptide is in the cake; counterions typically account for 15%–25% of gross mass.",
+    whatItIgnores: "Does not tell you how much active peptide is in the cake; counterions typically account for 15% to 25% of gross mass.",
   },
 ];
 
@@ -95,26 +95,24 @@ export default function PeptidePurityVsContentPage() {
       <JsonLd data={breadcrumbLd} />
 
       <GuideLayout guide={guide} tocItems={tocItems}>
-        {/* Intro */}
         <section className="flex flex-col gap-4">
           <p className="text-ash leading-relaxed">
-            In research biochemical specifications, &ldquo;99% purity&rdquo; is the most ubiquitous headline figure. It is presented in catalog listings, marketing headlines, and Certificate of Analysis summaries. Yet across analytical chemistry literature, purity is one of the most routinely misunderstood metrics.
+            &ldquo;99% purity&rdquo; is the headline number you see on listings, marketing pages, and Certificate of Analysis summaries. It is also one of the easiest metrics to misread.
           </p>
           <p className="text-ash leading-relaxed">
-            A reported 99% purity does not mean a product is 99% pure peptide by weight. It does not establish that a 10 mg vial contains 9.9 mg of peptide. It does not prove that the material is sterile, free of bacterial pyrogens, or correctly identified.
+            In short: that percentage is usually an optical measurement from high-performance liquid chromatography (HPLC). It is not the same as &ldquo;99% of the powder by weight,&rdquo; and it does not by itself prove identity, fill weight, sterility, or endotoxin status.
           </p>
           <p className="text-ash leading-relaxed">
-            This guide breaks down exactly what High-Performance Liquid Chromatography (HPLC) area percentage represents, why chromatographic results are strictly method-dependent, and why researchers must decouple chromatographic purity from <strong>peptide content</strong> when preparing quantitative laboratory solutions.
+            This guide explains what HPLC area percentage really is, why the number depends on the method, and how to keep purity separate from peptide content when you prepare quantitative research solutions.
           </p>
         </section>
 
-        {/* Section 1 */}
         <section id="what-people-mean" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            What People Usually Mean by &ldquo;99% Purity&rdquo;
+            What people usually hear in &ldquo;99%&rdquo;
           </h2>
           <p className="text-ash leading-relaxed">
-            When a non-specialist or casual researcher sees &ldquo;99% purity,&rdquo; they typically assume:
+            Non-specialists often assume something like this:
           </p>
           <div className="rounded-xl border border-linen bg-surface p-5 text-sm space-y-2 text-ash">
             <p className="text-ink font-medium">Common (incorrect) assumptions:</p>
@@ -126,92 +124,88 @@ export default function PeptidePurityVsContentPage() {
             </ul>
           </div>
           <p className="text-ash leading-relaxed">
-            Every one of those four assumptions is scientifically false. In analytical reporting, 99% purity denotes a specific optical measurement on a chromatography instrument, subject to strict physicochemical definitions.
+            Those are natural guesses, and they are wrong for analytical reporting. The percentage comes from a chromatography instrument under defined conditions.
           </p>
         </section>
 
-        {/* Section 2 */}
         <section id="chromatographic-purity" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Basic Explanation of Chromatographic Purity
+            What chromatographic purity is
           </h2>
           <p className="text-ash leading-relaxed">
-            Reversed-Phase High-Performance Liquid Chromatography (RP-HPLC) separates dissolved molecules based on their hydrophobicity. The sample is injected into a pressurized mobile phase (a gradient of water and acetonitrile with an acid modifier) and pumped across a column packed with microscopic porous silica particles coated with alkyl chains (typically C18).
+            Reversed-phase HPLC separates dissolved molecules by hydrophobicity. The sample rides a pressurized water/acetonitrile gradient (with an acid modifier) across a column of alkyl-coated silica particles, usually C18.
           </p>
           <p className="text-ash leading-relaxed">
-            Molecules partition between the mobile and stationary phases. Less hydrophobic impurities elute early; more hydrophobic impurities elute late. As molecules leave the column, they pass through a flow cell where an ultraviolet (UV) detector measures light absorption over time. The output is a <strong>chromatogram</strong> showing absorbance peaks plotted against elution time.
+            Less hydrophobic impurities leave earlier; more hydrophobic ones leave later. As they exit, a UV detector records light absorption over time. That plot is the chromatogram: absorbance peaks versus elution time.
           </p>
         </section>
 
-        {/* Section 3 */}
         <section id="area-percentage" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            What Peak Area Percentage Actually Measures
+            What peak area percentage measures
           </h2>
           <p className="text-ash leading-relaxed">
-            The &ldquo;purity percentage&rdquo; reported on a Certificate of Analysis is almost universally the <strong>relative peak area percentage</strong>:
+            The purity figure on most COAs is relative peak area percentage:
           </p>
           <div className="rounded-xl border border-linen bg-surface p-5 text-sm space-y-2">
             <p className="font-mono text-xs font-semibold uppercase tracking-wider text-accent">
-              Peak Area Integration Formula
+              Peak area integration
             </p>
             <p className="font-mono text-ink text-sm sm:text-base">
               Purity (%) = [ Area of Target Peak / Sum of All Integrated UV Peak Areas ] × 100
             </p>
           </div>
           <p className="text-ash leading-relaxed">
-            Critical analytical nuances in this calculation:
+            Two details matter a lot:
           </p>
           <ul className="list-disc pl-5 space-y-2 text-ash text-sm sm:text-base">
             <li>
-              <strong>Absorption Coefficients Differ:</strong> Different chemical species absorb UV light at different efficiencies (their molar extinction coefficient, ε). An impurity containing aromatic rings (tryptophan, tyrosine, phenylalanine) absorbs far more strongly at 214–280 nm than an impurity composed only of aliphatic residues (glycine, alanine, leucine). Relative peak area equals mass percentage <em>only</em> if all components possess identical extinction coefficients, which is rarely true.
+              <strong>Different compounds absorb differently.</strong> Aromatic impurities (tryptophan, tyrosine, phenylalanine) absorb more strongly at 214 to 280 nm than purely aliphatic fragments. Relative peak area equals mass percentage only when extinction coefficients match, which is rare.
             </li>
             <li>
-              <strong>UV-Silent Materials Are Invisible:</strong> HPLC UV detectors only register molecules that absorb light at the chosen wavelength. Water, inorganic salts, trifluoroacetate, acetate, mannitol, and sugars do not absorb meaningfully at 214 nm or 220 nm. A sample could contain 30% inorganic salts by weight and still yield a 99.8% HPLC peak area!
+              <strong>UV-silent material is invisible.</strong> Water, inorganic salts, trifluoroacetate, acetate, mannitol, and sugars barely absorb at 214 nm or 220 nm. A sample can carry substantial salt by weight and still show a 99.8% HPLC area.
             </li>
           </ul>
         </section>
 
-        {/* Section 4 */}
         <section id="method-dependence" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Why Purity Percentages Are Method-Dependent
+            Why the method changes the number
           </h2>
           <p className="text-ash leading-relaxed">
-            A sample does not possess one absolute &ldquo;purity.&rdquo; Chromatographic purity is an operational measurement determined entirely by the method parameters employed:
+            There is no single absolute &ldquo;purity&rdquo; for a sample. The reported percentage is tied to the method:
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-1 text-sm">
             <div className="rounded-xl border border-linen bg-surface p-5 space-y-2">
               <span className="font-mono text-xs font-semibold text-accent uppercase">
-                Method Parameter
+                Method choices
               </span>
               <ul className="list-disc pl-4 space-y-1.5 text-ash text-xs sm:text-sm">
-                <li><strong>Gradient Steepness:</strong> A rapid 10-minute gradient compresses peaks, causing closely related synthesis impurities to co-elute with the main peak. A shallow 45-minute gradient separates them.</li>
-                <li><strong>Column Chemistry:</strong> C4 vs C8 vs C18 vs biphenyl stationary phases interact differently with peptide secondary structures.</li>
+                <li><strong>Gradient steepness:</strong> A fast 10-minute gradient can merge related impurities into the main peak. A shallow 45-minute gradient often separates them.</li>
+                <li><strong>Column chemistry:</strong> C4, C8, C18, and biphenyl phases interact differently with peptide structure.</li>
               </ul>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-5 space-y-2">
               <span className="font-mono text-xs font-semibold text-accent uppercase">
-                Analytical Impact
+                What that does to the number
               </span>
               <ul className="list-disc pl-4 space-y-1.5 text-ash text-xs sm:text-sm">
-                <li><strong>Apparent Purity Shifts:</strong> The exact same physical sample might measure 99.4% on a steep screening gradient and 97.2% on an optimized, high-resolution gradient.</li>
-                <li><strong>Wavelength Selection:</strong> Detection at 280 nm ignores non-aromatic impurities entirely, artificially inflating apparent purity compared to 214 nm backbone detection.</li>
+                <li><strong>Apparent purity shifts:</strong> The same physical sample might read 99.4% on a steep screening gradient and 97.2% on a high-resolution one.</li>
+                <li><strong>Wavelength:</strong> Detection at 280 nm can miss non-aromatic impurities and inflate the figure versus 214 nm backbone detection.</li>
               </ul>
             </div>
           </div>
-          <AnalyticalCallout title="Method Reporting Transparency" variant="method">
-            Legitimate analytical laboratories always document the column dimensions, flow rate, mobile phase composition, and gradient profile on the COA. If a report displays a purity number without specifying the method conditions, the percentage cannot be verified or reproduced.
+          <AnalyticalCallout title="Ask for method conditions" variant="method">
+            Legitimate labs document column dimensions, flow rate, mobile phase, and gradient on the COA. A purity number without those conditions is hard to verify or reproduce.
           </AnalyticalCallout>
         </section>
 
-        {/* Section 5 */}
         <section id="purity-not-content" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Purity Is Not Automatically Content (Net Mass)
+            Purity vs net peptide content
           </h2>
           <p className="text-ash leading-relaxed">
-            This is the single most critical distinction in quantitative peptide research:
+            This is the distinction that matters most for quantitative work:
           </p>
           <ComparisonTable
             columns={purityVsContentColumns}
@@ -219,26 +213,25 @@ export default function PeptidePurityVsContentPage() {
             caption="Comparison between HPLC Purity, Net Peptide Content, and Gross Powder Weight"
           />
           <p className="text-ash leading-relaxed pt-3">
-            Synthetic peptides are cationic bases that require counterions (usually trifluoroacetic acid, TFA) to stabilize during purification and lyophilization. Furthermore, lyophilized powders are hygroscopic, naturally binding 3% to 8% ambient water.
+            Synthetic peptides are usually lyophilized as salts with counterions such as trifluoroacetic acid (TFA). The powders are also hygroscopic and often hold a few percent water.
           </p>
           <p className="text-ash leading-relaxed">
-            In typical lyophilized peptide preparations, the <strong>net peptide content</strong> ranges from <strong>70% to 85%</strong> of the gross powder weight. The remaining 15% to 30% consists of counterions, water of hydration, and residual processing salts, even when the HPLC purity is 99.8%.
+            In typical preparations, net peptide content is about <strong>70% to 85%</strong> of gross powder weight. The rest is counterions, water, and residual salts, even when HPLC purity is 99.8%. An assay (a quantitative mass measurement against standards) is what gives you milligrams, not the purity percentage.
           </p>
         </section>
 
-        {/* Section 6 */}
         <section id="purity-not-identity" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Purity Is Not Automatically Identity
+            Purity vs identity
           </h2>
           <p className="text-ash leading-relaxed">
-            An HPLC UV detector has no capacity to identify the chemical structure of an eluting molecule. It records only optical absorbance.
+            An HPLC UV detector only records absorbance. It does not name the molecule.
           </p>
           <p className="text-ash leading-relaxed">
-            If an entirely wrong compound (e.g., Semaglutide instead of Retatrutide, or an incorrect scrambled isomer) is injected into an HPLC column, it may elute as a single, symmetrical, beautiful 99.9% peak. The chromatography confirms that the sample is homogeneous and free of co-eluting UV impurities; it does not confirm what the molecule is.
+            Inject the wrong compound and you can still get a single, clean 99.9% peak. That shows the sample is chromatographically homogeneous under those conditions. It does not prove the sequence is correct.
           </p>
           <p className="text-ash leading-relaxed">
-            To establish identity, the chromatographic run must be coupled with <strong>Mass Spectrometry (LC-MS)</strong> or retention time matching against an authentic reference standard. For details, see our guide on{" "}
+            Identity needs mass spectrometry (LC-MS) or retention matching to an authentic reference standard. See{" "}
             <Link
               href="/guides/peptide-identity-vs-purity-vs-content"
               className="font-medium text-accent underline underline-offset-4 hover:opacity-80"
@@ -248,66 +241,60 @@ export default function PeptidePurityVsContentPage() {
           </p>
         </section>
 
-        {/* Section 7 */}
         <section id="chromatogram-context" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Why Chromatograms and Baseline Resolution Matter
+            Why the chromatogram matters
           </h2>
           <p className="text-ash leading-relaxed">
-            A trustworthy COA never provides just a numerical table, it provides the full <strong>chromatogram plot</strong> with baseline integration marks.
-          </p>
-          <p className="text-ash leading-relaxed">
-            When inspecting a chromatogram, researchers should evaluate:
+            A trustworthy COA gives the chromatogram plot with integration marks, not only a summary table. When you look at it, check:
           </p>
           <ul className="list-disc pl-5 space-y-1.5 text-ash text-sm sm:text-base">
-            <li><strong>Baseline Stability:</strong> Does the baseline remain flat and stable throughout the run, or does it drift erratically?</li>
-            <li><strong>Peak Symmetry:</strong> Is the main peak symmetrical, or does it display fronting or tailing shoulders indicating co-eluting failure sequences?</li>
-            <li><strong>Integration Limits:</strong> Did the analyst integrate all detectable peaks, or were small impurity peaks artificially omitted by setting a high area threshold cutoff?</li>
-            <li><strong>Full Run Time:</strong> Does the plot display the entire gradient sequence (including column wash and re-equilibration) to prove no late-eluting aggregates were excluded?</li>
+            <li><strong>Baseline:</strong> Flat and stable, or drifting?</li>
+            <li><strong>Peak shape:</strong> Symmetrical, or showing fronting, tailing, or shoulders?</li>
+            <li><strong>Integration:</strong> Were small impurity peaks included, or cut off by a high area threshold?</li>
+            <li><strong>Full run:</strong> Does the plot cover the whole gradient, including late wash, so late-eluting material is not hidden?</li>
           </ul>
         </section>
 
-        {/* Section 8 */}
         <section id="questions-to-ask" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Five Questions Researchers Should Ask When Seeing &ldquo;99%+&rdquo;
+            Five questions to ask about &ldquo;99%+&rdquo;
           </h2>
           <div className="space-y-3 pt-1">
             <div className="rounded-xl border border-linen bg-surface p-4 text-sm">
               <span className="font-mono text-xs font-bold text-accent">QUESTION 1</span>
-              <p className="text-ink font-semibold mt-1">What wavelength was used for detection?</p>
-              <p className="text-xs text-ash mt-0.5">214 nm measures the peptide backbone and detects all peptide impurities. 280 nm ignores non-aromatic impurities, artificially inflating the apparent number.</p>
+              <p className="text-ink font-semibold mt-1">What detection wavelength was used?</p>
+              <p className="text-xs text-ash mt-0.5">214 nm reads the peptide backbone broadly. 280 nm can miss non-aromatic impurities.</p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-4 text-sm">
               <span className="font-mono text-xs font-bold text-accent">QUESTION 2</span>
-              <p className="text-ink font-semibold mt-1">Is identity independently confirmed via Mass Spectrometry?</p>
-              <p className="text-xs text-ash mt-0.5">HPLC area % alone does not prove the molecule is the target sequence.</p>
+              <p className="text-ink font-semibold mt-1">Was identity confirmed by mass spectrometry?</p>
+              <p className="text-xs text-ash mt-0.5">HPLC area % alone does not prove the target sequence.</p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-4 text-sm">
               <span className="font-mono text-xs font-bold text-accent">QUESTION 3</span>
-              <p className="text-ink font-semibold mt-1">Was quantitative net peptide mass determined?</p>
-              <p className="text-xs text-ash mt-0.5">Did the lab perform an assay to verify absolute milligrams in the vial, or are they relying solely on a nominal fill assumption?</p>
+              <p className="text-ink font-semibold mt-1">Was net peptide mass assayed?</p>
+              <p className="text-xs text-ash mt-0.5">Did the lab measure absolute milligrams, or rely on a nominal fill assumption?</p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-4 text-sm">
               <span className="font-mono text-xs font-bold text-accent">QUESTION 4</span>
-              <p className="text-ink font-semibold mt-1">Can the report be verified directly on the laboratory&apos;s server?</p>
-              <p className="text-xs text-ash mt-0.5">Is there a task number and verification key on verify.janoshik.com to confirm the document has not been altered?</p>
+              <p className="text-ink font-semibold mt-1">Can you verify the report on the lab&apos;s server?</p>
+              <p className="text-xs text-ash mt-0.5">Look for a task number and key on verify.janoshik.com.</p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-4 text-sm">
               <span className="font-mono text-xs font-bold text-accent">QUESTION 5</span>
-              <p className="text-ink font-semibold mt-1">What other attributes were NOT tested?</p>
-              <p className="text-xs text-ash mt-0.5">Does the researcher require endotoxin, sterility, or TFA quantification for their experimental cell lines?</p>
+              <p className="text-ink font-semibold mt-1">What else was not tested?</p>
+              <p className="text-xs text-ash mt-0.5">If your experiment needs endotoxin, sterility, or TFA data, those require separate assays.</p>
             </div>
           </div>
         </section>
 
-        {/* Section 9 */}
         <section id="empirical-example" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Empirical Case Study: GHK-Cu 50mg &amp; Retatrutide
+            Example: GHK-Cu 50mg
           </h2>
           <p className="text-ash leading-relaxed">
-            Consider the published Janoshik laboratory report for PSL Labs GHK-Cu (Task #{ghkCu50mgReport.taskNumber}, Batch {ghkCu50mgReport.batch}):
+            On the published Janoshik report for PSL Labs GHK-Cu (Task #{ghkCu50mgReport.taskNumber}, Batch {ghkCu50mgReport.batch}), purity and content are reported as separate results:
           </p>
           <div className="rounded-xl border border-linen bg-surface p-6 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2 border-b border-linen pb-3">
@@ -322,47 +309,46 @@ export default function PeptidePurityVsContentPage() {
               <div className="space-y-1">
                 <p className="font-mono text-xs text-stone uppercase">Chromatographic Purity (HPLC)</p>
                 <p className="font-bold text-2xl text-ink font-mono">{ghkCu50mgReport.purityPercent}%</p>
-                <p className="text-xs text-ash">Evaluates relative UV peak area. Confirms that synthesis side-products and deletion tripeptides constitute less than 0.265% of the chromatographic profile.</p>
+                <p className="text-xs text-ash">Relative UV peak area. Related side-products make up less than 0.265% of the chromatographic profile.</p>
               </div>
               <div className="space-y-1">
                 <p className="font-mono text-xs text-stone uppercase">Quantitative Content Assay</p>
                 <p className="font-bold text-2xl text-ink font-mono">{ghkCu50mgReport.reportedAmountMg} mg</p>
-                <p className="text-xs text-ash">Absolute mass determination confirms 53.21 mg total complex (GHK content: 44.89 mg, copper: 8.32 mg) against the nominal 50 mg specification.</p>
+                <p className="text-xs text-ash">Absolute mass: 53.21 mg total complex (GHK content: 44.89 mg, copper: 8.32 mg) versus the nominal 50 mg label.</p>
               </div>
             </div>
             <p className="text-xs text-stone pt-2 border-t border-linen leading-relaxed">
-              In this empirical report, both purity and quantitative mass are documented. A researcher preparing a 1.0 mM stock solution can use the exact 53.21 mg quantitative figure rather than assuming an arbitrary nominal mass.
+              Both values are documented. For a precise research stock solution, use the assayed milligrams rather than assuming the nominal label mass.
             </p>
           </div>
         </section>
 
-        {/* Section 10 */}
         <section id="analytical-limitations" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Analytical Boundaries &amp; Misconceptions
+            Boundaries worth remembering
           </h2>
           <div className="space-y-3">
-            <AnalyticalCallout title="Purity Does Not Imply Biological Suitability" variant="limitation">
-              A sample displaying 99.8% chromatographic purity is not guaranteed to be sterile, pyrogen-free, or biologically safe. Analytical testing evaluates chemical composition, not clinical suitability. All materials are supplied strictly for laboratory research and analytical calibration.
+            <AnalyticalCallout title="Chemistry is not biological suitability" variant="limitation">
+              High chromatographic purity describes chemical composition under the method used. It does not mean the sample is sterile, pyrogen-free, or suitable for clinical use. Materials are for laboratory research and analytical calibration.
             </AnalyticalCallout>
-            <AnalyticalCallout title="Universal Claims Are Unscientific" variant="limitation">
-              Phrases such as &ldquo;pharmaceutical grade,&rdquo; &ldquo;100% verified pure,&rdquo; or &ldquo;guaranteed zero impurities&rdquo; have no rigorous definition in research peptide supply. Analytical chemistry operates within defined detection limits (LOD) and quantification limits (LOQ).
+            <AnalyticalCallout title="Marketing phrases are not methods" variant="limitation">
+              Labels like &ldquo;pharmaceutical grade&rdquo; or &ldquo;100% verified pure&rdquo; are not rigorous analytical claims. Chemistry works within detection and quantification limits.
             </AnalyticalCallout>
           </div>
           <p className="text-ash leading-relaxed pt-2">
-            To learn how to verify original laboratory reports directly on Janoshik&apos;s server, continue to our guide on{" "}
+            To verify original reports, continue with{" "}
             <Link
               href="/guides/verify-peptide-laboratory-report"
               className="font-medium text-accent underline underline-offset-4 hover:opacity-80"
             >
               How to Verify a Peptide Laboratory Report
             </Link>{" "}
-            or inspect our full catalog in{" "}
+            or{" "}
             <Link
               href="/coa"
               className="font-medium text-accent underline underline-offset-4 hover:opacity-80"
             >
-              COA / Batch Lookup
+              View Batch Reports
             </Link>.
           </p>
         </section>

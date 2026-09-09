@@ -43,9 +43,9 @@ function bannerFor(status: PublicOrder["status"] | "pending"): Banner {
       };
     default:
       return {
-        title: "Payment received — confirming on the network",
+        title: "Payment received. Confirming on the network",
         tone: "text-primary-blue",
-        body: "Bitcoin confirmations can take a few minutes. This page updates automatically — no need to refresh.",
+        body: "Bitcoin confirmations can take a few minutes. This page updates automatically. No need to refresh.",
       };
   }
 }

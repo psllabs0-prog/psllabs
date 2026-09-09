@@ -23,29 +23,29 @@ export const aboutContent: AboutContent = {
   hero: {
     headline: "About PSL Labs",
     subtitle:
-      "PSL Labs focuses on research-use documentation, batch transparency, and clean access to product information for laboratory and analytical reference.",
+      "We sell research peptides with published third-party lab reports you can check yourself.",
   },
   mission: {
-    title: "Built Around Verification",
-    body: "PSL Labs was created to make research product information easier to review through clear labeling, third-party testing references, and lot-specific documentation.",
+    title: "Built around verification",
+    body: "PSL Labs exists to make research product information easier to review: clear labeling, third-party testing, and lot-specific documentation.",
   },
   valueCards: [
     {
-      title: "Batch Documentation",
-      body: "Each lot is organized around available testing records and product-specific documentation.",
+      title: "Batch documentation",
+      body: "Each lot is tied to the testing records available for that lot.",
     },
     {
-      title: "Third-Party Testing",
-      body: "Testing information is reviewed and displayed so users can evaluate available batch data before making decisions.",
+      title: "Third-party testing",
+      body: "We show the lab data so you can review what was measured before you order.",
     },
     {
-      title: "Research-Use Focus",
-      body: "Product information is presented for laboratory research and educational reference only, not for human consumption or medical use.",
+      title: "Research use only",
+      body: "Product information is for laboratory research. Not for human consumption or medical use.",
     },
   ],
   closing: {
-    title: "Clear Information. Cleaner Standards.",
-    body: "Our goal is to keep product pages simple, documentation easy to find, and research-use disclaimers clear across the site.",
+    title: "Clear information. Straightforward standards.",
+    body: "We keep product pages simple, documentation easy to find, and research-use limits easy to understand.",
   },
 };
 

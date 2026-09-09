@@ -46,7 +46,7 @@ export function GuideLayout({
               </span>
               <span className="mono text-stone">·</span>
               <span className="mono text-stone text-xs">
-                ANALYTICAL REFERENCE GUIDE
+                GUIDE
               </span>
             </div>
           </AnimateIn>

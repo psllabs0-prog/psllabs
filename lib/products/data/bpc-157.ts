@@ -17,14 +17,14 @@ export const bpc157: Product = {
   tag: "RESEARCH PEPTIDE",
   name: "BPC-157",
   shortDescription:
-    "BPC-157. Synthetic peptide for laboratory research. Laboratory-reported purity on third-party COA. Batch-specific Certificate of Analysis available. Not for human or animal use.",
+    "BPC-157 reference standard for laboratory research. Third-party COA lists purity for the published batch. Not for human or animal use.",
   price: 49.99,
   stockStatus: "in_stock",
   imageSrc: image.src,
   imageAlt: image.alt,
   stackRole: "Research peptide · laboratory use only",
   whyThisExists:
-    "BPC-157 is a synthetic peptide reference standard supplied as a lyophilized powder for laboratory research. Purity: lot-specific by independent HPLC (see Batch Testing section for published data).\n\nThis product is supplied as a reference standard for analytical and in vitro laboratory applications. It is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",
+    "BPC-157 is a synthetic peptide reference standard, sold as lyophilized powder for laboratory research. Lot purity comes from independent HPLC. See Batch Testing for published numbers.\n\nIt is a reference standard for analytical and in vitro lab work. Not for use in humans or animals.\n\nMatch your vial lot to the Certificate of Analysis in Batch Testing below.",
   bullets: [
     "Lyophilized research peptide",
     "Independent batch documentation for published lots",
@@ -35,8 +35,7 @@ export const bpc157: Product = {
     {
       name: "BPC-157",
       dose: "10mg nominal (see COA for laboratory-reported amount)",
-      mechanism:
-        "Research peptide supplied for in vitro and laboratory research applications.",
+      mechanism: "Research peptide for in vitro and laboratory work.",
     },
   ],
   howToUse: [
@@ -56,7 +55,7 @@ export const bpc157: Product = {
       step: 3,
       title: "Documentation",
       description:
-        "Match the lot number on your vial to the published laboratory report on this page or via COA / Batch Lookup before use in your workflow.",
+        "Match the lot on your vial to the published lab report on this page or in COA Lookup.",
     },
   ],
   citations: [],
@@ -64,25 +63,25 @@ export const bpc157: Product = {
     {
       question: "Is BPC-157 for human consumption?",
       answer:
-        "No. BPC-157 is sold strictly for laboratory and research use only. It is not intended for human or animal consumption.",
+        "No. BPC-157 is for laboratory research only. Not for human or animal consumption.",
     },
     {
       question: "Where is the COA for my batch?",
       answer:
-        "When a third-party laboratory report is published for your lot, it appears on this product page under Testing & Quality and in COA / Batch Lookup. Results apply only to the tested sample and batch identified in that report.",
+        "If a third-party lab report is published for your lot, you will find it under Testing & Quality on this page and in COA Lookup. Results apply only to the sample and batch named on that report.",
     },
     {
       question:
         "What is the difference between nominal strength and the laboratory-reported amount?",
       answer:
-        "The vial is labeled at a nominal strength of 10mg. The laboratory-reported amount on the original report reflects the specific sample tested and may differ. Review the published report for the batch you received.",
+        "The vial label shows a nominal strength of 10mg. The laboratory-reported amount on the original report is for the sample that was tested and may differ. Check the published report for the batch you received.",
     },
   ],
   testing: {
-    description: `Independent third-party laboratory documentation is published for active lots. ${TESTING_SCOPE_STATEMENT}`,
+    description: `We publish an independent third-party lab report for active lots. ${TESTING_SCOPE_STATEMENT}`,
   },
   stackBlurb:
-    "BPC-157 is supplied as a standalone research peptide with lot-specific documentation when published.",
+    "BPC-157 is a standalone research peptide with lot-specific documentation when published.",
   specifications: [
     { label: "SKU", value: "PSL-BPC157-10MG" },
     { label: "Compound", value: "BPC-157" },
@@ -103,5 +102,5 @@ export const bpc157: Product = {
     { label: "Human Use", value: "Not for human or animal use" },
   ],
   researchDisclaimer:
-    "This product is supplied for laboratory research use only. Not intended for human or animal administration, diagnostic use, or any therapeutic application.",
+    "This product is for laboratory research use only. Not for human or animal administration, diagnostic use, or any therapeutic application.",
 };

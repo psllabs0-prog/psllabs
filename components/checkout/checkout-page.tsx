@@ -556,7 +556,7 @@ export function CheckoutPage() {
                       </span>
                     </div>
                     <span className="text-xs leading-relaxed text-ash">
-                      Pay with Bitcoin — save 5% on your subtotal. You&apos;ll be
+                      Pay with Bitcoin and save 5% on your subtotal. You&apos;ll be
                       redirected to our secure BTCPay checkout.
                     </span>
                   </div>

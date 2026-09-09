@@ -27,7 +27,7 @@ export default function CancelPage() {
         <AnimateIn delay={0.16}>
           <p className="mt-6 max-w-md text-base leading-relaxed text-[var(--color-stone)]">
             Your checkout was canceled before payment was processed. Your cart
-            and selections are unchanged — you can return anytime.
+            and selections are unchanged. You can return anytime.
           </p>
         </AnimateIn>
 

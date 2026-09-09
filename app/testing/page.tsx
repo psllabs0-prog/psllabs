@@ -25,17 +25,15 @@ export default function TestingPage() {
         <section className="flex flex-col gap-4">
           <div>
             <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
-              Published Batch Reports
+              Published batch reports
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-ash md:text-base">
-              Original third-party laboratory reports for currently released lots. Results
-              apply strictly to the tested sample and lot identified in each
-              report.{" "}
+              Original third-party lab reports for lots currently for sale. Results apply to the sample and lot named on each report.{" "}
               <a
                 href="/coa"
                 className="font-medium text-accent underline underline-offset-4"
               >
-                COA Lookup →
+                View Batch Reports →
               </a>
             </p>
           </div>
@@ -51,13 +49,13 @@ export default function TestingPage() {
         <section className="rounded-xl border border-linen bg-surface p-6 sm:p-8">
           <div className="flex flex-col gap-2">
             <span className="mono text-xs uppercase text-accent font-semibold">
-              EDUCATIONAL RESOURCES
+              GUIDES
             </span>
             <h2 className="font-display text-xl font-bold text-ink sm:text-2xl">
-              Analytical Testing &amp; Verification Guides
+              Guides for reading lab reports
             </h2>
             <p className="text-sm leading-relaxed text-ash">
-              Explore in-depth technical documentation on interpreting HPLC chromatograms, verifying third-party laboratory reports, and understanding analytical testing boundaries:
+              Short explainers on purity, verification, batch matching, and what testing does not cover.
             </p>
           </div>
 
@@ -66,29 +64,29 @@ export default function TestingPage() {
               href="/guides/peptide-identity-vs-purity-vs-content"
               className="rounded-lg border border-linen bg-paper p-4 transition-colors hover:border-linen-dark hover:bg-surface/50"
             >
-              <p className="font-bold text-ink text-sm">Identity vs Purity vs Content</p>
-              <p className="text-xs text-ash mt-1">What each analytical result actually tells you.</p>
+              <p className="font-bold text-ink text-sm">Identity vs purity vs amount</p>
+              <p className="text-xs text-ash mt-1">What each result actually tells you.</p>
             </Link>
             <Link
               href="/guides/verify-peptide-laboratory-report"
               className="rounded-lg border border-linen bg-paper p-4 transition-colors hover:border-linen-dark hover:bg-surface/50"
             >
-              <p className="font-bold text-ink text-sm">How to Verify a Lab Report</p>
-              <p className="text-xs text-ash mt-1">Inspecting task IDs, dates, and issuing laboratories.</p>
+              <p className="font-bold text-ink text-sm">How to verify a lab report</p>
+              <p className="text-xs text-ash mt-1">Check the task ID, date, and lab name.</p>
             </Link>
             <Link
               href="/guides/peptide-purity-vs-content"
               className="rounded-lg border border-linen bg-paper p-4 transition-colors hover:border-linen-dark hover:bg-surface/50"
             >
-              <p className="font-bold text-ink text-sm">What 99% Purity Means</p>
-              <p className="text-xs text-ash mt-1">Why chromatographic purity is not total content.</p>
+              <p className="font-bold text-ink text-sm">What 99% purity means</p>
+              <p className="text-xs text-ash mt-1">Why purity % is not the same as total amount.</p>
             </Link>
             <Link
               href="/guides/what-peptide-testing-can-establish"
               className="rounded-lg border border-linen bg-paper p-4 transition-colors hover:border-linen-dark hover:bg-surface/50"
             >
-              <p className="font-bold text-ink text-sm">Testing Capabilities &amp; Limits</p>
-              <p className="text-xs text-ash mt-1">What analytical testing can and cannot establish.</p>
+              <p className="font-bold text-ink text-sm">What testing can and cannot establish</p>
+              <p className="text-xs text-ash mt-1">Limits of HPLC and mass assay reports.</p>
             </Link>
           </div>
 
@@ -97,7 +95,7 @@ export default function TestingPage() {
               href="/guides"
               className="text-xs font-mono font-medium text-accent underline underline-offset-4 hover:opacity-80"
             >
-              View all analytical guides →
+              View all guides →
             </Link>
           </div>
         </section>

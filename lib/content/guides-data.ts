@@ -24,9 +24,9 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
       "Peptide Identity vs Purity vs Content: What Each Analytical Result Actually Tells You",
     shortTitle: "Identity vs Purity vs Content",
     description:
-      "Understand the difference between three distinct analytical questions: target compound identity, chromatographic purity percentage, and quantitative mass content.",
+      "Identity, purity, and content answer different questions. Learn what each lab result means and how to read them together on a peptide COA.",
     category: "analytical-foundations",
-    categoryLabel: "Analytical Foundations",
+    categoryLabel: "Foundations",
     readTime: "9 min read",
     publishedDate: "2026-09-08",
     modifiedDate: "2026-09-08",
@@ -39,7 +39,7 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
       "How to Verify a Peptide Laboratory Report: Batch, Report ID, Test Method & Traceability",
     shortTitle: "Verify a Laboratory Report",
     description:
-      "Step-by-step methodology for inspecting third-party laboratory reports: task IDs, issuing lab authenticity, batch matching, method evaluation, and digital verification.",
+      "A practical walkthrough for checking task IDs, matching batches, confirming methods, and verifying a peptide lab report on the issuer's site.",
     category: "verification-traceability",
     categoryLabel: "Verification & Traceability",
     readTime: "8 min read",
@@ -54,9 +54,9 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
       "What Does 99% Peptide Purity Actually Mean? HPLC Purity vs Peptide Content",
     shortTitle: "What 99% Purity Means",
     description:
-      "A technical explanation of HPLC chromatographic area percentage: why 99% purity is method-dependent, why purity is not total content, and what questions researchers must ask.",
+      "What an HPLC '99%' figure actually measures, why the method changes the number, and how purity differs from net peptide content.",
     category: "analytical-foundations",
-    categoryLabel: "Analytical Foundations",
+    categoryLabel: "Foundations",
     readTime: "8 min read",
     publishedDate: "2026-09-08",
     modifiedDate: "2026-09-08",
@@ -69,7 +69,7 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
       "Batch-Specific COAs vs Generic COAs: Why Lot Traceability Matters",
     shortTitle: "Batch-Specific vs Generic COAs",
     description:
-      "Why analytical documentation must be linked to a specific production lot and submitted sample, rather than presented as a generic or historical specification document.",
+      "How batch-specific lab reports differ from generic spec sheets, and why lot numbers are the link between your vial and the data.",
     category: "verification-traceability",
     categoryLabel: "Verification & Traceability",
     readTime: "7 min read",
@@ -84,9 +84,9 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
       "What Peptide Analytical Testing Can and Cannot Establish",
     shortTitle: "What Testing Can and Cannot Establish",
     description:
-      "A clear guide to analytical testing boundaries: what HPLC, MS, and mass assays establish, what needs separate assays, and what chemical data does not prove.",
+      "What HPLC, mass spectrometry, and mass assays can establish, what needs separate tests, and what chemical paperwork cannot prove.",
     category: "analytical-foundations",
-    categoryLabel: "Analytical Foundations",
+    categoryLabel: "Foundations",
     readTime: "10 min read",
     publishedDate: "2026-09-08",
     modifiedDate: "2026-09-08",
@@ -113,7 +113,7 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
     description:
       "How to read an HPLC purity number on a research peptide COA: what it counts, what it leaves out, and why small differences matter.",
     category: "analytical-foundations",
-    categoryLabel: "Analytical Foundations",
+    categoryLabel: "Foundations",
     readTime: "6 min read",
     publishedDate: "2026-07-29",
     modifiedDate: "2026-08-02",
@@ -124,7 +124,7 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
     title: "Peptide Storage & Stability Guide",
     shortTitle: "Storage & Stability",
     description:
-      "Guidelines for storing lyophilized and reconstituted research peptides to preserve sample integrity and prevent degradation.",
+      "How to store lyophilized and reconstituted research peptides to help protect sample integrity.",
     category: "handling-stability",
     categoryLabel: "Handling & Stability",
     readTime: "6 min read",

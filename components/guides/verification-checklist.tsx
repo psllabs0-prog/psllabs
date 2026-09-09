@@ -15,59 +15,59 @@ type VerificationChecklistProps = {
 const DEFAULT_CHECKLIST: ChecklistItem[] = [
   {
     step: 1,
-    title: "Identify the Issuing Laboratory",
+    title: "Who issued the report?",
     description:
-      "Verify that the testing laboratory is an independent entity with a documented physical address, contact information, and public verification infrastructure.",
-    actionHint: "Check report header for laboratory legal entity name.",
+      "Look for a real lab name, contact details, and a way to verify the file. A logo alone is not enough.",
+    actionHint: "Check the header for the laboratory name.",
   },
   {
     step: 2,
-    title: "Locate the Unique Task / Report Identifier",
+    title: "Find the task or report ID",
     description:
-      "Every legitimate analytical report is assigned an immutable tracking number (e.g., Janoshik Task #199788). If there is no tracking number, the document cannot be verified.",
-    actionHint: "Look for 'Task #' or 'Report ID' at the top of the COA.",
+      "Legitimate reports usually include a unique tracking number (for Janoshik reports, a Task #). Without that ID, independent checks are hard.",
+    actionHint: "Look for Task # or Report ID near the top.",
   },
   {
     step: 3,
-    title: "Perform Independent Digital Verification",
+    title: "Verify it on the lab's site",
     description:
-      "Navigate to the laboratory's public verification portal directly (e.g., verify.janoshik.com) and query the task number and verification key to confirm the original PDF on the laboratory's server matches the document provided.",
-    actionHint: "Never rely on a retyped vendor summary or cropped screenshot.",
+      "Open the lab's verification page (for Janoshik: verify.janoshik.com) and check the task number and key against the original file.",
+    actionHint: "Do not rely only on a screenshot or vendor summary.",
   },
   {
     step: 4,
-    title: "Match Batch / Lot Number to Physical Container",
+    title: "Match the batch number",
     description:
-      "The batch or lot number on the report must correspond exactly with the lot code printed on the physical vial or package label.",
-    actionHint: "If the lot number does not match, the report does not document that vial.",
+      "The batch or lot on the report should match the code on the vial or package.",
+    actionHint: "If the numbers do not match, the report is not for that vial.",
   },
   {
     step: 5,
-    title: "Verify Chemical Target Identity",
+    title: "Check identity testing",
     description:
-      "Confirm that the analytical method included identity confirmation (e.g., Mass Spectrometry m/z or chromatographic retention time matching against reference material).",
-    actionHint: "A purity scan alone does not prove chemical identity.",
+      "Confirm the lab actually tested identity (often with mass spectrometry), not only a purity percentage.",
+    actionHint: "A purity peak alone does not prove identity.",
   },
   {
     step: 6,
-    title: "Inspect Analysis Date & Document Recency",
+    title: "Check the analysis date",
     description:
-      "Evaluate when the analysis was performed relative to the current manufacturing lot. Be cautious of vendors circulating historical reports from years prior.",
-    actionHint: "Analysis date should correspond to the active production lot.",
+      "Make sure the test date fits the lot you are evaluating. Older reports may belong to earlier lots.",
+    actionHint: "Compare the date to the active lot you received.",
   },
   {
     step: 7,
-    title: "Identify Specific Test Methods Conducted",
+    title: "See which tests were run",
     description:
-      "Review the reported test methods (e.g., HPLC UV area % at 214nm, quantitative net mass assay in mg). Confirm whether reported results represent purity percentage, absolute content, or both.",
-    actionHint: "Purity percentage does not tell you total milligrams.",
+      "Note whether the report lists purity percentage, measured amount, or both. Those are different results.",
+    actionHint: "Purity % is not the same as total milligrams.",
   },
   {
     step: 8,
-    title: "Catalog Tested Attributes vs Untested Attributes",
+    title: "Note what was not tested",
     description:
-      "Explicitly identify what tests were NOT performed (e.g., microbiological sterility, bacterial endotoxins, residual counterions). Document these boundaries in research records.",
-    actionHint: "Chemical purity does not establish sterility or biological safety.",
+      "If sterility, endotoxin, or other tests are missing, treat them as untested unless another report covers them.",
+    actionHint: "Write down what is missing for your records.",
   },
 ];
 
@@ -82,7 +82,7 @@ export function VerificationChecklist({
       <div className="flex items-center gap-2.5 border-b border-linen pb-4 text-accent">
         <CheckSquare className="size-5 shrink-0" aria-hidden />
         <h3 className="font-display text-lg font-bold text-ink sm:text-xl">
-          Analytical Report Verification Checklist
+          Lab report checklist
         </h3>
       </div>
 
@@ -108,7 +108,7 @@ export function VerificationChecklist({
 
             {item.actionHint && (
               <p className="mt-1 font-mono text-[0.6875rem] text-stone">
-                Verification rule: {item.actionHint}
+                Tip: {item.actionHint}
               </p>
             )}
           </div>

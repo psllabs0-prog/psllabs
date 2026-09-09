@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { AlertCircle, CheckCircle2, FileText, HelpCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileText } from "lucide-react";
 
 type TestingScopeExplainerProps = {
   className?: string;
@@ -12,16 +12,15 @@ export function TestingScopeExplainer({
 }: TestingScopeExplainerProps) {
   return (
     <div className={`flex flex-col gap-8 ${className}`}>
-      {/* Analytical Definitions Grid */}
       <section className="rounded-xl border border-linen bg-surface p-6 md:p-8">
         <div className="flex items-center gap-2.5 text-accent">
           <FileText className="size-5 shrink-0" aria-hidden />
           <h2 className="font-display text-lg font-bold text-ink md:text-xl">
-            Understanding Analytical Testing Metrics
+            What the lab report usually shows
           </h2>
         </div>
         <p className="mt-2 text-sm leading-relaxed text-ash md:text-base">
-          Our third-party test reports from Janoshik Analytical evaluate physical samples using standardized laboratory instrumentation (High-Performance Liquid Chromatography and Mass Spectrometry). Below is what each metric measures:
+          Our published reports come from Janoshik Analytical, an independent lab. Most peptide reports cover three separate measurements. They answer different questions.
         </p>
 
         <div className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-3">
@@ -30,140 +29,143 @@ export function TestingScopeExplainer({
               1. Identity
             </p>
             <h3 className="mt-1 font-display text-base font-bold text-ink">
-              Chemical Identity
+              What material did the lab find?
             </h3>
             <p className="mt-2 text-xs leading-relaxed text-ash">
-              Confirms that the molecular structure of the sample matches the target compound by comparing chromatographic retention time and mass-to-charge ratio (MS) against verified reference standards.
+              <strong className="text-ink">What it tells you:</strong> Whether the tested sample matches the expected compound, usually using mass spectrometry (a method that checks molecular mass) and related lab checks.
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-ash">
+              <strong className="text-ink">What it doesn&apos;t tell you:</strong> How much material is in the vial, or how clean the sample is.
             </p>
           </div>
 
           <div className="rounded-lg border border-border-strong bg-paper p-4">
             <p className="font-mono text-xs font-semibold uppercase tracking-wider text-accent">
-              2. Purity (HPLC)
+              2. Purity
             </p>
             <h3 className="mt-1 font-display text-base font-bold text-ink">
-              Chromatographic Purity
+              How clean did the sample look?
             </h3>
             <p className="mt-2 text-xs leading-relaxed text-ash">
-              Determined by UV peak area percentage at 214nm/220nm on HPLC. This quantifies the proportion of the target compound relative to detectable synthesis byproducts, truncation sequences, or related substances.
+              <strong className="text-ink">What it tells you:</strong> Under HPLC testing (a common lab method that separates components in a sample), how much of the detected signal was reported as the target compound.
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-ash">
+              <strong className="text-ink">What it doesn&apos;t tell you:</strong> The exact milligrams in the vial. A high purity percentage is not the same as total amount.
             </p>
           </div>
 
           <div className="rounded-lg border border-border-strong bg-paper p-4">
             <p className="font-mono text-xs font-semibold uppercase tracking-wider text-accent">
-              3. Reported Amount
+              3. Amount
             </p>
             <h3 className="mt-1 font-display text-base font-bold text-ink">
-              Quantitative Mass Assay
+              How much was measured?
             </h3>
             <p className="mt-2 text-xs leading-relaxed text-ash">
-              Measures the absolute net mass of active peptide content present in the specific tested vial (e.g., 10.34 mg for a nominal 10 mg vial), or active concentration for solutions (e.g., benzyl alcohol %).
+              <strong className="text-ink">What it tells you:</strong> How much target material the lab measured in the tested sample (for example, 10.34 mg in a vial labeled 10 mg), or concentration for solutions.
+            </p>
+            <p className="mt-2 text-xs leading-relaxed text-ash">
+              <strong className="text-ink">What it doesn&apos;t tell you:</strong> Sterility, endotoxin status, or other tests that were not run.
             </p>
           </div>
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-linen pt-3 text-xs font-mono text-stone">
-          <span>In-Depth Analysis:</span>
+          <span>Want more detail?</span>
           <Link
             href="/guides/peptide-identity-vs-purity-vs-content"
             className="text-accent underline underline-offset-2 hover:opacity-80"
           >
-            Identity vs Purity vs Content Guide →
+            Identity vs purity vs amount
           </Link>
           <span>·</span>
           <Link
             href="/guides/peptide-purity-vs-content"
             className="text-accent underline underline-offset-2 hover:opacity-80"
           >
-            What 99% Purity Means →
+            What 99% purity means
           </Link>
         </div>
       </section>
 
-      {/* What this report does NOT establish */}
       <section className="rounded-xl border border-linen bg-surface p-6 md:p-8">
         <div className="flex items-center gap-2.5 text-signal">
           <AlertCircle className="size-5 shrink-0" aria-hidden />
           <h2 className="font-display text-lg font-bold text-ink md:text-xl">
-            What Analytical Reports Do Not Establish
+            What these reports do not cover
           </h2>
         </div>
         <p className="mt-2 text-sm leading-relaxed text-ash md:text-base">
-          To maintain strict scientific transparency and research compliance, researchers must recognize the boundaries of third-party HPLC and mass assay reports. Unless independently established by a separate designated test, analytical reports do not establish:
+          A standard HPLC and mass report is useful, but it is not a full quality certificate for every possible test. Unless a separate test is clearly listed on the report, it does not cover:
         </p>
 
         <ul className="mt-5 space-y-3 text-sm text-ash md:text-base">
           <li className="flex items-start gap-3">
-            <span className="font-mono text-xs text-signal pt-0.5">—</span>
+            <span className="font-mono text-xs text-signal pt-0.5">•</span>
             <span>
-              <strong className="text-ink">Sterility:</strong> HPLC purity testing assesses chemical composition, not microbiological sterility or absence of viable microorganisms.
+              <strong className="text-ink">Sterility.</strong> Chemical purity testing does not check for live microbes.
             </span>
           </li>
           <li className="flex items-start gap-3">
-            <span className="font-mono text-xs text-signal pt-0.5">—</span>
+            <span className="font-mono text-xs text-signal pt-0.5">•</span>
             <span>
-              <strong className="text-ink">Endotoxin / Pyrogen Status:</strong> Bacterial endotoxin levels require a separate Limulus Amebocyte Lysate (LAL) assay and are not evaluated in standard HPLC purity scans.
+              <strong className="text-ink">Endotoxins.</strong> Bacterial endotoxin (pyrogen) testing needs a separate assay, often called an LAL test.
             </span>
           </li>
           <li className="flex items-start gap-3">
-            <span className="font-mono text-xs text-signal pt-0.5">—</span>
+            <span className="font-mono text-xs text-signal pt-0.5">•</span>
             <span>
-              <strong className="text-ink">Human Safety, Pharmacology, or Efficacy:</strong> Chemical verification of compound identity and purity provides no assessment of biological activity, pharmacokinetics, or safety profile in biological systems.
+              <strong className="text-ink">Human safety or efficacy.</strong> Lab chemistry results do not tell you how a material behaves in people or animals.
             </span>
           </li>
           <li className="flex items-start gap-3">
-            <span className="font-mono text-xs text-signal pt-0.5">—</span>
+            <span className="font-mono text-xs text-signal pt-0.5">•</span>
             <span>
-              <strong className="text-ink">Suitability for In Vivo Administration:</strong> All compounds are intended exclusively for in vitro laboratory research and analytical calibration. Analytical data does not imply suitability for clinical, veterinary, or human administration.
+              <strong className="text-ink">Use in people or animals.</strong> These materials are for laboratory research only.
             </span>
           </li>
           <li className="flex items-start gap-3">
-            <span className="font-mono text-xs text-signal pt-0.5">—</span>
+            <span className="font-mono text-xs text-signal pt-0.5">•</span>
             <span>
-              <strong className="text-ink">Regulatory Approval:</strong> Third-party analytical documentation does not constitute FDA approval, cGMP drug substance certification, or medical device registration.
+              <strong className="text-ink">FDA approval.</strong> A third-party lab report is not FDA approval or drug certification.
             </span>
           </li>
         </ul>
 
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-linen pt-3 text-xs font-mono text-stone">
-          <span>Testing Boundaries Guide:</span>
+          <span>Full guide:</span>
           <Link
             href="/guides/what-peptide-testing-can-establish"
             className="text-accent underline underline-offset-2 hover:opacity-80"
           >
-            What Analytical Testing Can and Cannot Establish →
+            What testing can and cannot establish
           </Link>
         </div>
       </section>
 
-      {/* Lot Documentation Policy ("Selected Lots" Explanation) */}
       {showPolicy && (
         <section className="rounded-xl border border-linen bg-surface p-6 md:p-8">
           <div className="flex items-center gap-2.5 text-accent">
             <CheckCircle2 className="size-5 shrink-0" aria-hidden />
             <h2 className="font-display text-lg font-bold text-ink md:text-xl">
-              Our Lot Documentation Policy
+              How we publish batch reports
             </h2>
           </div>
           <div className="mt-4 space-y-3 text-sm leading-relaxed text-ash md:text-base">
             <p>
-              PSL Labs operates a strict verification-before-release policy:
-            </p>
-            <p>
-              <strong>1. Every active catalog batch has published documentation:</strong> Every currently sellable product in our active catalog has an independent, batch-matched analytical report published and accessible in our{" "}
+              <strong className="text-ink">1. Active products have published reports.</strong> If a product is available to buy in our catalog, its current lot report is already published in{" "}
               <Link href="/coa" className="font-medium text-accent underline underline-offset-4 hover:opacity-80">
                 COA Lookup
-              </Link>{" "}
-              prior to inventory availability.
+              </Link>.
             </p>
             <p>
-              <strong>2. Batch-specific scope:</strong> Analytical testing is performed on individual production lots. The results shown on any Certificate of Analysis apply strictly to the specific lot number and sample analyzed by the independent laboratory. We do not extrapolate purity or concentration data from one lot to another.
+              <strong className="text-ink">2. Results apply to that batch.</strong> The report covers the lot and sample the lab tested. We do not reuse one lot&apos;s numbers for a different lot.
             </p>
             <p>
-              <strong>3. Pipeline materials:</strong> Compounds designated as &quot;Coming Soon&quot; are currently undergoing synthesis or independent analytical verification. They are not released for purchase until laboratory documentation is published and verified.
+              <strong className="text-ink">3. Coming Soon stays unavailable.</strong> Items marked Coming Soon are still in synthesis or testing. They are not for sale until the report is published.
             </p>
             <p>
-              <strong>4. Independent verification:</strong> Every published report includes the original Janoshik task number and a unique digital verification key, enabling researchers to independently verify the authentic document directly on the laboratory&apos;s server at{" "}
+              <strong className="text-ink">4. You can verify the file yourself.</strong> Each report includes a Janoshik task number and verification key. Confirm the original on{" "}
               <a
                 href="https://verify.janoshik.com"
                 target="_blank"
@@ -176,19 +178,19 @@ export function TestingScopeExplainer({
           </div>
 
           <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-linen pt-3 text-xs font-mono text-stone">
-            <span>Traceability &amp; Verification:</span>
+            <span>Related reading:</span>
             <Link
               href="/guides/batch-specific-vs-generic-coa"
               className="text-accent underline underline-offset-2 hover:opacity-80"
             >
-              Why Batch-Specific COAs Matter →
+              Why the batch number matters
             </Link>
             <span>·</span>
             <Link
               href="/guides/verify-peptide-laboratory-report"
               className="text-accent underline underline-offset-2 hover:opacity-80"
             >
-              How to Verify a Lab Report →
+              How to verify a lab report
             </Link>
           </div>
         </section>

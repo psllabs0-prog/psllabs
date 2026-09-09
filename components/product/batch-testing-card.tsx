@@ -134,26 +134,26 @@ export function BatchTestingCard({ report }: BatchTestingCardProps) {
         </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-linen pt-3 text-xs font-mono text-stone">
-          <span>Analytical Guides:</span>
+          <span>Guides:</span>
           <Link
             href="/guides/peptide-purity-vs-content"
             className="text-accent underline underline-offset-2 hover:opacity-80"
           >
-            What Purity % Means
+            What purity % means
           </Link>
           <span>·</span>
           <Link
             href="/guides/verify-peptide-laboratory-report"
             className="text-accent underline underline-offset-2 hover:opacity-80"
           >
-            How to Verify Reports
+            How to verify a report
           </Link>
           <span>·</span>
           <Link
             href="/guides/peptide-identity-vs-purity-vs-content"
             className="text-accent underline underline-offset-2 hover:opacity-80"
           >
-            Identity vs Purity vs Content
+            Identity vs purity vs amount
           </Link>
         </div>
 

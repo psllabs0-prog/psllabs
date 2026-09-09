@@ -29,8 +29,8 @@ export function BatchLookup() {
           Look up a batch report
         </h2>
         <p className="text-sm leading-relaxed text-ash md:text-base">
-          Enter a task number (e.g. 199788) or batch name (e.g. Black Top) to
-          find the original laboratory report. {TESTING_SCOPE_STATEMENT}
+          Enter a task number (for example, 199788) or batch name (for example,
+          Black Top) to find the original lab report. {TESTING_SCOPE_STATEMENT}
         </p>
         <label className="flex flex-col gap-2">
           <span className="mono text-stone">Task number or batch name</span>
@@ -71,8 +71,8 @@ export function BatchLookup() {
             Published reports
           </h2>
           <p className="mt-2 text-sm leading-relaxed text-ash md:text-base">
-            All currently published third-party laboratory reports. Results apply
-            only to the tested sample and batch identified in each report.
+            Published third-party lab reports for current lots. Each result set
+            applies only to the sample and batch named on that report.
           </p>
         </div>
         <div className="grid gap-4">
@@ -117,7 +117,7 @@ export function BatchLookup() {
           />
         </div>
         <p className="px-4 pb-4 pt-2 text-xs leading-relaxed text-ash">
-          Original Janoshik laboratory report — Batch Black Top, Task 199788.
+          Original Janoshik laboratory report for Batch Black Top, Task 199788.{" "}
           {TESTING_SCOPE_STATEMENT}
         </p>
       </section>

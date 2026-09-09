@@ -79,7 +79,7 @@ export function ResearchPeptideTemplate({
                     <span className="size-2 rounded-full bg-verified-green" aria-hidden />
                     <span className="font-mono font-medium text-ink">
                       {hasReport
-                        ? "Third-party analytical report published (Janoshik)"
+                        ? "Third-party lab report published (Janoshik)"
                         : "Third-party documentation pending release"}
                     </span>
                   </div>
@@ -88,7 +88,7 @@ export function ResearchPeptideTemplate({
                       href="#batch-testing"
                       className="mono font-semibold text-accent underline underline-offset-2 hover:opacity-80"
                     >
-                      View batch report ↓
+                      View lab report ↓
                     </a>
                   )}
                 </div>
@@ -115,7 +115,7 @@ export function ResearchPeptideTemplate({
         {/* Decision Layer Support: Analytical Scope & Limitations */}
         <SectionShell
           label="TESTING LIMITATIONS"
-          title="Analytical scope & boundaries."
+          title="What this testing covers (and what it does not)."
           variant="ice"
           width="prose"
         >

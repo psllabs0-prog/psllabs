@@ -10,9 +10,9 @@ export const retatrutideSource = {
   price: 59.99,
   stockStatus: "in_stock" satisfies StockStatus,
   description:
-    "Synthetic peptide reference standard for laboratory research. Laboratory-reported purity on third-party COA. Batch-specific documentation available.",
+    "Synthetic peptide reference standard for laboratory research. Third-party COA lists purity for the published batch.",
   shortDescription:
-    "Retatrutide (CAS 2381089-83-2). Synthetic peptide for laboratory research. Laboratory-reported purity on third-party COA. Batch-specific Certificate of Analysis available. Not for human or animal use.",
+    "Retatrutide (CAS 2381089-83-2) reference standard for laboratory research. Third-party COA lists purity for the published batch. Not for human or animal use.",
   purityBadge: "Batch-specific purity",
   href: productPathFromSku("PSL-RT-10MG"),
 } as const;

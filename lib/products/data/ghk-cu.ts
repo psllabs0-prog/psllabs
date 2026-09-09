@@ -17,14 +17,14 @@ export const ghkCu: Product = {
   tag: "RESEARCH PEPTIDE",
   name: "GHK-Cu",
   shortDescription:
-    "GHK-Cu. Copper peptide for laboratory research. Laboratory-reported purity on third-party COA. Batch-specific Certificate of Analysis available. Not for human or animal use.",
+    "GHK-Cu copper peptide reference standard for laboratory research. Third-party COA lists purity for the published batch. Not for human or animal use.",
   price: 24.99,
   stockStatus: "in_stock",
   imageSrc: image.src,
   imageAlt: image.alt,
   stackRole: "Research peptide · laboratory use only",
   whyThisExists:
-    "GHK-Cu is a copper-binding tripeptide reference standard supplied as a lyophilized powder for laboratory research. Purity: lot-specific by independent HPLC (see Batch Testing section for published data).\n\nThis product is supplied as a reference standard for analytical and in vitro laboratory applications. It is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",
+    "GHK-Cu is a copper-binding tripeptide reference standard, sold as lyophilized powder for laboratory research. Lot purity comes from independent HPLC. See Batch Testing for published numbers.\n\nIt is a reference standard for analytical and in vitro lab work. Not for use in humans or animals.\n\nMatch your vial lot to the Certificate of Analysis in Batch Testing below.",
   bullets: [
     "Lyophilized research peptide",
     "Independent batch documentation for published lots",
@@ -35,8 +35,7 @@ export const ghkCu: Product = {
     {
       name: "GHK-Cu",
       dose: "50mg nominal (see COA for laboratory-reported amount)",
-      mechanism:
-        "Copper peptide supplied for in vitro and laboratory research applications.",
+      mechanism: "Copper peptide for in vitro and laboratory work.",
     },
   ],
   howToUse: [
@@ -56,7 +55,7 @@ export const ghkCu: Product = {
       step: 3,
       title: "Documentation",
       description:
-        "Match the lot number on your vial to the published laboratory report on this page or via COA / Batch Lookup before use in your workflow.",
+        "Match the lot on your vial to the published lab report on this page or in COA Lookup.",
     },
   ],
   citations: [],
@@ -64,25 +63,25 @@ export const ghkCu: Product = {
     {
       question: "Is GHK-Cu for human consumption?",
       answer:
-        "No. GHK-Cu is sold strictly for laboratory and research use only. It is not intended for human or animal consumption.",
+        "No. GHK-Cu is for laboratory research only. Not for human or animal consumption.",
     },
     {
       question: "Where is the COA for my batch?",
       answer:
-        "When a third-party laboratory report is published for your lot, it appears on this product page under Testing & Quality and in COA / Batch Lookup. Results apply only to the tested sample and batch identified in that report.",
+        "If a third-party lab report is published for your lot, you will find it under Testing & Quality on this page and in COA Lookup. Results apply only to the sample and batch named on that report.",
     },
     {
       question:
         "What is the difference between nominal strength and the laboratory-reported amount?",
       answer:
-        "The vial is labeled at a nominal strength of 50mg. The laboratory-reported amount on the original report reflects the specific sample tested and may differ. Review the published report for the batch you received.",
+        "The vial label shows a nominal strength of 50mg. The laboratory-reported amount on the original report is for the sample that was tested and may differ. Check the published report for the batch you received.",
     },
   ],
   testing: {
-    description: `Independent third-party laboratory documentation is published for active lots. ${TESTING_SCOPE_STATEMENT}`,
+    description: `We publish an independent third-party lab report for active lots. ${TESTING_SCOPE_STATEMENT}`,
   },
   stackBlurb:
-    "GHK-Cu is supplied as a standalone research peptide with lot-specific documentation when published.",
+    "GHK-Cu is a standalone research peptide with lot-specific documentation when published.",
   specifications: [
     { label: "SKU", value: "PSL-GHKCU-50MG" },
     { label: "Compound", value: "GHK-Cu" },
@@ -103,5 +102,5 @@ export const ghkCu: Product = {
     { label: "Human Use", value: "Not for human or animal use" },
   ],
   researchDisclaimer:
-    "This product is supplied for laboratory research use only. Not intended for human or animal administration, diagnostic use, or any therapeutic application.",
+    "This product is for laboratory research use only. Not for human or animal administration, diagnostic use, or any therapeutic application.",
 };

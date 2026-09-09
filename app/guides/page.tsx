@@ -51,19 +51,19 @@ const CATEGORIES: {
     id: "analytical-foundations",
     title: "1. Analytical Foundations",
     description:
-      "Core chemistry principles: decoupling identity, chromatographic purity, and net mass content.",
+      "Identity, purity, and content as separate questions, plus what lab testing can and cannot show.",
   },
   {
     id: "verification-traceability",
     title: "2. Verification & Batch Traceability",
     description:
-      "Protocols for inspecting laboratory reports, task IDs, issuing laboratories, and lot numbers.",
+      "How to check task IDs, issuing labs, lot matches, and batch-specific reports.",
   },
   {
     id: "handling-stability",
     title: "3. Handling & Stability",
     description:
-      "Laboratory storage temperatures, reconstitution precautions, and degradation avoidance.",
+      "Storage temperatures, reconstitution basics, and keeping samples intact.",
   },
 ];
 
@@ -92,7 +92,7 @@ export default function GuidesHubPage() {
 
             <AnimateIn delay={0.1}>
               <p className="mt-5 max-w-3xl text-base leading-relaxed text-ash md:text-lg">
-                Independent analytical testing is the backbone of trustworthy research procurement. These educational guides explain how to read chromatography reports, verify Certificates of Analysis, distinguish purity from mass content, and evaluate testing boundaries.
+                Plain-language guides for reading peptide lab reports: what identity, purity, and content each mean, how to verify a COA on the lab&apos;s own site, and where chemical testing stops.
               </p>
             </AnimateIn>
 
@@ -103,14 +103,14 @@ export default function GuidesHubPage() {
                   className="inline-flex items-center gap-2 rounded-pill bg-accent px-5 py-2.5 text-xs font-semibold text-page transition-opacity hover:opacity-90"
                 >
                   <Search className="size-3.5" aria-hidden />
-                  <span>Search Batch Reports in COA Lookup</span>
+                  <span>View Batch Reports</span>
                 </Link>
                 <Link
                   href="/testing"
                   className="inline-flex items-center gap-2 rounded-pill border border-border-strong bg-surface px-5 py-2.5 text-xs font-semibold text-ink transition-colors hover:bg-paper"
                 >
                   <FileCheck className="size-3.5" aria-hidden />
-                  <span>Testing Standards &amp; Quality</span>
+                  <span>See Testing Details</span>
                 </Link>
               </div>
             </AnimateIn>
@@ -190,7 +190,7 @@ export default function GuidesHubPage() {
                 Research Use Compliance Boundary
               </p>
               <p className="leading-relaxed">
-                All educational materials and guide resources published by PSL Labs are intended strictly for scientific, academic, and industrial laboratory personnel evaluating reference standards and analytical documentation. None of the information contained herein constitutes medical, clinical, or therapeutic advice. All materials are strictly for research use only.
+                These guides are for laboratory and research teams evaluating analytical documentation. They are not medical, clinical, or therapeutic advice. All materials discussed are for research use only.
               </p>
             </div>
           </AnimateIn>

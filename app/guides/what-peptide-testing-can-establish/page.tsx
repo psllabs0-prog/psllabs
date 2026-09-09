@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertCircle, CheckCircle2, ShieldAlert, Sparkles } from "lucide-react";
 
 import { JsonLd } from "@/components/seo/json-ld";
 import { GuideLayout } from "@/components/guides/guide-layout";
@@ -49,19 +48,19 @@ const breadcrumbLd = {
 };
 
 const tocItems = [
-  { id: "incomplete-statement", label: "'Third-Party Tested' Is Incomplete Information" },
-  { id: "specific-questions", label: "Analytical Testing Answers Highly Specific Questions" },
-  { id: "identity-testing", label: "1. Chemical Identity Testing" },
-  { id: "purity-testing", label: "2. Chromatographic Purity Testing" },
-  { id: "content-testing", label: "3. Content & Amount (Mass Assay) Testing" },
-  { id: "capstone-matrix", label: "The Comprehensive Analytical Scope Matrix" },
-  { id: "separate-tests", label: "Additional Attributes Requiring Separate Dedicated Tests" },
-  { id: "no-substitutes", label: "What One Analytical Method Cannot Substitute For" },
-  { id: "tested-sample-limits", label: "Tested-Sample & Single-Vial Boundaries" },
-  { id: "batch-representativeness", label: "Batch Representativeness & Statistical Limits" },
-  { id: "what-testing-cannot-prove", label: "What Analytical Testing Does NOT Establish" },
-  { id: "psl-transparency", label: "How PSL Labs Presents Laboratory Documentation" },
-  { id: "analytical-checklist", label: "The Researcher's Analytical Evaluation Checklist" },
+  { id: "incomplete-statement", label: "'Third-party tested' needs follow-ups" },
+  { id: "specific-questions", label: "Each test answers one question" },
+  { id: "identity-testing", label: "Identity testing" },
+  { id: "purity-testing", label: "Purity testing" },
+  { id: "content-testing", label: "Content / mass assay" },
+  { id: "capstone-matrix", label: "Scope matrix" },
+  { id: "separate-tests", label: "Attributes that need other assays" },
+  { id: "no-substitutes", label: "Methods that do not replace each other" },
+  { id: "tested-sample-limits", label: "Tested-sample boundaries" },
+  { id: "batch-representativeness", label: "Batch matching in practice" },
+  { id: "what-testing-cannot-prove", label: "What chemical data cannot prove" },
+  { id: "psl-transparency", label: "How PSL Labs presents docs" },
+  { id: "analytical-checklist", label: "Evaluation checklist" },
 ];
 
 const scopeMatrixColumns = [
@@ -110,120 +109,104 @@ export default function WhatPeptideTestingCanEstablishPage() {
       <JsonLd data={breadcrumbLd} />
 
       <GuideLayout guide={guide} tocItems={tocItems}>
-        {/* Intro */}
         <section className="flex flex-col gap-4">
           <p className="text-ash leading-relaxed">
-            In the research biochemical sector, &ldquo;third-party tested&rdquo; has become a universal trust badge. It appears on vendor banners, product cards, and marketing emails. Yet from an analytical chemistry perspective, the statement &ldquo;this product is third-party tested&rdquo; conveys incomplete information.
+            &ldquo;Third-party tested&rdquo; shows up everywhere in research biochemical marketing. As a chemistry statement, it is incomplete on its own.
           </p>
           <p className="text-ash leading-relaxed">
-            Testing is not an abstract quality stamp; it is a series of distinct chemical and biological assays, each designed to evaluate a single physical property under specified instrumentation parameters. A test that confirms molecular identity tells you nothing about chromatographic purity. A test that establishes purity tells you nothing about net vial mass. And no chemical test establishes biological sterility or clinical safety.
+            Testing is not a single quality stamp. It is a set of assays, each aimed at one property under defined instrument conditions. Identity, purity, and mass content answer different questions. None of those chemical checks by themselves establish sterility or clinical safety.
           </p>
           <p className="text-ash leading-relaxed">
-            This capstone authority guide establishes the exact boundaries of analytical peptide documentation: what standard laboratory tests establish, what requires separate assays, and what laboratory data can never establish.
+            This guide maps the boundaries: what standard peptide lab tests establish, what needs separate assays, and what chemical data simply cannot prove.
           </p>
         </section>
 
-        {/* Section 1 */}
         <section id="incomplete-statement" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            &ldquo;Third-Party Tested&rdquo; Is Incomplete Information
+            &ldquo;Third-party tested&rdquo; needs follow-ups
           </h2>
           <p className="text-ash leading-relaxed">
-            When a supplier states that a compound is &ldquo;third-party tested,&rdquo; the critical follow-up questions must always be:
+            When a supplier says a compound is third-party tested, ask:
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 pt-1">
             <div className="rounded-xl border border-linen bg-surface p-5 text-sm space-y-1">
               <span className="font-mono text-xs font-bold text-accent">QUESTION 1</span>
               <p className="font-bold text-ink">What was tested?</p>
-              <p className="text-xs text-ash">Was it identity, purity area %, quantitative mass fill, or all three?</p>
+              <p className="text-xs text-ash">Identity, purity area %, quantitative mass fill, or a combination?</p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-5 text-sm space-y-1">
               <span className="font-mono text-xs font-bold text-accent">QUESTION 2</span>
               <p className="font-bold text-ink">How was it tested?</p>
-              <p className="text-xs text-ash">What instrumentation, column chemistry, and detector wavelengths were used?</p>
+              <p className="text-xs text-ash">Which instruments, columns, and detector wavelengths?</p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-5 text-sm space-y-1">
               <span className="font-mono text-xs font-bold text-accent">QUESTION 3</span>
               <p className="font-bold text-ink">Can it be verified?</p>
-              <p className="text-xs text-ash">Does the issuing laboratory host the authentic raw record under an immutable task ID?</p>
+              <p className="text-xs text-ash">Does the lab host the original record under a task ID you can look up?</p>
             </div>
           </div>
           <p className="text-ash leading-relaxed pt-2">
-            Without answers to these three questions, the claim &ldquo;third-party tested&rdquo; functions as marketing reassurance rather than empirical documentation.
+            Without those answers, &ldquo;third-party tested&rdquo; is reassurance, not documentation.
           </p>
         </section>
 
-        {/* Section 2 */}
         <section id="specific-questions" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Analytical Testing Answers Highly Specific Questions
+            Each test answers one question
           </h2>
           <p className="text-ash leading-relaxed">
-            Analytical chemistry operates on reductionism: complex physical materials are interrogated through targeted physical phenomena (mass-to-charge deflection, light absorption, retention time, culture incubation).
-          </p>
-          <p className="text-ash leading-relaxed">
-            Each assay answers exactly one question. Attempting to generalize the results of an HPLC purity scan to encompass sterility, biological efficacy, or safety is scientifically invalid.
+            Analytical methods work through specific physical readouts: mass-to-charge ratios, light absorption, retention time, culture growth. Each assay is built to answer one question well. Stretching an HPLC purity scan into claims about sterility or biological effect is not valid chemistry.
           </p>
         </section>
 
-        {/* Section 3: Identity */}
         <section id="identity-testing" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            1. Chemical Identity Testing
+            Identity testing
           </h2>
           <p className="text-ash leading-relaxed">
-            <strong>Question Answered:</strong> <em>Does the sample contain molecules matching the target molecular formula and mass?</em>
+            <strong>Question:</strong> Does the sample contain molecules matching the target formula and mass?
           </p>
-          <ul className="list-disc pl-5 space-y-1.5 text-ash text-sm sm:text-base">
-            <li><strong>Methodology:</strong> Liquid Chromatography-Mass Spectrometry (LC-MS) or MALDI-TOF mass spectrometry.</li>
-            <li><strong>What It Establishes:</strong> Confirms that the molecular weight of the main ionizing species matches the theoretical monoisotopic or average molecular weight calculated from the amino acid sequence.</li>
-            <li><strong>What It Does Not Establish:</strong> LC-MS does not quantify net milligrams in the vial, does not detect non-ionizing salts, and cannot distinguish between L- and D-enantiomers without specialized chiral digestion.</li>
-          </ul>
+          <p className="text-ash leading-relaxed">
+            Labs typically use liquid chromatography-mass spectrometry (LC-MS) or MALDI-TOF. Mass spectrometry (MS) measures mass-to-charge ratios and checks whether the main ionizing species matches the theoretical molecular weight from the amino acid sequence. That confirms presence of the expected mass. It does not by itself give net milligrams, purity percentage, or salt content, and without specialized chiral methods it does not separate L- and D-enantiomers.
+          </p>
         </section>
 
-        {/* Section 4: Purity */}
         <section id="purity-testing" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            2. Chromatographic Purity Testing
+            Purity testing
           </h2>
           <p className="text-ash leading-relaxed">
-            <strong>Question Answered:</strong> <em>What percentage of detectable UV-absorbing material corresponds to the main retention peak?</em>
+            <strong>Question:</strong> What share of detectable UV-absorbing material sits under the main retention peak?
           </p>
-          <ul className="list-disc pl-5 space-y-1.5 text-ash text-sm sm:text-base">
-            <li><strong>Methodology:</strong> Reversed-Phase High-Performance Liquid Chromatography (RP-HPLC) with UV/Vis spectrophotometric detection (typically at 214 nm or 220 nm).</li>
-            <li><strong>What It Establishes:</strong> Quantifies the relative optical peak area of the target peptide relative to detectable synthesis side-products, deletion sequences, and related substances that absorb light at that wavelength.</li>
-            <li><strong>What It Does Not Establish:</strong> HPLC does not prove chemical identity, does not measure absolute vial mass, and is blind to UV-transparent excipients (salts, TFA counterions, water). Review our dedicated analysis on{" "}
+          <p className="text-ash leading-relaxed">
+            Reversed-phase high-performance liquid chromatography (HPLC) with UV detection (often 214 nm or 220 nm) produces a chromatogram of absorbance versus time. The purity percentage is usually relative peak area of the target versus other UV-active related substances. It does not name the molecule, measure absolute vial mass, or see UV-transparent salts and water. More detail is in{" "}
             <Link
               href="/guides/peptide-purity-vs-content"
               className="text-accent underline underline-offset-2"
             >
               What Does 99% Peptide Purity Actually Mean?
-            </Link>.</li>
-          </ul>
+            </Link>.
+          </p>
         </section>
 
-        {/* Section 5: Content */}
         <section id="content-testing" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            3. Content &amp; Amount (Mass Assay) Testing
+            Content / mass assay
           </h2>
           <p className="text-ash leading-relaxed">
-            <strong>Question Answered:</strong> <em>How many absolute milligrams of active peptide are present in the submitted vial?</em>
+            <strong>Question:</strong> How many milligrams of active peptide are in the submitted vial?
           </p>
-          <ul className="list-disc pl-5 space-y-1.5 text-ash text-sm sm:text-base">
-            <li><strong>Methodology:</strong> Quantitative HPLC against a multi-point calibration curve of an authentic reference standard, or total nitrogen elemental analysis.</li>
-            <li><strong>What It Establishes:</strong> The physical net mass of the target peptide (e.g., 10.34 mg on a nominal 10 mg vial), eliminating assumptions regarding gross powder weight and counterion fraction.</li>
-            <li><strong>What It Does Not Establish:</strong> Net mass does not verify biological sterility, absence of bacterial endotoxins, or receptor binding affinity.</li>
-          </ul>
+          <p className="text-ash leading-relaxed">
+            An assay here means a quantitative measurement, typically HPLC against a calibration curve of an authentic standard, or total nitrogen elemental analysis. That gives net peptide mass (for example, 10.34 mg on a nominal 10 mg vial) without guessing from gross powder weight. It still does not speak to sterility, endotoxins, or receptor binding.
+          </p>
         </section>
 
-        {/* Section 6: Comprehensive Scope Matrix */}
         <section id="capstone-matrix" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            The Comprehensive Analytical Scope Matrix
+            Scope matrix
           </h2>
           <p className="text-ash leading-relaxed">
-            The matrix below defines the exact analytical boundaries for each major testing category in peptide research documentation:
+            The table below is the compact reference for what each major category covers:
           </p>
           <ComparisonTable
             columns={scopeMatrixColumns}
@@ -232,88 +215,68 @@ export default function WhatPeptideTestingCanEstablishPage() {
           />
         </section>
 
-        {/* Section 7 */}
         <section id="separate-tests" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Additional Attributes Requiring Separate Dedicated Tests
+            Attributes that need other assays
           </h2>
           <p className="text-ash leading-relaxed">
-            Beyond identity, purity, and net mass, several critical biochemical parameters require independent, specialized testing protocols:
+            Beyond identity, purity, and net mass, several parameters need their own protocols:
           </p>
           <div className="space-y-3 pt-1 text-sm">
             <div className="rounded-xl border border-linen bg-surface p-5 space-y-1.5">
               <span className="font-mono text-xs font-bold text-accent uppercase">
-                Microbiological Sterility (USP &lt;71&gt;)
+                Microbiological sterility (USP &lt;71&gt;)
               </span>
               <p className="text-ash leading-relaxed">
-                Requires 14-day incubation in fluid thioglycollate medium (FTM) and soybean casein digest medium (SCDM) to detect viable anaerobic/aerobic bacteria and fungi. Chemical HPLC and mass spectrometry cannot detect viable biological organisms.
+                Multi-day incubation in growth media to detect viable bacteria and fungi. HPLC and MS do not detect living organisms.
               </p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-5 space-y-1.5">
               <span className="font-mono text-xs font-bold text-accent uppercase">
-                Bacterial Endotoxins (USP &lt;85&gt;)
+                Bacterial endotoxins (USP &lt;85&gt;)
               </span>
               <p className="text-ash leading-relaxed">
-                Requires Limulus Amebocyte Lysate (LAL) turbidimetric or chromogenic testing to detect lipopolysaccharides from Gram-negative bacterial outer membranes. Pyrogens are biologically active at picogram concentrations but completely invisible to standard HPLC detectors.
+                Limulus Amebocyte Lysate (LAL) testing for lipopolysaccharides from Gram-negative bacteria. Pyrogens can matter at very low levels and still be invisible on a standard HPLC chromatogram.
               </p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-5 space-y-1.5">
               <span className="font-mono text-xs font-bold text-accent uppercase">
-                Residual Solvents (USP &lt;467&gt;)
+                Residual solvents (USP &lt;467&gt;)
               </span>
               <p className="text-ash leading-relaxed">
-                Requires Headspace Gas Chromatography (GC-MS) to quantify volatile organic synthesis reagents such as N,N-dimethylformamide (DMF), dichloromethane (DCM), piperidine, and acetonitrile.
+                Headspace GC-MS for volatile synthesis reagents such as DMF, dichloromethane, piperidine, and acetonitrile.
               </p>
             </div>
           </div>
         </section>
 
-        {/* Section 8 */}
         <section id="no-substitutes" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            What One Analytical Method Cannot Substitute For
+            Methods that do not replace each other
           </h2>
           <p className="text-ash leading-relaxed">
-            Analytical instrumentation cannot cross domain boundaries:
+            UV absorbance cannot identify structure the way mass spectrometry can. Ionization response in MS is not a reliable substitute for a calibrated quantitative assay. And a chemically clean chromatogram does not replace microbiological testing. Keep each method in its lane.
           </p>
-          <ul className="list-disc pl-5 space-y-2 text-ash text-sm sm:text-base">
-            <li><strong>HPLC cannot substitute for Mass Spectrometry:</strong> UV absorbance cannot identify a molecular structure.</li>
-            <li><strong>Mass Spectrometry cannot substitute for Quantitative Assay:</strong> Ionization response factors vary unpredictably between different peptides and salt forms.</li>
-            <li><strong>Chemical purity cannot substitute for microbiological testing:</strong> A chemically pure 99.9% peptide can be non-sterile and contaminated with pyrogenic endotoxins.</li>
-          </ul>
         </section>
 
-        {/* Section 9 */}
         <section id="tested-sample-limits" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Tested-Sample &amp; Single-Vial Boundaries
+            Tested-sample boundaries
           </h2>
-          <p className="text-ash leading-relaxed">
-            A fundamental tenet of third-party analytical testing:
-          </p>
-          <AnalyticalCallout title="The Destructive Assay Boundary" variant="limitation">
-            Because analytical chromatography and mass spectrometry dissolve and destroy the analyzed sample, test results apply strictly to the specific vial submitted to the testing facility. Testing does not prove that every other vial in that production lot is chemically identical.
+          <AnalyticalCallout title="Destructive assays describe the submitted vial" variant="limitation">
+            Chromatography and mass spectrometry consume the analyzed sample. Results apply to that vial. They do not prove every other unit in the lot is chemically identical.
           </AnalyticalCallout>
           <p className="text-ash leading-relaxed">
-            Statistical confidence across a lot depends on manufacturing quality control, validated bulk homogenization, and automated fill precision. A single third-party test confirms that the submitted sample met specifications; it does not replace the manufacturer&apos;s process validation.
+            Confidence across a lot comes from manufacturing controls and fill consistency. One third-party test confirms the submitted sample met the reported specs. It does not replace process validation.
           </p>
         </section>
 
-        {/* Section 10 */}
         <section id="batch-representativeness" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Batch Representativeness &amp; Statistical Limits
+            Batch matching in practice
           </h2>
           <p className="text-ash leading-relaxed">
-            When researchers review batch documentation, they should confirm:
-          </p>
-          <ul className="list-disc pl-5 space-y-1.5 text-ash text-sm sm:text-base">
-            <li>The batch code on the report matches the container in hand.</li>
-            <li>The sample was submitted from the active commercial lot, not a legacy pilot run.</li>
-            <li>The report includes both chromatographic purity and quantitative net mass when available.</li>
-          </ul>
-          <p className="text-ash leading-relaxed">
-            Review our detailed analysis on{" "}
+            When you review documentation, confirm the batch code matches the container, the sample came from the active commercial lot (not only a legacy pilot), and the report includes purity and quantitative mass when those were performed. See{" "}
             <Link
               href="/guides/batch-specific-vs-generic-coa"
               className="font-medium text-accent underline underline-offset-4 hover:opacity-80"
@@ -323,77 +286,54 @@ export default function WhatPeptideTestingCanEstablishPage() {
           </p>
         </section>
 
-        {/* Section 11 */}
         <section id="what-testing-cannot-prove" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            What Analytical Testing Does NOT Establish
+            What chemical data cannot prove
           </h2>
           <p className="text-ash leading-relaxed">
-            To preserve research compliance and scientific accuracy, researchers must recognize the absolute limits of chemical documentation. Third-party analytical testing does NOT establish:
+            Third-party chemical testing does not establish biological safety or pharmacological efficacy, suitability for in vivo administration, or regulatory approval such as FDA clearance or cGMP drug certification. PSL Labs materials are for laboratory research and analytical calibration only.
           </p>
-          <div className="space-y-3 pt-1">
-            <div className="rounded-xl border border-signal/30 bg-signal/5 p-5 text-sm space-y-1">
-              <span className="font-mono text-xs font-bold text-signal uppercase">NON-CONCLUSION 1</span>
-              <p className="font-bold text-ink">Biological Safety or Pharmacological Efficacy</p>
-              <p className="text-xs text-ash">Chemical verification of identity and purity provides zero data regarding pharmacokinetics, cellular toxicity, or biological activity in biological systems.</p>
-            </div>
-            <div className="rounded-xl border border-signal/30 bg-signal/5 p-5 text-sm space-y-1">
-              <span className="font-mono text-xs font-bold text-signal uppercase">NON-CONCLUSION 2</span>
-              <p className="font-bold text-ink">Suitability for In Vivo Administration</p>
-              <p className="text-xs text-ash">All materials are supplied strictly for in vitro laboratory research and analytical calibration. Chemical reports do not authorize or establish suitability for human or animal administration.</p>
-            </div>
-            <div className="rounded-xl border border-signal/30 bg-signal/5 p-5 text-sm space-y-1">
-              <span className="font-mono text-xs font-bold text-signal uppercase">NON-CONCLUSION 3</span>
-              <p className="font-bold text-ink">Regulatory Approval</p>
-              <p className="text-xs text-ash">Third-party analytical testing from private laboratories does not constitute FDA approval, cGMP drug substance certification, or medical device registration.</p>
-            </div>
-          </div>
         </section>
 
-        {/* Section 12 */}
         <section id="psl-transparency" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            How PSL Labs Presents Laboratory Documentation
+            How PSL Labs presents docs
           </h2>
-          <p className="text-ash leading-relaxed">
-            PSL Labs is engineered around verifiable operating standards:
-          </p>
           <div className="rounded-xl border border-linen bg-surface p-6 space-y-3 text-sm leading-relaxed text-ash">
             <p>
-              <strong className="text-ink">1. Unaltered Primary Data:</strong> We publish complete, original laboratory reports from Janoshik Analytical, including chromatograms, integration baselines, and mass spectra, rather than retyped vendor summaries.
+              <strong className="text-ink">1. Primary data:</strong> We publish original Janoshik reports with chromatograms, integration baselines, and mass spectra, not retyped summaries.
             </p>
             <p>
-              <strong className="text-ink">2. Independent Digital Verification:</strong> Every report displays an authentic Task Number and Verification Key queryable on verify.janoshik.com.
+              <strong className="text-ink">2. Independent verification:</strong> Each report has a Task Number and Verification Key you can check on verify.janoshik.com.
             </p>
             <p>
-              <strong className="text-ink">3. Explicit Scope Transparency:</strong> We state plainly what each report establishes (identity, purity %, net mass) and what it does not establish.
+              <strong className="text-ink">3. Clear scope:</strong> We state what each report covers (identity, purity %, net mass) and where the record stops.
             </p>
           </div>
         </section>
 
-        {/* Section 13 */}
         <section id="analytical-checklist" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            The Researcher&apos;s Analytical Evaluation Checklist
+            Evaluation checklist
           </h2>
           <p className="text-ash leading-relaxed">
-            Follow this 8-point checklist before accepting research documentation into institutional laboratory records:
+            Use this checklist before accepting documentation into lab records:
           </p>
           <VerificationChecklist />
           <p className="text-ash leading-relaxed pt-2">
-            To explore specific published batch reports across our catalog, visit our{" "}
+            Explore published reports via{" "}
             <Link
               href="/coa"
               className="font-medium text-accent underline underline-offset-4 hover:opacity-80"
             >
-              COA / Batch Lookup
+              View Batch Reports
             </Link>{" "}
-            or review our{" "}
+            or{" "}
             <Link
               href="/testing"
               className="font-medium text-accent underline underline-offset-4 hover:opacity-80"
             >
-              Testing Methodology
+              See Testing Details
             </Link>.
           </p>
         </section>

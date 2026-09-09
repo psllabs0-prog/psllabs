@@ -9,9 +9,9 @@ import { aboutContent } from "@/lib/about";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "About PSL Labs: Verifiable Operating Practices",
+  title: "About PSL Labs",
   description:
-    "PSL Labs focuses on independent third-party lab reports, lot transparency, U.S. fulfillment, and research support.",
+    "How PSL Labs works: independent lab reports, batch transparency, U.S. shipping, and research support.",
   path: "/about",
 });
 
@@ -22,67 +22,67 @@ export default function AboutPage() {
     {
       id: "built-around-verification",
       icon: CheckCircle2,
-      title: "Built Around Verification",
+      title: "Built around documents you can check",
       paragraphs: [
-        "PSL Labs is built on a simple idea: research materials should stand on documents you can check, not on marketing claims. We supply synthetic peptides and related lab materials with clear third-party documentation.",
-        "Instead of broad quality slogans, we publish lab results for active lots so researchers can review identity, purity, and amount data before using the material in their work.",
+        "Research materials should stand on lab reports you can open and verify, not on marketing language. We sell synthetic peptides for laboratory research and publish third-party documentation for active lots.",
+        "You can review identity, purity, and measured amount data for published batches before you decide whether the material fits your work.",
       ],
-      linkText: "Learn about our testing methodology",
+      linkText: "See how testing works",
       linkHref: "/testing",
     },
     {
       id: "independent-laboratory-documentation",
       icon: FileCheck,
-      title: "Independent Laboratory Documentation",
+      title: "Independent lab reports",
       paragraphs: [
-        "We do not test our own products for published reports, and we do not rely only on supplier paperwork. Published testing is done by Janoshik Analytical, an independent lab using HPLC and mass spectrometry.",
-        "Each Certificate of Analysis covers chromatographic purity, chemical identity, and measured mass for the tested sample. Reports include a task number and a verification link so you can confirm the file on the lab's own server.",
+        "We do not publish our own in-house HPLC or mass spectrometry reports. Published testing is done by Janoshik Analytical, an independent lab.",
+        "Each Certificate of Analysis covers purity, identity, and measured amount for the tested sample. Reports include a task number so you can confirm the original file on the lab's site.",
       ],
-      linkText: "Review published batch reports in COA Lookup",
+      linkText: "View batch reports",
       linkHref: "/coa",
     },
     {
       id: "batch-transparency",
       icon: Layers,
-      title: "Batch Transparency",
+      title: "One report, one batch",
       paragraphs: [
-        "Lab results are batch-specific. A report applies to the lot and sample named on that document. It does not cover other lots.",
-        "Every active catalog product has a published lot report. When we bring in a new lot, we finish third-party testing and publish it before that lot ships. Coming Soon items stay unavailable until that step is done.",
+        "A report applies to the lot and sample named on that document. It does not cover other lots.",
+        "Every product currently for sale has a published lot report. Coming Soon items stay unavailable until testing is finished and published.",
       ],
-      linkText: "Search reports by lot or task number",
+      linkText: "Look up a lot or task number",
       linkHref: "/coa",
     },
     {
       id: "what-analytical-reports-do-not-establish",
       icon: AlertCircle,
-      title: "What Analytical Reports Do Not Establish",
+      title: "What the report does not cover",
       paragraphs: [
-        "HPLC purity and mass spectrometry results speak to chemical identity, peak-area purity, and measured mass for the tested sample.",
-        "Unless a separate assay is documented, these reports do not cover sterility, endotoxin status, pharmacokinetics, or biological safety. Materials are for laboratory research only, not for human or veterinary use.",
+        "HPLC purity and mass results speak to identity, reported purity, and measured amount for the tested sample.",
+        "Unless another test is listed, the report does not cover sterility, endotoxin status, or biological safety. Materials are for laboratory research only.",
       ],
-      linkText: "Review analytical scope and testing standards",
+      linkText: "Read testing details",
       linkHref: "/testing",
     },
     {
       id: "us-fulfillment",
       icon: Truck,
-      title: "U.S. Fulfillment",
+      title: "U.S. shipping",
       paragraphs: [
-        "We fulfill orders from Phoenix, Arizona. Packages are packed to protect vial seals and lyophilized material in normal domestic transit.",
-        "Orders usually process within 1 to 2 business days after payment clears, with tracked shipping to all 50 U.S. states. See the shipping page for rates, timing, and tracking details.",
+        "We ship from Phoenix, Arizona. Packages are packed to protect vials in normal domestic transit.",
+        "Most orders process within 1 to 2 business days after payment clears, with tracking to all 50 U.S. states.",
       ],
-      linkText: "View our domestic shipping policies and thresholds",
+      linkText: "Shipping rates and timing",
       linkHref: "/shipping",
     },
     {
       id: "research-support",
       icon: LifeBuoy,
-      title: "Research Support",
+      title: "Support",
       paragraphs: [
-        "We answer questions about lot documentation, order status, tracking, and product specs directly.",
-        "We do not advise on human administration, dosing, therapeutic protocols, or clinical use. For order or documentation help, contact us.",
+        "Ask us about lot documents, order status, tracking, or product specs.",
+        "We do not advise on dosing, human use, or clinical protocols. For order or documentation help, contact us.",
       ],
-      linkText: "Contact our research support team",
+      linkText: "Contact support",
       linkHref: "/contact",
     },
   ];
@@ -95,12 +95,12 @@ export default function AboutPage() {
         <div className="mx-auto flex max-w-[960px] flex-col gap-10 md:gap-14">
           <AnimateIn>
             <div className="flex flex-col gap-3">
-              <p className="mono text-accent">OPERATING PRACTICES</p>
+              <p className="mono text-accent">HOW WE WORK</p>
               <h2 className="font-display text-2xl font-bold tracking-[-0.02em] text-ink md:text-3xl">
-                Verifiable standards, not marketing claims.
+                Clear documents over marketing claims.
               </h2>
               <p className="text-base leading-relaxed text-ash md:text-lg">
-                PSL Labs is structured around operational transparency, documented testing standards, and research-use-only compliance.
+                We publish batch reports, ship in the U.S., and keep support focused on orders and documentation.
               </p>
             </div>
           </AnimateIn>

@@ -13,7 +13,7 @@ import { createPageMetadata, SITE_URL } from "@/lib/seo";
 export const metadata: Metadata = createPageMetadata({
   title: "PSL Labs: Synthetic Peptides for Laboratory Research",
   description:
-    "Synthetic peptides and research materials for laboratory use. Independent third-party analytical reports available for all released lots.",
+    "Synthetic peptides and research materials for laboratory use. Third-party lab reports available for released lots.",
   path: "/",
 });
 
@@ -24,7 +24,7 @@ const organizationLd = {
   legalName: "PSL Group LLC",
   url: SITE_URL,
   description:
-    "US-based research peptide supplier providing batch-level third-party testing documentation.",
+    "US-based research peptide supplier with batch-level third-party testing documentation.",
   email: "support@psllabs.org",
   address: {
     "@type": "PostalAddress",

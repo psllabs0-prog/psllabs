@@ -20,16 +20,15 @@ type BatchDocumentationCTAProps = {
 
 export function BatchDocumentationCTA({
   guideSlug,
-  title = "Review Published PSL Labs Batch Reports",
-  description = "Every production lot released in our active catalog is paired with an authentic, third-party Certificate of Analysis from Janoshik Analytical. Inspect chromatographic purity, quantitative mass assays, and independent digital verification keys.",
-  primaryLabel = "Look Up a Batch in COA Lookup",
+  title = "Check our published batch reports",
+  description = "Every active catalog lot has a third-party Certificate of Analysis from Janoshik Analytical. You can review purity, measured amount, and check the original file yourself.",
+  primaryLabel = "View Batch Reports",
   primaryHref = "/coa",
-  secondaryLabel = "Explore Testing Methodology",
+  secondaryLabel = "See Testing Details",
   secondaryHref = "/testing",
   showSampleBatch = true,
   className = "",
 }: BatchDocumentationCTAProps) {
-  // Use real batch reports from the central data source
   const sampleReports = batchReports.slice(0, 3);
 
   return (
@@ -40,7 +39,7 @@ export function BatchDocumentationCTA({
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-accent">
             <ShieldCheck className="size-4 shrink-0" aria-hidden />
-            <span>Research Verification Infrastructure</span>
+            <span>Batch reports</span>
           </div>
           <h3 className="font-display text-xl font-bold text-ink sm:text-2xl">
             {title}
@@ -53,7 +52,7 @@ export function BatchDocumentationCTA({
         {showSampleBatch && (
           <div className="flex flex-col gap-2 rounded-lg border border-linen bg-paper p-4">
             <p className="font-mono text-xs font-semibold text-stone uppercase tracking-wider">
-              Currently Published Analytical Reports (Janoshik)
+              Examples of published reports
             </p>
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 pt-1">
               {sampleReports.map((report) => (
@@ -68,7 +67,7 @@ export function BatchDocumentationCTA({
                   <span className="text-accent font-medium">
                     {report.purityPercent
                       ? `${report.purityPercent}% purity`
-                      : "Assay verified"}
+                      : "Assay reported"}
                   </span>
                 </div>
               ))}
@@ -97,7 +96,7 @@ export function BatchDocumentationCTA({
         </div>
 
         <p className="text-xs text-stone leading-relaxed">
-          Analytical reports reflect testing performed on the specific sample and lot identified. Materials are supplied exclusively for laboratory research and analytical calibration.
+          Each report covers the sample and lot named on that document. Materials are for laboratory research only.
         </p>
       </div>
     </section>

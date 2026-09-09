@@ -18,7 +18,7 @@ export function ProductTesting({ product }: { product: Product }) {
     <SectionShell
       id="batch-testing"
       label="TESTING & QUALITY"
-      title="Third-party analytical report."
+      title="Third-party lab report."
       variant="soft"
       width="prose"
     >
@@ -32,7 +32,7 @@ export function ProductTesting({ product }: { product: Product }) {
             </div>
             <p className="text-base leading-[1.7] text-ash md:text-body-lg">
               {hasReport
-                ? `Independent third-party laboratory documentation is published for active lots. ${TESTING_SCOPE_STATEMENT}`
+                ? `We publish an independent third-party lab report for active lots. ${TESTING_SCOPE_STATEMENT}`
                 : (product.testing.description ||
                   "Lot-specific third-party documentation is published when available.")}
             </p>

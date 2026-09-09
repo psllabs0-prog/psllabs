@@ -1,16 +1,15 @@
 import type { LabIllustrationId } from "@/components/illustrations/lab-illustrations";
-import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 import { getCatalogProductByHandle } from "@/lib/products/catalog";
 import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
 
 export const heroCopy = {
-  eyebrow: "RESEARCH-USE ONLY · ANALYTICAL STANDARDS",
-  headline: "Synthetic peptides for laboratory research, with third-party lab reports.",
+  eyebrow: "RESEARCH USE ONLY",
+  headline: "Research peptides with batch-specific third-party testing.",
   paragraph:
-    "PSL Labs supplies synthetic peptides and related research materials for laboratory work only. Each lot we release comes with an independent third-party lab report covering HPLC purity and measured amount for the tested sample. You can review those reports yourself. These materials are not for human or veterinary use.",
-  primaryCtaLabel: "Browse Research Catalog",
+    "PSL Labs sells synthetic peptides for laboratory research. We publish the lab report tied to each available batch so you can review the results yourself. Not for human or veterinary use.",
+  primaryCtaLabel: "Browse Products",
   primaryCtaHref: "/products",
-  secondaryCtaLabel: "Review Batch Reports",
+  secondaryCtaLabel: "View Batch Reports",
   secondaryCtaHref: "/coa",
   productImageAlt: PRODUCT_VIAL_IMAGE.alt,
   productImageSrc: PRODUCT_VIAL_IMAGE.src,
@@ -24,15 +23,15 @@ export type HeroTrustCardData = {
 export const heroTrustCards: HeroTrustCardData[] = [
   {
     illustration: "third-party-tested",
-    title: "Laboratory reports",
+    title: "Lab reports",
   },
   {
     illustration: "batch-coa",
-    title: "COA documentation",
+    title: "Batch COAs",
   },
   {
     illustration: "hplc",
-    title: "Batch verification",
+    title: "Checkable results",
   },
 ];
 
@@ -43,9 +42,9 @@ export type TrustElementData = {
 
 export const trustElements: TrustElementData[] = [
   { illustration: "usa-shipping", label: "USA Shipping" },
-  { illustration: "third-party-tested", label: "Laboratory Reports" },
+  { illustration: "third-party-tested", label: "Lab Reports" },
   { illustration: "certificate", label: "Certificate of Analysis" },
-  { illustration: "research-docs", label: "Research Documentation" },
+  { illustration: "research-docs", label: "Batch Documentation" },
 ];
 
 export type WhyChooseCardData = {
@@ -57,38 +56,39 @@ export type WhyChooseCardData = {
 export const whyChooseCards: WhyChooseCardData[] = [
   {
     illustration: "batch-coa",
-    title: "Batch-matched reports",
+    title: "Reports match the batch",
     description:
-      "Independent batch documentation available for published lots.",
+      "Each published report is tied to a specific lot, not a generic product claim.",
   },
   {
     illustration: "hplc",
-    title: "Original laboratory reports",
-    description: TESTING_SCOPE_STATEMENT,
+    title: "Original lab files",
+    description:
+      "You can open the original third-party report and see what the lab measured.",
   },
   {
     illustration: "quality-panel",
-    title: "Published lot documentation",
+    title: "Results you can read",
     description:
-      "Identity and purity results are disclosed on published lot-specific reports when testing documentation is available.",
+      "Published reports show identity, purity, and measured amount for the tested sample.",
   },
   {
     illustration: "us-fulfillment",
-    title: "US fulfillment",
+    title: "Ships in the U.S.",
     description:
-      "Domestic processing and tracked delivery for research supply you can plan around.",
+      "Orders ship from Phoenix, AZ with tracking to all 50 states.",
   },
   {
     illustration: "protected-shipping",
-    title: "Protected shipping",
+    title: "Packed for transit",
     description:
-      "Orders packed for stability in transit with tracking from dispatch to delivery.",
+      "We pack vials carefully and send tracking when your label is created.",
   },
   {
     illustration: "research-support",
-    title: "Research-first support",
+    title: "Direct support",
     description:
-      "Clear documentation, lot lookup, and direct answers at support@psllabs.org.",
+      "Questions about orders or batch docs? Email support@psllabs.org.",
   },
 ];
 
@@ -110,7 +110,7 @@ export const featuredProduct: FeaturedProductData = {
   tag: retatrutideListing.tag,
   name: retatrutideListing.name,
   description:
-    "Lyophilized Retatrutide for laboratory and research use. Independent batch documentation available for published lots. Not for human consumption.",
+    "Lyophilized Retatrutide for laboratory research. Batch report available. Not for human use.",
   price: retatrutideListing.price,
   href: retatrutideListing.href,
   imageSrc: retatrutideListing.imageSrc,

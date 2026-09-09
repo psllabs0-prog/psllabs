@@ -25,7 +25,7 @@ export const contactPage: ContactPageContent = {
   label: "CONTACT",
   headline: "Get in touch.",
   intro:
-    "Questions about your order, batch documentation, or research supply? Our team responds with clear, documented answers—not scripts.",
+    "Questions about an order, a batch report, or a product listing? Email us and we will get back with a clear answer.",
   supportEmail: "support@psllabs.org",
   details: [
     {
@@ -47,5 +47,5 @@ export const contactPage: ContactPageContent = {
   ],
   formTitle: "Send a message",
   formDescription:
-    "Include your order number or vial lot number when relevant—we can resolve documentation requests faster.",
+    "If you have an order number or vial lot number, include it. That helps us find the right paperwork faster.",
 };
