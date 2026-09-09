@@ -56,6 +56,7 @@ export const footerColumns: { title: string; links: NavLink[] }[] = [
       { label: "Testing", href: "/testing" },
       { label: "COA / Batch Lookup", href: "/coa" },
       { label: "Track Order", href: "/track" },
+      { label: "Analytical Guides", href: "/guides" },
       { label: "COA Verification Guide", href: "/guides/verify-peptide-coa" },
       { label: "Storage Guide", href: "/guides/peptide-storage-stability" },
       { label: "Purity Explained", href: "/guides/peptide-purity-percentages" },

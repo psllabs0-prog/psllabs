@@ -133,7 +133,31 @@ export function BatchTestingCard({ report }: BatchTestingCardProps) {
           Use the unique verification key shown on the original report.
         </p>
 
-        <p className="mt-6 border-t border-linen pt-4 text-xs leading-relaxed text-ash">
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-linen pt-3 text-xs font-mono text-stone">
+          <span>Analytical Guides:</span>
+          <Link
+            href="/guides/peptide-purity-vs-content"
+            className="text-accent underline underline-offset-2 hover:opacity-80"
+          >
+            What Purity % Means
+          </Link>
+          <span>·</span>
+          <Link
+            href="/guides/verify-peptide-laboratory-report"
+            className="text-accent underline underline-offset-2 hover:opacity-80"
+          >
+            How to Verify Reports
+          </Link>
+          <span>·</span>
+          <Link
+            href="/guides/peptide-identity-vs-purity-vs-content"
+            className="text-accent underline underline-offset-2 hover:opacity-80"
+          >
+            Identity vs Purity vs Content
+          </Link>
+        </div>
+
+        <p className="mt-4 border-t border-linen pt-4 text-xs leading-relaxed text-ash">
           {BATCH_REPORT_DISCLAIMER}
         </p>
       </div>

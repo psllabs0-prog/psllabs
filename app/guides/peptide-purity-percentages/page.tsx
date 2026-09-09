@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 
 import { AnimateIn } from "@/components/product/animate-in";
 import { JsonLd } from "@/components/seo/json-ld";
+import { RelatedGuides } from "@/components/guides/related-guides";
+import { BatchDocumentationCTA } from "@/components/guides/batch-documentation-cta";
 import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
 
@@ -210,6 +212,14 @@ export default function PeptidePurityPercentagesGuidePage() {
                 stronger paper trail for that batch.
               </p>
             </section>
+          </AnimateIn>
+
+          <AnimateIn delay={0.26}>
+            <BatchDocumentationCTA guideSlug="peptide-purity-percentages" />
+          </AnimateIn>
+
+          <AnimateIn delay={0.28}>
+            <RelatedGuides currentSlug="peptide-purity-percentages" />
           </AnimateIn>
         </div>
       </article>

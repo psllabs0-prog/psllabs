@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { BatchLookup } from "@/components/coa/batch-lookup";
 import { AnimateIn } from "@/components/product/animate-in";
@@ -35,6 +36,23 @@ export default function CoaPage() {
 
         <AnimateIn delay={0.14}>
           <BatchLookup />
+        </AnimateIn>
+
+        <AnimateIn delay={0.18} className="mt-10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-linen bg-surface p-5 text-sm">
+            <div className="flex flex-col gap-1">
+              <span className="font-bold text-ink">New to reading laboratory reports?</span>
+              <p className="text-xs text-ash">
+                Learn how to verify task numbers, inspect HPLC baselines, and understand testing boundaries.
+              </p>
+            </div>
+            <Link
+              href="/guides/verify-peptide-laboratory-report"
+              className="mono text-xs font-semibold text-accent underline underline-offset-4 hover:opacity-80 shrink-0"
+            >
+              How to Verify a Lab Report →
+            </Link>
+          </div>
         </AnimateIn>
 
         <AnimateIn delay={0.2} className="mt-14 md:mt-16">

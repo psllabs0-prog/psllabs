@@ -61,6 +61,23 @@ export function TestingScopeExplainer({
             </p>
           </div>
         </div>
+
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-linen pt-3 text-xs font-mono text-stone">
+          <span>In-Depth Analysis:</span>
+          <Link
+            href="/guides/peptide-identity-vs-purity-vs-content"
+            className="text-accent underline underline-offset-2 hover:opacity-80"
+          >
+            Identity vs Purity vs Content Guide →
+          </Link>
+          <span>·</span>
+          <Link
+            href="/guides/peptide-purity-vs-content"
+            className="text-accent underline underline-offset-2 hover:opacity-80"
+          >
+            What 99% Purity Means →
+          </Link>
+        </div>
       </section>
 
       {/* What this report does NOT establish */}
@@ -107,6 +124,16 @@ export function TestingScopeExplainer({
             </span>
           </li>
         </ul>
+
+        <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-linen pt-3 text-xs font-mono text-stone">
+          <span>Testing Boundaries Guide:</span>
+          <Link
+            href="/guides/what-peptide-testing-can-establish"
+            className="text-accent underline underline-offset-2 hover:opacity-80"
+          >
+            What Analytical Testing Can and Cannot Establish →
+          </Link>
+        </div>
       </section>
 
       {/* Lot Documentation Policy ("Selected Lots" Explanation) */}
@@ -146,6 +173,23 @@ export function TestingScopeExplainer({
                 verify.janoshik.com
               </a>.
             </p>
+          </div>
+
+          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-linen pt-3 text-xs font-mono text-stone">
+            <span>Traceability &amp; Verification:</span>
+            <Link
+              href="/guides/batch-specific-vs-generic-coa"
+              className="text-accent underline underline-offset-2 hover:opacity-80"
+            >
+              Why Batch-Specific COAs Matter →
+            </Link>
+            <span>·</span>
+            <Link
+              href="/guides/verify-peptide-laboratory-report"
+              className="text-accent underline underline-offset-2 hover:opacity-80"
+            >
+              How to Verify a Lab Report →
+            </Link>
           </div>
         </section>
       )}
