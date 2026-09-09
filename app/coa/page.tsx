@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 
 import { BatchLookup } from "@/components/coa/batch-lookup";
 import { AnimateIn } from "@/components/product/animate-in";
+import { TestingScopeExplainer } from "@/components/testing/testing-scope-explainer";
 import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "COA / Batch Lookup",
+  title: "COA Lookup — Batch Reports",
   description:
-    "Look up published third-party laboratory reports by task number or batch name.",
+    "Look up published third-party laboratory reports by task number or batch name. Independent HPLC and mass assays from Janoshik Analytical.",
   path: "/coa",
 });
 
@@ -27,13 +28,17 @@ export default function CoaPage() {
           </AnimateIn>
           <AnimateIn delay={0.1}>
             <p className="text-body-lg leading-relaxed text-ash">
-              Find the original third-party laboratory report for a published
-              lot. {TESTING_SCOPE_STATEMENT}
+              Find and inspect original third-party laboratory reports for currently released lots. {TESTING_SCOPE_STATEMENT}
             </p>
           </AnimateIn>
         </header>
+
         <AnimateIn delay={0.14}>
           <BatchLookup />
+        </AnimateIn>
+
+        <AnimateIn delay={0.2} className="mt-14 md:mt-16">
+          <TestingScopeExplainer showPolicy={true} />
         </AnimateIn>
       </div>
     </main>

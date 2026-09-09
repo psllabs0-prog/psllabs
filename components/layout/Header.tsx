@@ -34,7 +34,7 @@ export function Header() {
         </Link>
 
         <nav
-          className="hidden items-center justify-center gap-8 lg:flex"
+          className="hidden items-center justify-center gap-6 xl:gap-8 lg:flex"
           aria-label="Main navigation"
         >
           {primaryNavLinks.map((link) => (

@@ -10,6 +10,7 @@ export type NavLink = {
 export const primaryNavLinks: NavLink[] = [
   { label: "Home", href: "/" },
   { label: "Products", href: "/products" },
+  { label: "COA Lookup", href: "/coa" },
   { label: "Testing", href: "/testing" },
   { label: "FAQ", href: "/faq" },
   { label: "Contact", href: "/contact" },

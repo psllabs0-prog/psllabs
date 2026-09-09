@@ -17,7 +17,7 @@ export const bpc157: Product = {
   tag: "RESEARCH PEPTIDE",
   name: "BPC-157",
   shortDescription:
-    "BPC-157 — synthetic peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific Certificate of Analysis available. Not for human or animal use.",
+    "BPC-157 — synthetic peptide reference standard for laboratory research. Laboratory-reported purity on third-party COA. Batch-specific Certificate of Analysis available. Not for human or animal use.",
   price: 49.99,
   stockStatus: "in_stock",
   imageSrc: image.src,

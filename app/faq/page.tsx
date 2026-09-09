@@ -6,9 +6,9 @@ import { siteFaqItems } from "@/lib/content/site-faq";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "FAQ",
+  title: "Frequently Asked Questions — Research & Documentation",
   description:
-    "Answers about PSL Labs laboratory research peptides, analytical documentation, COAs, storage, shipping, and institutional orders.",
+    "Answers regarding PSL Labs research peptide standards, third-party analytical testing, batch verification, domestic shipping, and payment options.",
   path: "/faq",
 });
 

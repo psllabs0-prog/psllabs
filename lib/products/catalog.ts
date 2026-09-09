@@ -49,7 +49,7 @@ export const catalogProducts: CatalogProduct[] = [
     name: "GHK-Cu",
     strength: "50mg",
     description:
-      "Copper peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific documentation available for selected lots.",
+      "Copper peptide reference standard for laboratory research. Laboratory-reported purity on third-party COA. Batch-specific documentation available.",
     price: 24.99,
     href: productPathFromSku("PSL-GHKCU-50MG"),
     imageSrc: ghkCuImage.src,
@@ -64,7 +64,7 @@ export const catalogProducts: CatalogProduct[] = [
     name: "BPC-157",
     strength: "10mg",
     description:
-      "Synthetic peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific documentation available for selected lots.",
+      "Synthetic peptide reference standard for laboratory research. Laboratory-reported purity on third-party COA. Batch-specific documentation available.",
     price: 49.99,
     href: productPathFromSku("PSL-BPC157-10MG"),
     imageSrc: bpc157Image.src,
@@ -79,7 +79,7 @@ export const catalogProducts: CatalogProduct[] = [
     name: "MOTS-c",
     strength: "10mg",
     description:
-      "Mitochondrial-derived peptide for metabolic pathway research. In vitro studies of glucose utilization and fatty acid oxidation.",
+      "Synthetic peptide reference standard for laboratory research. Batch-specific documentation published upon release.",
     price: 29.99,
     href: productPathFromSku("PSL-MOTSC-10MG"),
     imageSrc: motsCImage.src,
@@ -94,7 +94,7 @@ export const catalogProducts: CatalogProduct[] = [
     name: "Tesamorelin",
     strength: "10mg",
     description:
-      "Synthetic peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific documentation available for selected lots.",
+      "Synthetic peptide reference standard for laboratory research. Laboratory-reported purity on third-party COA. Batch-specific documentation available.",
     price: 89.99,
     href: productPathFromSku("PSL-TESA-10MG"),
     imageSrc: tesamorelinImage.src,
@@ -109,7 +109,7 @@ export const catalogProducts: CatalogProduct[] = [
     name: "KPV",
     strength: "10mg",
     description:
-      "Tripeptide for inflammatory signaling pathway research. In vitro applications.",
+      "Synthetic tripeptide reference standard for laboratory research. Batch-specific documentation published upon release.",
     price: 29.99,
     href: productPathFromSku("PSL-KPV-10MG"),
     imageSrc: kpvImage.src,

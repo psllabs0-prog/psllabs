@@ -41,13 +41,26 @@ export function HeroSection() {
                 {heroCopy.headline}
               </h1>
               <p className="text-base leading-relaxed text-ash md:text-body-lg">
-                {heroCopy.subheadline}
+                {heroCopy.paragraph}
               </p>
             </div>
 
-            <PillButton href={heroCopy.ctaHref} className="w-full sm:w-fit">
-              {heroCopy.ctaLabel}
-            </PillButton>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
+              <PillButton
+                href={heroCopy.primaryCtaHref}
+                variant="primary"
+                className="w-full sm:w-auto text-center"
+              >
+                {heroCopy.primaryCtaLabel}
+              </PillButton>
+              <PillButton
+                href={heroCopy.secondaryCtaHref}
+                variant="secondary"
+                className="w-full sm:w-auto text-center"
+              >
+                {heroCopy.secondaryCtaLabel}
+              </PillButton>
+            </div>
           </div>
         </div>
       </div>

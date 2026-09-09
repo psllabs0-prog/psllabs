@@ -17,7 +17,7 @@ export const tesamorelin: Product = {
   tag: "RESEARCH PEPTIDE",
   name: "Tesamorelin",
   shortDescription:
-    "Tesamorelin — synthetic peptide reference standard for laboratory research. HPLC-verified purity. Batch-specific Certificate of Analysis available. Not for human or animal use.",
+    "Tesamorelin — synthetic peptide reference standard for laboratory research. Laboratory-reported purity on third-party COA. Batch-specific Certificate of Analysis available. Not for human or animal use.",
   price: 89.99,
   stockStatus: "in_stock",
   imageSrc: image.src,

@@ -4,12 +4,14 @@ import { getCatalogProductByHandle } from "@/lib/products/catalog";
 import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
 
 export const heroCopy = {
-  eyebrow: "PSL LABS",
-  headline: "Verified research compounds.",
-  subheadline:
-    "Independent batch documentation for selected lots · laboratory reports when published.",
-  ctaLabel: "View Catalog",
-  ctaHref: "/products",
+  eyebrow: "RESEARCH-USE ONLY · ANALYTICAL STANDARDS",
+  headline: "Synthetic peptide reference standards with third-party analytical verification.",
+  paragraph:
+    "PSL Labs supplies synthetic peptide reference standards and biochemicals exclusively for laboratory research, in vitro experimentation, and analytical calibration. Every production lot released for distribution is paired with independent third-party testing documentation—including HPLC chromatographic purity analysis and quantitative mass verification—providing verifiable analytical data for researchers. All materials are strictly for research use only and are not for human or veterinary administration.",
+  primaryCtaLabel: "Browse Research Catalog",
+  primaryCtaHref: "/products",
+  secondaryCtaLabel: "Review Batch Reports",
+  secondaryCtaHref: "/coa",
   productImageAlt: PRODUCT_VIAL_IMAGE.alt,
   productImageSrc: PRODUCT_VIAL_IMAGE.src,
 };

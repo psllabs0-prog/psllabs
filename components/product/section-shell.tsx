@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 
 type SectionShellProps = {
+  id?: string;
   label: string;
   title?: string;
   children: React.ReactNode;
@@ -23,6 +24,7 @@ const variantClasses = {
 };
 
 export function SectionShell({
+  id,
   label,
   title,
   children,
@@ -32,8 +34,10 @@ export function SectionShell({
 }: SectionShellProps) {
   return (
     <section
+      id={id}
       className={cn(
         "border-t border-linen px-6 py-12 md:px-12 md:py-16 lg:px-24 lg:py-20",
+        id && "scroll-mt-20",
         variantClasses[variant],
         className
       )}

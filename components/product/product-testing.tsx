@@ -15,7 +15,13 @@ export function ProductTesting({ product }: { product: Product }) {
   const hasReport = reports.length > 0;
 
   return (
-    <SectionShell label="TESTING & QUALITY" variant="soft" width="prose">
+    <SectionShell
+      id="batch-testing"
+      label="TESTING & QUALITY"
+      title="Third-party analytical report."
+      variant="soft"
+      width="prose"
+    >
       <div className="flex flex-col gap-5">
         <AnimateIn>
           <div className="premium-card p-6 md:p-7">

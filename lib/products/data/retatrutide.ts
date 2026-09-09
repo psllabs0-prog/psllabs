@@ -24,7 +24,7 @@ export const retatrutide: Product = {
   imageAlt: image.alt,
   stackRole: "Research peptide · laboratory use only",
   whyThisExists:
-    "Retatrutide (CAS 2381089-83-2) is a synthetic peptide analogue with activity at GLP-1, GIP, and glucagon receptors in vitro. Molecular formula: C223H330F3N57O68. Molecular weight: approximately 4845.4 g/mol. Purity: ≥99% by independent HPLC (see Batch Testing section for lot-specific data). Solubility: Soluble in aqueous buffer at pH 7.4. Storage: Lyophilized powder stable at -20°C. Avoid repeated freeze-thaw cycles.\n\nThis product is supplied as a reference standard for receptor-binding assays, cell-signaling studies, and pharmacokinetic research in appropriate model systems. It is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",
+    "Retatrutide (CAS 2381089-83-2) is a synthetic peptide analogue with activity at GLP-1, GIP, and glucagon receptors in vitro. Molecular formula: C223H330F3N57O68. Molecular weight: approximately 4845.4 g/mol. Purity: lot-specific by independent HPLC (see Batch Testing section for published data). Solubility: Soluble in aqueous buffer at pH 7.4. Storage: Lyophilized powder stable at -20°C. Avoid repeated freeze-thaw cycles.\n\nThis product is supplied as a reference standard for receptor-binding assays, cell-signaling studies, and pharmacokinetic research in appropriate model systems. It is not intended for administration to humans or animals.\n\nFor lot-specific analytical data, refer to the Certificate of Analysis in the Batch Testing section below.",
   bullets: [
     "Lyophilized research peptide",
     "Independent batch documentation for selected lots",

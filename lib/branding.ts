@@ -13,4 +13,4 @@ export const PSL_MARK = {
 export const SITE_TITLE =
   "PSL Labs — Synthetic Peptides for Laboratory Research";
 export const SITE_DESCRIPTION =
-  "Supplier of high-purity synthetic peptides and biochemicals for laboratory and institutional research. HPLC-verified. Batch-level documentation available.";
+  "Supplier of synthetic peptide reference standards and biochemicals for laboratory research. Independent third-party analytical reports available for all released lots.";

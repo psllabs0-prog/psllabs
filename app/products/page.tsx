@@ -31,7 +31,7 @@ export default async function ProductsPage() {
           <div className="flex max-w-3xl flex-col gap-5">
             <p className="mono text-accent">PRODUCT CATALOG</p>
             <h1 className="font-display text-display-lg font-bold text-ink">
-              Laboratory-grade research compounds.
+              Analytical research reference standards.
             </h1>
             <p className="text-body-lg text-ash">
               Each product includes disclosed specifications and batch

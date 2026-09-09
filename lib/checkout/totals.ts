@@ -1,6 +1,6 @@
-import { FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
+import { FLAT_SHIPPING_USD, FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 
-export const FLAT_SHIPPING_USD = 9.99;
+export { FLAT_SHIPPING_USD };
 
 /** Bitcoin payments receive a 5% discount on the product subtotal before tax/shipping. */
 export const BITCOIN_DISCOUNT_PERCENT = 5;
@@ -59,7 +59,7 @@ export type OrderTotals = {
  * Compute order totals from a raw product subtotal.
  * Discount applies to the product subtotal before tax.
  * If payment method is Bitcoin (or btcpay), a 5% discount is applied to the subtotal.
- * Shipping free-threshold qualifies if either raw or post-discount subtotal is >= $100.
+ * Shipping free-threshold qualifies if either raw or post-discount subtotal is >= $150.
  */
 export function computeTotals(
   subtotalRaw: number,
