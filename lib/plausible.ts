@@ -45,9 +45,28 @@ export async function trackPlausiblePurchase(
   payment: "bitcoin" | "card",
   url: string
 ): Promise<void> {
-  await trackPlausibleServerEvent("purchase", url, {
+  const props: PlausibleEventProps = {
     amount: order.total,
     product: purchaseProductProp(order.items),
     payment,
-  });
+  };
+
+  // Non-PII campaign dimensions only (no email, address, click tokens with user IDs beyond platform click ids are ok; skip click ids in Plausible to be safe).
+  if (order.attribution?.utmSource) {
+    props.source = order.attribution.utmSource;
+  }
+  if (order.attribution?.utmMedium) {
+    props.medium = order.attribution.utmMedium;
+  }
+  if (order.attribution?.utmCampaign) {
+    props.campaign = order.attribution.utmCampaign;
+  }
+  if (order.attribution?.utmContent) {
+    props.content = order.attribution.utmContent;
+  }
+  if (order.attribution?.landingPage) {
+    props.landing = order.attribution.landingPage.slice(0, 100);
+  }
+
+  await trackPlausibleServerEvent("purchase", url, props);
 }

@@ -4,6 +4,8 @@ import {
   lookupActiveDiscountCode,
 } from "@/lib/checkout/discount-codes";
 import { normalizeCountryCode, US_COUNTRY, US_STATES } from "@/lib/checkout/us-states";
+import { sanitizeAttributionFromBody } from "@/lib/attribution/logic";
+import type { OrderAttribution } from "@/lib/attribution/types";
 import { checkoutWithStockCheck } from "@/lib/inventory/store";
 import type { Order, OrderItem, PaymentMethod } from "@/lib/orders/types";
 import { getCheckoutProduct } from "@/lib/payments/products";
@@ -22,6 +24,8 @@ export type CheckoutBody = {
   discountCode?: unknown;
   /** Optional payment method — "bitcoin" | "btcpay" | "card". */
   paymentMethod?: unknown;
+  /** Optional paid-acquisition attribution from client localStorage. */
+  attribution?: unknown;
 };
 
 export type PrepareOrderOptions = {
@@ -203,6 +207,9 @@ export async function prepareReservedOrder(
 
   const orderId = `psl_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   const now = new Date().toISOString();
+  const attribution: OrderAttribution | null = sanitizeAttributionFromBody(
+    body.attribution
+  );
   const order: Order = {
     orderId,
     createdAt: now,
@@ -235,6 +242,7 @@ export async function prepareReservedOrder(
     trackingSavedAt: null,
     deliveryFollowupSent: false,
     stockDecremented: false,
+    attribution,
   };
 
   try {

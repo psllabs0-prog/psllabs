@@ -305,6 +305,25 @@ export async function checkoutWithStockCheck(
       error: result?.error ?? "Insufficient stock.",
     };
   }
+
+  // Attribution is attached after create so the stock-reservation function
+  // signature stays stable. Best-effort; never fail checkout on attribution write.
+  if (order.attribution) {
+    try {
+      await sql`
+        UPDATE orders
+        SET attribution = ${JSON.stringify(order.attribution)}::jsonb,
+            updated_at = now()
+        WHERE order_id = ${order.orderId}
+      `;
+    } catch (error) {
+      console.error(
+        `[inventory] attribution write failed for ${order.orderId}:`,
+        error
+      );
+    }
+  }
+
   return { ok: true };
 }
 

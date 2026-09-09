@@ -1,3 +1,5 @@
+import type { OrderAttribution } from "@/lib/attribution/types";
+
 export type OrderStatus =
   | "pending"
   | "paid"
@@ -58,6 +60,8 @@ export type Order = {
   trackingSavedAt: string | null;
   deliveryFollowupSent: boolean;
   stockDecremented: boolean;
+  /** Paid-acquisition attribution snapshot (last paid touch is primary). */
+  attribution: OrderAttribution | null;
 };
 
 // Safe subset returned to the browser (no email, invoice id, or internal flags).

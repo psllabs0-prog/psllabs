@@ -15,6 +15,7 @@ import { DISCOUNT_CODES_ENABLED } from "@/lib/checkout/discount-codes";
 import { computeTotals, type OrderTotals } from "@/lib/checkout/totals";
 import { trackPlausibleClientEvent } from "@/lib/plausible/client";
 import { US_COUNTRY, US_COUNTRY_LABEL, US_STATES } from "@/lib/checkout/us-states";
+import { getOrderAttributionForCheckout } from "@/lib/attribution/storage";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -154,6 +155,7 @@ export function CheckoutPage() {
   }
 
   function buildCheckoutPayload() {
+    const attribution = getOrderAttributionForCheckout();
     return {
       currency: "USD",
       email: form.email,
@@ -177,6 +179,7 @@ export function CheckoutPage() {
             ? "card"
             : undefined,
       ...(appliedDiscount ? { discountCode: appliedDiscount.code } : {}),
+      ...(attribution ? { attribution } : {}),
     };
   }
 

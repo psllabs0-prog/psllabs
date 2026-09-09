@@ -102,6 +102,10 @@ export async function ensureOrdersSchema(): Promise<void> {
       ADD COLUMN IF NOT EXISTS delivery_followup_claimed_at TIMESTAMPTZ
     `;
     await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS attribution JSONB
+    `;
+    await sql`
       UPDATE orders
       SET tracking_saved_at = shipped_at
       WHERE tracking_saved_at IS NULL
@@ -147,6 +151,7 @@ type OrderRow = {
   stock_decremented: boolean;
   tagada_webhook_sent: boolean;
   tagada_webhook_claimed_at: string | null;
+  attribution: Order["attribution"] | string | null;
 };
 
 function parseJson<T>(value: T | string): T {
@@ -193,6 +198,9 @@ function rowToOrder(row: OrderRow): Order {
       : null,
     deliveryFollowupSent: row.delivery_followup_sent ?? false,
     stockDecremented: row.stock_decremented ?? false,
+    attribution: row.attribution
+      ? parseJson<NonNullable<Order["attribution"]>>(row.attribution)
+      : null,
   };
 }
 
@@ -312,6 +320,79 @@ export type OrderTrackingRow = {
   paidAt: string | null;
   createdAt: string;
 };
+
+export type OrderAttributionAdminRow = {
+  orderId: string;
+  status: OrderStatus;
+  total: number;
+  paidAt: string | null;
+  createdAt: string;
+  products: string;
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  utmContent: string | null;
+  utmTerm: string | null;
+  landingPage: string | null;
+  firstPaidTouchAt: string | null;
+  lastPaidTouchAt: string | null;
+};
+
+/** Recent paid/shipped orders with attribution for acquisition reporting. */
+export async function listOrdersWithAttribution(
+  limit = 200
+): Promise<OrderAttributionAdminRow[]> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  const safeLimit = Math.min(Math.max(limit, 1), 500);
+  const rows = (await sql`
+    SELECT
+      order_id,
+      status,
+      total,
+      paid_at,
+      created_at,
+      items,
+      attribution
+    FROM orders
+    WHERE status IN ('paid', 'shipped', 'pending')
+    ORDER BY COALESCE(paid_at, created_at) DESC
+    LIMIT ${safeLimit}
+  `) as {
+    order_id: string;
+    status: OrderStatus;
+    total: string | number;
+    paid_at: string | null;
+    created_at: string;
+    items: Order["items"] | string;
+    attribution: Order["attribution"] | string | null;
+  }[];
+
+  return rows.map((row) => {
+    const items = parseJson<Order["items"]>(row.items);
+    const attribution = row.attribution
+      ? parseJson<NonNullable<Order["attribution"]>>(row.attribution)
+      : null;
+    return {
+      orderId: row.order_id,
+      status: row.status,
+      total: Number(row.total),
+      paidAt: row.paid_at ? new Date(row.paid_at).toISOString() : null,
+      createdAt: new Date(row.created_at).toISOString(),
+      products: items
+        .map((item) => `${item.handle}×${item.quantity}`)
+        .join(", "),
+      utmSource: attribution?.utmSource ?? null,
+      utmMedium: attribution?.utmMedium ?? null,
+      utmCampaign: attribution?.utmCampaign ?? null,
+      utmContent: attribution?.utmContent ?? null,
+      utmTerm: attribution?.utmTerm ?? null,
+      landingPage: attribution?.landingPage ?? null,
+      firstPaidTouchAt: attribution?.firstPaidTouchAt ?? null,
+      lastPaidTouchAt: attribution?.lastPaidTouchAt ?? null,
+    };
+  });
+}
 
 /** Paid orders awaiting a manually entered tracking number (BTCPostage). */
 export async function getOrdersNeedingTracking(

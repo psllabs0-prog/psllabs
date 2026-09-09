@@ -328,6 +328,12 @@ export function AdminLedgerDashboard() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <a
+            href="/admin-attribution"
+            className="rounded-pill border border-linen px-4 py-2 text-sm font-medium text-ash transition-colors hover:border-accent/40 hover:text-ink"
+          >
+            Attribution
+          </a>
+          <a
             href="/admin-intelligence"
             className="rounded-pill border border-linen px-4 py-2 text-sm font-medium text-ash transition-colors hover:border-accent/40 hover:text-ink"
           >

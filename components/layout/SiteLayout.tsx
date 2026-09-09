@@ -1,3 +1,6 @@
+import { Suspense } from "react";
+
+import { AttributionCapture } from "@/components/attribution/attribution-capture";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { CartProvider } from "@/components/cart/cart-provider";
 import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
@@ -8,6 +11,9 @@ import { ResearcherVerificationGate } from "@/components/layout/ResearcherVerifi
 export function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <CartProvider>
+      <Suspense fallback={null}>
+        <AttributionCapture />
+      </Suspense>
       <ResearcherVerificationGate />
       <div className="flex min-h-screen flex-col">
         <Header />
