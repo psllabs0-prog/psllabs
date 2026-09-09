@@ -35,7 +35,7 @@ export function createPageMetadata({
 }): Metadata {
   const pageTitle = title.includes(SITE_NAME)
     ? title
-    : `${title} — ${SITE_NAME}`;
+    : `${title} | ${SITE_NAME}`;
 
   return {
     title: pageTitle,

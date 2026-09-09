@@ -11,10 +11,10 @@ import { CertificatePanel } from "@/components/ui/certificate-panel";
 import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 
 const BATCH_REPORT_DISCLAIMER =
-  "This third-party laboratory report applies only to the specific sample and batch identified in the report. Results do not establish safety, efficacy, sterility, regulatory approval, or suitability for human use.";
+  "This third party lab report applies only to the sample and batch named on the report. The report only covers the tests shown on the original laboratory file.";
 
 const BATCH_SCOPE_NOTE =
-  "Laboratory results apply only to the tested sample and batch identified above.";
+  "Lab results apply only to the tested sample and batch identified above.";
 
 type BatchTestingCardProps = {
   report: BatchReport;
@@ -34,7 +34,7 @@ function laboratoryReportedAmount(report: BatchReport): {
   }
 
   return {
-    label: `Laboratory-Reported Amount (Batch ${report.batch})`,
+    label: `Amount measured by the lab (Batch ${report.batch})`,
     value:
       report.reportedAmountMg !== undefined
         ? formatReportedAmount(report.reportedAmountMg)
@@ -62,12 +62,12 @@ export function BatchTestingCard({ report }: BatchTestingCardProps) {
         <div className="mt-5 grid gap-3 rounded-md border border-border-strong bg-paper p-4 sm:grid-cols-2">
           <div>
             <p className="font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-stone">
-              Nominal Strength
+              Label amount
             </p>
             <p className="mt-1 font-mono text-xl font-medium text-ink">
               {report.nominalStrength}
             </p>
-            <p className="mt-1 text-xs text-ash">Labeled vial strength</p>
+            <p className="mt-1 text-xs text-ash">Amount printed on the vial label</p>
           </div>
           <div>
             <p className="font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-stone">
@@ -126,7 +126,7 @@ export function BatchTestingCard({ report }: BatchTestingCardProps) {
             href="/coa"
             className="inline-flex items-center justify-center gap-2 rounded-pill border border-border-strong bg-surface px-5 py-3 text-sm font-medium text-ink transition-colors hover:border-accent/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            COA / Batch Lookup
+            View Batch Reports
           </Link>
         </div>
         <p className="mt-2 text-xs leading-relaxed text-ash">

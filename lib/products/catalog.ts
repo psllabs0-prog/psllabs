@@ -49,7 +49,7 @@ export const catalogProducts: CatalogProduct[] = [
     name: "GHK-Cu",
     strength: "50mg",
     description:
-      "Copper peptide reference standard for laboratory research. Third-party COA lists purity for the published batch.",
+      "Copper peptide reference standard for laboratory research. Third party COA lists purity for the published batch.",
     price: 24.99,
     href: productPathFromSku("PSL-GHKCU-50MG"),
     imageSrc: ghkCuImage.src,
@@ -64,7 +64,7 @@ export const catalogProducts: CatalogProduct[] = [
     name: "BPC-157",
     strength: "10mg",
     description:
-      "Synthetic peptide reference standard for laboratory research. Third-party COA lists purity for the published batch.",
+      "Synthetic peptide reference standard for laboratory research. Third party COA lists purity for the published batch.",
     price: 49.99,
     href: productPathFromSku("PSL-BPC157-10MG"),
     imageSrc: bpc157Image.src,
@@ -94,7 +94,7 @@ export const catalogProducts: CatalogProduct[] = [
     name: "Tesamorelin",
     strength: "10mg",
     description:
-      "Synthetic peptide reference standard for laboratory research. Third-party COA lists purity for the published batch.",
+      "Synthetic peptide reference standard for laboratory research. Third party COA lists purity for the published batch.",
     price: 89.99,
     href: productPathFromSku("PSL-TESA-10MG"),
     imageSrc: tesamorelinImage.src,
@@ -124,7 +124,7 @@ export const catalogProducts: CatalogProduct[] = [
     name: "Reconstitution Solution",
     strength: "5ml",
     description:
-      "Lab solution for preparing research compounds. Third-party batch docs available when published.",
+      "Lab solution for preparing research compounds. Third party batch docs available when published.",
     price: 12.99,
     href: productPathFromSku("PSL-RS-5ML"),
     imageSrc: reconstitutionImage.src,

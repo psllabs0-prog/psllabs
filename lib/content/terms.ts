@@ -1,50 +1,49 @@
 import type { ContentPageMeta, ContentSection } from "./types";
-import { LEGAL_ENTITY_NAME, LEGAL_LAST_UPDATED } from "./testing-scope";
+import { LEGAL_ENTITY_NAME, TERMS_LAST_UPDATED } from "./testing-scope";
 
 export const termsPageMeta: ContentPageMeta = {
   label: "LEGAL",
   title: "Terms of Service",
-  description: "Terms governing use of psllabs.org and purchase of PSL Labs products.",
-  intro: [
-    `Last updated: ${LEGAL_LAST_UPDATED}. By using this site or purchasing our products, you agree to these terms.`,
-  ],
+  description: "Terms for using psllabs.org and buying products from PSL Group LLC.",
+  intro: [`Last updated: ${TERMS_LAST_UPDATED}.`],
 };
 
 export const termsSections: ContentSection[] = [
   {
     id: "acceptance",
-    title: "Acceptance of terms",
+    title: "Introduction",
     paragraphs: [
-      `These Terms of Service govern your access to psllabs.org and your purchase of products from ${LEGAL_ENTITY_NAME}. If you do not agree, do not use this site or purchase our products.`,
+      `These Terms explain the rules for using psllabs.org and buying products from ${LEGAL_ENTITY_NAME}. By using the site or placing an order, you agree to these Terms. If you do not agree, please do not use the site or place an order.`,
     ],
   },
   {
     id: "products",
     title: "Research use only",
     paragraphs: [
-      `Products, materials, documentation, and related information provided by ${LEGAL_ENTITY_NAME} are intended solely for laboratory research, analytical, and educational reference purposes. They are not intended for human consumption, medical use, therapeutic use, diagnostic use, veterinary use, dietary use, cosmetic use, or use as food, drugs, or supplements.`,
-      "Statements on this site have not been evaluated by the Food and Drug Administration. Nothing on this site constitutes medical advice, usage guidance, or a recommendation for personal or clinical application.",
-      `By purchasing from ${LEGAL_ENTITY_NAME}, you represent that you are qualified to handle research materials under applicable laws and institutional requirements, and that your use will be limited to lawful laboratory research and reference purposes.`,
+      "Products and information on this site are provided only for laboratory research, analytical work, and educational reference. They are not sold for use in people or animals and are not intended for medical, therapeutic, diagnostic, veterinary, dietary, cosmetic, food, drug, or supplement use.",
+      "Statements on this site have not been evaluated by the Food and Drug Administration. Nothing on this site is medical advice, instructions for use, or a recommendation for personal or clinical use.",
+      `By placing an order, you confirm that you are allowed to handle the materials you purchase and that you will use them only for lawful laboratory research or reference work.`,
     ],
   },
   {
     id: "orders",
     title: "Orders and payment",
     paragraphs: [
-      "All orders are subject to acceptance and availability. We reserve the right to refuse or cancel orders, including for suspected fraud, pricing errors, or inventory limitations. Prices are listed in USD and subject to change without notice.",
+      "All orders are subject to availability and acceptance. We may refuse or cancel an order because of suspected fraud, pricing errors, inventory issues, or other legitimate business reasons. Prices are shown in U.S. dollars and may change without notice.",
     ],
   },
   {
     id: "intellectual-property",
     title: "Intellectual property",
     paragraphs: [
-      `All content on this site, including text, design, logos, and product copy, is owned by ${LEGAL_ENTITY_NAME} and protected by applicable intellectual property laws. You may not reproduce or distribute our content without written permission.`,
+      `Unless otherwise stated, the text, design, logos, images, and product copy on this site belong to ${LEGAL_ENTITY_NAME}. You may not copy or distribute them without written permission.`,
     ],
   },
   {
     id: "limitation",
     title: "Limitation of liability",
     paragraphs: [
+      // FLAG: Wording simplified for readability only. Legal substance preserved (indirect/incidental/consequential damages excluded; liability capped at amount paid for the product). Counsel should confirm if further edits are needed.
       `To the fullest extent permitted by law, ${LEGAL_ENTITY_NAME} is not liable for indirect, incidental, or consequential damages arising from use of our site or products. Our total liability for any claim is limited to the amount you paid for the product giving rise to the claim.`,
     ],
   },
@@ -59,7 +58,7 @@ export const termsSections: ContentSection[] = [
     id: "contact",
     title: "Contact",
     paragraphs: [
-      `${LEGAL_ENTITY_NAME}. Questions about these terms: support@psllabs.org.`,
+      "Questions about these Terms? Email support@psllabs.org.",
     ],
   },
 ];

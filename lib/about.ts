@@ -23,19 +23,19 @@ export const aboutContent: AboutContent = {
   hero: {
     headline: "About PSL Labs",
     subtitle:
-      "We sell research peptides with published third-party lab reports you can check yourself.",
+      "We sell research peptides with published third party lab reports you can check yourself.",
   },
   mission: {
     title: "Built around verification",
-    body: "PSL Labs exists to make research product information easier to review: clear labeling, third-party testing, and lot-specific documentation.",
+    body: "PSL Labs exists to make research product information easier to review: clear labeling, third party testing, and a lab report for each published batch.",
   },
   valueCards: [
     {
       title: "Batch documentation",
-      body: "Each lot is tied to the testing records available for that lot.",
+      body: "Each batch is tied to the testing records available for that batch.",
     },
     {
-      title: "Third-party testing",
+      title: "Third party testing",
       body: "We show the lab data so you can review what was measured before you order.",
     },
     {
@@ -44,12 +44,12 @@ export const aboutContent: AboutContent = {
     },
   ],
   closing: {
-    title: "Clear information. Straightforward standards.",
-    body: "We keep product pages simple, documentation easy to find, and research-use limits easy to understand.",
+    title: "Clear product information. Lab reports you can check yourself.",
+    body: "We keep the product details simple and make the matching lab reports easy to find.",
   },
 };
 
-/** @deprecated Use aboutContent — kept for any legacy imports */
+/** @deprecated Use aboutContent. Kept for any legacy imports. */
 export const aboutPage = {
   label: "ABOUT PSL LABS",
   headline: aboutContent.hero.headline,

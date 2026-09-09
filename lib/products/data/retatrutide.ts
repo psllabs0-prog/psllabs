@@ -24,9 +24,9 @@ export const retatrutide: Product = {
   imageAlt: image.alt,
   stackRole: "Research peptide · laboratory use only",
   whyThisExists:
-    "Retatrutide (CAS 2381089-83-2) is a synthetic peptide analogue studied in vitro at GLP-1, GIP, and glucagon receptors. Molecular formula: C223H330F3N57O68. Approximate molecular weight: 4845.4 g/mol. Lot purity comes from independent HPLC. See Batch Testing for published numbers. The lyophilized powder is soluble in aqueous buffer at pH 7.4. Store at -20°C and avoid repeated freeze-thaw cycles.\n\nIt is a reference standard for receptor-binding assays, cell-signaling studies, and pharmacokinetic research in appropriate model systems. Not for use in humans or animals.\n\nMatch your vial lot to the Certificate of Analysis in Batch Testing below.",
+    "Retatrutide (CAS 2381089-83-2) is a synthetic peptide analogue studied in vitro at GLP-1, GIP, and glucagon receptors. Molecular formula: C223H330F3N57O68. Approximate molecular weight: 4845.4 g/mol. Lot purity comes from an independent lab purity test. See Batch Testing for published numbers. The freeze dried powder is soluble in aqueous buffer at pH 7.4. Store at -20°C and avoid repeated freeze thaw cycles.\n\nIt is a reference standard for receptor-binding assays, cell-signaling studies, and pharmacokinetic research in appropriate model systems. Not for use in humans or animals.\n\nMatch your vial lot to the Certificate of Analysis in Batch Testing below.",
   bullets: [
-    "Lyophilized research peptide",
+    "Freeze dried research peptide",
     "Independent batch documentation for published lots",
     "Laboratory report available for published lots",
     "For laboratory and research use only",
@@ -49,7 +49,7 @@ export const retatrutide: Product = {
       step: 2,
       title: "Storage",
       description:
-        "Store lyophilized material at -20°C. Avoid repeated freeze-thaw cycles.",
+        "Store freeze dried material at -20°C. Avoid repeated freeze thaw cycles.",
     },
     {
       step: 3,
@@ -77,7 +77,7 @@ export const retatrutide: Product = {
     },
   ],
   testing: {
-    description: `We publish an independent third-party lab report for active lots. ${TESTING_SCOPE_STATEMENT}`,
+    description: `We publish an independent third party lab report for active batches. ${TESTING_SCOPE_STATEMENT}`,
   },
   stackBlurb:
     "Retatrutide is a standalone research peptide with lot-specific documentation when published.",
@@ -91,13 +91,13 @@ export const retatrutide: Product = {
     { label: "Molecular formula", value: "C223H330F3N57O68" },
     { label: "Molecular weight", value: "≈4845.4 g/mol" },
     { label: "Format", value: "Lyophilized powder" },
-    { label: "Nominal Strength", value: retatrutideSource.nominalStrength },
+    { label: "Label amount", value: retatrutideSource.nominalStrength },
     {
-      label: `Laboratory-Reported Amount (Batch ${blackTop.batch})`,
+      label: `Amount measured by the lab (Batch ${blackTop.batch})`,
       value: blackTopAmount,
     },
     {
-      label: `Laboratory-Reported Purity (Batch ${blackTop.batch})`,
+      label: `Reported purity (Batch ${blackTop.batch})`,
       value: blackTopPurity,
     },
     { label: "Testing", value: "Per original laboratory report for published lots" },

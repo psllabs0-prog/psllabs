@@ -5,9 +5,9 @@ export const testingPageMeta: ContentPageMeta = {
   label: "TESTING & QUALITY",
   title: "Tested by a lab we don't own.",
   description:
-    "How PSL Labs publishes third-party lab reports, and how to review them.",
+    "How PSL Labs publishes third party lab reports, and how to review them.",
   intro: [
-    "We publish third-party lab reports for released lots. When a report is available, you can see the identity, purity, and measured amount for the sample the lab tested.",
+    "PSL Labs does not create the lab reports shown on the site. Our published reports come from Janoshik Analytical, an independent laboratory. For our peptide batches, the report shows the material identified by the lab, the reported purity, and the amount measured in the tested sample.",
     TESTING_SCOPE_STATEMENT,
   ],
 };
@@ -17,22 +17,28 @@ export const testingSections: ContentSection[] = [
     id: "identity",
     title: "Identity",
     paragraphs: [
-      "Identity testing helps confirm what material the lab detected in the tested sample. Look for this on the original report when it is published.",
-      TESTING_SCOPE_STATEMENT,
+      "Identity testing helps confirm what material the lab identified in the tested sample. Look for this on the original report when it is published.",
     ],
   },
   {
     id: "purity",
     title: "Purity",
     paragraphs: [
-      "Purity describes how clean the sample looked under the lab's test method. If a purity percentage appears on the report, it applies to that tested sample and method only.",
+      "Purity describes how clean the sample looked in the lab's purity test. If a purity percentage appears on the report, it applies to that tested sample and test method only.",
+    ],
+  },
+  {
+    id: "amount",
+    title: "Amount",
+    paragraphs: [
+      "Amount testing shows how much target material the lab measured in the tested sample. For a solution, the report may show concentration instead.",
     ],
   },
   {
     id: "batch-documentation",
     title: "Batch documentation",
     paragraphs: [
-      "Each published report is tied to a specific lot. You can review the documentation for that batch, not a generic product claim.",
+      "Each published report is tied to a specific batch. You can review the lab report for that batch, not a generic product claim.",
     ],
   },
   {
@@ -40,13 +46,6 @@ export const testingSections: ContentSection[] = [
     title: "Reading a COA",
     paragraphs: [
       "A Certificate of Analysis summarizes what the lab reported for the named sample. Use it as lab documentation, not as medical or usage advice.",
-    ],
-  },
-  {
-    id: "quality-standard",
-    title: "Our standard",
-    paragraphs: [
-      "We focus on publishing clear, checkable reports for active lots so you can review the data yourself.",
       TESTING_SCOPE_STATEMENT,
     ],
   },

@@ -98,7 +98,7 @@ export function GuideLayout({
               Research Use Only
             </p>
             <p className="leading-relaxed">
-              This guide is for researchers and lab staff reviewing analytical documentation. Materials discussed are for laboratory research only. They are not for human or veterinary use.
+              This guide is for researchers and lab staff reviewing lab reports. Materials discussed are for laboratory research only. They are not for human or veterinary use.
             </p>
           </div>
         </AnimateIn>

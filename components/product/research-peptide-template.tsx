@@ -114,8 +114,8 @@ export function ResearchPeptideTemplate({
 
         {/* Decision Layer Support: Analytical Scope & Limitations */}
         <SectionShell
-          label="TESTING LIMITATIONS"
-          title="What this testing covers (and what it does not)."
+          label="LAB REPORT"
+          title="How to read the lab report."
           variant="ice"
           width="prose"
         >

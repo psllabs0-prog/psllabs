@@ -17,16 +17,16 @@ export const bpc157: Product = {
   tag: "RESEARCH PEPTIDE",
   name: "BPC-157",
   shortDescription:
-    "BPC-157 reference standard for laboratory research. Third-party COA lists purity for the published batch. Not for human or animal use.",
+    "BPC-157 reference standard for laboratory research. Third party COA lists purity for the published batch. Not for human or animal use.",
   price: 49.99,
   stockStatus: "in_stock",
   imageSrc: image.src,
   imageAlt: image.alt,
   stackRole: "Research peptide · laboratory use only",
   whyThisExists:
-    "BPC-157 is a synthetic peptide reference standard, sold as lyophilized powder for laboratory research. Lot purity comes from independent HPLC. See Batch Testing for published numbers.\n\nIt is a reference standard for analytical and in vitro lab work. Not for use in humans or animals.\n\nMatch your vial lot to the Certificate of Analysis in Batch Testing below.",
+    "BPC-157 is a synthetic peptide reference standard, sold as freeze dried powder for laboratory research. Lot purity comes from an independent lab purity test. See Batch Testing for published numbers.\n\nIt is a reference standard for analytical and in vitro lab work. Not for use in humans or animals.\n\nMatch your vial lot to the Certificate of Analysis in Batch Testing below.",
   bullets: [
-    "Lyophilized research peptide",
+    "Freeze dried research peptide",
     "Independent batch documentation for published lots",
     "Laboratory report available for published lots",
     "For laboratory and research use only",
@@ -49,7 +49,7 @@ export const bpc157: Product = {
       step: 2,
       title: "Storage",
       description:
-        "Store lyophilized material at -20°C. Avoid repeated freeze-thaw cycles.",
+        "Store freeze dried material at -20°C. Avoid repeated freeze thaw cycles.",
     },
     {
       step: 3,
@@ -78,7 +78,7 @@ export const bpc157: Product = {
     },
   ],
   testing: {
-    description: `We publish an independent third-party lab report for active lots. ${TESTING_SCOPE_STATEMENT}`,
+    description: `We publish an independent third party lab report for active batches. ${TESTING_SCOPE_STATEMENT}`,
   },
   stackBlurb:
     "BPC-157 is a standalone research peptide with lot-specific documentation when published.",
@@ -87,13 +87,13 @@ export const bpc157: Product = {
     { label: "Compound", value: "BPC-157" },
     { label: "Class", value: "Synthetic peptide" },
     { label: "Format", value: "Lyophilized powder" },
-    { label: "Nominal Strength", value: "10mg" },
+    { label: "Label amount", value: "10mg" },
     {
-      label: `Laboratory-Reported Amount (Batch ${report.batch})`,
+      label: `Amount measured by the lab (Batch ${report.batch})`,
       value: amount,
     },
     {
-      label: `Laboratory-Reported Purity (Batch ${report.batch})`,
+      label: `Reported purity (Batch ${report.batch})`,
       value: purity,
     },
     { label: "Testing", value: "Per original laboratory report for published lots" },

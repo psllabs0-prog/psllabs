@@ -73,7 +73,7 @@ export function ProductHero({
                       className="mt-0.5 font-[family-name:var(--font-mono)] text-xs text-primary-blue"
                       aria-hidden
                     >
-                      —
+                      •
                     </span>
                     {bullet}
                   </li>

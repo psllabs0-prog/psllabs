@@ -32,9 +32,9 @@ export function ProductTesting({ product }: { product: Product }) {
             </div>
             <p className="text-base leading-[1.7] text-ash md:text-body-lg">
               {hasReport
-                ? `We publish an independent third-party lab report for active lots. ${TESTING_SCOPE_STATEMENT}`
+                ? `We publish an independent third party lab report for active batches. ${TESTING_SCOPE_STATEMENT}`
                 : (product.testing.description ||
-                  "Lot-specific third-party documentation is published when available.")}
+                  "A third party lab report for the batch is published when available.")}
             </p>
             <Link
               href="/coa"

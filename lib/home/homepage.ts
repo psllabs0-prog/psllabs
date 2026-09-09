@@ -74,9 +74,9 @@ export const whyChooseCards: WhyChooseCardData[] = [
   },
   {
     illustration: "us-fulfillment",
-    title: "Ships in the U.S.",
+    title: "Ships from within the United States",
     description:
-      "Orders ship from Phoenix, AZ with tracking to all 50 states.",
+      "Orders ship from Phoenix, Arizona with tracking to all 50 states.",
   },
   {
     illustration: "protected-shipping",
@@ -110,7 +110,7 @@ export const featuredProduct: FeaturedProductData = {
   tag: retatrutideListing.tag,
   name: retatrutideListing.name,
   description:
-    "Lyophilized Retatrutide for laboratory research. Batch report available. Not for human use.",
+    "Freeze dried Retatrutide for laboratory research. Batch report available. Not for human use.",
   price: retatrutideListing.price,
   href: retatrutideListing.href,
   imageSrc: retatrutideListing.imageSrc,

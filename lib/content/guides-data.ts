@@ -24,7 +24,7 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
       "Peptide Identity vs Purity vs Content: What Each Analytical Result Actually Tells You",
     shortTitle: "Identity vs Purity vs Content",
     description:
-      "Identity, purity, and content answer different questions. Learn what each lab result means and how to read them together on a peptide COA.",
+      "Identity, purity, and content answer three different questions. Learn what each result means and how to read them together on a lab report.",
     category: "analytical-foundations",
     categoryLabel: "Foundations",
     readTime: "9 min read",
@@ -39,7 +39,7 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
       "How to Verify a Peptide Laboratory Report: Batch, Report ID, Test Method & Traceability",
     shortTitle: "Verify a Laboratory Report",
     description:
-      "A practical walkthrough for checking task IDs, matching batches, confirming methods, and verifying a peptide lab report on the issuer's site.",
+      "Step-by-step help for checking task IDs, matching batches, confirming test methods, and verifying a report on the lab's own website.",
     category: "verification-traceability",
     categoryLabel: "Verification & Traceability",
     readTime: "8 min read",
@@ -54,7 +54,7 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
       "What Does 99% Peptide Purity Actually Mean? HPLC Purity vs Peptide Content",
     shortTitle: "What 99% Purity Means",
     description:
-      "What an HPLC '99%' figure actually measures, why the method changes the number, and how purity differs from net peptide content.",
+      "What a 99% purity number really measures, why the test method changes the result, and how purity differs from how much peptide is in the vial.",
     category: "analytical-foundations",
     categoryLabel: "Foundations",
     readTime: "8 min read",
@@ -69,7 +69,7 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
       "Batch-Specific COAs vs Generic COAs: Why Lot Traceability Matters",
     shortTitle: "Batch-Specific vs Generic COAs",
     description:
-      "How batch-specific lab reports differ from generic spec sheets, and why lot numbers are the link between your vial and the data.",
+      "How a real batch lab report differs from a generic spec sheet, and why the lot number links your vial to the test data.",
     category: "verification-traceability",
     categoryLabel: "Verification & Traceability",
     readTime: "7 min read",
@@ -84,7 +84,7 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
       "What Peptide Analytical Testing Can and Cannot Establish",
     shortTitle: "What Testing Can and Cannot Establish",
     description:
-      "What HPLC, mass spectrometry, and mass assays can establish, what needs separate tests, and what chemical paperwork cannot prove.",
+      "What standard lab tests can show, what needs a separate test, and what a chemical report alone cannot prove.",
     category: "analytical-foundations",
     categoryLabel: "Foundations",
     readTime: "10 min read",
@@ -98,7 +98,7 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
     title: "How to Verify a Peptide Certificate of Analysis",
     shortTitle: "COA Verification Checklist",
     description:
-      "A practical checklist for reading third-party laboratory reports, spotting unreliable documents, and confirming results directly with the testing lab.",
+      "A checklist for reading third-party lab reports, spotting unreliable documents, and confirming results directly with the testing lab.",
     category: "verification-traceability",
     categoryLabel: "Verification & Traceability",
     readTime: "7 min read",
@@ -111,7 +111,7 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
     title: "Peptide Purity Percentages: What Do They Actually Mean?",
     shortTitle: "Purity Percentages Explained",
     description:
-      "How to read an HPLC purity number on a research peptide COA: what it counts, what it leaves out, and why small differences matter.",
+      "How to read a purity number on a lab report: what it includes, what it leaves out, and why small differences can matter when you compare batches.",
     category: "analytical-foundations",
     categoryLabel: "Foundations",
     readTime: "6 min read",
@@ -124,7 +124,7 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
     title: "Peptide Storage & Stability Guide",
     shortTitle: "Storage & Stability",
     description:
-      "How to store lyophilized and reconstituted research peptides to help protect sample integrity.",
+      "How to store freeze-dried research peptides to help keep them in good condition.",
     category: "handling-stability",
     categoryLabel: "Handling & Stability",
     readTime: "6 min read",

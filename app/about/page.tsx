@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CheckCircle2, FileCheck, Layers, AlertCircle, Truck, LifeBuoy } from "lucide-react";
+import { CheckCircle2, FileCheck, Layers, Truck, LifeBuoy } from "lucide-react";
 
 import { AboutClosing } from "@/components/about/about-cta";
 import { AboutHero } from "@/components/about/about-hero";
@@ -11,7 +11,7 @@ import { createPageMetadata } from "@/lib/seo";
 export const metadata: Metadata = createPageMetadata({
   title: "About PSL Labs",
   description:
-    "How PSL Labs works: independent lab reports, batch transparency, U.S. shipping, and research support.",
+    "How PSL Labs works: independent lab reports, batch transparency, shipping from within the United States, and research support.",
   path: "/about",
 });
 
@@ -24,8 +24,8 @@ export default function AboutPage() {
       icon: CheckCircle2,
       title: "Built around documents you can check",
       paragraphs: [
-        "Research materials should stand on lab reports you can open and verify, not on marketing language. We sell synthetic peptides for laboratory research and publish third-party documentation for active lots.",
-        "You can review identity, purity, and measured amount data for published batches before you decide whether the material fits your work.",
+        "Research materials should stand on lab reports you can open and check, not on marketing language. We sell synthetic peptides for laboratory research and publish third party lab reports for active batches.",
+        "You can review the material identified by the lab, the reported purity, and the amount measured for published batches before you decide whether the material fits your work.",
       ],
       linkText: "See how testing works",
       linkHref: "/testing",
@@ -35,8 +35,9 @@ export default function AboutPage() {
       icon: FileCheck,
       title: "Independent lab reports",
       paragraphs: [
-        "We do not publish our own in-house HPLC or mass spectrometry reports. Published testing is done by Janoshik Analytical, an independent lab.",
-        "Each Certificate of Analysis covers purity, identity, and measured amount for the tested sample. Reports include a task number so you can confirm the original file on the lab's site.",
+        "PSL Labs does not create the lab reports shown on the site. Our published reports come from Janoshik Analytical, an independent laboratory.",
+        "For our peptide batches, the report shows the material identified by the lab, the reported purity, and the amount measured in the tested sample. Each report also has a task number you can use to open the original report on Janoshik’s website.",
+        "The report only covers the tests shown on the original laboratory file.",
       ],
       linkText: "View batch reports",
       linkHref: "/coa",
@@ -46,27 +47,16 @@ export default function AboutPage() {
       icon: Layers,
       title: "One report, one batch",
       paragraphs: [
-        "A report applies to the lot and sample named on that document. It does not cover other lots.",
-        "Every product currently for sale has a published lot report. Coming Soon items stay unavailable until testing is finished and published.",
+        "A report applies to the batch and sample named on that document. It does not cover other batches.",
+        "Every product currently for sale has a published batch report. Coming Soon items stay unavailable until testing is finished and published.",
       ],
-      linkText: "Look up a lot or task number",
+      linkText: "Look up a batch or task number",
       linkHref: "/coa",
-    },
-    {
-      id: "what-analytical-reports-do-not-establish",
-      icon: AlertCircle,
-      title: "What the report does not cover",
-      paragraphs: [
-        "HPLC purity and mass results speak to identity, reported purity, and measured amount for the tested sample.",
-        "Unless another test is listed, the report does not cover sterility, endotoxin status, or biological safety. Materials are for laboratory research only.",
-      ],
-      linkText: "Read testing details",
-      linkHref: "/testing",
     },
     {
       id: "us-fulfillment",
       icon: Truck,
-      title: "U.S. shipping",
+      title: "Shipping from within the United States",
       paragraphs: [
         "We ship from Phoenix, Arizona. Packages are packed to protect vials in normal domestic transit.",
         "Most orders process within 1 to 2 business days after payment clears, with tracking to all 50 U.S. states.",
@@ -79,7 +69,7 @@ export default function AboutPage() {
       icon: LifeBuoy,
       title: "Support",
       paragraphs: [
-        "Ask us about lot documents, order status, tracking, or product specs.",
+        "Ask us about batch documents, order status, tracking, or product details.",
         "We do not advise on dosing, human use, or clinical protocols. For order or documentation help, contact us.",
       ],
       linkText: "Contact support",
@@ -100,7 +90,7 @@ export default function AboutPage() {
                 Clear documents over marketing claims.
               </h2>
               <p className="text-base leading-relaxed text-ash md:text-lg">
-                We publish batch reports, ship in the U.S., and keep support focused on orders and documentation.
+                We publish batch reports, ship orders from within the United States, and make it easy to get help with an order or lab report.
               </p>
             </div>
           </AnimateIn>

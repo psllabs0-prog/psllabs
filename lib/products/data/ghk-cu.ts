@@ -17,16 +17,16 @@ export const ghkCu: Product = {
   tag: "RESEARCH PEPTIDE",
   name: "GHK-Cu",
   shortDescription:
-    "GHK-Cu copper peptide reference standard for laboratory research. Third-party COA lists purity for the published batch. Not for human or animal use.",
+    "GHK-Cu copper peptide reference standard for laboratory research. Third party COA lists purity for the published batch. Not for human or animal use.",
   price: 24.99,
   stockStatus: "in_stock",
   imageSrc: image.src,
   imageAlt: image.alt,
   stackRole: "Research peptide · laboratory use only",
   whyThisExists:
-    "GHK-Cu is a copper-binding tripeptide reference standard, sold as lyophilized powder for laboratory research. Lot purity comes from independent HPLC. See Batch Testing for published numbers.\n\nIt is a reference standard for analytical and in vitro lab work. Not for use in humans or animals.\n\nMatch your vial lot to the Certificate of Analysis in Batch Testing below.",
+    "GHK-Cu is a copper-binding tripeptide reference standard, sold as freeze dried powder for laboratory research. Lot purity comes from an independent lab purity test. See Batch Testing for published numbers.\n\nIt is a reference standard for analytical and in vitro lab work. Not for use in humans or animals.\n\nMatch your vial lot to the Certificate of Analysis in Batch Testing below.",
   bullets: [
-    "Lyophilized research peptide",
+    "Freeze dried research peptide",
     "Independent batch documentation for published lots",
     "Laboratory report available for published lots",
     "For laboratory and research use only",
@@ -49,7 +49,7 @@ export const ghkCu: Product = {
       step: 2,
       title: "Storage",
       description:
-        "Store lyophilized material at -20°C. Avoid repeated freeze-thaw cycles.",
+        "Store freeze dried material at -20°C. Avoid repeated freeze thaw cycles.",
     },
     {
       step: 3,
@@ -78,7 +78,7 @@ export const ghkCu: Product = {
     },
   ],
   testing: {
-    description: `We publish an independent third-party lab report for active lots. ${TESTING_SCOPE_STATEMENT}`,
+    description: `We publish an independent third party lab report for active batches. ${TESTING_SCOPE_STATEMENT}`,
   },
   stackBlurb:
     "GHK-Cu is a standalone research peptide with lot-specific documentation when published.",
@@ -87,13 +87,13 @@ export const ghkCu: Product = {
     { label: "Compound", value: "GHK-Cu" },
     { label: "Class", value: "Copper peptide" },
     { label: "Format", value: "Lyophilized powder" },
-    { label: "Nominal Strength", value: "50mg" },
+    { label: "Label amount", value: "50mg" },
     {
-      label: `Laboratory-Reported Amount (Batch ${report.batch})`,
+      label: `Amount measured by the lab (Batch ${report.batch})`,
       value: amount,
     },
     {
-      label: `Laboratory-Reported Purity (Batch ${report.batch})`,
+      label: `Reported purity (Batch ${report.batch})`,
       value: purity,
     },
     { label: "Testing", value: "Per original laboratory report for published lots" },

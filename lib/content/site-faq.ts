@@ -14,7 +14,7 @@ export const siteFaqItems: SiteFaqItem[] = [
     category: "identity",
     question: "What does PSL Labs sell?",
     answer:
-      "PSL Labs (operated by PSL Group LLC in Phoenix, AZ) sells synthetic peptides and related materials for laboratory research. The focus is third-party lab docs and lot-level data you can check yourself.",
+      "PSL Labs sells synthetic peptides and related materials for laboratory research. PSL Labs is operated by PSL Group LLC in Phoenix, Arizona. We publish third party lab reports and batch information that you can review yourself.",
   },
   {
     id: "research-use-only",
@@ -35,14 +35,14 @@ export const siteFaqItems: SiteFaqItem[] = [
     category: "testing",
     question: "Who tests your products?",
     answer:
-      "Published testing is done by Janoshik Analytical, an independent third-party lab. PSL Labs does not run its own HPLC/MS for published reports, and we do not rely only on manufacturer certificates.",
+      "PSL Labs does not create the lab reports shown on the site. Our published reports come from Janoshik Analytical, an independent laboratory. We do not rely only on manufacturer certificates.",
   },
   {
     id: "batch-specificity",
     category: "testing",
     question: "Are test results batch-specific?",
     answer:
-      "Yes. Each Certificate of Analysis covers one production lot and the sample the lab tested. We do not reuse old reports for newer lots. New lots get new testing and a published report before release.",
+      "Yes. Each Certificate of Analysis covers one production batch and the sample the lab tested. We do not reuse old reports for newer batches. New batches get new testing and a published report before release.",
   },
   {
     id: "independent-verification",
@@ -54,9 +54,9 @@ export const siteFaqItems: SiteFaqItem[] = [
   {
     id: "analytical-limitations",
     category: "testing",
-    question: "What do the lab reports cover, and what do they leave out?",
+    question: "What do the lab reports show?",
     answer:
-      `Published reports usually cover identity (what the lab detected), HPLC purity percentage (how clean the sample looked under that test), and measured amount for the tested vial. Unless another test is listed, they do not cover sterility, endotoxin status, human safety, or biological efficacy. ${TESTING_SCOPE_STATEMENT}`,
+      `For our published peptide batches, the Janoshik report shows three main results: the material identified by the lab, the reported purity, and the amount measured in the tested sample. The original report shows the full test details and results. ${TESTING_SCOPE_STATEMENT}`,
   },
   {
     id: "payments",
@@ -70,7 +70,7 @@ export const siteFaqItems: SiteFaqItem[] = [
     category: "orders",
     question: "Where do you ship, and what does it cost?",
     answer:
-      `We ship to physical addresses in all 50 U.S. states from Phoenix, AZ. Standard shipping is $${FLAT_SHIPPING_USD.toFixed(2)}. Orders of $${FREE_SHIPPING_THRESHOLD} or more get free standard shipping. We pack and ship within 1 to 2 business days after payment clears. Carrier delivery usually takes about 3 to 5 business days after that.`,
+      `We ship to physical addresses in all 50 U.S. states from Phoenix, Arizona. Standard shipping is $${FLAT_SHIPPING_USD.toFixed(2)}. Orders of $${FREE_SHIPPING_THRESHOLD} or more get free standard shipping. We pack and ship within 1 to 2 business days after payment clears. Carrier delivery usually takes about 3 to 5 business days after that.`,
   },
   {
     id: "order-tracking",
@@ -91,6 +91,6 @@ export const siteFaqItems: SiteFaqItem[] = [
     category: "identity",
     question: "How do I reach support?",
     answer:
-      "Email support@psllabs.org or use Contact (/contact) for batch docs, COA checks, orders, or product specs. We reply on standard business days.",
+      "Email support@psllabs.org or use Contact (/contact) for batch docs, COA checks, orders, or product details. We reply on standard business days.",
   },
 ];

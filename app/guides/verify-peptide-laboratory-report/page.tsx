@@ -73,13 +73,13 @@ export default function VerifyPeptideLaboratoryReportPage() {
       <GuideLayout guide={guide} tocItems={tocItems}>
         <section className="flex flex-col gap-4">
           <p className="text-ash leading-relaxed">
-            Many buyers jump straight to the purity percentage, see &ldquo;99%,&rdquo; and move on. In careful research procurement, that number is the last thing you trust, not the first.
+            To verify a peptide lab report, check the batch number, confirm the testing lab, and look up the report on the lab&apos;s own website before you trust the purity number.
           </p>
           <p className="text-ash leading-relaxed">
-            A report is only as strong as its provenance. If you cannot open it on the testing lab&apos;s own server, if the batch ID does not match the vial in your hand, or if the method does not measure what the headline claims, the purity figure is not usable evidence.
+            A report is only as strong as where it came from. If you cannot open it on the lab&apos;s server, if the batch ID does not match your vial, or if the test method does not match the claim, the purity figure is not reliable evidence.
           </p>
           <p className="text-ash leading-relaxed">
-            This guide is a practical walkthrough: how to verify third-party peptide lab reports, catch weak or recycled paperwork, and audit records before you rely on them.
+            This guide walks through each step: how to verify third-party reports, spot weak or recycled paperwork, and check records before you rely on them.
           </p>
         </section>
 
@@ -88,16 +88,16 @@ export default function VerifyPeptideLaboratoryReportPage() {
             Start before the purity number
           </h2>
           <p className="text-ash leading-relaxed">
-            Altered or recycled reports show up often in this market. Patterns worth watching for:
+            Altered or recycled reports are common. Watch for these patterns:
           </p>
           <ul className="list-disc pl-5 space-y-1.5 text-ash text-sm sm:text-base">
-            <li><strong>Edited PDFs:</strong> Dates, customer names, or purity values changed on an older legitimate file.</li>
-            <li><strong>Batch disconnects:</strong> A real test from one strong lot reused for later untested runs.</li>
-            <li><strong>Vendor summaries:</strong> Styled tables that drop chromatograms, method notes, or task numbers.</li>
-            <li><strong>Borrowed reports:</strong> Documents from another manufacturer with no proof your stock came from that lot.</li>
+            <li><strong>Edited PDFs:</strong> Dates, names, or purity values changed on an older real file.</li>
+            <li><strong>Batch mismatches:</strong> A real test from one lot reused for later untested runs.</li>
+            <li><strong>Vendor summaries:</strong> Styled tables that leave out test graphs, method notes, or task numbers.</li>
+            <li><strong>Borrowed reports:</strong> Documents from another source with no proof your stock came from that lot.</li>
           </ul>
           <p className="text-ash leading-relaxed">
-            Because a screenshot can be changed quickly, real verification means checking the issuing lab&apos;s live record.
+            A screenshot can be changed quickly. Real verification means checking the lab&apos;s live record.
           </p>
         </section>
 
@@ -133,7 +133,7 @@ export default function VerifyPeptideLaboratoryReportPage() {
             </div>
           </div>
           <p className="text-ash leading-relaxed">
-            Analytical testing for PSL Labs active catalog products is performed by <strong>Janoshik Analytical</strong>, an independent facility focused on chromatographic and mass spectrometric work on synthetic peptides.
+            Testing for PSL Labs active catalog products is performed by <strong>Janoshik Analytical</strong>, an independent lab focused on peptide testing.
           </p>
         </section>
 
@@ -204,7 +204,7 @@ export default function VerifyPeptideLaboratoryReportPage() {
             Confirm the sample name matches what you ordered. More importantly, look for an actual identity test, not just the client&apos;s label accepted at face value.
           </p>
           <p className="text-ash leading-relaxed">
-            Useful wording includes &ldquo;Identity confirmed via Mass Spectrometry&rdquo; or &ldquo;Observed MW matches theoretical average MW.&rdquo; Mass spectrometry (MS) measures molecular mass; HPLC alone does not identify structure. For the fuller distinction, see{" "}
+            Useful wording includes &ldquo;Identity confirmed via Mass Spectrometry&rdquo; or &ldquo;Observed MW matches theoretical average MW.&rdquo; Identity testing measures molecular mass. A purity test alone does not confirm structure. For the fuller distinction, see{" "}
             <Link
               href="/guides/peptide-identity-vs-purity-vs-content"
               className="font-medium text-accent underline underline-offset-4 hover:opacity-80"
@@ -222,7 +222,7 @@ export default function VerifyPeptideLaboratoryReportPage() {
             The batch or lot on the report should match the vial label and packing slip.
           </p>
           <p className="text-ash leading-relaxed">
-            If the vial says &ldquo;Lot PSL-TESA-10MG&rdquo; and the report says &ldquo;Lot TESA-2024-A,&rdquo; that document does not describe the material in your hands. Synthesis runs differ in crude purity, salt content, and side-product mix. An older lot&apos;s report does not automatically cover a new one.
+            If the vial says &ldquo;Lot PSL-TESA-10MG&rdquo; and the report says &ldquo;Lot TESA-2024-A,&rdquo; that document does not describe the material in your hands. Each production run can differ in purity, salt content, and byproducts. An older batch report does not cover a new batch.
           </p>
           <p className="text-ash leading-relaxed">
             More on that in{" "}
@@ -244,10 +244,10 @@ export default function VerifyPeptideLaboratoryReportPage() {
           </p>
           <ul className="list-disc pl-5 space-y-1.5 text-ash text-sm sm:text-base">
             <li>
-              <strong>Document freshness:</strong> Research peptide lots are usually sold within months of synthesis and testing. A report from years ago on a fast-moving SKU can mean stale stock or a recycled file.
+              <strong>Document freshness:</strong> Research peptide lots are usually sold within months of testing. A report from years ago on a fast-moving product can mean stale stock or a recycled file.
             </li>
             <li>
-              <strong>Storage context:</strong> Lyophilized peptides can degrade with moisture or temperature swings. An analysis date should still make sense for the inventory cycle you are buying from.
+              <strong>Storage context:</strong> Freeze-dried peptides can degrade with moisture or temperature swings. The analysis date should still make sense for the stock you are buying.
             </li>
           </ul>
         </section>
@@ -263,19 +263,19 @@ export default function VerifyPeptideLaboratoryReportPage() {
             <div className="flex items-start gap-2">
               <span className="font-mono text-accent text-xs pt-0.5">•</span>
               <p className="text-ash">
-                <strong className="text-ink">Chromatography:</strong> Reversed-phase HPLC column type (for example C18), solvents (water/acetonitrile with 0.1% TFA), flow rate, gradient, and detection wavelength (214 nm or 220 nm).
+                <strong className="text-ink">Purity test:</strong> Column type, solvents, flow rate, gradient, and detection wavelength.
               </p>
             </div>
             <div className="flex items-start gap-2">
               <span className="font-mono text-accent text-xs pt-0.5">•</span>
               <p className="text-ash">
-                <strong className="text-ink">Mass spectrometry:</strong> Ionization mode (often ESI positive), mass range, and observed molecular ions.
+                <strong className="text-ink">Identity testing:</strong> How molecular mass was measured and what ions were observed.
               </p>
             </div>
             <div className="flex items-start gap-2">
               <span className="font-mono text-accent text-xs pt-0.5">•</span>
               <p className="text-ash">
-                <strong className="text-ink">Quantitative assay:</strong> How net mass was measured (external standard curve or nitrogen elemental assay).
+                <strong className="text-ink">Quantitative assay:</strong> How net mass was measured (standard curve or elemental assay).
               </p>
             </div>
           </div>
@@ -290,7 +290,7 @@ export default function VerifyPeptideLaboratoryReportPage() {
           </p>
           <ul className="list-disc pl-5 space-y-2 text-ash text-sm sm:text-base">
             <li>
-              <strong>Purity area percentage:</strong> Share of integrated UV peak area assigned to the target versus other detectable peaks. See{" "}
+              <strong>Purity percentage:</strong> Share of the test signal assigned to the target versus other detected peaks. See{" "}
               <Link
                 href="/guides/peptide-purity-vs-content"
                 className="text-accent underline underline-offset-2"
@@ -302,7 +302,7 @@ export default function VerifyPeptideLaboratoryReportPage() {
               <strong>Reported net mass:</strong> Absolute weight of active compound found in the vial (for example, 11.75 mg on a nominal 10 mg BPC-157 vial).
             </li>
             <li>
-              <strong>Chromatogram:</strong> The absorbance-versus-time plot. Check for baseline drift, fronting or tailing, shoulders, and aggressive integration cutoffs that can hide small impurity peaks.
+              <strong>Chromatogram:</strong> The test graph over time. Check for a stable baseline, clean peak shapes, and whether small peaks were counted or cut off.
             </li>
           </ul>
         </section>
@@ -312,7 +312,7 @@ export default function VerifyPeptideLaboratoryReportPage() {
             Note what was left out
           </h2>
           <p className="text-ash leading-relaxed">
-            Unless a separate specialized assay is listed, a standard HPLC/MS peptide report typically does not cover sterility, endotoxin levels, heavy metals, TFA counterion percentage, or biological potency. For the full boundary map, see{" "}
+            The report only covers the tests shown on the original laboratory file. A standard peptide report typically does not cover sterility, endotoxins, heavy metals, or biological potency unless listed. For more detail, see{" "}
             <Link
               href="/guides/what-peptide-testing-can-establish"
               className="font-medium text-accent underline underline-offset-4 hover:opacity-80"
@@ -327,7 +327,7 @@ export default function VerifyPeptideLaboratoryReportPage() {
             Sample and batch limits
           </h2>
           <AnalyticalCallout title="One vial was tested" variant="limitation">
-            A Certificate of Analysis describes the physical vial submitted to and consumed by the laboratory. It does not prove every vial from that manufacturing run has identical fill, counterion ratio, or moisture.
+            A Certificate of Analysis describes the vial the lab received and tested. It does not prove every vial from that run is identical.
           </AnalyticalCallout>
         </section>
 
@@ -373,7 +373,7 @@ export default function VerifyPeptideLaboratoryReportPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-accent font-semibold">
                       {report.purityPercent
-                        ? `${report.purityPercent}% HPLC`
+                        ? `${report.purityPercent}% purity`
                         : report.reportedResult?.value ?? "Assay Verified"}
                     </span>
                     <a

@@ -72,7 +72,7 @@ export const reconstitutionSolution: Product = {
     },
   ],
   testing: {
-    description: `We publish an independent third-party lab report for active lots. ${TESTING_SCOPE_STATEMENT}`,
+    description: `We publish an independent third party lab report for active batches. ${TESTING_SCOPE_STATEMENT}`,
   },
   stackBlurb:
     "Reconstitution Solution is a laboratory reagent with lot-specific documentation when published.",
@@ -81,7 +81,7 @@ export const reconstitutionSolution: Product = {
     { label: "Product", value: "Reconstitution Solution" },
     { label: "Class", value: "Laboratory reagent" },
     { label: "Format", value: "Liquid solution" },
-    { label: "Nominal Strength", value: "5ml" },
+    { label: "Label amount", value: "5ml" },
     {
       label: `${report.reportedResult!.label} (Batch ${report.batch})`,
       value: report.reportedResult!.value,

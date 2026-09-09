@@ -9,18 +9,18 @@ import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Analytical Testing Guides & Research Documentation",
+  title: "Guides",
   description:
-    "Authoritative reference guides on peptide identity, chromatographic purity, net mass content, laboratory report verification, and testing limitations.",
+    "Simple guides to help you read lab reports, check batch information, and understand the testing shown on our site.",
   path: "/guides",
 });
 
 const guidesCollectionLd = {
   "@context": "https://schema.org",
   "@type": "CollectionPage",
-  name: "PSL Labs Analytical Testing Guides",
+  name: "PSL Labs Guides",
   description:
-    "Technical guides explaining peptide analytical testing, COA verification, chromatographic purity, and batch traceability.",
+    "Simple guides for reading peptide lab reports, checking batch information, and understanding testing shown on the site.",
   url: `${SITE_URL}/guides`,
   publisher: {
     "@type": "Organization",
@@ -49,21 +49,21 @@ const CATEGORIES: {
 }[] = [
   {
     id: "analytical-foundations",
-    title: "1. Analytical Foundations",
+    title: "1. Understanding Lab Results",
     description:
-      "Identity, purity, and content as separate questions, plus what lab testing can and cannot show.",
+      "What identity, purity, and content mean, and what a lab report can and cannot tell you.",
   },
   {
     id: "verification-traceability",
-    title: "2. Verification & Batch Traceability",
+    title: "2. Checking Your Reports",
     description:
-      "How to check task IDs, issuing labs, lot matches, and batch-specific reports.",
+      "How to match batch numbers, confirm the testing lab, and verify reports on the lab's own site.",
   },
   {
     id: "handling-stability",
-    title: "3. Handling & Stability",
+    title: "3. Storage & Stability",
     description:
-      "Storage temperatures, reconstitution basics, and keeping samples intact.",
+      "How to store freeze dried peptides and keep them in good condition.",
   },
 ];
 
@@ -80,19 +80,19 @@ export default function GuidesHubPage() {
             <AnimateIn>
               <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-accent">
                 <BookOpen className="size-4 shrink-0" aria-hidden />
-                <span>RESEARCH &amp; DOCUMENTATION</span>
+                <span>GUIDES</span>
               </div>
             </AnimateIn>
 
             <AnimateIn delay={0.06}>
               <h1 className="mt-4 font-[family-name:var(--font-display)] text-[clamp(2rem,4.5vw,3rem)] leading-[1.12] tracking-[-0.02em] text-ink font-bold">
-                Analytical Testing &amp; Verification Guides
+                Guides
               </h1>
             </AnimateIn>
 
             <AnimateIn delay={0.1}>
               <p className="mt-5 max-w-3xl text-base leading-relaxed text-ash md:text-lg">
-                Plain-language guides for reading peptide lab reports: what identity, purity, and content each mean, how to verify a COA on the lab&apos;s own site, and where chemical testing stops.
+                Simple guides to help you read lab reports, check batch information, and understand the testing shown on our site.
               </p>
             </AnimateIn>
 
@@ -153,7 +153,7 @@ export default function GuidesHubPage() {
                               {guide.featured && (
                                 <span className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 font-mono text-[0.6875rem] font-semibold text-accent">
                                   <ShieldCheck className="size-3" aria-hidden />
-                                  Core Authority
+                                  Core guide
                                 </span>
                               )}
                             </div>
@@ -187,10 +187,10 @@ export default function GuidesHubPage() {
           <AnimateIn delay={0.2} className="mt-16 pt-8 border-t border-linen">
             <div className="rounded-xl border border-linen bg-surface p-6 sm:p-8 text-xs text-ash space-y-2">
               <p className="font-mono font-semibold text-stone uppercase tracking-wider">
-                Research Use Compliance Boundary
+                Note
               </p>
               <p className="leading-relaxed">
-                These guides are for laboratory and research teams evaluating analytical documentation. They are not medical, clinical, or therapeutic advice. All materials discussed are for research use only.
+                These guides explain how to read lab paperwork. They are not medical advice. All products discussed are for research use only.
               </p>
             </div>
           </AnimateIn>

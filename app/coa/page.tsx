@@ -8,9 +8,9 @@ import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "COA Lookup: Batch Reports",
+  title: "Batch Reports",
   description:
-    "Look up third-party lab reports by task number or batch name. Original Janoshik Analytical files for released lots.",
+    "Look up third party lab reports by task number or batch name. Original Janoshik Analytical files for released batches.",
   path: "/coa",
 });
 
@@ -24,12 +24,12 @@ export default function CoaPage() {
           </AnimateIn>
           <AnimateIn delay={0.06}>
             <h1 className="font-display text-display-lg font-bold text-ink">
-              COA / Batch Lookup
+              Batch Reports
             </h1>
           </AnimateIn>
           <AnimateIn delay={0.1}>
             <p className="text-body-lg leading-relaxed text-ash">
-              Search original third-party lab reports for lots currently for sale. {TESTING_SCOPE_STATEMENT}
+              Search original third party lab reports for batches currently for sale. {TESTING_SCOPE_STATEMENT}
             </p>
           </AnimateIn>
         </header>

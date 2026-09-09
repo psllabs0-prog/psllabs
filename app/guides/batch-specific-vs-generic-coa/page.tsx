@@ -61,36 +61,36 @@ const tocItems = [
 ];
 
 const batchVsGenericColumns = [
-  { key: "feature", header: "Feature / Attribute" },
-  { key: "batchSpecific", header: "Batch-Specific Report (Authentic COA)" },
-  { key: "genericDoc", header: "Generic Specification Document" },
+  { key: "feature", header: "Feature" },
+  { key: "batchSpecific", header: "Batch-specific report" },
+  { key: "genericDoc", header: "Generic spec sheet" },
 ];
 
 const batchVsGenericRows = [
   {
-    feature: "Lot / Batch Identifier",
-    batchSpecific: "Matches physical vial label and invoice exactly (e.g. PSL-BPC157-10MG).",
-    genericDoc: "Absent, blank, or generic placeholder ('Batch: N/A' or 'Batch: All').",
+    feature: "Lot / batch number",
+    batchSpecific: "Matches vial label and invoice (e.g. PSL-BPC157-10MG).",
+    genericDoc: "Missing, blank, or placeholder (Batch: N/A or Batch: All).",
   },
   {
-    feature: "Analytical Results",
-    batchSpecific: "Reports specific empirical numbers (e.g. 99.748% purity, 11.75 mg mass).",
-    genericDoc: "Reports broad specification ranges (e.g. '≥98.0%' or 'Conforms').",
+    feature: "Test results",
+    batchSpecific: "Specific measured numbers (e.g. 99.748% purity, 11.75 mg mass).",
+    genericDoc: "Broad ranges (e.g. ≥98.0% or Conforms).",
   },
   {
-    feature: "Analysis Date",
-    batchSpecific: "Exact date of laboratory receipt and testing corresponding to production run.",
-    genericDoc: "Static date or absent entirely; reused across years of manufacturing.",
+    feature: "Analysis date",
+    batchSpecific: "Exact date of lab testing for that production run.",
+    genericDoc: "Static or missing date reused across years.",
   },
   {
-    feature: "Primary Raw Data",
-    batchSpecific: "Full HPLC chromatogram plot with integration table, baseline, and retention times.",
-    genericDoc: "Summary table only; no raw instrument data or spectra provided.",
+    feature: "Test graphs",
+    batchSpecific: "Full chromatogram with peak data and run times.",
+    genericDoc: "Summary table only; no instrument graphs or spectra.",
   },
   {
-    feature: "Independent Verification",
-    batchSpecific: "Unique task number queryable directly on laboratory's server (verify.janoshik.com).",
-    genericDoc: "Unverifiable; no unique laboratory task number or direct portal record.",
+    feature: "Independent verification",
+    batchSpecific: "Task number you can look up on the lab server (verify.janoshik.com).",
+    genericDoc: "No task number; cannot verify on the lab site.",
   },
 ];
 
@@ -103,13 +103,13 @@ export default function BatchSpecificVsGenericCoaPage() {
       <GuideLayout guide={guide} tocItems={tocItems}>
         <section className="flex flex-col gap-4">
           <p className="text-ash leading-relaxed">
-            In research supply, &ldquo;Certificate of Analysis&rdquo; (COA) gets used for two different kinds of paperwork: a real batch-specific third-party lab report, and a generic manufacturer specification sheet.
+            A batch-specific COA is a real lab report tied to one production lot. A generic COA is often just a spec sheet with no lot link to your vial.
           </p>
           <p className="text-ash leading-relaxed">
-            A generic sheet says what the supplier aims to make. A batch-specific COA says what an independent lab measured on a sample from that production run.
+            A generic sheet says what the supplier aims to make. A batch-specific COA says what an independent lab measured on a sample from that run.
           </p>
           <p className="text-ash leading-relaxed">
-            When documentation is not tied to a lot, reproducibility suffers. This guide covers how the paper trail should work, why batch numbers matter, and how to spot a generic sheet dressed up as an analytical report.
+            This guide covers how the paper trail should work, why batch numbers matter, and how to spot a generic sheet dressed up as a lab report.
           </p>
         </section>
 
@@ -121,11 +121,11 @@ export default function BatchSpecificVsGenericCoaPage() {
             A batch-specific COA is an empirical record for one production lot. It typically includes:
           </p>
           <ul className="list-disc pl-5 space-y-1.5 text-ash text-sm sm:text-base">
-            <li>The unique batch code for that synthesis and lyophilization run</li>
+            <li>The unique batch code for that production run</li>
             <li>The sample vial sent to the testing lab</li>
-            <li>The analysis date on laboratory instruments</li>
-            <li>Measured results (for example, 99.805% HPLC purity and 13.03 mg net mass)</li>
-            <li>The chromatogram and mass spectrum that support those numbers</li>
+            <li>The analysis date</li>
+            <li>Measured results (for example, 99.805% purity and 13.03 mg net mass)</li>
+            <li>The test graphs that support those numbers</li>
           </ul>
           <p className="text-ash leading-relaxed">
             Those results belong to that lot. They do not automatically cover earlier runs, later runs, or material from a different synthesis site.
@@ -153,7 +153,7 @@ export default function BatchSpecificVsGenericCoaPage() {
                 Tell #2: No chromatograms
               </span>
               <p className="text-xs sm:text-sm text-ash leading-relaxed">
-                Only a typed table. No detector output, no HPLC chromatogram with integration baselines, no mass spectrum.
+                Only a typed table. No test graphs, no chromatogram, no identity spectrum.
               </p>
             </div>
           </div>
@@ -170,13 +170,13 @@ export default function BatchSpecificVsGenericCoaPage() {
             Why lot numbers matter
           </h2>
           <p className="text-ash leading-relaxed">
-            Solid-phase peptide synthesis involves many coupling, deprotection, cleavage, and purification steps. Even under controlled protocols, lots differ:
+            Peptide production involves many steps. Even under controlled conditions, lots differ:
           </p>
           <ul className="list-disc pl-5 space-y-1.5 text-ash text-sm sm:text-base">
-            <li>Coupling efficiency shifts, which changes deletion peptide side-products.</li>
-            <li>Preparative HPLC cuts at slightly different windows produce different purity profiles.</li>
-            <li>Lyophilization conditions change residual moisture and counterion content.</li>
-            <li>Fill automation can drift slightly between production runs.</li>
+            <li>Small process shifts change byproduct levels.</li>
+            <li>Purification cuts at slightly different points produce different purity profiles.</li>
+            <li>Freeze-drying conditions change residual moisture and salt content.</li>
+            <li>Fill amounts can drift slightly between runs.</li>
           </ul>
           <p className="text-ash leading-relaxed">
             Two runs of the same peptide are not chemically identical. The lot number is what connects the vial on the bench to its analytical record.
@@ -221,7 +221,7 @@ export default function BatchSpecificVsGenericCoaPage() {
                 <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-page font-mono text-xs font-bold">4</span>
                 <div className="flex-1">
                   <p className="font-display font-bold text-ink text-sm sm:text-base">Lab analyzes and issues a task ID</p>
-                  <p className="text-xs text-ash">HPLC and mass assays are logged under an immutable Task Number.</p>
+                  <p className="text-xs text-ash">Purity and identity tests are logged under a unique Task Number.</p>
                 </div>
               </div>
               <div className="ml-3.5 h-4 w-px bg-linen" />
@@ -287,10 +287,10 @@ export default function BatchSpecificVsGenericCoaPage() {
             Sampling limits
           </h2>
           <AnalyticalCallout title="Batch-matched does not mean every vial was tested" variant="limitation">
-            Analytical testing is destructive. The submitted sample is dissolved and consumed. A batch-matched report describes that submitted vial, not every unit in the lot.
+            Lab testing uses up the sample. A batch-matched report describes that one submitted vial, not every unit in the lot.
           </AnalyticalCallout>
           <p className="text-ash leading-relaxed">
-            Consistency across vials depends on homogeneous bulk synthesis and controlled filling. No lab can test 100% of finished units without destroying the inventory.
+            Consistency across vials depends on controlled production and filling. No lab can test every finished unit without destroying the inventory.
           </p>
         </section>
 
@@ -299,7 +299,7 @@ export default function BatchSpecificVsGenericCoaPage() {
             What batch reports do not prove
           </h2>
           <p className="text-ash leading-relaxed">
-            A solid batch report still has a clear scope. HPLC speaks to chemical purity under the method used. It does not cover sterility, endotoxin status, biological activity, or regulatory approval. Those need different assays or frameworks entirely.
+            The report only covers the tests shown on the original laboratory file. A batch report does not cover sterility, endotoxins, biological activity, or regulatory approval unless those tests are listed.
           </p>
         </section>
 

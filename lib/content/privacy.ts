@@ -1,11 +1,11 @@
 import type { ContentPageMeta, ContentSection } from "./types";
-import { LEGAL_ENTITY_NAME, LEGAL_LAST_UPDATED } from "./testing-scope";
+import { LEGAL_ENTITY_NAME, PRIVACY_LAST_UPDATED } from "./testing-scope";
 
 export const privacyPageMeta: ContentPageMeta = {
   label: "LEGAL",
   title: "Privacy Policy",
   description: "How PSL Labs collects, uses, and protects your personal information.",
-  intro: [`Last updated: ${LEGAL_LAST_UPDATED}.`],
+  intro: [`Last updated: ${PRIVACY_LAST_UPDATED}.`],
 };
 
 export const privacySections: ContentSection[] = [
@@ -13,22 +13,22 @@ export const privacySections: ContentSection[] = [
     id: "collect",
     title: "Information we collect",
     paragraphs: [
-      "We collect information you provide directly: name, email, shipping address, payment details (processed by our payment provider, we do not store full card numbers), and order history.",
-      "We automatically collect usage data: IP address, browser type, pages visited, and referring URL via standard analytics tools.",
+      "When you place an order or contact us, you may give us information such as your name, email address, shipping address, and order details. Payment information is handled by our payment provider. PSL Labs does not store your full card number.",
+      "We also collect basic information about how the website is used, such as browser information, pages viewed, and referral information through the analytics tools used on the site.",
     ],
   },
   {
     id: "use",
     title: "How we use your information",
     paragraphs: [
-      "We use your information to process orders, send transactional emails (order confirmations, shipping updates), respond to support requests, and improve our site.",
+      "We use this information to process orders, send order and shipping updates, answer support requests, prevent fraud, and improve the website.",
     ],
   },
   {
     id: "share",
     title: "Information sharing",
     paragraphs: [
-      "We share data with service providers who help us operate: payment processors, shipping carriers, email platforms, and analytics providers. They are contractually required to protect your data and use it only for the services they provide to us.",
+      "We share information only with service providers that help us run the business, such as payment processors, shipping carriers, email providers, and analytics services.",
       "We do not sell your personal information.",
     ],
   },
@@ -36,28 +36,31 @@ export const privacySections: ContentSection[] = [
     id: "cookies",
     title: "Cookies",
     paragraphs: [
-      "We use cookies and similar technologies for site functionality and analytics. You can control cookies through your browser settings.",
+      // Verified against codebase: public site analytics use Plausible (cookieless). Admin login uses a session cookie. Checkout payment fields are handled by third-party payment providers.
+      "We use a small number of cookies when needed for site function, such as securing an admin sign-in session. Website analytics on psllabs.org use Plausible Analytics, which is set up to work without tracking cookies.",
+      "Payment pages may use cookies or similar tools from our payment providers. You can control cookies through your browser settings where your browser allows it.",
     ],
   },
   {
     id: "security",
     title: "Data security",
     paragraphs: [
-      "We implement reasonable technical and organizational measures to protect your data. No transmission over the internet is 100% secure.",
+      "We use reasonable technical and organizational safeguards to protect customer information. No method of sending or storing information online can be guaranteed to be completely secure.",
     ],
   },
   {
     id: "rights",
     title: "Your rights",
     paragraphs: [
-      "Depending on your location, you may have rights to access, correct, delete, or port your personal data. Contact support@psllabs.org to exercise these rights. California residents may have additional rights under the CCPA.",
+      "Depending on where you live, you may have rights to request access to, correction of, or deletion of certain personal information. Contact support@psllabs.org if you want to make a request.",
+      "California residents may have additional rights under the CCPA. Contact us if you want to make a request under those rights.",
     ],
   },
   {
     id: "contact",
     title: "Contact",
     paragraphs: [
-      `${LEGAL_ENTITY_NAME}. Questions about this policy: support@psllabs.org.`,
+      "Questions about this Privacy Policy? Email support@psllabs.org.",
     ],
   },
 ];

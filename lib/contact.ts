@@ -41,7 +41,7 @@ export const contactPage: ContactPageContent = {
     },
   ],
   topics: [
-    { label: "COA / Batch Lookup", href: "/coa" },
+    { label: "Batch Reports", href: "/coa" },
     { label: "Shipping & returns", href: "/shipping" },
     { label: "Frequently asked questions", href: "/faq" },
   ],

@@ -28,7 +28,7 @@ export default function TestingPage() {
               Published batch reports
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-ash md:text-base">
-              Original third-party lab reports for lots currently for sale. Results apply to the sample and lot named on each report.{" "}
+              Original third party lab reports for batches currently for sale. Results apply to the sample and batch named on each report.{" "}
               <a
                 href="/coa"
                 className="font-medium text-accent underline underline-offset-4"

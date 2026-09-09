@@ -3,14 +3,14 @@ import { getDiscordInviteUrl } from "@/lib/social";
 export type NavLink = {
   label: string;
   href: string;
-  /** Opens in a new tab — use for external URLs (Discord, etc.). */
+  /** Opens in a new tab. Use for external URLs (Discord, etc.). */
   external?: boolean;
 };
 
 export const primaryNavLinks: NavLink[] = [
   { label: "Home", href: "/" },
   { label: "Products", href: "/products" },
-  { label: "COA Lookup", href: "/coa" },
+  { label: "Batch Reports", href: "/coa" },
   { label: "Testing", href: "/testing" },
   { label: "FAQ", href: "/faq" },
   { label: "Contact", href: "/contact" },
@@ -54,12 +54,9 @@ export const footerColumns: { title: string; links: NavLink[] }[] = [
     links: [
       { label: "FAQ", href: "/faq" },
       { label: "Testing", href: "/testing" },
-      { label: "COA / Batch Lookup", href: "/coa" },
+      { label: "Batch Reports", href: "/coa" },
       { label: "Track Order", href: "/track" },
       { label: "Guides", href: "/guides" },
-      { label: "How to Verify a COA", href: "/guides/verify-peptide-coa" },
-      { label: "Storage Guide", href: "/guides/peptide-storage-stability" },
-      { label: "Purity Explained", href: "/guides/peptide-purity-percentages" },
       { label: "Shipping", href: "/shipping" },
       { label: "Returns", href: "/returns" },
     ],

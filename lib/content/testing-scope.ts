@@ -1,6 +1,6 @@
 /** Canonical testing disclosure. Use wherever broad lab claims would overstate scope. */
 export const TESTING_SCOPE_STATEMENT =
-  "Testing scope and results are shown on each original laboratory report.";
+  "The report only covers the tests shown on the original laboratory file.";
 
 /**
  * Internal placeholder for counsel-approved claim window (days).
@@ -13,9 +13,16 @@ export const CLAIM_WINDOW_PLACEHOLDER =
 
 /** Public wording until counsel provides a final claim-window number. */
 export const PUBLIC_CLAIM_WINDOW_NOTICE =
-  "Report order issues promptly after carrier-confirmed delivery. Include your order number and clear photos so we can review the claim. A fixed review deadline has not been published; contact support@psllabs.org as soon as you notice a problem.";
+  "Report order issues promptly after carrier-confirmed delivery. Include your order number and clear photos so we can review the claim. A fixed review deadline has not been published. Contact support@psllabs.org as soon as you notice a problem.";
 
 export const LEGAL_ENTITY_NAME = "PSL Group LLC";
 
-/** Set to the actual production deployment date when Terms and Privacy go live. */
-export const LEGAL_LAST_UPDATED = "July 8, 2026";
+/**
+ * Explicit policy dates. Update only when that policy document itself changes.
+ * Do not derive from build time, deploy time, or unrelated commits.
+ */
+export const TERMS_LAST_UPDATED = "September 8, 2026";
+export const PRIVACY_LAST_UPDATED = "September 8, 2026";
+
+/** @deprecated Prefer TERMS_LAST_UPDATED or PRIVACY_LAST_UPDATED. */
+export const LEGAL_LAST_UPDATED = TERMS_LAST_UPDATED;

@@ -15,7 +15,7 @@ export function FaqAccordion({ items }: FaqAccordionProps) {
             Frequently Asked Questions
           </h1>
           <p className="mt-3 text-base leading-relaxed text-ash md:text-lg">
-            Straight answers on research-use rules, third-party testing, batch docs, shipping, and payments.
+            Straight answers on research use rules, third party testing, batch docs, shipping, and payments.
           </p>
         </header>
 
