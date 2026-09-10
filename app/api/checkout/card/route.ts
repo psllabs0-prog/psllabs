@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { safeRecordPaidOrderFinance } from "@/lib/finance/record";
 import { fulfillPaidOrder } from "@/lib/orders/fulfill-paid-order";
 import {
   getOrder,
@@ -94,6 +95,29 @@ export async function POST(request: Request) {
         },
         { status: 500 }
       );
+    }
+
+    const paidOrder = await getOrder(orderId);
+    if (paidOrder?.status === "paid" || paidOrder?.status === "shipped") {
+      await safeRecordPaidOrderFinance(paidOrder, {
+        provider: "tagada",
+        providerPaymentId: paymentRef,
+        syntheticEvent: {
+          provider: "tagada",
+          providerEventId: `checkout_card:${orderId}:${paymentRef}`,
+          eventType: "checkout/card_fulfilled",
+          rawEvent: {
+            source: "checkout_card",
+            orderId,
+            paymentRef,
+          },
+          providerPaymentId: paymentRef,
+          pslOrderId: orderId,
+          paymentStatus: "succeeded",
+          paymentMethod: "card",
+          processingStatus: "processed",
+        },
+      });
     }
 
     return NextResponse.json({

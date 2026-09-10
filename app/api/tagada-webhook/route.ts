@@ -1,8 +1,12 @@
-import crypto from "crypto";
 import { NextResponse } from "next/server";
 
+import {
+  recordProviderEvent,
+  safeRecordPaidOrderFinance,
+} from "@/lib/finance/record";
+import { markPaymentEventProcessed } from "@/lib/finance/store";
+import { verifyTagadaWebhookSignature } from "@/lib/finance/webhook-verify";
 import { fulfillPaidOrder } from "@/lib/orders/fulfill-paid-order";
-import { logSaleIfNew } from "@/lib/ledger/store";
 import { trackPlausiblePurchase } from "@/lib/plausible";
 import {
   claimTagadaWebhook,
@@ -18,38 +22,18 @@ export const runtime = "nodejs";
 
 const TAGADA_WEBHOOK_URL = "https://psllabs.org/api/tagada-webhook";
 
-function safeEqual(a: string, b: string): boolean {
-  const ab = Buffer.from(a);
-  const bb = Buffer.from(b);
-  if (ab.length !== bb.length) return false;
-  return crypto.timingSafeEqual(ab, bb);
-}
-
-function verifyTagadaWebhook(
-  rawBody: string,
-  secret: string,
-  signatureHeader: string | null
-): boolean {
-  if (!signatureHeader?.startsWith("sha256=")) return false;
-  const expected = signatureHeader.slice("sha256=".length);
-  const hmac = crypto
-    .createHmac("sha256", secret)
-    .update(rawBody, "utf8")
-    .digest("hex");
-  try {
-    return safeEqual(expected, hmac);
-  } catch {
-    return false;
-  }
-}
-
 type TagadaWebhookEvent = {
+  id?: string;
   type?: string;
   eventType?: string;
+  createdAt?: string;
   data?: {
     orderId?: string;
     checkoutSessionId?: string;
     paymentId?: string;
+    totalAmount?: number;
+    amount?: number;
+    currency?: string;
     metadata?: { orderId?: string };
     order?: { id?: string; metadata?: { orderId?: string } };
     payment?: { id?: string; status?: string };
@@ -58,8 +42,9 @@ type TagadaWebhookEvent = {
 };
 
 /**
- * Backup receiver when the browser never calls /api/checkout/card after pay.
- * Mirrors BTCPay webhook: verify HMAC, fulfill idempotently, return 500 to retry.
+ * Official TagadaPay signed webhook receiver.
+ * Requires TAGADA_WEBHOOK_SECRET — never accepts unverified payloads.
+ * @see https://docs.tagada.io/developer-tools/node-sdk/webhooks-events
  */
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -67,19 +52,21 @@ export async function POST(request: Request) {
     request.headers.get("x-tagadapay-signature") ??
     request.headers.get("X-TagadaPay-Signature");
   const secret = process.env.TAGADA_WEBHOOK_SECRET?.trim();
+  const headerEventId = request.headers.get("x-tagadapay-event-id");
 
-  if (secret) {
-    if (!signature) {
-      return NextResponse.json({ error: "Missing signature" }, { status: 401 });
-    }
-    if (!verifyTagadaWebhook(rawBody, secret, signature)) {
-      console.warn("[tagada-webhook] Invalid signature");
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    }
-  } else {
-    console.warn(
-      "[tagada-webhook] TAGADA_WEBHOOK_SECRET not set — accepting unverified payload (configure in production)"
+  if (!secret) {
+    console.error("[tagada-webhook] TAGADA_WEBHOOK_SECRET is not set");
+    return NextResponse.json(
+      { error: "Webhook not configured" },
+      { status: 503 }
     );
+  }
+  if (!signature) {
+    return NextResponse.json({ error: "Missing signature" }, { status: 401 });
+  }
+  if (!verifyTagadaWebhookSignature(rawBody, secret, signature)) {
+    console.warn("[tagada-webhook] Invalid signature");
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
   }
 
   let event: TagadaWebhookEvent;
@@ -90,6 +77,11 @@ export async function POST(request: Request) {
   }
 
   const type = event.type ?? event.eventType ?? "";
+  const providerEventId =
+    event.id ||
+    headerEventId ||
+    `tagada:${type}:${event.data?.paymentId ?? event.data?.orderId ?? "unknown"}`;
+
   const isPaid =
     type === "order/paid" ||
     type === "payment/succeeded" ||
@@ -98,6 +90,40 @@ export async function POST(request: Request) {
     type === "order/failed" ||
     type === "payment/failed" ||
     type === "payment/rejected";
+
+  const amountCents =
+    typeof event.data?.totalAmount === "number"
+      ? event.data.totalAmount
+      : typeof event.data?.amount === "number"
+        ? event.data.amount
+        : null;
+
+  let paymentEventId: number | null = null;
+  try {
+    const recorded = await recordProviderEvent({
+      provider: "tagada",
+      providerEventId,
+      eventType: type || "unknown",
+      rawEvent: event,
+      providerPaymentId:
+        event.data?.paymentId ?? event.data?.payment?.id ?? null,
+      providerOrderId: event.data?.order?.id ?? event.data?.orderId ?? null,
+      pslOrderId:
+        event.data?.metadata?.orderId ??
+        event.data?.order?.metadata?.orderId ??
+        event.metadata?.orderId ??
+        null,
+      eventTimestamp: event.createdAt ?? new Date().toISOString(),
+      amount: amountCents !== null ? amountCents / 100 : null,
+      currency: event.data?.currency ?? null,
+      paymentStatus: isPaid ? "succeeded" : isFailed ? "failed" : type || null,
+      paymentMethod: "card",
+      processingStatus: !isPaid && !isFailed ? "ignored" : "received",
+    });
+    paymentEventId = recorded.eventId;
+  } catch (error) {
+    console.error("[tagada-webhook] payment_events insert failed:", error);
+  }
 
   if (!isPaid && !isFailed) {
     return NextResponse.json({ received: true, ignored: type });
@@ -128,16 +154,31 @@ export async function POST(request: Request) {
       console.warn(
         `[tagada-webhook] order not found (type=${type} invoice=${invoiceHint})`
       );
+      if (paymentEventId) {
+        await markPaymentEventProcessed(
+          paymentEventId,
+          "failed",
+          "psl order not found"
+        );
+      }
       return NextResponse.json({ received: true });
     }
 
     if (isFailed) {
       await markStatusIfPending(order.orderId, "failed");
+      if (paymentEventId) {
+        await markPaymentEventProcessed(paymentEventId, "processed");
+      }
       return NextResponse.json({ received: true });
     }
 
-    if (order.status === "paid") {
+    if (order.status === "paid" || order.status === "shipped") {
       await markTagadaWebhookSent(order.orderId);
+      await safeRecordPaidOrderFinance(order, {
+        provider: "tagada",
+        providerPaymentId: invoiceHint || order.invoiceId,
+        sourcePaymentEventId: paymentEventId,
+      });
       return NextResponse.json({ received: true, alreadyPaid: true });
     }
 
@@ -163,9 +204,13 @@ export async function POST(request: Request) {
       await markTagadaWebhookSent(order.orderId);
 
       const paidOrder = await getOrder(order.orderId);
-      if (paidOrder?.status === "paid") {
+      if (paidOrder?.status === "paid" || paidOrder?.status === "shipped") {
         await trackPlausiblePurchase(paidOrder, "card", TAGADA_WEBHOOK_URL);
-        await logSaleIfNew(paidOrder, "card");
+        await safeRecordPaidOrderFinance(paidOrder, {
+          provider: "tagada",
+          providerPaymentId: invoiceHint || paidOrder.invoiceId,
+          sourcePaymentEventId: paymentEventId,
+        });
       }
 
       return NextResponse.json({ received: true });
@@ -175,6 +220,17 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     console.error("[tagada-webhook] processing error:", error);
+    if (paymentEventId) {
+      try {
+        await markPaymentEventProcessed(
+          paymentEventId,
+          "failed",
+          error instanceof Error ? error.message : "processing failed"
+        );
+      } catch {
+        /* ignore */
+      }
+    }
     return NextResponse.json({ error: "Processing failed" }, { status: 500 });
   }
 }

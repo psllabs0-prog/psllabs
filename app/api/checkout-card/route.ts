@@ -4,8 +4,9 @@ import {
   prepareReservedOrder,
   type CheckoutBody,
 } from "@/lib/checkout/prepare-order";
+import { safeRecordPaidOrderFinance } from "@/lib/finance/record";
 import { fulfillPaidOrder } from "@/lib/orders/fulfill-paid-order";
-import { markStatusIfPending } from "@/lib/orders/store";
+import { getOrder, markStatusIfPending } from "@/lib/orders/store";
 import { getPaymentProcessor } from "@/lib/payments";
 import { isCardCheckoutEnabled } from "@/lib/payments/authnet";
 
@@ -94,6 +95,29 @@ export async function POST(request: Request) {
         },
         { status: 500 }
       );
+    }
+
+    const paidOrder = await getOrder(order.orderId);
+    if (paidOrder?.status === "paid" || paidOrder?.status === "shipped") {
+      await safeRecordPaidOrderFinance(paidOrder, {
+        provider: "authnet",
+        providerPaymentId: charge.transactionId,
+        syntheticEvent: {
+          provider: "authnet",
+          providerEventId: `authnet:${order.orderId}:${charge.transactionId}`,
+          eventType: "checkout/authnet_charged",
+          rawEvent: {
+            source: "checkout_card_authnet",
+            orderId: order.orderId,
+            transactionId: charge.transactionId,
+          },
+          providerPaymentId: charge.transactionId,
+          pslOrderId: order.orderId,
+          paymentStatus: "succeeded",
+          paymentMethod: "card",
+          processingStatus: "processed",
+        },
+      });
     }
 
     return NextResponse.json({

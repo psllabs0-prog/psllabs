@@ -240,6 +240,25 @@ export async function getOrdersDueForDeliveryFollowup(
   return rows.map(rowToOrder);
 }
 
+/** Recent paid/shipped orders for finance reconciliation (does not mutate). */
+export async function listRecentCompletedOrders(
+  days = 14,
+  limit = 100
+): Promise<Order[]> {
+  await ensureOrdersSchema();
+  const sql = getSql();
+  const safeDays = Math.min(Math.max(days, 1), 90);
+  const safeLimit = Math.min(Math.max(limit, 1), 300);
+  const rows = (await sql`
+    SELECT * FROM orders
+    WHERE status IN ('paid', 'shipped')
+      AND COALESCE(paid_at, created_at) >= now() - (${safeDays} * INTERVAL '1 day')
+    ORDER BY COALESCE(paid_at, created_at) DESC
+    LIMIT ${safeLimit}
+  `) as OrderRow[];
+  return rows.map(rowToOrder);
+}
+
 export async function claimDeliveryFollowupEmail(
   orderId: string
 ): Promise<boolean> {
