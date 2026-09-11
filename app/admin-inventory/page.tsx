@@ -84,7 +84,8 @@ export default async function AdminInventoryPage() {
             Inventory dashboard
           </h1>
           <p className="mt-3 text-sm text-ash">
-            Update live stock levels for active catalog products.
+            Sellable stock, inbound pipeline (not sellable), velocity monitor,
+            and explicit release controls for active catalog products.
           </p>
         </header>
         <AdminInventoryDashboard products={products} history={history} />

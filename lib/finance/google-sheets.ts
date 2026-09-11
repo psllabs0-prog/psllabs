@@ -286,6 +286,20 @@ export async function updateRevenueSheetRow(
   }
 }
 
+export async function getGoogleSheetsAccessToken(
+  creds: ServiceAccountCreds
+): Promise<string> {
+  return getAccessToken(creds);
+}
+
+export async function googleSheetsFetch(
+  accessToken: string,
+  path: string,
+  init?: RequestInit
+): Promise<Response> {
+  return sheetsFetch(accessToken, path, init);
+}
+
 export function isGoogleSheetsConfigured(): boolean {
   return getGoogleSheetsConfig() !== null;
 }

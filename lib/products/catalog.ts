@@ -152,6 +152,15 @@ export function getCatalogProductByHandle(
   return catalogProducts.find((product) => product.handle === handle);
 }
 
+export function getCatalogProductBySku(
+  sku: string
+): CatalogProduct | undefined {
+  const normalized = sku.trim().toUpperCase();
+  return catalogProducts.find(
+    (product) => product.sku.toUpperCase() === normalized
+  );
+}
+
 export function getCatalogProductBySlug(
   slug: string
 ): CatalogProduct | undefined {

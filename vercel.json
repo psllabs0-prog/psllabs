@@ -5,7 +5,7 @@
       "schedule": "0 14 * * *"
     },
     {
-      "path": "/api/cron/low-stock",
+      "path": "/api/cron/inventory-monitor",
       "schedule": "0 15 * * *"
     },
     {

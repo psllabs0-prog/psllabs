@@ -412,6 +412,26 @@ export async function setProductStock(
       VALUES (${handle}, ${resolvedSku}, ${oldStock}, ${stock})
     `;
   }
+
+  // Material sellable increase (manual restock) resets depletion baseline.
+  // Pipeline releases reset via inventory_release_pipeline_lot path separately.
+  if (stock > oldStock && resolvedSku) {
+    try {
+      const { resetInventoryBaseline } = await import(
+        "@/lib/inventory/monitor/baselines"
+      );
+      await resetInventoryBaseline(
+        resolvedSku,
+        stock,
+        "manual_stock_increase"
+      );
+    } catch (error) {
+      console.error(
+        "[inventory] baseline reset after manual stock increase failed:",
+        error instanceof Error ? error.message : error
+      );
+    }
+  }
 }
 
 export type StockBySkuRow = {
