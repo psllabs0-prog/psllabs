@@ -6,6 +6,7 @@ import { runFinanceReconciliation } from "@/lib/finance/reconciliation";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+/** Daily backup reconciliation (vercel.json: 30 15 * * *). Not hourly. */
 export async function GET(request: Request) {
   const authError = verifyCronRequest(request);
   if (authError) return authError;

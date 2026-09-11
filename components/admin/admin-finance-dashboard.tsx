@@ -103,7 +103,9 @@ export function AdminFinanceDashboard() {
             Payment events and revenue mirror status. Neon remains the source of
             truth; Google Sheets is a reporting mirror only. Processor fees use
             finance_transactions.processor_fee (NULL when unknown) — not the
-            legacy ledger fee default of 0.
+            legacy ledger fee default of 0. Automatic reconciliation runs daily
+            as a backup; successful payments are recorded at checkout/webhook
+            time.
           </p>
         </div>
         <button

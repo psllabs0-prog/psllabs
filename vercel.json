@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/finance-reconcile",
-      "schedule": "30 * * * *"
+      "schedule": "30 15 * * *"
     }
   ]
 }
