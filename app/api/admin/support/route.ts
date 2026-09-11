@@ -17,6 +17,7 @@ import {
   markMessageResolved,
   markMessageSolicitation,
   markResponseSent,
+  restoreMessageToActiveSupport,
   saveDraftResponse,
   setThreadAutoSendDisabled,
   type SupportInboxFilter,
@@ -155,6 +156,24 @@ export async function POST(request: Request) {
         category: "vendor_solicitation",
       });
       return NextResponse.json({ ok: true });
+    }
+
+    if (action === "restore_active") {
+      const messageId = Number(body.messageId);
+      const category =
+        typeof body.category === "string"
+          ? (body.category as SupportCategory)
+          : undefined;
+      const riskLevel =
+        typeof body.riskLevel === "string"
+          ? (body.riskLevel as SupportRiskLevel)
+          : undefined;
+      const result = await restoreMessageToActiveSupport({
+        messageId,
+        category,
+        riskLevel,
+      });
+      return NextResponse.json({ ok: true, ...result });
     }
 
     if (action === "set_auto_send") {

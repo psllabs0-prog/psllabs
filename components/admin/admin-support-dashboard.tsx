@@ -300,6 +300,19 @@ export function AdminSupportDashboard() {
                     </button>
                     <button
                       type="button"
+                      disabled={busy || item.message.status !== "ignored"}
+                      className="rounded border border-linen px-3 py-1.5 text-xs disabled:opacity-50"
+                      onClick={() =>
+                        void runAction({
+                          action: "restore_active",
+                          messageId: item.message.id,
+                        })
+                      }
+                    >
+                      Restore to Active Support
+                    </button>
+                    <button
+                      type="button"
                       disabled={busy}
                       className="rounded border border-linen px-3 py-1.5 text-xs"
                       onClick={() =>

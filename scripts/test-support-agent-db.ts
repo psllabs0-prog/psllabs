@@ -14,12 +14,16 @@ import {
   runSupportInboxJob,
 } from "@/lib/support/process";
 import {
+  getClassificationForMessage,
   getLatestDraft,
   listRetryableCustomerSendMessages,
+  listSupportInbox,
   listUnnotifiedEscalations,
   markResponseSent,
+  restoreMessageToActiveSupport,
 } from "@/lib/support/store";
 import { canSendCustomerReply } from "@/lib/support/lifecycle";
+import { decideOutboundAction } from "@/lib/support/draft";
 import type { InboundEmailNormalized } from "@/lib/support/types";
 
 loadEnvLocal();
@@ -304,6 +308,74 @@ async function main() {
     assert(vendorResult.status === "ignored", "vendor status ignored");
     assert(vendorResult.autoSent === false, "vendor never auto-sends");
     assert(vendorResult.escalated === false, "vendor no urgent escalate");
+
+    // --- Restore ignored vendor → Active Support (no send) ---
+    const resolvedBefore = (await sql`
+      SELECT COUNT(*)::int AS n FROM support_escalations
+      WHERE message_id = ${vendorResult.messageId}
+        AND resolved_at IS NOT NULL
+    `) as Array<{ n: number }>;
+
+    const restored = await restoreMessageToActiveSupport({
+      messageId: vendorResult.messageId,
+    });
+    assert(restored.restored === true, "restore flipped ignored");
+    assert(
+      restored.status === "drafted" || restored.status === "classified",
+      "restore uses safe active status"
+    );
+
+    const classAfter = await getClassificationForMessage(vendorResult.messageId);
+    assert(classAfter?.category === "other", "restore defaults to other");
+    assert(classAfter?.riskLevel === "YELLOW", "restore defaults to YELLOW");
+    assert(classAfter?.autoResponseAllowed === false, "restore never auto-allowed");
+
+    const active = await listSupportInbox(75, "active");
+    assert(
+      active.some((row) => row.message.id === vendorResult.messageId),
+      "restored vendor appears in Active Support"
+    );
+    const vendorFilter = await listSupportInbox(75, "vendor");
+    assert(
+      !vendorFilter.some((row) => row.message.id === vendorResult.messageId),
+      "restored message leaves Vendor filter"
+    );
+
+    const restoredDraft = await getLatestDraft(vendorResult.messageId);
+    if (classAfter && restoredDraft) {
+      const action = decideOutboundAction({
+        classification: {
+          category: classAfter.category,
+          riskLevel: classAfter.riskLevel,
+          confidence: classAfter.confidence,
+          reasons: [],
+          autoResponseAllowed: classAfter.autoResponseAllowed,
+          extractedOrderId: null,
+          extractedTracking: null,
+        },
+        draft: {
+          bodyText: restoredDraft.draftBody,
+          bodyHtml: "",
+          knowledgeSources: [],
+          aiDrafted: false,
+          requiresEscalation: true,
+          escalationReason: "restore review",
+          policyDecision: "manual_restore",
+        },
+        threadAutoSendDisabled: false,
+      });
+      assert(action.sendCustomerReply === false, "restore does not send customer email");
+    }
+
+    const resolvedAfter = (await sql`
+      SELECT COUNT(*)::int AS n FROM support_escalations
+      WHERE message_id = ${vendorResult.messageId}
+        AND resolved_at IS NOT NULL
+    `) as Array<{ n: number }>;
+    assert(
+      Number(resolvedAfter[0]?.n ?? 0) >= Number(resolvedBefore[0]?.n ?? 0),
+      "restore does not clear previously resolved escalations"
+    );
 
     console.log("[test-support-agent-db] all passed.");
   } finally {

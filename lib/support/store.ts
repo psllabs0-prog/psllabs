@@ -300,6 +300,87 @@ export async function updateClassificationManual(input: {
         auto_response_allowed = false
     WHERE message_id = ${input.messageId}
   `;
+
+  // Leaving spam/vendor → return to Active Support (never auto-send).
+  if (
+    input.category !== "spam_solicitation" &&
+    input.category !== "vendor_solicitation"
+  ) {
+    await restoreIgnoredMessageToActiveQueue(input.messageId);
+  }
+}
+
+/**
+ * If message is ignored (spam/vendor false-positive), restore to Active Support.
+ * Uses drafted when a response draft exists, otherwise classified.
+ * Does not send email and does not reopen resolved escalations.
+ */
+export async function restoreIgnoredMessageToActiveQueue(
+  messageId: number
+): Promise<{ restored: boolean; status: MessageStatus | null }> {
+  await ensureSupportSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT status FROM support_messages WHERE id = ${messageId} LIMIT 1
+  `) as Array<{ status: string }>;
+  if (!rows[0]) return { restored: false, status: null };
+  if (rows[0].status !== "ignored") {
+    return { restored: false, status: rows[0].status as MessageStatus };
+  }
+
+  const draft = await getLatestDraft(messageId);
+  const nextStatus: MessageStatus = draft ? "drafted" : "classified";
+  await sql`
+    UPDATE support_messages
+    SET status = ${nextStatus}, updated_at = now()
+    WHERE id = ${messageId} AND status = 'ignored'
+  `;
+  return { restored: true, status: nextStatus };
+}
+
+/**
+ * Explicit admin restore: leave solicitation categories for Active Support.
+ * Defaults to other / YELLOW for human review. Never auto-sends.
+ * Does not reopen previously resolved escalations.
+ */
+export async function restoreMessageToActiveSupport(input: {
+  messageId: number;
+  category?: SupportCategory;
+  riskLevel?: SupportRiskLevel;
+}): Promise<{ restored: boolean; status: MessageStatus | null }> {
+  await ensureSupportSchema();
+  const sql = getSql();
+  const category = input.category ?? "other";
+  const riskLevel = input.riskLevel ?? "YELLOW";
+  if (
+    category === "spam_solicitation" ||
+    category === "vendor_solicitation"
+  ) {
+    throw new Error("Restore target must be a normal support category");
+  }
+
+  const reasons = JSON.stringify(["manual:restore_to_active_support"]);
+  await sql`
+    INSERT INTO support_classifications (
+      message_id, category, risk_level, confidence,
+      reasons_json, auto_response_allowed
+    ) VALUES (
+      ${input.messageId},
+      ${category},
+      ${riskLevel},
+      0.4,
+      ${reasons}::jsonb,
+      false
+    )
+    ON CONFLICT (message_id) DO UPDATE SET
+      category = EXCLUDED.category,
+      risk_level = EXCLUDED.risk_level,
+      confidence = EXCLUDED.confidence,
+      reasons_json = EXCLUDED.reasons_json,
+      auto_response_allowed = false
+  `;
+
+  return restoreIgnoredMessageToActiveQueue(input.messageId);
 }
 
 /** Manual or pipeline: mark as spam/vendor solicitation and hide from active queue. */

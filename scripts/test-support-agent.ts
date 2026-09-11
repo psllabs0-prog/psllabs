@@ -347,7 +347,7 @@ function testSpamSeoProposal() {
 function testSpamReputationManagement() {
   const c = classifySupportMessage({
     subject: "Reputation management offer",
-    body: "We specialize in reputation management and can boost your reviews and online ratings quickly.",
+    body: "We specialize in reputation management services and can boost your reviews and online ratings quickly.",
   });
   assert(c.category === "spam_solicitation", "reputation → spam_solicitation");
 }
@@ -364,6 +364,43 @@ function testVendorJanoshikNotCoa() {
   );
   assert(!shouldEscalateClassification(c), "vendor no urgent escalate");
   assert(!c.autoResponseAllowed, "vendor never auto-responds");
+}
+
+function testWeakMoqAloneNotVendor() {
+  const c = classifySupportMessage({
+    subject: "Ordering question",
+    body: "Do you have an MOQ?",
+  });
+  assert(c.category !== "vendor_solicitation", "MOQ alone not vendor");
+  assert(c.category !== "spam_solicitation", "MOQ alone not spam");
+}
+
+function testWeakPriceListAloneNotVendor() {
+  const c = classifySupportMessage({
+    subject: "Pricing",
+    body: "Can you send me a price list?",
+  });
+  assert(
+    c.category !== "vendor_solicitation",
+    "price list alone not automatically vendor"
+  );
+  assert(c.category !== "spam_solicitation", "price list alone not spam");
+}
+
+function testStrongVendorManufacturerSupply() {
+  const c = classifySupportMessage({
+    subject: "Partnership",
+    body: "We are a peptide manufacturer and can supply research-grade peptides from our factory.",
+  });
+  assert(c.category === "vendor_solicitation", "strong vendor phrase");
+}
+
+function testStrongSpamSeoOffer() {
+  const c = classifySupportMessage({
+    subject: "SEO offer",
+    body: "I offer SEO services and can send pricing for ranking improvements.",
+  });
+  assert(c.category === "spam_solicitation", "SEO services → spam");
 }
 
 function testCustomerCoaStillGreen() {
@@ -455,6 +492,10 @@ async function main() {
   testSpamSeoProposal();
   testSpamReputationManagement();
   testVendorJanoshikNotCoa();
+  testWeakMoqAloneNotVendor();
+  testWeakPriceListAloneNotVendor();
+  testStrongVendorManufacturerSupply();
+  testStrongSpamSeoOffer();
   testCustomerCoaStillGreen();
   testCustomerOrderStillWorks();
   await testSpamNeverSendsOrEscalates();
