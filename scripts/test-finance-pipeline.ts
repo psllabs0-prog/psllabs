@@ -99,8 +99,23 @@ function testNonRevenueEvents() {
   assert(!revenueTypes.has("InvoiceCreated"), "created is not revenue");
 }
 
+function testSheetsSkipRetryEligibility() {
+  const notConfigured = "Google Sheets not configured";
+  const otherSkip = "Manual hold";
+  const shouldRetry = (status: string, error: string | null) =>
+    status === "pending" ||
+    status === "failed" ||
+    (status === "skipped" && error === notConfigured);
+  assert(shouldRetry("skipped", notConfigured), "missing-sheets skip retries");
+  assert(!shouldRetry("skipped", otherSkip), "unrelated skip does not retry");
+  assert(shouldRetry("pending", null), "pending retries");
+  assert(shouldRetry("failed", "boom"), "failed retries");
+  assert(!shouldRetry("synced", null), "synced does not retry");
+}
+
 testBtcpaySignatures();
 testTagadaSignatures();
 testSanitize();
 testNonRevenueEvents();
+testSheetsSkipRetryEligibility();
 console.log("finance pipeline smoke tests passed");

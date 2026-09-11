@@ -169,6 +169,82 @@ export function AdminFinanceDashboard() {
         </article>
       </section>
 
+      {data.lastReconciliation?.summaryJson ? (
+        <section className="premium-card space-y-3 p-5">
+          <h2 className="font-display text-xl font-semibold text-ink">
+            Latest reconciliation summary
+          </h2>
+          <dl className="grid gap-3 text-sm md:grid-cols-3">
+            <div>
+              <dt className="text-ash">Orders checked</dt>
+              <dd className="font-mono text-ink">
+                {String(data.lastReconciliation.summaryJson.ordersChecked ?? "—")}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ash">Finance backfilled</dt>
+              <dd className="font-mono text-ink">
+                {String(
+                  data.lastReconciliation.summaryJson.financeBackfilled ?? "—"
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ash">Warnings created</dt>
+              <dd className="font-mono text-ink">
+                {String(
+                  data.lastReconciliation.summaryJson.warningsCreated ?? "—"
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ash">Warnings resolved</dt>
+              <dd className="font-mono text-ink">
+                {String(
+                  data.lastReconciliation.summaryJson.warningsResolved ?? "—"
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ash">Sheet synced</dt>
+              <dd className="font-mono text-ink">
+                {String(
+                  (
+                    data.lastReconciliation.summaryJson.sheetSync as
+                      | { synced?: number }
+                      | undefined
+                  )?.synced ?? "—"
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ash">Sheet failed</dt>
+              <dd className="font-mono text-ink">
+                {String(
+                  (
+                    data.lastReconciliation.summaryJson.sheetSync as
+                      | { failed?: number }
+                      | undefined
+                  )?.failed ?? "—"
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-ash">Sheet skipped</dt>
+              <dd className="font-mono text-ink">
+                {String(
+                  (
+                    data.lastReconciliation.summaryJson.sheetSync as
+                      | { skipped?: number }
+                      | undefined
+                  )?.skipped ?? "—"
+                )}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      ) : null}
+
       <section className="space-y-3">
         <h2 className="font-display text-xl font-semibold text-ink">
           Reconciliation warnings

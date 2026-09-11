@@ -5,8 +5,9 @@ import { isTagadaConfigured } from "@/lib/tagada";
 import { ensureFinanceTransactionForPaidOrder } from "./record";
 import { syncPendingFinanceTransactionsToSheet } from "./sheets-sync";
 import {
-  findDuplicateProviderPaymentIds,
   finishFinanceJobRun,
+  findDuplicateProviderPaymentIds,
+  resolveReconciliationWarning,
   startFinanceJobRun,
   upsertReconciliationWarning,
 } from "./store";
@@ -28,8 +29,13 @@ export type ReconciliationSummary = {
   ordersChecked: number;
   financeBackfilled: number;
   warningsCreated: number;
+  warningsResolved: number;
   sheetSync: { synced: number; failed: number; skipped: number };
 };
+
+async function resolveIfOpen(warningKey: string): Promise<boolean> {
+  return resolveReconciliationWarning(warningKey);
+}
 
 /**
  * Daily backup integrity check. Tagada card payments are primarily recorded
@@ -42,6 +48,7 @@ export async function runFinanceReconciliation(): Promise<ReconciliationSummary>
     ordersChecked: 0,
     financeBackfilled: 0,
     warningsCreated: 0,
+    warningsResolved: 0,
     sheetSync: { synced: 0, failed: 0, skipped: 0 },
   };
 
@@ -74,14 +81,26 @@ export async function runFinanceReconciliation(): Promise<ReconciliationSummary>
 
       const isBitcoin =
         order.paymentMethod === "bitcoin" ||
-        (!order.paymentMethod && !invoiceId.startsWith("pay_") && !invoiceId.startsWith("ord_"));
+        (!order.paymentMethod &&
+          !invoiceId.startsWith("pay_") &&
+          !invoiceId.startsWith("ord_"));
 
       if (isBitcoin && btcpay) {
+        const notSettledKey = `psl_paid_provider_not_settled:btcpay:${order.orderId}`;
+        const lookupFailedKey = `provider_lookup_failed:btcpay:${order.orderId}`;
         try {
           const invoice = await btcpay.getInvoiceStatus(invoiceId);
-          if (invoice.status !== "settled") {
+          // Lookup succeeded — clear prior lookup-failure for this exact order.
+          if (await resolveIfOpen(lookupFailedKey)) {
+            summary.warningsResolved += 1;
+          }
+          if (invoice.status === "settled") {
+            if (await resolveIfOpen(notSettledKey)) {
+              summary.warningsResolved += 1;
+            }
+          } else {
             await upsertReconciliationWarning({
-              warningKey: `psl_paid_provider_not_settled:btcpay:${order.orderId}`,
+              warningKey: notSettledKey,
               warningType: "psl_paid_provider_not_settled",
               pslOrderId: order.orderId,
               provider: "btcpay",
@@ -93,7 +112,7 @@ export async function runFinanceReconciliation(): Promise<ReconciliationSummary>
           }
         } catch (error) {
           await upsertReconciliationWarning({
-            warningKey: `provider_lookup_failed:btcpay:${order.orderId}`,
+            warningKey: lookupFailedKey,
             warningType: "provider_lookup_failed",
             pslOrderId: order.orderId,
             provider: "btcpay",
@@ -109,12 +128,17 @@ export async function runFinanceReconciliation(): Promise<ReconciliationSummary>
 
       if (!isTagadaConfigured()) continue;
 
+      const notSettledKey = `psl_paid_provider_not_settled:tagada:${order.orderId}`;
+      const lookupFailedKey = `provider_lookup_failed:tagada:${order.orderId}`;
+      const amountKey = `amount_mismatch:tagada:${order.orderId}`;
+      const currencyKey = `currency_mismatch:tagada:${order.orderId}`;
+
       try {
         if (invoiceId.startsWith("pay_")) {
           const payment = await lookupTagadaPayment(invoiceId);
           if (!payment) {
             await upsertReconciliationWarning({
-              warningKey: `psl_paid_provider_not_settled:tagada:${order.orderId}`,
+              warningKey: notSettledKey,
               warningType: "psl_paid_provider_not_settled",
               pslOrderId: order.orderId,
               provider: "tagada",
@@ -124,9 +148,18 @@ export async function runFinanceReconciliation(): Promise<ReconciliationSummary>
             summary.warningsCreated += 1;
             continue;
           }
-          if (!isSuccessfulTagadaStatus(payment.status)) {
+
+          if (await resolveIfOpen(lookupFailedKey)) {
+            summary.warningsResolved += 1;
+          }
+
+          if (isSuccessfulTagadaStatus(payment.status)) {
+            if (await resolveIfOpen(notSettledKey)) {
+              summary.warningsResolved += 1;
+            }
+          } else {
             await upsertReconciliationWarning({
-              warningKey: `psl_paid_provider_not_settled:tagada:${order.orderId}`,
+              warningKey: notSettledKey,
               warningType: "psl_paid_provider_not_settled",
               pslOrderId: order.orderId,
               provider: "tagada",
@@ -136,12 +169,16 @@ export async function runFinanceReconciliation(): Promise<ReconciliationSummary>
             });
             summary.warningsCreated += 1;
           }
-          if (
-            payment.amountCents !== null &&
-            !amountsMatch(order.total, centsToUsd(payment.amountCents))
-          ) {
+
+          if (payment.amountCents === null) {
+            // Amount not available from provider — do not invent a pass/fail resolve.
+          } else if (amountsMatch(order.total, centsToUsd(payment.amountCents))) {
+            if (await resolveIfOpen(amountKey)) {
+              summary.warningsResolved += 1;
+            }
+          } else {
             await upsertReconciliationWarning({
-              warningKey: `amount_mismatch:tagada:${order.orderId}`,
+              warningKey: amountKey,
               warningType: "amount_mismatch",
               pslOrderId: order.orderId,
               provider: "tagada",
@@ -154,12 +191,18 @@ export async function runFinanceReconciliation(): Promise<ReconciliationSummary>
             });
             summary.warningsCreated += 1;
           }
-          if (
-            payment.currency &&
-            payment.currency.toUpperCase() !== order.currency.toUpperCase()
+
+          if (!payment.currency) {
+            // Currency unavailable — leave any prior currency warning untouched.
+          } else if (
+            payment.currency.toUpperCase() === order.currency.toUpperCase()
           ) {
+            if (await resolveIfOpen(currencyKey)) {
+              summary.warningsResolved += 1;
+            }
+          } else {
             await upsertReconciliationWarning({
-              warningKey: `currency_mismatch:tagada:${order.orderId}`,
+              warningKey: currencyKey,
               warningType: "currency_mismatch",
               pslOrderId: order.orderId,
               provider: "tagada",
@@ -168,11 +211,14 @@ export async function runFinanceReconciliation(): Promise<ReconciliationSummary>
             });
             summary.warningsCreated += 1;
           }
-        } else if (invoiceId.startsWith("ord_") || invoiceId.startsWith("order_")) {
+        } else if (
+          invoiceId.startsWith("ord_") ||
+          invoiceId.startsWith("order_")
+        ) {
           const tagadaOrder = await lookupTagadaOrder(invoiceId);
           if (!tagadaOrder) {
             await upsertReconciliationWarning({
-              warningKey: `psl_paid_provider_not_settled:tagada:${order.orderId}`,
+              warningKey: notSettledKey,
               warningType: "psl_paid_provider_not_settled",
               pslOrderId: order.orderId,
               provider: "tagada",
@@ -182,9 +228,18 @@ export async function runFinanceReconciliation(): Promise<ReconciliationSummary>
             summary.warningsCreated += 1;
             continue;
           }
-          if (!isSuccessfulTagadaStatus(tagadaOrder.status)) {
+
+          if (await resolveIfOpen(lookupFailedKey)) {
+            summary.warningsResolved += 1;
+          }
+
+          if (isSuccessfulTagadaStatus(tagadaOrder.status)) {
+            if (await resolveIfOpen(notSettledKey)) {
+              summary.warningsResolved += 1;
+            }
+          } else {
             await upsertReconciliationWarning({
-              warningKey: `psl_paid_provider_not_settled:tagada:${order.orderId}`,
+              warningKey: notSettledKey,
               warningType: "psl_paid_provider_not_settled",
               pslOrderId: order.orderId,
               provider: "tagada",
@@ -194,12 +249,18 @@ export async function runFinanceReconciliation(): Promise<ReconciliationSummary>
             });
             summary.warningsCreated += 1;
           }
-          if (
-            tagadaOrder.totalCents !== null &&
-            !amountsMatch(order.total, centsToUsd(tagadaOrder.totalCents))
+
+          if (tagadaOrder.totalCents === null) {
+            // Amount unavailable — do not resolve amount warnings blindly.
+          } else if (
+            amountsMatch(order.total, centsToUsd(tagadaOrder.totalCents))
           ) {
+            if (await resolveIfOpen(amountKey)) {
+              summary.warningsResolved += 1;
+            }
+          } else {
             await upsertReconciliationWarning({
-              warningKey: `amount_mismatch:tagada:${order.orderId}`,
+              warningKey: amountKey,
               warningType: "amount_mismatch",
               pslOrderId: order.orderId,
               provider: "tagada",
@@ -212,7 +273,7 @@ export async function runFinanceReconciliation(): Promise<ReconciliationSummary>
         // checkoutSessionId-style refs: no reliable public lookup → skip provider check
       } catch (error) {
         await upsertReconciliationWarning({
-          warningKey: `provider_lookup_failed:tagada:${order.orderId}`,
+          warningKey: lookupFailedKey,
           warningType: "provider_lookup_failed",
           pslOrderId: order.orderId,
           provider: "tagada",

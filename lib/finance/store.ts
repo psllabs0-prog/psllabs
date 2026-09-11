@@ -334,6 +334,8 @@ export async function getFinanceTransactionByOrderId(
   return rows[0] ? mapFinanceTx(rows[0]) : null;
 }
 
+export const SHEETS_NOT_CONFIGURED_ERROR = "Google Sheets not configured";
+
 export async function listFinanceTransactionsNeedingSheetSync(
   limit = 50
 ): Promise<FinanceTransactionRow[]> {
@@ -343,6 +345,10 @@ export async function listFinanceTransactionsNeedingSheetSync(
   const rows = (await sql`
     SELECT * FROM finance_transactions
     WHERE sheet_sync_status IN ('pending', 'failed')
+       OR (
+         sheet_sync_status = 'skipped'
+         AND sheet_sync_error = ${SHEETS_NOT_CONFIGURED_ERROR}
+       )
     ORDER BY event_timestamp ASC
     LIMIT ${safe}
   `) as Array<Parameters<typeof mapFinanceTx>[0]>;
@@ -435,6 +441,22 @@ export async function upsertReconciliationWarning(input: {
       status = 'open',
       updated_at = now()
   `;
+}
+
+/** Resolve a specific warning only when its exact condition has been re-checked and cleared. */
+export async function resolveReconciliationWarning(
+  warningKey: string
+): Promise<boolean> {
+  await ensureFinanceSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    UPDATE finance_reconciliation_warnings
+    SET status = 'resolved', updated_at = now()
+    WHERE warning_key = ${warningKey}
+      AND status = 'open'
+    RETURNING id
+  `) as { id: number | string }[];
+  return rows.length > 0;
 }
 
 export async function startFinanceJobRun(

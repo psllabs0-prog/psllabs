@@ -9,6 +9,7 @@ import {
   markFinanceSheetFailed,
   markFinanceSheetSkipped,
   markFinanceSheetSynced,
+  SHEETS_NOT_CONFIGURED_ERROR,
 } from "./store";
 import type { FinanceTransactionRow } from "./types";
 
@@ -37,7 +38,7 @@ export async function syncFinanceTransactionToSheet(
   tx: FinanceTransactionRow
 ): Promise<"synced" | "skipped" | "failed"> {
   if (!isGoogleSheetsConfigured()) {
-    await markFinanceSheetSkipped(tx.id, "Google Sheets not configured");
+    await markFinanceSheetSkipped(tx.id, SHEETS_NOT_CONFIGURED_ERROR);
     return "skipped";
   }
 
