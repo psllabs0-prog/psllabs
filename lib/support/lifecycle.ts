@@ -7,6 +7,7 @@ export const DURABLE_HANDLED_STATUSES: ReadonlySet<MessageStatus> = new Set([
   "auto_sent",
   "human_sent",
   "resolved",
+  "ignored", // spam/vendor retained for audit; IMAP \Seen after Neon capture
   "failed", // draft exists; customer send may still retry from Neon
 ]);
 

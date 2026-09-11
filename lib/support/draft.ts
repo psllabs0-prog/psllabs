@@ -19,6 +19,7 @@ import {
   lookupOrderForSupport,
 } from "./order-lookup";
 import { lookupSellableAvailabilitySummary } from "./inventory-lookup";
+import { isSolicitationCategory } from "./solicitation";
 import type { ClassificationResult, DraftResult } from "./types";
 
 function toHtml(text: string): string {
@@ -51,6 +52,26 @@ export async function draftSupportResponse(input: {
   let policyDecision = "";
   let requiresEscalation = shouldEscalateClassification(c);
   let escalationReason: string | null = null;
+
+  if (isSolicitationCategory(c.category)) {
+    bodyText = "";
+    sources.push("policy:solicitation_filter");
+    policyDecision =
+      c.category === "spam_solicitation"
+        ? "spam_solicitation_ignore"
+        : "vendor_solicitation_low_priority";
+    requiresEscalation = false;
+    escalationReason = null;
+    return {
+      bodyText,
+      bodyHtml: "",
+      knowledgeSources: sources,
+      aiDrafted: false,
+      requiresEscalation,
+      escalationReason,
+      policyDecision,
+    };
+  }
 
   if (c.category === "human_use_request") {
     bodyText = getHumanUseBoundaryText() + footer();
@@ -161,6 +182,18 @@ export function decideOutboundAction(input: {
   const autoEnabled = isSupportAutoSendEnabled();
   const escalate = input.draft.requiresEscalation;
   const c = input.classification;
+
+  // Spam / vendor solicitation: never customer-email, never Luke escalate.
+  if (isSolicitationCategory(c.category)) {
+    return {
+      sendCustomerReply: false,
+      escalate: false,
+      reason:
+        c.category === "spam_solicitation"
+          ? "spam_solicitation — ignore (no reply, no escalate)"
+          : "vendor_solicitation — low-priority (no auto-reply, no urgent escalate)",
+    };
+  }
 
   const eligibleGreenAuto =
     c.riskLevel === "GREEN" &&

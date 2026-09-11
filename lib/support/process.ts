@@ -3,6 +3,7 @@ import { SITE_URL } from "@/lib/seo";
 import { classifySupportMessage } from "./classify";
 import { isSupportAutoSendEnabled } from "./constants";
 import { decideOutboundAction, draftSupportResponse } from "./draft";
+import { isSolicitationCategory } from "./solicitation";
 import {
   fetchUnreadSupportEmails,
   markSupportEmailsSeen,
@@ -164,8 +165,11 @@ export async function retryDurableSideEffects(
   const autoSendEnabled = isSupportAutoSendEnabled();
   let sendIntended = false;
 
-  // Kill switch: never intend autonomous customer send when disabled.
-  if (mayAutoSendCustomerReply(autoSendEnabled)) {
+  const isSolicitation =
+    classification != null && isSolicitationCategory(classification.category);
+
+  // Kill switch / solicitation: never intend autonomous customer send.
+  if (!isSolicitation && mayAutoSendCustomerReply(autoSendEnabled)) {
     sendIntended = options?.forceCustomerSendRetry === true;
     if (!sendIntended && classification && draft) {
       const stubDraft: DraftResult = {
@@ -353,15 +357,21 @@ export async function processInboundEmail(
       }
     }
 
-    const finalStatus = autoSent
-      ? "auto_sent"
-      : sendError
-        ? "failed"
-        : escalated
-          ? "escalated"
-          : "drafted";
+    const finalStatus = isSolicitationCategory(classification.category)
+      ? "ignored"
+      : autoSent
+        ? "auto_sent"
+        : sendError
+          ? "failed"
+          : escalated
+            ? "escalated"
+            : "drafted";
 
-    if (finalStatus === "drafted" || finalStatus === "escalated") {
+    if (
+      finalStatus === "drafted" ||
+      finalStatus === "escalated" ||
+      finalStatus === "ignored"
+    ) {
       await setMessageStatus(message.id, finalStatus);
     }
 

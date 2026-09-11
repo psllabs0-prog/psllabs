@@ -273,6 +273,38 @@ async function main() {
     assert(summary.newMessages >= 1, "job processed fixture");
     assert(summary.autoSent === 0, "job did not auto-send");
 
+    // --- Spam solicitation: ignored, no send, no escalate ---
+    const spam = fixture({
+      providerMessageId: `spam-${Date.now()}@fixture.local`,
+      subject: "Trustpilot reviews for sale",
+      normalizedBody:
+        "We offer bulk Trustpilot reviews and reputation management packages to boost your ratings.",
+      threadKey: `pair:fixture@example.com|spam`,
+    });
+    const spamResult = await processInboundEmail(spam);
+    assert(spamResult.category === "spam_solicitation", "spam classified");
+    assert(spamResult.status === "ignored", "spam status ignored");
+    assert(spamResult.autoSent === false, "spam never customer-sends");
+    assert(spamResult.escalated === false, "spam never escalates");
+    assert(spamResult.durableCaptured === true, "spam durable for IMAP Seen");
+
+    // --- Vendor + Janoshik COA: vendor_solicitation, not coa ---
+    const vendor = fixture({
+      providerMessageId: `vendor-${Date.now()}@fixture.local`,
+      subject: "Peptide supplier offer",
+      normalizedBody:
+        "We are a peptide manufacturer and can supply raw materials with Janoshik COA. Wholesale price list and MOQ available.",
+      threadKey: `pair:fixture@example.com|vendor`,
+    });
+    const vendorResult = await processInboundEmail(vendor);
+    assert(
+      vendorResult.category === "vendor_solicitation",
+      "vendor classified (not coa)"
+    );
+    assert(vendorResult.status === "ignored", "vendor status ignored");
+    assert(vendorResult.autoSent === false, "vendor never auto-sends");
+    assert(vendorResult.escalated === false, "vendor no urgent escalate");
+
     console.log("[test-support-agent-db] all passed.");
   } finally {
     process.env.SUPPORT_AUTO_SEND_ENABLED = "false";

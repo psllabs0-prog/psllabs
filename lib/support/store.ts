@@ -302,21 +302,108 @@ export async function updateClassificationManual(input: {
   `;
 }
 
-export async function listSupportInbox(limit = 50): Promise<
-  Array<{
-    message: SupportMessageRow;
-    thread: SupportThreadRow;
-    category: string | null;
-    riskLevel: string | null;
-    confidence: number | null;
-    draftBody: string | null;
-    responseId: number | null;
-    sentAt: string | null;
-    escalation: SupportEscalationRow | null;
-  }>
-> {
+/** Manual or pipeline: mark as spam/vendor solicitation and hide from active queue. */
+export async function markMessageSolicitation(input: {
+  messageId: number;
+  category: "spam_solicitation" | "vendor_solicitation";
+}): Promise<void> {
   await ensureSupportSchema();
   const sql = getSql();
+  const reasons = JSON.stringify([`manual:${input.category}`]);
+  await sql`
+    INSERT INTO support_classifications (
+      message_id, category, risk_level, confidence,
+      reasons_json, auto_response_allowed
+    ) VALUES (
+      ${input.messageId},
+      ${input.category},
+      'GREEN',
+      0.95,
+      ${reasons}::jsonb,
+      false
+    )
+    ON CONFLICT (message_id) DO UPDATE SET
+      category = EXCLUDED.category,
+      risk_level = EXCLUDED.risk_level,
+      confidence = GREATEST(support_classifications.confidence, EXCLUDED.confidence),
+      reasons_json = EXCLUDED.reasons_json,
+      auto_response_allowed = false
+  `;
+  await sql`
+    UPDATE support_messages
+    SET status = 'ignored', updated_at = now()
+    WHERE id = ${input.messageId}
+  `;
+  await sql`
+    UPDATE support_escalations
+    SET resolved_at = COALESCE(resolved_at, now())
+    WHERE message_id = ${input.messageId} AND resolved_at IS NULL
+  `;
+}
+
+export type SupportInboxFilter = "active" | "spam" | "vendor";
+
+function mapInboxRow(row: Record<string, unknown>) {
+  return {
+    message: mapMessage(row),
+    thread: {
+      id: Number(row.t_id),
+      threadKey: String(row.thread_key),
+      fromEmail: String(row.t_from_email),
+      subject: row.t_subject ? String(row.t_subject) : null,
+      autoSendDisabled: Boolean(row.auto_send_disabled),
+      status: String(row.t_status),
+      createdAt: new Date(String(row.t_created_at)).toISOString(),
+      updatedAt: new Date(String(row.t_updated_at)).toISOString(),
+    },
+    category: row.category ? String(row.category) : null,
+    riskLevel: row.risk_level ? String(row.risk_level) : null,
+    confidence:
+      row.confidence !== null && row.confidence !== undefined
+        ? Number(row.confidence)
+        : null,
+    draftBody: row.draft_body ? String(row.draft_body) : null,
+    responseId:
+      row.response_id !== null && row.response_id !== undefined
+        ? Number(row.response_id)
+        : null,
+    sentAt: row.sent_at
+      ? new Date(String(row.sent_at)).toISOString()
+      : null,
+    escalation: row.escalation_id
+      ? {
+          id: Number(row.escalation_id),
+          messageId: Number(row.id),
+          riskLevel: String(row.e_risk_level) as SupportRiskLevel,
+          reason: String(row.e_reason),
+          notifiedAt: row.e_notified_at
+            ? new Date(String(row.e_notified_at)).toISOString()
+            : null,
+          resolvedAt: row.e_resolved_at
+            ? new Date(String(row.e_resolved_at)).toISOString()
+            : null,
+          createdAt: new Date(String(row.e_created_at)).toISOString(),
+        }
+      : null,
+  };
+}
+
+export async function listSupportInbox(
+  limit = 50,
+  filter: SupportInboxFilter = "active"
+): Promise<ReturnType<typeof mapInboxRow>[]> {
+  await ensureSupportSchema();
+  const sql = getSql();
+
+  const whereActive = sql`
+    WHERE COALESCE(m.status, '') <> 'ignored'
+      AND COALESCE(c.category, '') NOT IN ('spam_solicitation', 'vendor_solicitation')
+  `;
+  const whereSpam = sql`WHERE c.category = 'spam_solicitation'`;
+  const whereVendor = sql`WHERE c.category = 'vendor_solicitation'`;
+  const where =
+    filter === "spam" ? whereSpam : filter === "vendor" ? whereVendor : whereActive;
+
   const rows = (await sql`
     SELECT
       m.*,
@@ -355,50 +442,12 @@ export async function listSupportInbox(limit = 50): Promise<
       ORDER BY id DESC
       LIMIT 1
     ) e ON true
+    ${where}
     ORDER BY m.received_at DESC
     LIMIT ${limit}
   `) as Record<string, unknown>[];
 
-  return rows.map((row) => ({
-    message: mapMessage(row),
-    thread: {
-      id: Number(row.t_id),
-      threadKey: String(row.thread_key),
-      fromEmail: String(row.t_from_email),
-      subject: row.t_subject ? String(row.t_subject) : null,
-      autoSendDisabled: Boolean(row.auto_send_disabled),
-      status: String(row.t_status),
-      createdAt: new Date(String(row.t_created_at)).toISOString(),
-      updatedAt: new Date(String(row.t_updated_at)).toISOString(),
-    },
-    category: row.category ? String(row.category) : null,
-    riskLevel: row.risk_level ? String(row.risk_level) : null,
-    confidence: row.confidence !== null && row.confidence !== undefined
-      ? Number(row.confidence)
-      : null,
-    draftBody: row.draft_body ? String(row.draft_body) : null,
-    responseId: row.response_id !== null && row.response_id !== undefined
-      ? Number(row.response_id)
-      : null,
-    sentAt: row.sent_at
-      ? new Date(String(row.sent_at)).toISOString()
-      : null,
-    escalation: row.escalation_id
-      ? {
-          id: Number(row.escalation_id),
-          messageId: Number(row.id),
-          riskLevel: String(row.e_risk_level) as SupportRiskLevel,
-          reason: String(row.e_reason),
-          notifiedAt: row.e_notified_at
-            ? new Date(String(row.e_notified_at)).toISOString()
-            : null,
-          resolvedAt: row.e_resolved_at
-            ? new Date(String(row.e_resolved_at)).toISOString()
-            : null,
-          createdAt: new Date(String(row.e_created_at)).toISOString(),
-        }
-      : null,
-  }));
+  return rows.map(mapInboxRow);
 }
 
 export async function getLatestDraft(

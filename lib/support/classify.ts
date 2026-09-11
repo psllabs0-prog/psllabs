@@ -5,6 +5,7 @@ import {
   type SupportRiskLevel,
 } from "./constants";
 import { containsInjectionAttempt } from "./sanitize";
+import { detectSolicitation, isSolicitationCategory } from "./solicitation";
 import type { ClassificationResult } from "./types";
 
 const ORDER_ID_RE = /\b(psl_[a-z0-9_]+)\b/i;
@@ -213,6 +214,11 @@ export function classifySupportMessage(input: {
   body: string;
 }): ClassificationResult {
   const hay = `${input.subject}\n${input.body}`;
+
+  // Precedence: high-confidence solicitation/vendor BEFORE support matching.
+  const solicitation = detectSolicitation(input);
+  if (solicitation) return solicitation;
+
   const reasons: string[] = [];
   let best: { category: SupportCategory; risk: SupportRiskLevel; score: number } | null =
     null;
@@ -280,6 +286,7 @@ export function classifySupportMessage(input: {
 export function shouldEscalateClassification(
   c: ClassificationResult
 ): boolean {
+  if (isSolicitationCategory(c.category)) return false;
   if (c.riskLevel === "YELLOW" || c.riskLevel === "RED") return true;
   if (c.confidence < HIGH_CONFIDENCE_THRESHOLD) return true;
   if (c.category === "human_use_request") return true;

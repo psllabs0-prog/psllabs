@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+type InboxFilter = "active" | "spam" | "vendor";
+
 type InboxItem = {
   message: {
     id: number;
@@ -32,6 +34,7 @@ type InboxItem = {
 type Payload = {
   autoSendEnabled: boolean;
   imapConfigured: boolean;
+  filter: InboxFilter;
   lastJob: {
     ok: boolean | null;
     errorSummary: string | null;
@@ -41,16 +44,25 @@ type Payload = {
   items: InboxItem[];
 };
 
+const FILTER_LABELS: Record<InboxFilter, string> = {
+  active: "Active Support",
+  spam: "Ignored / Spam",
+  vendor: "Vendor",
+};
+
 export function AdminSupportDashboard() {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<number, string>>({});
+  const [filter, setFilter] = useState<InboxFilter>("active");
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (nextFilter: InboxFilter = filter) => {
     setError(null);
-    const res = await fetch("/api/admin/support");
+    const res = await fetch(
+      `/api/admin/support?filter=${encodeURIComponent(nextFilter)}`
+    );
     if (!res.ok) {
       setError("Failed to load support inbox.");
       return;
@@ -62,11 +74,11 @@ export function AdminSupportDashboard() {
         json.items.map((item) => [item.message.id, item.draftBody ?? ""])
       )
     );
-  }, []);
+  }, [filter]);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    void refresh(filter);
+  }, [filter, refresh]);
 
   async function runAction(body: Record<string, unknown>) {
     setBusy(true);
@@ -82,7 +94,7 @@ export function AdminSupportDashboard() {
         setMessage(json.error ?? "Action failed");
       } else {
         setMessage("Done.");
-        await refresh();
+        await refresh(filter);
       }
     } catch {
       setMessage("Action failed");
@@ -123,13 +135,31 @@ export function AdminSupportDashboard() {
         </button>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        {(Object.keys(FILTER_LABELS) as InboxFilter[]).map((key) => (
+          <button
+            key={key}
+            type="button"
+            disabled={busy}
+            onClick={() => setFilter(key)}
+            className={
+              filter === key
+                ? "rounded-pill bg-ink px-4 py-1.5 text-xs font-medium text-page"
+                : "rounded-pill border border-linen px-4 py-1.5 text-xs text-ash"
+            }
+          >
+            {FILTER_LABELS[key]}
+          </button>
+        ))}
+      </div>
+
       {message && <p className="text-sm text-ash">{message}</p>}
       {error && <p className="text-sm text-red-700">{error}</p>}
 
       <div className="flex flex-col gap-4">
         {(data?.items ?? []).length === 0 ? (
           <div className="premium-card px-5 py-8 text-sm text-ash">
-            No support messages yet.
+            No messages in {FILTER_LABELS[filter].toLowerCase()}.
           </div>
         ) : (
           (data?.items ?? []).map((item) => (
@@ -241,6 +271,32 @@ export function AdminSupportDashboard() {
                       }
                     >
                       Mark resolved
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      className="rounded border border-linen px-3 py-1.5 text-xs"
+                      onClick={() =>
+                        void runAction({
+                          action: "mark_spam",
+                          messageId: item.message.id,
+                        })
+                      }
+                    >
+                      Mark spam / ignore
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      className="rounded border border-linen px-3 py-1.5 text-xs"
+                      onClick={() =>
+                        void runAction({
+                          action: "mark_vendor",
+                          messageId: item.message.id,
+                        })
+                      }
+                    >
+                      Mark vendor inquiry
                     </button>
                     <button
                       type="button"

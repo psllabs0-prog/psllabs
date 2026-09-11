@@ -20,6 +20,7 @@ import { HIGH_CONFIDENCE_THRESHOLD } from "../lib/support/constants";
 import {
   canSendCustomerReply,
   isCustomerSendRetryable,
+  isDurableHandledStatus,
   isEscalationNotifyRetryable,
   shouldMarkImapSeenAfterProcess,
 } from "../lib/support/lifecycle";
@@ -325,6 +326,114 @@ function testAutoSendKillSwitch() {
   process.env.SUPPORT_AUTO_SEND_ENABLED = "false";
 }
 
+function testSpamTrustpilotBulkReviews() {
+  const c = classifySupportMessage({
+    subject: "Grow your Trustpilot rating",
+    body: "We can deliver 200 guaranteed Trustpilot reviews for your store this month. Bulk review packages available.",
+  });
+  assert(c.category === "spam_solicitation", "trustpilot → spam_solicitation");
+  assert(!shouldEscalateClassification(c), "spam does not escalate");
+  assert(!c.autoResponseAllowed, "spam never auto-responds");
+}
+
+function testSpamSeoProposal() {
+  const c = classifySupportMessage({
+    subject: "SEO proposal for PSL Labs",
+    body: "Our digital marketing agency can improve your Google ranking with quality backlinks and SEO services.",
+  });
+  assert(c.category === "spam_solicitation", "SEO → spam_solicitation");
+}
+
+function testSpamReputationManagement() {
+  const c = classifySupportMessage({
+    subject: "Reputation management offer",
+    body: "We specialize in reputation management and can boost your reviews and online ratings quickly.",
+  });
+  assert(c.category === "spam_solicitation", "reputation → spam_solicitation");
+}
+
+function testVendorJanoshikNotCoa() {
+  const c = classifySupportMessage({
+    subject: "Peptide manufacturer partnership",
+    body: "We are a peptide manufacturer and can supply high-purity raw materials with Janoshik COA for every batch. Please see our wholesale price list and MOQ.",
+  });
+  assert(c.category === "vendor_solicitation", "supplier → vendor_solicitation");
+  assert(
+    !["coa_location", "batch_verification"].includes(c.category),
+    "not coa/batch customer categories"
+  );
+  assert(!shouldEscalateClassification(c), "vendor no urgent escalate");
+  assert(!c.autoResponseAllowed, "vendor never auto-responds");
+}
+
+function testCustomerCoaStillGreen() {
+  const c = classifySupportMessage({
+    subject: "COA question",
+    body: "Where can I find my COA?",
+  });
+  assert(c.category === "coa_location", "customer COA → coa_location");
+  assert(c.riskLevel === "GREEN", "customer COA green");
+  assert(c.autoResponseAllowed, "customer COA auto allowed");
+}
+
+function testCustomerOrderStillWorks() {
+  const c = classifySupportMessage({
+    subject: "Order update",
+    body: "Where is my order psl_abc123? Has my package shipped?",
+  });
+  assert(
+    c.category === "order_status" || c.category === "tracking_not_updated",
+    "customer order still classified"
+  );
+  assert(c.riskLevel === "GREEN", "order green");
+}
+
+async function testSpamNeverSendsOrEscalates() {
+  process.env.SUPPORT_AUTO_SEND_ENABLED = "true";
+  const c = classifySupportMessage({
+    subject: "SEO services",
+    body: "We offer SEO services and backlinks to increase your traffic.",
+  });
+  const draft = await draftSupportResponse({
+    classification: c,
+    fromEmail: "sales@agency.example",
+    subject: "SEO services",
+    body: "We offer SEO services and backlinks to increase your traffic.",
+  });
+  assert(!draft.requiresEscalation, "spam draft does not require escalation");
+  const action = decideOutboundAction({
+    classification: c,
+    draft,
+    threadAutoSendDisabled: false,
+  });
+  assert(action.sendCustomerReply === false, "spam never sends customer email");
+  assert(action.escalate === false, "spam never generates Luke escalation");
+  assert(isDurableHandledStatus("ignored"), "ignored is durable for IMAP Seen");
+  process.env.SUPPORT_AUTO_SEND_ENABLED = "false";
+}
+
+async function testVendorNeverAutoSends() {
+  process.env.SUPPORT_AUTO_SEND_ENABLED = "true";
+  const c = classifySupportMessage({
+    subject: "Wholesale peptides",
+    body: "Our factory can supply peptides wholesale. Price list attached. We manufacture research peptides.",
+  });
+  const draft = await draftSupportResponse({
+    classification: c,
+    fromEmail: "sales@factory.example",
+    subject: "Wholesale peptides",
+    body: "Our factory can supply peptides wholesale.",
+  });
+  const action = decideOutboundAction({
+    classification: c,
+    draft,
+    threadAutoSendDisabled: false,
+  });
+  assert(action.sendCustomerReply === false, "vendor never auto-sends");
+  assert(action.escalate === false, "vendor no urgent escalate");
+  process.env.SUPPORT_AUTO_SEND_ENABLED = "false";
+}
+
 async function main() {
   console.log("[test-support-agent] running…");
   testIdempotentProviderKey();
@@ -342,6 +451,14 @@ async function main() {
   await testYellowAckNoPromise();
   testReliabilityLifecycle();
   testAutoSendKillSwitch();
+  testSpamTrustpilotBulkReviews();
+  testSpamSeoProposal();
+  testSpamReputationManagement();
+  testVendorJanoshikNotCoa();
+  testCustomerCoaStillGreen();
+  testCustomerOrderStillWorks();
+  await testSpamNeverSendsOrEscalates();
+  await testVendorNeverAutoSends();
   console.log("[test-support-agent] all passed.");
 }
 

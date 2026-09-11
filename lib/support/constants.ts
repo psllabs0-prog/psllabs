@@ -48,6 +48,8 @@ export type SupportCategory =
   | "legal"
   | "regulatory"
   | "security"
+  | "spam_solicitation"
+  | "vendor_solicitation"
   | "other";
 
 /** Day-1 categories eligible for autonomous GREEN customer replies. */
@@ -75,6 +77,7 @@ export type MessageStatus =
   | "human_sent"
   | "resolved"
   | "failed"
+  | "ignored"
   | "skipped";
 
 export const SUPPORT_TABLES = [

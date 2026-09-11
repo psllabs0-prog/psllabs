@@ -7,6 +7,7 @@ import {
   type SupportRiskLevel,
 } from "@/lib/support/constants";
 import { isSupportImapConfigured } from "@/lib/support/imap";
+import { isSolicitationCategory } from "@/lib/support/solicitation";
 import { sendSupportCustomerEmail } from "@/lib/support/smtp";
 import {
   getLatestDraft,
@@ -14,9 +15,11 @@ import {
   getMessageWithThread,
   listSupportInbox,
   markMessageResolved,
+  markMessageSolicitation,
   markResponseSent,
   saveDraftResponse,
   setThreadAutoSendDisabled,
+  type SupportInboxFilter,
   updateClassificationManual,
 } from "@/lib/support/store";
 import { runSupportInboxJob } from "@/lib/support/process";
@@ -24,18 +27,26 @@ import { runSupportInboxJob } from "@/lib/support/process";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-export async function GET() {
+function parseInboxFilter(value: string | null): SupportInboxFilter {
+  if (value === "spam" || value === "vendor") return value;
+  return "active";
+}
+
+export async function GET(request: Request) {
   const authError = await requireAdminAuth();
   if (authError) return authError;
 
   try {
+    const url = new URL(request.url);
+    const filter = parseInboxFilter(url.searchParams.get("filter"));
     const [items, lastJob] = await Promise.all([
-      listSupportInbox(75),
+      listSupportInbox(75, filter),
       getLatestJobRun(),
     ]);
     return NextResponse.json({
       autoSendEnabled: isSupportAutoSendEnabled(),
       imapConfigured: isSupportImapConfigured(),
+      filter,
       lastJob,
       items,
     });
@@ -128,6 +139,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    if (action === "mark_spam") {
+      const messageId = Number(body.messageId);
+      await markMessageSolicitation({
+        messageId,
+        category: "spam_solicitation",
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === "mark_vendor") {
+      const messageId = Number(body.messageId);
+      await markMessageSolicitation({
+        messageId,
+        category: "vendor_solicitation",
+      });
+      return NextResponse.json({ ok: true });
+    }
+
     if (action === "set_auto_send") {
       const threadId = Number(body.threadId);
       const disabled = body.disabled === true;
@@ -140,9 +169,19 @@ export async function POST(request: Request) {
       const category = body.category as SupportCategory;
       const riskLevel = body.riskLevel as SupportRiskLevel;
       if (!category || !riskLevel) {
-        return NextResponse.json({ error: "category and riskLevel required" }, { status: 400 });
+        return NextResponse.json(
+          { error: "category and riskLevel required" },
+          { status: 400 }
+        );
       }
-      await updateClassificationManual({ messageId, category, riskLevel });
+      if (isSolicitationCategory(category)) {
+        await markMessageSolicitation({
+          messageId,
+          category: category as "spam_solicitation" | "vendor_solicitation",
+        });
+      } else {
+        await updateClassificationManual({ messageId, category, riskLevel });
+      }
       return NextResponse.json({ ok: true });
     }
 
