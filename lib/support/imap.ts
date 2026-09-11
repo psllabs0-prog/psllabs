@@ -38,7 +38,7 @@ export function isSupportImapConfigured(): boolean {
 
 /**
  * Connect → fetch recent UNSEEN → disconnect.
- * Safe for daily serverless cron (no persistent connection).
+ * Does NOT mark \Seen — caller must mark only after durable Neon handling.
  */
 export async function fetchUnreadSupportEmails(
   limit = 25
@@ -76,8 +76,12 @@ export async function fetchUnreadSupportEmails(
           parsed.from?.text || parsed.from?.value?.[0]?.address || ""
         );
         if (!fromEmail || fromEmail.endsWith("@psllabs.org")) {
-          // Skip empty or our own outbound echoes.
-          await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
+          // Internal/empty noise — safe to acknowledge without Neon processing.
+          try {
+            await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
+          } catch {
+            /* ignore */
+          }
           continue;
         }
 
@@ -97,6 +101,7 @@ export async function fetchUnreadSupportEmails(
 
         messages.push({
           providerMessageId,
+          imapUid: Number(uid),
           threadKey: buildThreadKey({
             fromEmail,
             subject,
@@ -119,10 +124,7 @@ export async function fetchUnreadSupportEmails(
           normalizedBody: normalized,
           rawHeadersSummary: null,
         });
-
-        // Mark seen after successful parse so retries don't re-fetch forever.
-        // Idempotency is still enforced in Neon by provider_message_id.
-        await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
+        // Intentionally NOT marking \Seen here.
       }
     } finally {
       lock.release();
@@ -135,10 +137,46 @@ export async function fetchUnreadSupportEmails(
       /* ignore */
     }
     const message = error instanceof Error ? error.message : "IMAP fetch failed";
-    // Never log credentials.
     console.error("[support/imap]", message);
     return { messages, checked, error: message };
   }
 
   return { messages, checked };
+}
+
+/** Mark UIDs \Seen after durable Neon handling. Failures are non-fatal (dedupe covers re-fetch). */
+export async function markSupportEmailsSeen(
+  uids: number[]
+): Promise<{ marked: number; error?: string }> {
+  const unique = [...new Set(uids.filter((u) => Number.isFinite(u) && u > 0))];
+  if (unique.length === 0) return { marked: 0 };
+  if (isSupportTestMode()) return { marked: unique.length };
+
+  const config = imapConfig();
+  if (!config) return { marked: 0, error: "Support IMAP not configured" };
+
+  const client = new ImapFlow(config);
+  try {
+    await client.connect();
+    const lock = await client.getMailboxLock("INBOX");
+    try {
+      for (const uid of unique) {
+        await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
+      }
+    } finally {
+      lock.release();
+    }
+    await client.logout();
+    return { marked: unique.length };
+  } catch (error) {
+    try {
+      await client.logout();
+    } catch {
+      /* ignore */
+    }
+    const message =
+      error instanceof Error ? error.message : "IMAP mark-seen failed";
+    console.error("[support/imap] mark-seen:", message);
+    return { marked: 0, error: message };
+  }
 }

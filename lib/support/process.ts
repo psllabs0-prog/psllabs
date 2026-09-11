@@ -2,50 +2,250 @@ import { SITE_URL } from "@/lib/seo";
 
 import { classifySupportMessage } from "./classify";
 import { decideOutboundAction, draftSupportResponse } from "./draft";
+import {
+  fetchUnreadSupportEmails,
+  markSupportEmailsSeen,
+} from "./imap";
+import {
+  canSendCustomerReply,
+  isCustomerSendRetryable,
+  isDurableHandledStatus,
+  isEscalationNotifyRetryable,
+  shouldMarkImapSeenAfterProcess,
+} from "./lifecycle";
+import { ensureSupportSchema } from "./schema";
 import { sendSupportCustomerEmail, sendSupportEscalationEmail } from "./smtp";
 import {
   createEscalation,
   findMessageByProviderId,
+  getClassificationForMessage,
+  getLatestDraft,
+  getMessageWithThread,
+  getOpenEscalation,
   insertInboundMessage,
+  listRetryableCustomerSendMessages,
+  listUnnotifiedEscalations,
   markEscalationNotified,
   markResponseSent,
+  recordJobRun,
   saveClassification,
   saveDraftResponse,
   setMessageStatus,
   upsertThread,
 } from "./store";
 import type {
+  ClassificationResult,
+  DraftResult,
   InboundEmailNormalized,
   ProcessMessageResult,
   SupportJobSummary,
 } from "./types";
-import { fetchUnreadSupportEmails } from "./imap";
-import { recordJobRun } from "./store";
-import { ensureSupportSchema } from "./schema";
+
+async function tryCustomerSend(input: {
+  messageId: number;
+  responseId: number;
+  to: string;
+  subject: string;
+  text: string;
+  providerMessageId: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const latest = await getLatestDraft(input.messageId);
+  if (!latest || !canSendCustomerReply(latest.sentAt)) {
+    return { sent: false };
+  }
+  try {
+    const result = await sendSupportCustomerEmail({
+      to: input.to,
+      subject: input.subject,
+      text: input.text,
+      inReplyTo: input.providerMessageId,
+      references: input.providerMessageId,
+    });
+    if (result.sent) {
+      const marked = await markResponseSent({
+        responseId: input.responseId,
+        messageId: input.messageId,
+        sentBody: input.text,
+        humanApproved: false,
+        status: "auto_sent",
+      });
+      return { sent: marked.updated };
+    }
+    return { sent: false };
+  } catch (error) {
+    await setMessageStatus(input.messageId, "failed");
+    return {
+      sent: false,
+      error: error instanceof Error ? error.message : "SMTP send failed",
+    };
+  }
+}
+
+async function tryEscalationNotify(input: {
+  escalationId: number;
+  fromEmail: string;
+  subject: string;
+  category: string;
+  risk: string;
+  confidence: number;
+  why: string;
+  suggestedResponse: string;
+}): Promise<{ notified: boolean; error?: string }> {
+  try {
+    await sendSupportEscalationEmail({
+      customer: input.fromEmail,
+      subject: input.subject,
+      category: input.category,
+      risk: input.risk,
+      confidence: input.confidence,
+      why: input.why,
+      suggestedResponse: input.suggestedResponse,
+      adminUrl: `${SITE_URL}/admin-support`,
+    });
+    await markEscalationNotified(input.escalationId);
+    return { notified: true };
+  } catch (error) {
+    console.error(
+      "[support] escalation notify failed:",
+      error instanceof Error ? error.message : error
+    );
+    return {
+      notified: false,
+      error: error instanceof Error ? error.message : "Escalation notify failed",
+    };
+  }
+}
+
+function classificationFromStored(c: {
+  category: ClassificationResult["category"];
+  riskLevel: ClassificationResult["riskLevel"];
+  confidence: number;
+  autoResponseAllowed: boolean;
+}): ClassificationResult {
+  return {
+    category: c.category,
+    riskLevel: c.riskLevel,
+    confidence: c.confidence,
+    reasons: [],
+    autoResponseAllowed: c.autoResponseAllowed,
+    extractedOrderId: null,
+    extractedTracking: null,
+  };
+}
+
+/**
+ * Retry customer send / Luke notification for an already-durable message.
+ * Does not re-classify or create duplicate drafts/escalations.
+ */
+export async function retryDurableSideEffects(
+  messageId: number,
+  options?: { forceCustomerSendRetry?: boolean }
+): Promise<{
+  autoSent: boolean;
+  escalationNotified: boolean;
+  error?: string;
+}> {
+  const bundled = await getMessageWithThread(messageId);
+  if (!bundled) return { autoSent: false, escalationNotified: false };
+
+  const { message, thread } = bundled;
+  const draft = await getLatestDraft(messageId);
+  const classification = await getClassificationForMessage(messageId);
+  let autoSent = false;
+  let escalationNotified = false;
+  let error: string | undefined;
+
+  let sendIntended = options?.forceCustomerSendRetry === true;
+  if (!sendIntended && classification && draft) {
+    const stubDraft: DraftResult = {
+      bodyText: draft.draftBody,
+      bodyHtml: "",
+      knowledgeSources: [],
+      aiDrafted: false,
+      requiresEscalation: Boolean(await getOpenEscalation(messageId)),
+      escalationReason: null,
+      policyDecision: "retry",
+    };
+    const action = decideOutboundAction({
+      classification: classificationFromStored(classification),
+      draft: stubDraft,
+      threadAutoSendDisabled: thread.autoSendDisabled,
+    });
+    sendIntended = action.sendCustomerReply || message.status === "failed";
+  } else if (message.status === "failed") {
+    sendIntended = true;
+  }
+
+  if (
+    draft &&
+    isCustomerSendRetryable({
+      status: message.status,
+      sentAt: draft.sentAt,
+      sendIntended,
+    })
+  ) {
+    const send = await tryCustomerSend({
+      messageId,
+      responseId: draft.id,
+      to: message.fromEmail,
+      subject: message.subject,
+      text: draft.draftBody,
+      providerMessageId: message.providerMessageId,
+    });
+    autoSent = send.sent;
+    if (send.error) error = send.error;
+  }
+
+  const escalation = await getOpenEscalation(messageId);
+  if (
+    escalation &&
+    isEscalationNotifyRetryable({
+      notifiedAt: escalation.notifiedAt,
+      resolvedAt: escalation.resolvedAt,
+    })
+  ) {
+    const notify = await tryEscalationNotify({
+      escalationId: escalation.id,
+      fromEmail: message.fromEmail,
+      subject: message.subject,
+      category: classification?.category ?? "other",
+      risk: escalation.riskLevel,
+      confidence: classification?.confidence ?? 0,
+      why: escalation.reason,
+      suggestedResponse: draft?.draftBody ?? "",
+    });
+    escalationNotified = notify.notified;
+    if (notify.error) error = error ?? notify.error;
+  }
+
+  return { autoSent, escalationNotified, error };
+}
 
 export async function processInboundEmail(
   inbound: InboundEmailNormalized
 ): Promise<ProcessMessageResult> {
   const existing = await findMessageByProviderId(inbound.providerMessageId);
-  if (
-    existing &&
-    (existing.status === "auto_sent" ||
-      existing.status === "human_sent" ||
-      existing.status === "escalated" ||
-      existing.status === "resolved" ||
-      existing.status === "drafted" ||
-      existing.status === "classified")
-  ) {
+
+  // Already durably handled — retry side effects only; never duplicate response rows.
+  if (existing && isDurableHandledStatus(existing.status)) {
+    const classification = await getClassificationForMessage(existing.id);
+    const retry = await retryDurableSideEffects(existing.id);
+    const refreshed = await findMessageByProviderId(inbound.providerMessageId);
+    const openEsc = await getOpenEscalation(existing.id);
     return {
       messageId: existing.id,
       providerMessageId: inbound.providerMessageId,
-      status: existing.status,
-      category: "other",
-      riskLevel: "YELLOW",
-      confidence: 0,
-      autoSent: existing.status === "auto_sent",
-      escalated: existing.status === "escalated",
-      skippedDuplicate: true,
+      status: refreshed?.status ?? existing.status,
+      category: classification?.category ?? "other",
+      riskLevel: classification?.riskLevel ?? "YELLOW",
+      confidence: classification?.confidence ?? 0,
+      autoSent: retry.autoSent,
+      escalated: Boolean(openEsc),
+      skippedDuplicate: !retry.autoSent && !retry.escalationNotified,
+      durableCaptured: true,
+      customerSendRetried: retry.autoSent,
+      escalationNotified: retry.escalationNotified,
+      error: retry.error,
     };
   }
 
@@ -64,7 +264,112 @@ export async function processInboundEmail(
     normalizedBody: inbound.normalizedBody,
   });
 
-  if (!inserted && message.status !== "ingested") {
+  // Race: another worker inserted and already progressed.
+  if (!inserted && isDurableHandledStatus(message.status)) {
+    return processInboundEmail(inbound);
+  }
+
+  try {
+    const classification = classifySupportMessage({
+      subject: inbound.subject,
+      body: inbound.normalizedBody,
+    });
+    await saveClassification(message.id, classification);
+
+    const draft = await draftSupportResponse({
+      classification,
+      fromEmail: inbound.fromEmail,
+      subject: inbound.subject,
+      body: inbound.normalizedBody,
+    });
+    const responseId = await saveDraftResponse(message.id, draft);
+
+    const action = decideOutboundAction({
+      classification,
+      draft,
+      threadAutoSendDisabled: thread.autoSendDisabled,
+    });
+
+    let autoSent = false;
+    let escalated = false;
+    let escalationNotified = false;
+    let sendError: string | undefined;
+
+    if (action.sendCustomerReply) {
+      const send = await tryCustomerSend({
+        messageId: message.id,
+        responseId,
+        to: inbound.fromEmail,
+        subject: inbound.subject,
+        text: draft.bodyText,
+        providerMessageId: inbound.providerMessageId,
+      });
+      autoSent = send.sent;
+      sendError = send.error;
+      // SMTP failure still leaves a durable draft for later retry.
+    }
+
+    if (action.escalate) {
+      const esc = await createEscalation({
+        messageId: message.id,
+        riskLevel: classification.riskLevel,
+        reason:
+          action.reason +
+          (draft.escalationReason ? ` | ${draft.escalationReason}` : ""),
+      });
+      escalated = true;
+      const open = await getOpenEscalation(message.id);
+      if (
+        open &&
+        isEscalationNotifyRetryable({
+          notifiedAt: open.notifiedAt,
+          resolvedAt: open.resolvedAt,
+        })
+      ) {
+        const notify = await tryEscalationNotify({
+          escalationId: esc.id,
+          fromEmail: inbound.fromEmail,
+          subject: inbound.subject,
+          category: classification.category,
+          risk: classification.riskLevel,
+          confidence: classification.confidence,
+          why: draft.escalationReason || action.reason,
+          suggestedResponse: draft.bodyText,
+        });
+        escalationNotified = notify.notified;
+      }
+    }
+
+    const finalStatus = autoSent
+      ? "auto_sent"
+      : sendError
+        ? "failed"
+        : escalated
+          ? "escalated"
+          : "drafted";
+
+    if (finalStatus === "drafted" || finalStatus === "escalated") {
+      await setMessageStatus(message.id, finalStatus);
+    }
+
+    return {
+      messageId: message.id,
+      providerMessageId: inbound.providerMessageId,
+      status: finalStatus,
+      category: classification.category,
+      riskLevel: classification.riskLevel,
+      confidence: classification.confidence,
+      autoSent,
+      escalated,
+      skippedDuplicate: false,
+      durableCaptured: true,
+      escalationNotified,
+      error: sendError,
+    };
+  } catch (error) {
+    // Failed before durable draft — leave IMAP UNSEEN.
+    const msg = error instanceof Error ? error.message : "process failed";
+    console.error("[support] process before durable capture:", msg);
     return {
       messageId: message.id,
       providerMessageId: inbound.providerMessageId,
@@ -74,110 +379,11 @@ export async function processInboundEmail(
       confidence: 0,
       autoSent: false,
       escalated: false,
-      skippedDuplicate: true,
+      skippedDuplicate: false,
+      durableCaptured: false,
+      error: msg,
     };
   }
-
-  const classification = classifySupportMessage({
-    subject: inbound.subject,
-    body: inbound.normalizedBody,
-  });
-  await saveClassification(message.id, classification);
-
-  const draft = await draftSupportResponse({
-    classification,
-    fromEmail: inbound.fromEmail,
-    subject: inbound.subject,
-    body: inbound.normalizedBody,
-  });
-  const responseId = await saveDraftResponse(message.id, draft);
-
-  const action = decideOutboundAction({
-    classification,
-    draft,
-    threadAutoSendDisabled: thread.autoSendDisabled,
-  });
-
-  let autoSent = false;
-  let escalated = false;
-
-  if (action.sendCustomerReply) {
-    try {
-      const result = await sendSupportCustomerEmail({
-        to: inbound.fromEmail,
-        subject: inbound.subject,
-        text: draft.bodyText,
-        html: draft.bodyHtml,
-        inReplyTo: inbound.providerMessageId,
-        references: inbound.providerMessageId,
-      });
-      if (result.sent) {
-        await markResponseSent({
-          responseId,
-          messageId: message.id,
-          sentBody: draft.bodyText,
-          humanApproved: false,
-          status: "auto_sent",
-        });
-        autoSent = true;
-      }
-      // Test mode: keep drafted/escalated path; never pretend a real send happened.
-    } catch (error) {
-      // Leave without sent_at so a later run can retry send if still eligible.
-      await setMessageStatus(message.id, "failed");
-      return {
-        messageId: message.id,
-        providerMessageId: inbound.providerMessageId,
-        status: "failed",
-        category: classification.category,
-        riskLevel: classification.riskLevel,
-        confidence: classification.confidence,
-        autoSent: false,
-        escalated: false,
-        skippedDuplicate: false,
-        error: error instanceof Error ? error.message : "SMTP send failed",
-      };
-    }
-  }
-
-  if (action.escalate) {
-    const escId = await createEscalation({
-      messageId: message.id,
-      riskLevel: classification.riskLevel,
-      reason: action.reason + (draft.escalationReason ? ` | ${draft.escalationReason}` : ""),
-    });
-    escalated = true;
-    try {
-      await sendSupportEscalationEmail({
-        customer: inbound.fromEmail,
-        subject: inbound.subject,
-        category: classification.category,
-        risk: classification.riskLevel,
-        confidence: classification.confidence,
-        why: draft.escalationReason || action.reason,
-        suggestedResponse: draft.bodyText,
-        adminUrl: `${SITE_URL}/admin-support`,
-      });
-      await markEscalationNotified(escId);
-    } catch (error) {
-      console.error(
-        "[support] escalation notify failed:",
-        error instanceof Error ? error.message : error
-      );
-    }
-  }
-
-  return {
-    messageId: message.id,
-    providerMessageId: inbound.providerMessageId,
-    status: autoSent ? "auto_sent" : escalated ? "escalated" : "drafted",
-    category: classification.category,
-    riskLevel: classification.riskLevel,
-    confidence: classification.confidence,
-    autoSent,
-    escalated,
-    skippedDuplicate: false,
-  };
 }
 
 export async function runSupportInboxJob(options?: {
@@ -195,7 +401,27 @@ export async function runSupportInboxJob(options?: {
     errors: [],
   };
 
+  const uidsToMarkSeen: number[] = [];
+
   try {
+    // Retry Neon-side failures first (independent of IMAP UNSEEN).
+    for (const row of await listRetryableCustomerSendMessages(25)) {
+      const retry = await retryDurableSideEffects(row.message.id, {
+        forceCustomerSendRetry: true,
+      });
+      if (retry.autoSent) summary.autoSent += 1;
+      if (retry.error) {
+        summary.failed += 1;
+        summary.errors.push(retry.error);
+      }
+    }
+    for (const row of await listUnnotifiedEscalations(25)) {
+      const retry = await retryDurableSideEffects(row.message.id);
+      if (retry.error && !retry.escalationNotified) {
+        summary.errors.push(retry.error);
+      }
+    }
+
     const fetched = options?.fixtures
       ? { messages: options.fixtures, checked: options.fixtures.length }
       : await fetchUnreadSupportEmails(25);
@@ -206,11 +432,20 @@ export async function runSupportInboxJob(options?: {
     for (const inbound of fetched.messages) {
       try {
         const result = await processInboundEmail(inbound);
-        if (result.skippedDuplicate) {
+        if (
+          shouldMarkImapSeenAfterProcess({
+            durableCaptured: result.durableCaptured,
+          }) &&
+          inbound.imapUid
+        ) {
+          uidsToMarkSeen.push(inbound.imapUid);
+        }
+
+        if (result.skippedDuplicate && !result.customerSendRetried) {
           summary.skipped += 1;
           continue;
         }
-        summary.newMessages += 1;
+        if (!result.skippedDuplicate) summary.newMessages += 1;
         if (result.autoSent) summary.autoSent += 1;
         if (result.escalated) summary.escalated += 1;
         if (result.status === "failed") {
@@ -223,6 +458,11 @@ export async function runSupportInboxJob(options?: {
           error instanceof Error ? error.message : "process failed"
         );
       }
+    }
+
+    if (uidsToMarkSeen.length > 0) {
+      const marked = await markSupportEmailsSeen(uidsToMarkSeen);
+      if (marked.error) summary.errors.push(marked.error);
     }
 
     await recordJobRun({

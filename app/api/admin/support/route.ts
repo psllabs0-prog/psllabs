@@ -10,6 +10,7 @@ import { isSupportImapConfigured } from "@/lib/support/imap";
 import { sendSupportCustomerEmail } from "@/lib/support/smtp";
 import {
   getLatestDraft,
+  getLatestJobRun,
   getMessageWithThread,
   listSupportInbox,
   markMessageResolved,
@@ -28,10 +29,14 @@ export async function GET() {
   if (authError) return authError;
 
   try {
-    const items = await listSupportInbox(75);
+    const [items, lastJob] = await Promise.all([
+      listSupportInbox(75),
+      getLatestJobRun(),
+    ]);
     return NextResponse.json({
       autoSendEnabled: isSupportAutoSendEnabled(),
       imapConfigured: isSupportImapConfigured(),
+      lastJob,
       items,
     });
   } catch (error) {

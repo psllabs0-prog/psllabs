@@ -17,6 +17,12 @@ import {
   normalizeBody,
 } from "../lib/support/sanitize";
 import { HIGH_CONFIDENCE_THRESHOLD } from "../lib/support/constants";
+import {
+  canSendCustomerReply,
+  isCustomerSendRetryable,
+  isEscalationNotifyRetryable,
+  shouldMarkImapSeenAfterProcess,
+} from "../lib/support/lifecycle";
 
 function assert(cond: unknown, message: string): asserts cond {
   if (!cond) throw new Error(message);
@@ -205,6 +211,54 @@ async function testYellowAckNoPromise() {
   assert(draft.requiresEscalation, "escalate");
 }
 
+function testReliabilityLifecycle() {
+  assert(
+    shouldMarkImapSeenAfterProcess({ durableCaptured: false }) === false,
+    "processing failure before durable → do not mark Seen"
+  );
+  assert(
+    shouldMarkImapSeenAfterProcess({ durableCaptured: true }) === true,
+    "durable draft → mark Seen"
+  );
+
+  assert(
+    isCustomerSendRetryable({
+      status: "failed",
+      sentAt: null,
+      sendIntended: true,
+    }) === true,
+    "SMTP failure retries"
+  );
+  assert(
+    isCustomerSendRetryable({
+      status: "failed",
+      sentAt: "2026-09-11T00:00:00.000Z",
+      sendIntended: true,
+    }) === false,
+    "sent_at blocks retry"
+  );
+  assert(canSendCustomerReply(null) === true, "unsent can send");
+  assert(
+    canSendCustomerReply("2026-09-11T00:00:00.000Z") === false,
+    "successful response cannot send twice"
+  );
+
+  assert(
+    isEscalationNotifyRetryable({
+      notifiedAt: null,
+      resolvedAt: null,
+    }) === true,
+    "failed Luke notify retries"
+  );
+  assert(
+    isEscalationNotifyRetryable({
+      notifiedAt: "2026-09-11T00:00:00.000Z",
+      resolvedAt: null,
+    }) === false,
+    "successful Luke notification does not repeat"
+  );
+}
+
 async function main() {
   console.log("[test-support-agent] running…");
   testIdempotentProviderKey();
@@ -220,6 +274,7 @@ async function main() {
   testOrderEmailGateConcept();
   testInventorySellableOnlyConcept();
   await testYellowAckNoPromise();
+  testReliabilityLifecycle();
   console.log("[test-support-agent] all passed.");
 }
 

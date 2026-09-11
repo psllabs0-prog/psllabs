@@ -6,6 +6,8 @@ import type {
 
 export type InboundEmailNormalized = {
   providerMessageId: string;
+  /** IMAP UID when fetched from mailbox; used to mark \Seen after durable handling. */
+  imapUid?: number | null;
   threadKey: string;
   fromEmail: string;
   fromName: string | null;
@@ -104,6 +106,10 @@ export type ProcessMessageResult = {
   autoSent: boolean;
   escalated: boolean;
   skippedDuplicate: boolean;
+  /** True when Neon has a durable draft/escalation/sent/failed-with-draft row. */
+  durableCaptured: boolean;
+  customerSendRetried?: boolean;
+  escalationNotified?: boolean;
   error?: string;
 };
 

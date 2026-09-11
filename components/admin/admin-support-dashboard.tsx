@@ -25,12 +25,19 @@ type InboxItem = {
     id: number;
     reason: string;
     resolvedAt: string | null;
+    notifiedAt: string | null;
   } | null;
 };
 
 type Payload = {
   autoSendEnabled: boolean;
   imapConfigured: boolean;
+  lastJob: {
+    ok: boolean | null;
+    errorSummary: string | null;
+    finishedAt: string | null;
+    failed: number;
+  } | null;
   items: InboxItem[];
 };
 
@@ -97,6 +104,14 @@ export function AdminSupportDashboard() {
           <span className="font-mono text-ink">
             {data?.imapConfigured ? "configured" : "not configured"}
           </span>
+          {data?.lastJob?.errorSummary && (
+            <>
+              {" · "}
+              <span className="text-red-700">
+                Last job error: {data.lastJob.errorSummary}
+              </span>
+            </>
+          )}
         </div>
         <button
           type="button"
@@ -138,6 +153,24 @@ export function AdminSupportDashboard() {
                       ? item.confidence.toFixed(2)
                       : "—"}
                   </span>
+                  {item.message.status === "failed" && !item.sentAt && (
+                    <>
+                      <span>·</span>
+                      <span className="font-medium text-red-700">
+                        retryable customer-send failure
+                      </span>
+                    </>
+                  )}
+                  {item.escalation &&
+                    !item.escalation.resolvedAt &&
+                    !item.escalation.notifiedAt && (
+                      <>
+                        <span>·</span>
+                        <span className="font-medium text-amber-700">
+                          unnotified escalation
+                        </span>
+                      </>
+                    )}
                   {item.sentAt && (
                     <>
                       <span>·</span>

@@ -170,30 +170,47 @@ export async function markResponseSent(input: {
   sentBody: string;
   humanApproved: boolean;
   status: Extract<MessageStatus, "auto_sent" | "human_sent">;
-}): Promise<void> {
+}): Promise<{ updated: boolean }> {
   await ensureSupportSchema();
   const sql = getSql();
-  await sql`
+  const rows = (await sql`
     UPDATE support_responses
     SET sent_body = ${input.sentBody},
         sent_at = now(),
         human_approved = ${input.humanApproved}
     WHERE id = ${input.responseId}
-  `;
+      AND sent_at IS NULL
+    RETURNING id
+  `) as { id: number | string }[];
+  if (!rows[0]) {
+    return { updated: false };
+  }
   await sql`
     UPDATE support_messages
     SET status = ${input.status}, updated_at = now()
     WHERE id = ${input.messageId}
   `;
+  return { updated: true };
 }
 
 export async function createEscalation(input: {
   messageId: number;
   riskLevel: SupportRiskLevel;
   reason: string;
-}): Promise<number> {
+}): Promise<{ id: number; created: boolean }> {
   await ensureSupportSchema();
   const sql = getSql();
+  const existing = (await sql`
+    SELECT id FROM support_escalations
+    WHERE message_id = ${input.messageId}
+      AND resolved_at IS NULL
+    ORDER BY id DESC
+    LIMIT 1
+  `) as { id: number | string }[];
+  if (existing[0]) {
+    return { id: Number(existing[0].id), created: false };
+  }
+
   const rows = (await sql`
     INSERT INTO support_escalations (message_id, risk_level, reason)
     VALUES (${input.messageId}, ${input.riskLevel}, ${input.reason})
@@ -205,7 +222,7 @@ export async function createEscalation(input: {
     WHERE id = ${input.messageId}
       AND status NOT IN ('auto_sent', 'human_sent', 'resolved')
   `;
-  return Number(rows[0].id);
+  return { id: Number(rows[0].id), created: true };
 }
 
 export async function markEscalationNotified(id: number): Promise<void> {
@@ -403,6 +420,186 @@ export async function getLatestDraft(
     sentAt: rows[0].sent_at
       ? new Date(rows[0].sent_at).toISOString()
       : null,
+  };
+}
+
+export async function getClassificationForMessage(messageId: number): Promise<{
+  category: SupportCategory;
+  riskLevel: SupportRiskLevel;
+  confidence: number;
+  autoResponseAllowed: boolean;
+} | null> {
+  await ensureSupportSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT category, risk_level, confidence, auto_response_allowed
+    FROM support_classifications
+    WHERE message_id = ${messageId}
+    LIMIT 1
+  `) as Array<{
+    category: string;
+    risk_level: string;
+    confidence: number | string;
+    auto_response_allowed: boolean;
+  }>;
+  if (!rows[0]) return null;
+  return {
+    category: rows[0].category as SupportCategory,
+    riskLevel: rows[0].risk_level as SupportRiskLevel,
+    confidence: Number(rows[0].confidence),
+    autoResponseAllowed: Boolean(rows[0].auto_response_allowed),
+  };
+}
+
+export async function getOpenEscalation(
+  messageId: number
+): Promise<SupportEscalationRow | null> {
+  await ensureSupportSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT *
+    FROM support_escalations
+    WHERE message_id = ${messageId}
+      AND resolved_at IS NULL
+    ORDER BY id DESC
+    LIMIT 1
+  `) as Record<string, unknown>[];
+  if (!rows[0]) return null;
+  const row = rows[0];
+  return {
+    id: Number(row.id),
+    messageId: Number(row.message_id),
+    riskLevel: String(row.risk_level) as SupportRiskLevel,
+    reason: String(row.reason),
+    notifiedAt: row.notified_at
+      ? new Date(String(row.notified_at)).toISOString()
+      : null,
+    resolvedAt: row.resolved_at
+      ? new Date(String(row.resolved_at)).toISOString()
+      : null,
+    createdAt: new Date(String(row.created_at)).toISOString(),
+  };
+}
+
+/** Messages with unsent drafts that previously failed (or still need send). */
+export async function listRetryableCustomerSendMessages(limit = 25): Promise<
+  Array<{
+    message: SupportMessageRow;
+    responseId: number;
+    draftBody: string;
+  }>
+> {
+  await ensureSupportSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT m.*, r.id AS response_id, r.draft_body
+    FROM support_messages m
+    JOIN LATERAL (
+      SELECT id, draft_body, sent_at
+      FROM support_responses
+      WHERE message_id = m.id
+      ORDER BY id DESC
+      LIMIT 1
+    ) r ON true
+    WHERE m.status = 'failed'
+      AND r.sent_at IS NULL
+    ORDER BY m.updated_at ASC
+    LIMIT ${limit}
+  `) as Record<string, unknown>[];
+
+  return rows.map((row) => ({
+    message: mapMessage(row),
+    responseId: Number(row.response_id),
+    draftBody: String(row.draft_body),
+  }));
+}
+
+export async function listUnnotifiedEscalations(limit = 25): Promise<
+  Array<{
+    escalation: SupportEscalationRow;
+    message: SupportMessageRow;
+    draftBody: string | null;
+    category: string | null;
+    confidence: number | null;
+  }>
+> {
+  await ensureSupportSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT
+      e.id AS e_id,
+      e.message_id,
+      e.risk_level AS e_risk_level,
+      e.reason AS e_reason,
+      e.notified_at AS e_notified_at,
+      e.resolved_at AS e_resolved_at,
+      e.created_at AS e_created_at,
+      m.*,
+      c.category,
+      c.confidence,
+      r.draft_body
+    FROM support_escalations e
+    JOIN support_messages m ON m.id = e.message_id
+    LEFT JOIN support_classifications c ON c.message_id = m.id
+    LEFT JOIN LATERAL (
+      SELECT draft_body FROM support_responses
+      WHERE message_id = m.id
+      ORDER BY id DESC
+      LIMIT 1
+    ) r ON true
+    WHERE e.resolved_at IS NULL
+      AND e.notified_at IS NULL
+    ORDER BY e.created_at ASC
+    LIMIT ${limit}
+  `) as Record<string, unknown>[];
+
+  return rows.map((row) => ({
+    escalation: {
+      id: Number(row.e_id),
+      messageId: Number(row.message_id),
+      riskLevel: String(row.e_risk_level) as SupportRiskLevel,
+      reason: String(row.e_reason),
+      notifiedAt: null,
+      resolvedAt: null,
+      createdAt: new Date(String(row.e_created_at)).toISOString(),
+    },
+    message: mapMessage(row),
+    draftBody: row.draft_body ? String(row.draft_body) : null,
+    category: row.category ? String(row.category) : null,
+    confidence:
+      row.confidence !== null && row.confidence !== undefined
+        ? Number(row.confidence)
+        : null,
+  }));
+}
+
+export async function getLatestJobRun(): Promise<{
+  ok: boolean | null;
+  errorSummary: string | null;
+  finishedAt: string | null;
+  failed: number;
+} | null> {
+  await ensureSupportSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT ok, error_summary, finished_at, failed
+    FROM support_job_runs
+    ORDER BY id DESC
+    LIMIT 1
+  `) as Array<{
+    ok: boolean | null;
+    error_summary: string | null;
+    finished_at: string | null;
+    failed: number;
+  }>;
+  if (!rows[0]) return null;
+  return {
+    ok: rows[0].ok,
+    errorSummary: rows[0].error_summary,
+    finishedAt: rows[0].finished_at
+      ? new Date(rows[0].finished_at).toISOString()
+      : null,
+    failed: Number(rows[0].failed ?? 0),
   };
 }
 

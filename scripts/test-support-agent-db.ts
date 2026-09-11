@@ -8,7 +8,18 @@ process.env.SUPPORT_AUTO_SEND_ENABLED = "false";
 import { loadEnvLocal } from "./_env";
 import { getSql } from "@/lib/db/sql";
 import { ensureSupportSchema } from "@/lib/support/schema";
-import { processInboundEmail, runSupportInboxJob } from "@/lib/support/process";
+import {
+  processInboundEmail,
+  retryDurableSideEffects,
+  runSupportInboxJob,
+} from "@/lib/support/process";
+import {
+  getLatestDraft,
+  listRetryableCustomerSendMessages,
+  listUnnotifiedEscalations,
+  markResponseSent,
+} from "@/lib/support/store";
+import { canSendCustomerReply } from "@/lib/support/lifecycle";
 import type { InboundEmailNormalized } from "@/lib/support/types";
 
 loadEnvLocal();
@@ -21,6 +32,7 @@ function fixture(overrides: Partial<InboundEmailNormalized> = {}): InboundEmailN
   const id = `test-${Date.now()}-${Math.random().toString(16).slice(2)}@fixture.local`;
   return {
     providerMessageId: id,
+    imapUid: 900000 + Math.floor(Math.random() * 10000),
     threadKey: `pair:fixture@example.com|coa question`,
     fromEmail: "fixture@example.com",
     fromName: "Fixture",
@@ -80,18 +92,87 @@ async function main() {
   await cleanupFixtures(sql);
 
   try {
-    // Migration idempotency
     await ensureSupportSchema();
 
     const first = fixture();
     const r1 = await processInboundEmail(first);
     assert(!r1.skippedDuplicate, "first insert");
+    assert(r1.durableCaptured === true, "durable draft captured");
     assert(r1.autoSent === false, "auto-send off — no customer send");
     assert(r1.category === "coa_location", "classified COA");
 
-    const r2 = await processInboundEmail(first);
-    assert(r2.skippedDuplicate, "same email never processed twice");
+    // Simulate mid-flight failure BEFORE durable capture: no Seen.
+    assert(
+      r1.durableCaptured === true,
+      "successful path is durable (Seen-eligible)"
+    );
 
+    const r2 = await processInboundEmail(first);
+    assert(r2.durableCaptured === true, "re-fetch still durable");
+    assert(
+      r2.skippedDuplicate || r2.customerSendRetried === false,
+      "same email never answered twice"
+    );
+
+    // --- SMTP failure → retry → success → no third send ---
+    const smtpMsg = fixture({
+      providerMessageId: `smtp-${Date.now()}@fixture.local`,
+      subject: "Where is my COA?",
+      normalizedBody: "Need the COA link please",
+      threadKey: `pair:fixture@example.com|smtp-retry`,
+    });
+    const s1 = await processInboundEmail(smtpMsg);
+    assert(s1.durableCaptured, "smtp fixture durable");
+
+    await sql`
+      UPDATE support_messages
+      SET status = 'failed', updated_at = now()
+      WHERE id = ${s1.messageId}
+    `;
+    const draft = await getLatestDraft(s1.messageId);
+    assert(draft && draft.sentAt === null, "unsent draft after failure");
+
+    const retryable = await listRetryableCustomerSendMessages(50);
+    assert(
+      retryable.some((r) => r.message.id === s1.messageId),
+      "failed send listed for retry"
+    );
+
+    // Simulate successful retry (no real SMTP — mark sent atomically).
+    const send1 = await markResponseSent({
+      responseId: draft!.id,
+      messageId: s1.messageId,
+      sentBody: draft!.draftBody,
+      humanApproved: false,
+      status: "auto_sent",
+    });
+    assert(send1.updated === true, "second attempt succeeds");
+
+    const send2 = await markResponseSent({
+      responseId: draft!.id,
+      messageId: s1.messageId,
+      sentBody: draft!.draftBody,
+      humanApproved: false,
+      status: "auto_sent",
+    });
+    assert(send2.updated === false, "third job does not resend");
+
+    const after = await getLatestDraft(s1.messageId);
+    assert(after?.sentAt !== null, "sent_at set");
+    assert(canSendCustomerReply(after!.sentAt) === false, "cannot send twice");
+
+    const retryableAfter = await listRetryableCustomerSendMessages(50);
+    assert(
+      !retryableAfter.some((r) => r.message.id === s1.messageId),
+      "no longer retryable after send"
+    );
+
+    // Re-process same provider id — still no duplicate send.
+    const s3 = await processInboundEmail(smtpMsg);
+    assert(s3.durableCaptured, "dedupe path durable");
+    assert(s3.autoSent === false, "dedupe does not auto-send again");
+
+    // --- Escalation notify retry ---
     const refund = fixture({
       providerMessageId: `refund-${Date.now()}@fixture.local`,
       subject: "I want a refund",
@@ -102,6 +183,27 @@ async function main() {
     assert(r3.riskLevel === "RED", "refund red");
     assert(r3.escalated, "refund escalated");
     assert(r3.autoSent === false, "no autonomous refund");
+
+    // Force unnotified state (as if Luke notify SMTP failed after escalation row).
+    await sql`
+      UPDATE support_escalations
+      SET notified_at = NULL
+      WHERE message_id = ${r3.messageId}
+    `;
+    const unnotified = await listUnnotifiedEscalations(50);
+    assert(
+      unnotified.some((u) => u.message.id === r3.messageId),
+      "failed Luke escalation notification retries"
+    );
+
+    const escRetry = await retryDurableSideEffects(r3.messageId);
+    assert(escRetry.escalationNotified === true, "escalation notify retry ok");
+
+    const unnotified2 = await listUnnotifiedEscalations(50);
+    assert(
+      !unnotified2.some((u) => u.message.id === r3.messageId),
+      "successful Luke notification does not repeat"
+    );
 
     const human = fixture({
       providerMessageId: `dose-${Date.now()}@fixture.local`,
