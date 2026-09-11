@@ -19,6 +19,7 @@ import {
   markResponseSent,
   restoreMessageToActiveSupport,
   saveDraftResponse,
+  setMessageReportingExcluded,
   setThreadAutoSendDisabled,
   type SupportInboxFilter,
   updateClassificationManual,
@@ -174,6 +175,18 @@ export async function POST(request: Request) {
         riskLevel,
       });
       return NextResponse.json({ ok: true, ...result });
+    }
+
+    if (action === "mark_reporting_excluded") {
+      const messageId = Number(body.messageId);
+      await setMessageReportingExcluded(messageId, true);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === "restore_reporting") {
+      const messageId = Number(body.messageId);
+      await setMessageReportingExcluded(messageId, false);
+      return NextResponse.json({ ok: true });
     }
 
     if (action === "set_auto_send") {

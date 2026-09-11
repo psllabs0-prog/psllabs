@@ -48,6 +48,15 @@ export async function ensureSupportSchema(): Promise<void> {
       CREATE INDEX IF NOT EXISTS support_messages_status_idx
       ON support_messages (status)
     `;
+    await sql`
+      ALTER TABLE support_messages
+      ADD COLUMN IF NOT EXISTS reporting_excluded BOOLEAN NOT NULL DEFAULT false
+    `;
+    await sql`
+      CREATE INDEX IF NOT EXISTS support_messages_reporting_excluded_idx
+      ON support_messages (reporting_excluded)
+      WHERE reporting_excluded = true
+    `;
 
     await sql`
       CREATE TABLE IF NOT EXISTS support_classifications (

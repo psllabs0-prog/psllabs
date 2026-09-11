@@ -36,6 +36,9 @@ async function main() {
   console.log(
     "[migrate-support] note: SUPPORT_AUTO_SEND_ENABLED defaults off — do not enable until ready."
   );
+  console.log(
+    "[migrate-support] note: mark QA messages TEST/EXCLUDED explicitly in /admin-support (no auto-inference)."
+  );
   console.log("[migrate-support] done.");
 }
 

@@ -21,6 +21,13 @@ const FAQ_HINTS: Record<string, string> = {
   research_use_boundary: "Research-use boundary clarity",
 };
 
+/** Genuine customer-intelligence predicate (SQL fragment documented for tests). */
+export const GENUINE_SUPPORT_SQL_NOTES = [
+  "reporting_excluded = false",
+  "category NOT IN spam_solicitation, vendor_solicitation",
+  "status <> ignored",
+] as const;
+
 export async function collectSupportSnapshot(
   period: BriefPeriod
 ): Promise<CeoSupportSnapshot> {
@@ -37,6 +44,7 @@ export async function collectSupportSnapshot(
     JOIN support_classifications c ON c.message_id = m.id
     WHERE m.received_at >= ${start}::timestamptz
       AND m.received_at < ${end}::timestamptz
+      AND m.reporting_excluded = false
       AND COALESCE(c.category, '') NOT IN ('spam_solicitation', 'vendor_solicitation')
       AND COALESCE(m.status, '') <> 'ignored'
     GROUP BY c.risk_level
@@ -59,6 +67,7 @@ export async function collectSupportSnapshot(
     JOIN support_classifications c ON c.message_id = m.id
     WHERE m.received_at >= ${start}::timestamptz
       AND m.received_at < ${end}::timestamptz
+      AND m.reporting_excluded = false
       AND c.category = ANY(${SPAM_VENDOR as unknown as string[]})
     GROUP BY c.category
   `) as Array<{ category: string; n: number }>;
@@ -71,10 +80,16 @@ export async function collectSupportSnapshot(
       vendorSolicitations = Number(row.n);
   }
 
+  // Current-state backlog — not limited to the completed weekly period.
   const unresolved = (await sql`
     SELECT COUNT(*)::int AS n
     FROM support_escalations e
+    JOIN support_messages m ON m.id = e.message_id
+    LEFT JOIN support_classifications c ON c.message_id = m.id
     WHERE e.resolved_at IS NULL
+      AND m.reporting_excluded = false
+      AND COALESCE(c.category, '') NOT IN ('spam_solicitation', 'vendor_solicitation')
+      AND COALESCE(m.status, '') <> 'ignored'
   `) as Array<{ n: number }>;
 
   const topCats = (await sql`
@@ -85,6 +100,7 @@ export async function collectSupportSnapshot(
     JOIN support_classifications c ON c.message_id = m.id
     WHERE m.received_at >= ${start}::timestamptz
       AND m.received_at < ${end}::timestamptz
+      AND m.reporting_excluded = false
       AND COALESCE(c.category, '') NOT IN ('spam_solicitation', 'vendor_solicitation')
       AND COALESCE(m.status, '') <> 'ignored'
     GROUP BY c.category
@@ -122,6 +138,7 @@ export async function collectSupportSnapshot(
     yellow: byRisk.YELLOW ?? 0,
     red: byRisk.RED ?? 0,
     unresolvedEscalations: Number(unresolved[0]?.n ?? 0),
+    unresolvedEscalationsLabel: "Current legitimate unresolved escalations",
     spamSolicitations,
     vendorSolicitations,
     topGenuineCategories,
@@ -131,11 +148,35 @@ export async function collectSupportSnapshot(
   };
 }
 
-/** Pure: spam/vendor must not count toward customer demand. */
+/** Pure: spam/vendor/reporting_excluded must not count toward customer demand. */
 export function genuineCustomerCount(input: {
   totalClassified: number;
   spam: number;
   vendor: number;
+  reportingExcluded?: number;
 }): number {
-  return Math.max(0, input.totalClassified - input.spam - input.vendor);
+  return Math.max(
+    0,
+    input.totalClassified -
+      input.spam -
+      input.vendor -
+      (input.reportingExcluded ?? 0)
+  );
+}
+
+/** Pure helper for tests: excluded messages never contribute to risk buckets. */
+export function countsTowardGenuineSupportMetrics(input: {
+  reportingExcluded: boolean;
+  category: string;
+  status: string;
+}): boolean {
+  if (input.reportingExcluded) return false;
+  if (input.status === "ignored") return false;
+  if (
+    input.category === "spam_solicitation" ||
+    input.category === "vendor_solicitation"
+  ) {
+    return false;
+  }
+  return true;
 }

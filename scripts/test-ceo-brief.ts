@@ -12,8 +12,8 @@ import {
   previousWeekPeriod,
   selectLukeActions,
 } from "../lib/ceo-brief/period";
-import { sellableNeverIncludesInbound } from "../lib/ceo-brief/inventory";
-import { genuineCustomerCount } from "../lib/ceo-brief/support";
+import { sellableNeverIncludesInbound, shouldCreateInventoryRiskLukeAction, buildInventoryLukeActionCandidates } from "../lib/ceo-brief/inventory";
+import { genuineCustomerCount, countsTowardGenuineSupportMetrics } from "../lib/ceo-brief/support";
 import { collectAcquisitionSnapshot } from "../lib/ceo-brief/acquisition";
 import { collectSeoSnapshot } from "../lib/ceo-brief/seo";
 import { formatCeoBriefEmailSubject } from "../lib/ceo-brief/email";
@@ -78,6 +78,7 @@ function emptySupport(over: Partial<CeoSupportSnapshot> = {}): CeoSupportSnapsho
     yellow: 0,
     red: 0,
     unresolvedEscalations: 0,
+    unresolvedEscalationsLabel: "Current legitimate unresolved escalations",
     spamSolicitations: 0,
     vendorSolicitations: 0,
     topGenuineCategories: [],
@@ -115,6 +116,141 @@ function testSpamVendorExcludedFromCustomer() {
   assert(
     genuineCustomerCount({ totalClassified: 10, spam: 3, vendor: 2 }) === 5,
     "spam+vendor excluded"
+  );
+  assert(
+    genuineCustomerCount({
+      totalClassified: 10,
+      spam: 1,
+      vendor: 1,
+      reportingExcluded: 2,
+    }) === 6,
+    "reporting_excluded also subtracted"
+  );
+  assert(
+    countsTowardGenuineSupportMetrics({
+      reportingExcluded: true,
+      category: "coa_location",
+      status: "escalated",
+    }) === false,
+    "TEST/EXCLUDED does not count"
+  );
+  assert(
+    countsTowardGenuineSupportMetrics({
+      reportingExcluded: false,
+      category: "coa_location",
+      status: "escalated",
+    }) === true,
+    "restored reporting eligible"
+  );
+  assert(
+    countsTowardGenuineSupportMetrics({
+      reportingExcluded: false,
+      category: "spam_solicitation",
+      status: "ignored",
+    }) === false,
+    "spam still excluded"
+  );
+  assert(
+    countsTowardGenuineSupportMetrics({
+      reportingExcluded: true,
+      category: "refund_request",
+      status: "escalated",
+    }) === false,
+    "excluded RED does not count"
+  );
+  assert(
+    countsTowardGenuineSupportMetrics({
+      reportingExcluded: true,
+      category: "damaged_order",
+      status: "escalated",
+    }) === false,
+    "excluded YELLOW does not count"
+  );
+}
+
+function testInventoryLukeActionsInboundAware() {
+  const tesa = {
+    handle: "tesamorelin",
+    sku: "TESA",
+    name: "Tesamorelin",
+    sellableUnits: 9,
+    orderedInbound: 30,
+    inTransit: 0,
+    awaitingTesting: 0,
+    inboundPipelineTotal: 30,
+    forecastConfidence: "INSUFFICIENT_SALES_DATA",
+    statusFlags: ["ABSOLUTE_LOW_STOCK", "INSUFFICIENT_SALES_DATA"],
+    expectedReleaseDates: [],
+  };
+  assert(
+    shouldCreateInventoryRiskLukeAction(tesa) === false,
+    "low + inbound + insufficient → no low-stock Luke action"
+  );
+
+  const snapLowInbound = emptyInventory({
+    skus: [tesa],
+    lowStockAlerts: [
+      "Tesamorelin (TESA): 9 sellable · inbound pipeline 30",
+    ],
+    inboundUnitsTotal: 30,
+    sellableUnitsTotal: 9,
+  });
+  const actionsLow = buildInventoryLukeActionCandidates(snapLowInbound);
+  assert(
+    !actionsLow.some((a) => /address low sellable stock/i.test(a.action)),
+    "no Address low stock action"
+  );
+  assert(
+    !actionsLow.some((a) => /Review inventory risk: Tesamorelin/i.test(a.action)),
+    "tesa with inbound+insufficient not risk action"
+  );
+
+  const validatedNoInbound = {
+    handle: "bpc-157",
+    sku: "BPC",
+    name: "BPC-157",
+    sellableUnits: 2,
+    orderedInbound: 0,
+    inTransit: 0,
+    awaitingTesting: 0,
+    inboundPipelineTotal: 0,
+    forecastConfidence: "RELIABLE",
+    statusFlags: ["ABSOLUTE_LOW_STOCK", "REORDER_REVIEW"],
+    expectedReleaseDates: [],
+  };
+  assert(
+    shouldCreateInventoryRiskLukeAction(validatedNoInbound) === true,
+    "low + no inbound + validated risk CAN create action"
+  );
+
+  const awaiting = emptyInventory({
+    skus: [
+      {
+        handle: "reta",
+        sku: "RETA",
+        name: "Retatrutide",
+        sellableUnits: 20,
+        orderedInbound: 0,
+        inTransit: 0,
+        awaitingTesting: 25,
+        inboundPipelineTotal: 25,
+        forecastConfidence: "RELIABLE",
+        statusFlags: ["OK"],
+        expectedReleaseDates: [],
+      },
+    ],
+    awaitingTestingLots: 1,
+    inboundUnitsTotal: 25,
+    sellableUnitsTotal: 20,
+  });
+  const awaitingActions = buildInventoryLukeActionCandidates(awaiting);
+  assert(
+    awaitingActions.some((a) => /awaiting testing/i.test(a.action)),
+    "awaiting-testing can produce testing/release review"
+  );
+  assert(
+    !awaitingActions.some((a) => /address low sellable stock/i.test(a.action)),
+    "awaiting testing does not invent Address low stock"
   );
 }
 
@@ -273,6 +409,7 @@ function main() {
   testZeroSalesNoPct();
   testQaExclusionConcept();
   testSpamVendorExcludedFromCustomer();
+  testInventoryLukeActionsInboundAware();
   testInboundNeverSellable();
   testMissingPaidNotFabricated();
   testMissingSeoNotFabricated();

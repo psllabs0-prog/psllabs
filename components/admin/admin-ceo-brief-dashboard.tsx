@@ -260,7 +260,8 @@ export function AdminCeoBriefDashboard() {
               {brief.support.red})
             </p>
             <p>
-              Unresolved escalations: {brief.support.unresolvedEscalations}
+              {brief.support.unresolvedEscalationsLabel}:{" "}
+              {brief.support.unresolvedEscalations}
             </p>
             <p>
               Spam: {brief.support.spamSolicitations} · Vendor:{" "}

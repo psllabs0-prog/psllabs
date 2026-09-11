@@ -58,6 +58,7 @@ export type SupportMessageRow = {
   receivedAt: string;
   normalizedBody: string;
   status: MessageStatus;
+  reportingExcluded: boolean;
   createdAt: string;
   updatedAt: string;
 };

@@ -47,7 +47,7 @@ export function formatCeoBriefEmailHtml(brief: CeoWeeklyBrief): string {
       ? `<p style="margin:0 0 8px;">Sellable total ${brief.inventory.sellableUnitsTotal} · Low-stock ${brief.inventory.lowStockAlerts.length} · Reorder review ${brief.inventory.reorderReviewSignals.length} · Awaiting testing lots ${brief.inventory.awaitingTestingLots}</p>`
       : `<p style="margin:0 0 8px;">Sellable total ${brief.inventory.sellableUnitsTotal}. No urgent inventory flags.</p>`;
 
-  const support = `<p style="margin:0 0 8px;">Genuine ${brief.support.genuineCustomerMessages} (G${brief.support.green}/Y${brief.support.yellow}/R${brief.support.red}) · Escalations open ${brief.support.unresolvedEscalations} · Spam ${brief.support.spamSolicitations} · Vendor ${brief.support.vendorSolicitations}</p>`;
+  const support = `<p style="margin:0 0 8px;">Genuine ${brief.support.genuineCustomerMessages} (G${brief.support.green}/Y${brief.support.yellow}/R${brief.support.red}) · ${escapeHtml(brief.support.unresolvedEscalationsLabel)}: ${brief.support.unresolvedEscalations} · Spam ${brief.support.spamSolicitations} · Vendor ${brief.support.vendorSolicitations}</p>`;
 
   const health =
     brief.health.warnings.length > 0

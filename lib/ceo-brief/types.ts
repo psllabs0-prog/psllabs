@@ -65,6 +65,8 @@ export type CeoInventorySkuRow = {
   orderedInbound: number;
   inTransit: number;
   awaitingTesting: number;
+  /** ordered + in_transit + awaiting_testing (never sellable). */
+  inboundPipelineTotal: number;
   forecastConfidence: string;
   statusFlags: string[];
   expectedReleaseDates: string[];
@@ -85,7 +87,9 @@ export type CeoSupportSnapshot = {
   green: number;
   yellow: number;
   red: number;
+  /** Current-state backlog of legitimate open escalations (not period-limited). */
   unresolvedEscalations: number;
+  unresolvedEscalationsLabel: string;
   spamSolicitations: number;
   vendorSolicitations: number;
   topGenuineCategories: Array<{ category: string; count: number }>;

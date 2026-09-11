@@ -21,9 +21,12 @@ import {
   listUnnotifiedEscalations,
   markResponseSent,
   restoreMessageToActiveSupport,
+  setMessageReportingExcluded,
 } from "@/lib/support/store";
 import { canSendCustomerReply } from "@/lib/support/lifecycle";
 import { decideOutboundAction } from "@/lib/support/draft";
+import { getLastCompletedWeekUtc } from "@/lib/ceo-brief/period";
+import { collectSupportSnapshot } from "@/lib/ceo-brief/support";
 import type { InboundEmailNormalized } from "@/lib/support/types";
 
 loadEnvLocal();
@@ -375,6 +378,72 @@ async function main() {
     assert(
       Number(resolvedAfter[0]?.n ?? 0) >= Number(resolvedBefore[0]?.n ?? 0),
       "restore does not clear previously resolved escalations"
+    );
+
+    // --- Explicit TEST / EXCLUDED removes message from CEO support metrics ---
+    const week = getLastCompletedWeekUtc(new Date());
+    const midWeek = new Date(
+      week.periodStart.getTime() + 2 * 24 * 60 * 60 * 1000
+    );
+    const qaInPeriod = fixture({
+      providerMessageId: `qa-exclude-${Date.now()}@fixture.local`,
+      subject: "Where can I find my COA?",
+      normalizedBody: "Where can I find my COA report for testing?",
+      threadKey: `pair:fixture@example.com|qa-exclude`,
+      receivedAt: midWeek.toISOString(),
+    });
+    const qaResult = await processInboundEmail(qaInPeriod);
+    assert(qaResult.category === "coa_location", "qa COA classified");
+
+    const beforeExclude = await collectSupportSnapshot(week);
+    assert(beforeExclude.green >= 1, "qa GREEN counted before exclude");
+
+    await setMessageReportingExcluded(qaResult.messageId, true);
+    const afterExclude = await collectSupportSnapshot(week);
+    assert(
+      afterExclude.genuineCustomerMessages ===
+        beforeExclude.genuineCustomerMessages - 1,
+      "TEST/EXCLUDED does not count as genuine volume"
+    );
+    assert(
+      afterExclude.green === beforeExclude.green - 1,
+      "excluded GREEN does not count"
+    );
+
+    await sql`
+      INSERT INTO support_escalations (message_id, risk_level, reason)
+      VALUES (${qaResult.messageId}, 'YELLOW', 'qa escalation')
+    `;
+    const unresolvedWhileExcluded = (
+      await collectSupportSnapshot(week)
+    ).unresolvedEscalations;
+
+    await setMessageReportingExcluded(qaResult.messageId, false);
+    await sql`
+      UPDATE support_escalations
+      SET resolved_at = NULL
+      WHERE message_id = ${qaResult.messageId}
+    `;
+    const afterRestore = await collectSupportSnapshot(week);
+    assert(
+      afterRestore.genuineCustomerMessages === beforeExclude.genuineCustomerMessages,
+      "restoring reporting makes it eligible again"
+    );
+    assert(
+      afterRestore.unresolvedEscalations === unresolvedWhileExcluded + 1,
+      "restored open escalation counts in CEO brief"
+    );
+    assert(
+      afterRestore.unresolvedEscalationsLabel ===
+        "Current legitimate unresolved escalations",
+      "CEO escalation label"
+    );
+
+    await setMessageReportingExcluded(qaResult.messageId, true);
+    const afterReExclude = await collectSupportSnapshot(week);
+    assert(
+      afterReExclude.unresolvedEscalations === unresolvedWhileExcluded,
+      "excluded escalation does not count in CEO brief"
     );
 
     console.log("[test-support-agent-db] all passed.");

@@ -12,6 +12,7 @@ type InboxItem = {
     receivedAt: string;
     normalizedBody: string;
     status: string;
+    reportingExcluded: boolean;
   };
   thread: {
     id: number;
@@ -170,6 +171,14 @@ export function AdminSupportDashboard() {
               <div className="border-b border-linen px-5 py-3">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-ash">
                   <span className="font-mono">{item.message.status}</span>
+                  {item.message.reportingExcluded && (
+                    <>
+                      <span>·</span>
+                      <span className="font-medium text-amber-800">
+                        TEST / EXCLUDED
+                      </span>
+                    </>
+                  )}
                   <span>·</span>
                   <span className="font-medium text-ink">
                     {item.riskLevel ?? "—"}
@@ -271,6 +280,32 @@ export function AdminSupportDashboard() {
                       }
                     >
                       Mark resolved
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || item.message.reportingExcluded}
+                      className="rounded border border-linen px-3 py-1.5 text-xs disabled:opacity-50"
+                      onClick={() =>
+                        void runAction({
+                          action: "mark_reporting_excluded",
+                          messageId: item.message.id,
+                        })
+                      }
+                    >
+                      Mark TEST / EXCLUDED
+                    </button>
+                    <button
+                      type="button"
+                      disabled={busy || !item.message.reportingExcluded}
+                      className="rounded border border-linen px-3 py-1.5 text-xs disabled:opacity-50"
+                      onClick={() =>
+                        void runAction({
+                          action: "restore_reporting",
+                          messageId: item.message.id,
+                        })
+                      }
+                    >
+                      Restore to reporting
                     </button>
                     <button
                       type="button"

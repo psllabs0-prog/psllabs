@@ -20,6 +20,7 @@ function mapMessage(row: Record<string, unknown>): SupportMessageRow {
     receivedAt: new Date(String(row.received_at)).toISOString(),
     normalizedBody: String(row.normalized_body),
     status: row.status as MessageStatus,
+    reportingExcluded: Boolean(row.reporting_excluded),
     createdAt: new Date(String(row.created_at)).toISOString(),
     updatedAt: new Date(String(row.updated_at)).toISOString(),
   };
@@ -284,6 +285,31 @@ export async function markMessageResolved(messageId: number): Promise<void> {
     SET resolved_at = COALESCE(resolved_at, now())
     WHERE message_id = ${messageId} AND resolved_at IS NULL
   `;
+}
+
+/**
+ * Explicit TEST / EXCLUDED flag for support reporting & CEO intelligence.
+ * Retains audit history; resolves open escalations for this message only.
+ * Does not send email and does not delete mailbox/Neon records.
+ */
+export async function setMessageReportingExcluded(
+  messageId: number,
+  excluded: boolean
+): Promise<void> {
+  await ensureSupportSchema();
+  const sql = getSql();
+  await sql`
+    UPDATE support_messages
+    SET reporting_excluded = ${excluded}, updated_at = now()
+    WHERE id = ${messageId}
+  `;
+  if (excluded) {
+    await sql`
+      UPDATE support_escalations
+      SET resolved_at = COALESCE(resolved_at, now())
+      WHERE message_id = ${messageId} AND resolved_at IS NULL
+    `;
+  }
 }
 
 export async function updateClassificationManual(input: {
