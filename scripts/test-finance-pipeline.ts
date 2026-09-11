@@ -102,15 +102,27 @@ function testNonRevenueEvents() {
 function testSheetsSkipRetryEligibility() {
   const notConfigured = "Google Sheets not configured";
   const otherSkip = "Manual hold";
-  const shouldRetry = (status: string, error: string | null) =>
-    status === "pending" ||
-    status === "failed" ||
-    (status === "skipped" && error === notConfigured);
-  assert(shouldRetry("skipped", notConfigured), "missing-sheets skip retries");
-  assert(!shouldRetry("skipped", otherSkip), "unrelated skip does not retry");
-  assert(shouldRetry("pending", null), "pending retries");
-  assert(shouldRetry("failed", "boom"), "failed retries");
-  assert(!shouldRetry("synced", null), "synced does not retry");
+  const shouldRetry = (
+    status: string,
+    error: string | null,
+    reportingExcluded: boolean
+  ) =>
+    !reportingExcluded &&
+    (status === "pending" ||
+      status === "failed" ||
+      (status === "skipped" && error === notConfigured));
+  assert(
+    shouldRetry("skipped", notConfigured, false),
+    "missing-sheets skip retries"
+  );
+  assert(
+    !shouldRetry("skipped", notConfigured, true),
+    "reporting_excluded never retries Sheets"
+  );
+  assert(!shouldRetry("skipped", otherSkip, false), "unrelated skip does not retry");
+  assert(shouldRetry("pending", null, false), "pending retries");
+  assert(shouldRetry("failed", "boom", false), "failed retries");
+  assert(!shouldRetry("synced", null, false), "synced does not retry");
 }
 
 testBtcpaySignatures();

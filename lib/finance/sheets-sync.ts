@@ -11,6 +11,7 @@ import {
   markFinanceSheetSynced,
   SHEETS_NOT_CONFIGURED_ERROR,
 } from "./store";
+import { REPORTING_EXCLUDED_SHEET_ERROR } from "./reporting-exclusion";
 import type { FinanceTransactionRow } from "./types";
 
 function rowValues(tx: FinanceTransactionRow, syncedAt: string) {
@@ -37,6 +38,11 @@ function rowValues(tx: FinanceTransactionRow, syncedAt: string) {
 export async function syncFinanceTransactionToSheet(
   tx: FinanceTransactionRow
 ): Promise<"synced" | "skipped" | "failed"> {
+  if (tx.reportingExcluded) {
+    await markFinanceSheetSkipped(tx.id, REPORTING_EXCLUDED_SHEET_ERROR);
+    return "skipped";
+  }
+
   if (!isGoogleSheetsConfigured()) {
     await markFinanceSheetSkipped(tx.id, SHEETS_NOT_CONFIGURED_ERROR);
     return "skipped";

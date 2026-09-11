@@ -57,6 +57,8 @@ export type FinanceTransactionRow = {
   sheetSyncError: string | null;
   sheetSyncedAt: string | null;
   sourcePaymentEventId: number | null;
+  reportingExcluded: boolean;
+  reportingExclusionReason: string | null;
   createdAt: string;
   updatedAt: string;
 };

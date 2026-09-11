@@ -14,6 +14,7 @@ type FinancePayload = {
   tagadaApiConfigured: boolean;
   /** Optional backup; false means Not configured / optional — not a blocker. */
   tagadaWebhookConfigured: boolean;
+  businessGrossRevenueUsd: number;
   lastReconciliation: FinanceJobRunRow | null;
   events: PaymentEventRow[];
   transactions: FinanceTransactionRow[];
@@ -42,6 +43,7 @@ export function AdminFinanceDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [reconciling, setReconciling] = useState(false);
   const [reconMessage, setReconMessage] = useState<string | null>(null);
+  const [excludeBusyId, setExcludeBusyId] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setError(null);
@@ -87,6 +89,33 @@ export function AdminFinanceDashboard() {
     }
   }
 
+  async function markExcluded(pslOrderId: string) {
+    setExcludeBusyId(pslOrderId);
+    setReconMessage(null);
+    try {
+      const res = await fetch("/api/admin/finance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "mark_reporting_excluded",
+          pslOrderId,
+          reason: "owner-marked QA/test order",
+        }),
+      });
+      const json = (await res.json()) as { ok?: boolean; error?: string };
+      if (!res.ok || !json.ok) {
+        setReconMessage(json.error ?? "Could not mark transaction excluded");
+      } else {
+        setReconMessage(`Marked ${pslOrderId} as TEST / EXCLUDED.`);
+        await refresh();
+      }
+    } catch {
+      setReconMessage("Exclude request failed.");
+    } finally {
+      setExcludeBusyId(null);
+    }
+  }
+
   if (loading) {
     return <p className="text-sm text-ash">Loading finance status…</p>;
   }
@@ -127,6 +156,17 @@ export function AdminFinanceDashboard() {
       <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <article className="premium-card p-5">
           <p className="mono text-xs uppercase tracking-wider text-ash">
+            Business gross (finance)
+          </p>
+          <p className="mt-2 text-lg text-ink">
+            {money(data.businessGrossRevenueUsd)}
+          </p>
+          <p className="mt-1 text-sm text-ash">
+            Excludes TEST / EXCLUDED finance rows.
+          </p>
+        </article>
+        <article className="premium-card p-5">
+          <p className="mono text-xs uppercase tracking-wider text-ash">
             Sheets mirror
           </p>
           <p className="mt-2 text-lg text-ink">
@@ -161,6 +201,9 @@ export function AdminFinanceDashboard() {
             {data.tagadaApiConfigured ? " · Tagada API ready" : ""}
           </p>
         </article>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-1">
         <article className="premium-card p-5">
           <p className="mono text-xs uppercase tracking-wider text-ash">
             Open warnings
@@ -291,6 +334,7 @@ export function AdminFinanceDashboard() {
                 <th className="py-2 pr-4">Order</th>
                 <th className="py-2 pr-4">Provider</th>
                 <th className="py-2 pr-4">Gross</th>
+                <th className="py-2 pr-4">Reporting</th>
                 <th className="py-2">Sheet sync</th>
               </tr>
             </thead>
@@ -301,6 +345,27 @@ export function AdminFinanceDashboard() {
                   <td className="py-2 pr-4 font-mono text-xs">{tx.pslOrderId}</td>
                   <td className="py-2 pr-4">{tx.provider}</td>
                   <td className="py-2 pr-4">{money(tx.grossAmount)}</td>
+                  <td className="py-2 pr-4">
+                    {tx.reportingExcluded ? (
+                      <span className="text-xs font-medium text-signal">
+                        TEST / EXCLUDED
+                        {tx.reportingExclusionReason
+                          ? ` — ${tx.reportingExclusionReason}`
+                          : ""}
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="text-xs underline text-ash hover:text-ink disabled:opacity-50"
+                        disabled={excludeBusyId === tx.pslOrderId}
+                        onClick={() => void markExcluded(tx.pslOrderId)}
+                      >
+                        {excludeBusyId === tx.pslOrderId
+                          ? "Marking…"
+                          : "Mark TEST / EXCLUDED"}
+                      </button>
+                    )}
+                  </td>
                   <td className="py-2">
                     {tx.sheetSyncStatus}
                     {tx.sheetSyncError ? (

@@ -1,4 +1,5 @@
 import { getSql } from "@/lib/db/sql";
+import { ensureFinanceSchema } from "@/lib/finance/schema";
 import { getCatalogProductByHandle } from "@/lib/products/catalog";
 import type { Order } from "@/lib/orders/types";
 
@@ -225,11 +226,23 @@ export async function getLedgerRows(): Promise<LedgerRow[]> {
 
 export async function getLedgerKpi(): Promise<LedgerKpi> {
   await ensureLedgerSchema();
+  await ensureFinanceSchema();
   const sql = getSql();
 
   const rows = (await sql`
     SELECT
-      COALESCE(SUM(gross_revenue_usd) FILTER (WHERE record_type = 'SALE'), 0) AS total_revenue,
+      COALESCE(
+        SUM(gross_revenue_usd) FILTER (
+          WHERE record_type = 'SALE'
+            AND NOT EXISTS (
+              SELECT 1
+              FROM finance_transactions ft
+              WHERE ft.psl_order_id = financial_ledger.order_id
+                AND ft.reporting_excluded = true
+            )
+        ),
+        0
+      ) AS total_revenue,
       COALESCE(SUM(gross_revenue_usd) FILTER (WHERE record_type = 'EXPENSE'), 0) AS total_expenses
     FROM financial_ledger
   `) as { total_revenue: string | number; total_expenses: string | number }[];

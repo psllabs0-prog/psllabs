@@ -1,6 +1,10 @@
 import { getSql } from "@/lib/db/sql";
 
 import { ensureFinanceSchema } from "./schema";
+import {
+  DEFAULT_TEST_EXCLUSION_REASON,
+  REPORTING_EXCLUDED_SHEET_ERROR,
+} from "./reporting-exclusion";
 import type {
   FinanceJobRunRow,
   FinanceTransactionRow,
@@ -13,6 +17,7 @@ import type {
 } from "./types";
 
 export { ensureFinanceSchema } from "./schema";
+export const SHEETS_NOT_CONFIGURED_ERROR = "Google Sheets not configured";
 
 function num(value: string | number | null | undefined): number | null {
   if (value === null || value === undefined) return null;
@@ -83,6 +88,8 @@ function mapFinanceTx(row: {
   sheet_sync_error: string | null;
   sheet_synced_at: string | null;
   source_payment_event_id: number | string | null;
+  reporting_excluded?: boolean | null;
+  reporting_exclusion_reason?: string | null;
   created_at: string;
   updated_at: string;
 }): FinanceTransactionRow {
@@ -113,6 +120,8 @@ function mapFinanceTx(row: {
       row.source_payment_event_id === undefined
         ? null
         : Number(row.source_payment_event_id),
+    reportingExcluded: Boolean(row.reporting_excluded),
+    reportingExclusionReason: row.reporting_exclusion_reason ?? null,
     createdAt: new Date(row.created_at).toISOString(),
     updatedAt: new Date(row.updated_at).toISOString(),
   };
@@ -334,8 +343,6 @@ export async function getFinanceTransactionByOrderId(
   return rows[0] ? mapFinanceTx(rows[0]) : null;
 }
 
-export const SHEETS_NOT_CONFIGURED_ERROR = "Google Sheets not configured";
-
 export async function listFinanceTransactionsNeedingSheetSync(
   limit = 50
 ): Promise<FinanceTransactionRow[]> {
@@ -344,15 +351,55 @@ export async function listFinanceTransactionsNeedingSheetSync(
   const safe = Math.min(Math.max(limit, 1), 200);
   const rows = (await sql`
     SELECT * FROM finance_transactions
-    WHERE sheet_sync_status IN ('pending', 'failed')
-       OR (
-         sheet_sync_status = 'skipped'
-         AND sheet_sync_error = ${SHEETS_NOT_CONFIGURED_ERROR}
-       )
+    WHERE reporting_excluded = false
+      AND (
+        sheet_sync_status IN ('pending', 'failed')
+        OR (
+          sheet_sync_status = 'skipped'
+          AND sheet_sync_error = ${SHEETS_NOT_CONFIGURED_ERROR}
+        )
+      )
     ORDER BY event_timestamp ASC
     LIMIT ${safe}
   `) as Array<Parameters<typeof mapFinanceTx>[0]>;
   return rows.map(mapFinanceTx);
+}
+
+/** Gross business revenue from finance_transactions (excludes reporting_excluded). */
+export async function sumBusinessGrossRevenueUsd(): Promise<number> {
+  await ensureFinanceSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT COALESCE(SUM(gross_amount), 0) AS total
+    FROM finance_transactions
+    WHERE reporting_excluded = false
+  `) as { total: string | number }[];
+  return Number(rows[0]?.total ?? 0);
+}
+
+/**
+ * Explicitly exclude a finance transaction from Sheets/revenue reporting.
+ * Does not delete the row or alter orders/payments.
+ */
+export async function markFinanceTransactionReportingExcluded(
+  pslOrderId: string,
+  reason: string = DEFAULT_TEST_EXCLUSION_REASON
+): Promise<FinanceTransactionRow | null> {
+  await ensureFinanceSchema();
+  const sql = getSql();
+  const trimmedReason = reason.trim() || DEFAULT_TEST_EXCLUSION_REASON;
+  const rows = (await sql`
+    UPDATE finance_transactions
+    SET
+      reporting_excluded = true,
+      reporting_exclusion_reason = ${trimmedReason},
+      sheet_sync_status = 'skipped',
+      sheet_sync_error = ${REPORTING_EXCLUDED_SHEET_ERROR},
+      updated_at = now()
+    WHERE psl_order_id = ${pslOrderId}
+    RETURNING *
+  `) as Array<Parameters<typeof mapFinanceTx>[0]>;
+  return rows[0] ? mapFinanceTx(rows[0]) : null;
 }
 
 export async function markFinanceSheetSynced(

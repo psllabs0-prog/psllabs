@@ -124,7 +124,9 @@ export async function ensureFinanceSchema(): Promise<void> {
         sheet_synced_at TIMESTAMPTZ,
         source_payment_event_id BIGINT,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        reporting_excluded BOOLEAN NOT NULL DEFAULT FALSE,
+        reporting_exclusion_reason TEXT
       )
     `;
     await sql`
@@ -205,8 +207,21 @@ export async function ensureFinanceSchema(): Promise<void> {
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     `;
     await sql`
+      ALTER TABLE finance_transactions
+      ADD COLUMN IF NOT EXISTS reporting_excluded BOOLEAN NOT NULL DEFAULT FALSE
+    `;
+    await sql`
+      ALTER TABLE finance_transactions
+      ADD COLUMN IF NOT EXISTS reporting_exclusion_reason TEXT
+    `;
+    await sql`
       CREATE INDEX IF NOT EXISTS finance_transactions_sheet_status_idx
       ON finance_transactions (sheet_sync_status)
+    `;
+    await sql`
+      CREATE INDEX IF NOT EXISTS finance_transactions_reporting_excluded_idx
+      ON finance_transactions (reporting_excluded)
+      WHERE reporting_excluded = true
     `;
     await sql`
       CREATE INDEX IF NOT EXISTS finance_transactions_provider_payment_idx
