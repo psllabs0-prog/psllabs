@@ -12,6 +12,8 @@ type Payload = {
     periodEnd: string;
     generatedAt: string;
     emailSentAt: string | null;
+    emailSendClaimedAt: string | null;
+    emailSendLastError: string | null;
   } | null;
 };
 
@@ -107,10 +109,30 @@ export function AdminCeoBriefDashboard() {
             {brief
               ? `Period ${brief.periodLabel} · Generated ${new Date(brief.generatedAt).toLocaleString()}`
               : "No brief generated yet."}
-            {data?.row?.emailSentAt
-              ? ` · Emailed ${new Date(data.row.emailSentAt).toLocaleString()}`
-              : ""}
           </p>
+          {data?.row && (
+            <div className="mt-1 space-y-0.5 text-xs text-ash">
+              {data.row.emailSentAt ? (
+                <p>
+                  Email sent:{" "}
+                  {new Date(data.row.emailSentAt).toLocaleString()}
+                </p>
+              ) : (
+                <p>Email sent: not yet</p>
+              )}
+              {data.row.emailSendLastError && !data.row.emailSentAt && (
+                <p className="text-red-700">
+                  Email retryable failure: {data.row.emailSendLastError}
+                </p>
+              )}
+              {data.row.emailSendClaimedAt && !data.row.emailSentAt && (
+                <p>
+                  Email send currently claimed/in progress (since{" "}
+                  {new Date(data.row.emailSendClaimedAt).toLocaleString()})
+                </p>
+              )}
+            </div>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <button

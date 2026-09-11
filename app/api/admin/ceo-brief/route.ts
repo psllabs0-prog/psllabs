@@ -8,6 +8,26 @@ import { ensureCeoBriefSchema } from "@/lib/ceo-brief/schema";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+function rowMeta(row: {
+  id: number;
+  periodStart: string;
+  periodEnd: string;
+  generatedAt: string;
+  emailSentAt: string | null;
+  emailSendClaimedAt: string | null;
+  emailSendLastError: string | null;
+}) {
+  return {
+    id: row.id,
+    periodStart: row.periodStart,
+    periodEnd: row.periodEnd,
+    generatedAt: row.generatedAt,
+    emailSentAt: row.emailSentAt,
+    emailSendClaimedAt: row.emailSendClaimedAt,
+    emailSendLastError: row.emailSendLastError,
+  };
+}
+
 export async function GET() {
   const authError = await requireAdminAuth();
   if (authError) return authError;
@@ -17,15 +37,7 @@ export async function GET() {
     const latest = await getLatestCeoBrief();
     return NextResponse.json({
       brief: latest?.briefJson ?? null,
-      row: latest
-        ? {
-            id: latest.id,
-            periodStart: latest.periodStart,
-            periodEnd: latest.periodEnd,
-            generatedAt: latest.generatedAt,
-            emailSentAt: latest.emailSentAt,
-          }
-        : null,
+      row: latest ? rowMeta(latest) : null,
     });
   } catch (error) {
     console.error("[admin/ceo-brief] GET", error);
@@ -62,13 +74,7 @@ export async function POST(request: Request) {
         brief: result.brief,
         emailSent: result.emailSent,
         emailSkippedReason: result.emailSkippedReason,
-        row: {
-          id: result.row.id,
-          periodStart: result.row.periodStart,
-          periodEnd: result.row.periodEnd,
-          generatedAt: result.row.generatedAt,
-          emailSentAt: result.row.emailSentAt,
-        },
+        row: rowMeta(result.row),
       });
     }
 

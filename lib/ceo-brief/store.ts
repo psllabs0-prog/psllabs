@@ -1,6 +1,9 @@
 import { getSql } from "@/lib/db/sql";
 
-import { ensureCeoBriefSchema } from "./schema";
+import {
+  CEO_BRIEF_EMAIL_CLAIM_STALE_MINUTES,
+  ensureCeoBriefSchema,
+} from "./schema";
 import type { CeoBriefRow, CeoLukeAction, CeoWeeklyBrief } from "./types";
 
 function mapRow(row: Record<string, unknown>): CeoBriefRow {
@@ -24,8 +27,34 @@ function mapRow(row: Record<string, unknown>): CeoBriefRow {
     emailSentAt: row.email_sent_at
       ? new Date(String(row.email_sent_at)).toISOString()
       : null,
+    emailSendClaimedAt: row.email_send_claimed_at
+      ? new Date(String(row.email_send_claimed_at)).toISOString()
+      : null,
+    emailSendLastError: row.email_send_last_error
+      ? String(row.email_send_last_error)
+      : null,
     createdAt: new Date(String(row.created_at)).toISOString(),
   };
+}
+
+/** Strip secrets from SMTP / transport error strings before storage. */
+export function sanitizeCeoBriefEmailError(raw: string): string {
+  let msg = raw.replace(/\s+/g, " ").trim().slice(0, 400);
+  msg = msg.replace(
+    /(pass(word)?|smtp[_-]?pass|api[_-]?key|secret|token|bearer)\s*[:=]\s*\S+/gi,
+    "$1=[redacted]"
+  );
+  msg = msg.replace(/\b[A-Za-z0-9+/]{24,}={0,2}\b/g, "[redacted]");
+  return msg || "email send failed";
+}
+
+export async function getCeoBriefById(id: number): Promise<CeoBriefRow | null> {
+  await ensureCeoBriefSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT * FROM ceo_weekly_briefs WHERE id = ${id} LIMIT 1
+  `) as Record<string, unknown>[];
+  return rows[0] ? mapRow(rows[0]) : null;
 }
 
 export async function getCeoBriefForPeriod(
@@ -56,8 +85,8 @@ export async function getLatestCeoBrief(): Promise<CeoBriefRow | null> {
 }
 
 /**
- * Upsert brief for a period. Regenerating updates JSON but does not clear
- * email_sent_at (prevents duplicate weekly emails unless forceEmail later).
+ * Upsert brief for a period. Regenerating updates JSON but never clears
+ * email_sent_at / claim / last_error delivery state.
  */
 export async function upsertCeoWeeklyBrief(input: {
   periodStart: Date;
@@ -97,29 +126,102 @@ export async function upsertCeoWeeklyBrief(input: {
   return mapRow(rows[0]);
 }
 
+/**
+ * Atomic send lease. Does NOT set email_sent_at.
+ * Succeeds only when unsent and claim is free or stale.
+ */
+export async function claimCeoBriefEmailSend(
+  id: number,
+  options?: { staleMinutes?: number; allowResend?: boolean }
+): Promise<boolean> {
+  await ensureCeoBriefSchema();
+  const sql = getSql();
+  const staleMinutes =
+    options?.staleMinutes ?? CEO_BRIEF_EMAIL_CLAIM_STALE_MINUTES;
+  const allowResend = options?.allowResend === true;
+
+  if (allowResend) {
+    const rows = (await sql`
+      UPDATE ceo_weekly_briefs
+      SET
+        email_send_claimed_at = now(),
+        email_send_last_error = NULL
+      WHERE id = ${id}
+        AND (
+          email_send_claimed_at IS NULL
+          OR email_send_claimed_at < now() - (${staleMinutes}::int * interval '1 minute')
+        )
+      RETURNING id
+    `) as Array<{ id: number }>;
+    return rows.length > 0;
+  }
+
+  const rows = (await sql`
+    UPDATE ceo_weekly_briefs
+    SET
+      email_send_claimed_at = now(),
+      email_send_last_error = NULL
+    WHERE id = ${id}
+      AND email_sent_at IS NULL
+      AND (
+        email_send_claimed_at IS NULL
+        OR email_send_claimed_at < now() - (${staleMinutes}::int * interval '1 minute')
+      )
+    RETURNING id
+  `) as Array<{ id: number }>;
+  return rows.length > 0;
+}
+
+/** Confirmed successful SMTP delivery only. */
 export async function markCeoBriefEmailSent(id: number): Promise<void> {
   await ensureCeoBriefSchema();
   const sql = getSql();
   await sql`
     UPDATE ceo_weekly_briefs
-    SET email_sent_at = now()
+    SET
+      email_sent_at = now(),
+      email_send_claimed_at = NULL,
+      email_send_last_error = NULL
+    WHERE id = ${id}
+  `;
+}
+
+/** Release lease after failure/skip; keep email_sent_at NULL. */
+export async function releaseCeoBriefEmailClaim(
+  id: number,
+  errorMessage: string
+): Promise<void> {
+  await ensureCeoBriefSchema();
+  const sql = getSql();
+  const safe = sanitizeCeoBriefEmailError(errorMessage);
+  await sql`
+    UPDATE ceo_weekly_briefs
+    SET
+      email_send_claimed_at = NULL,
+      email_send_last_error = ${safe}
     WHERE id = ${id}
       AND email_sent_at IS NULL
   `;
 }
 
-/** Atomic claim: only one sender wins for a period. */
-export async function claimCeoBriefEmailSend(
-  id: number
-): Promise<boolean> {
+/** Test helper: force a live claim timestamp (including stale backdating). */
+export async function setCeoBriefEmailClaimForTests(
+  id: number,
+  claimedAt: Date | null
+): Promise<void> {
   await ensureCeoBriefSchema();
   const sql = getSql();
-  const rows = (await sql`
+  if (claimedAt === null) {
+    await sql`
+      UPDATE ceo_weekly_briefs
+      SET email_send_claimed_at = NULL
+      WHERE id = ${id}
+    `;
+    return;
+  }
+  await sql`
     UPDATE ceo_weekly_briefs
-    SET email_sent_at = now()
+    SET email_send_claimed_at = ${claimedAt.toISOString()}::timestamptz
     WHERE id = ${id}
-      AND email_sent_at IS NULL
-    RETURNING id
-  `) as Array<{ id: number }>;
-  return rows.length > 0;
+  `;
 }

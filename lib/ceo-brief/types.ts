@@ -132,5 +132,7 @@ export type CeoBriefRow = {
   executiveSummary: string;
   actionsJson: CeoLukeAction[];
   emailSentAt: string | null;
+  emailSendClaimedAt: string | null;
+  emailSendLastError: string | null;
   createdAt: string;
 };

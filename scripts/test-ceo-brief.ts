@@ -17,6 +17,7 @@ import { genuineCustomerCount } from "../lib/ceo-brief/support";
 import { collectAcquisitionSnapshot } from "../lib/ceo-brief/acquisition";
 import { collectSeoSnapshot } from "../lib/ceo-brief/seo";
 import { formatCeoBriefEmailSubject } from "../lib/ceo-brief/email";
+import { sanitizeCeoBriefEmailError } from "../lib/ceo-brief/store";
 import { verifyCronRequest } from "../lib/cron/auth";
 import type {
   CeoAcquisitionSnapshot,
@@ -258,6 +259,14 @@ function testCronAuth() {
   else process.env.CRON_SECRET = prev;
 }
 
+function testSanitizeEmailError() {
+  const cleaned = sanitizeCeoBriefEmailError(
+    "SMTP auth failed password=supersecret123 token=abc"
+  );
+  assert(!/supersecret123/i.test(cleaned), "password redacted");
+  assert(/redacted/i.test(cleaned), "redaction marker");
+}
+
 function main() {
   console.log("[test-ceo-brief] running…");
   testPeriodMondayWindow();
@@ -271,6 +280,7 @@ function main() {
   testFinanceFailureSurfaced();
   testEmailSubject();
   testCronAuth();
+  testSanitizeEmailError();
   console.log("[test-ceo-brief] all passed.");
 }
 
