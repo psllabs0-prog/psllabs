@@ -218,7 +218,12 @@ function testAbsoluteLowStockBoundary() {
 }
 
 function testInboundDoesNotIncreaseSellable() {
-  const lot = baseLot({ status: "in_transit", quantityOrdered: 170 });
+  const lot = baseLot({
+    status: "in_transit",
+    quantityOrdered: 170,
+    // Arrive before sellable-only stockout so planning coverage extends.
+    expectedReleaseAt: "2026-09-15T00:00:00.000Z",
+  });
   const m = buildSkuMonitorMetrics({
     productName: "Retatrutide",
     sellableStock: 10,
@@ -242,17 +247,17 @@ function testInboundDoesNotIncreaseSellable() {
     m.planningReleaseEvents.length === 1,
     "future release event for coverage"
   );
+  assert(m.daysSupply === 10, "sellable-only DOS = 10/1");
   assert(
     m.planningAdjustedDaysSupply !== null &&
-      m.daysSupply !== null &&
-      m.planningAdjustedDaysSupply > m.daysSupply,
-    "planning-adjusted coverage > sellable-only"
+      m.planningAdjustedDaysSupply > (m.daysSupply ?? 0),
+    "planning-adjusted coverage > sellable-only when inbound releases in time"
   );
   assert(
     m.riskAdjustedDaysSupply !== null &&
       m.planningAdjustedDaysSupply !== null &&
-      m.riskAdjustedDaysSupply <= m.planningAdjustedDaysSupply,
-    "risk-adjusted <= planning-adjusted (later inbound)"
+      m.riskAdjustedDaysSupply === m.planningAdjustedDaysSupply,
+    "explicit expected_release_at uses same planning/risk date"
   );
   assert(
     m.planningAdjustedProjectedStockoutAt !== null,
