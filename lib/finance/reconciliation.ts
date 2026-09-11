@@ -31,6 +31,11 @@ export type ReconciliationSummary = {
   sheetSync: { synced: number; failed: number; skipped: number };
 };
 
+/**
+ * Daily backup integrity check. Tagada card payments are primarily recorded
+ * at successful checkout; this job re-checks via authenticated Tagada API
+ * using stored pay_/ord_ identifiers. A Tagada webhook is not required.
+ */
 export async function runFinanceReconciliation(): Promise<ReconciliationSummary> {
   const runId = await startFinanceJobRun("finance_reconciliation");
   const summary: ReconciliationSummary = {

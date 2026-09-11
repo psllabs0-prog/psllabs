@@ -9,8 +9,13 @@ import {
   listRecentFinanceTransactions,
   listRecentPaymentEvents,
 } from "@/lib/finance/store";
+import { isTagadaConfigured } from "@/lib/tagada";
 
 export const runtime = "nodejs";
+
+function isTagadaWebhookConfigured(): boolean {
+  return Boolean(process.env.TAGADA_WEBHOOK_SECRET?.trim());
+}
 
 export async function GET() {
   const unauthorized = await requireAdminAuth();
@@ -26,6 +31,9 @@ export async function GET() {
 
     return NextResponse.json({
       sheetsConfigured: isGoogleSheetsConfigured(),
+      tagadaApiConfigured: isTagadaConfigured(),
+      // Optional backup only — absence is not a production launch blocker.
+      tagadaWebhookConfigured: isTagadaWebhookConfigured(),
       lastReconciliation: lastRun,
       events,
       transactions,

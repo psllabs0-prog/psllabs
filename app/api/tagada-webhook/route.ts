@@ -42,9 +42,14 @@ type TagadaWebhookEvent = {
 };
 
 /**
- * Official TagadaPay signed webhook receiver.
- * Requires TAGADA_WEBHOOK_SECRET — never accepts unverified payloads.
- * @see https://docs.tagada.io/developer-tools/node-sdk/webhooks-events
+ * Optional TagadaPay signed webhook receiver (backup path).
+ *
+ * Primary Tagada finance capture is the successful checkout fulfill path.
+ * Daily reconciliation uses the authenticated Tagada API + pay_/ord_ ids.
+ *
+ * TAGADA_WEBHOOK_SECRET is optional for launch — when absent this endpoint
+ * rejects all deliveries (never accepts unsigned payloads). Configuring a
+ * webhook later is additive, not required for Phase 1.
  */
 export async function POST(request: Request) {
   const rawBody = await request.text();
@@ -55,7 +60,9 @@ export async function POST(request: Request) {
   const headerEventId = request.headers.get("x-tagadapay-event-id");
 
   if (!secret) {
-    console.error("[tagada-webhook] TAGADA_WEBHOOK_SECRET is not set");
+    console.warn(
+      "[tagada-webhook] TAGADA_WEBHOOK_SECRET not set — webhook optional; rejecting delivery (unsigned not accepted)"
+    );
     return NextResponse.json(
       { error: "Webhook not configured" },
       { status: 503 }

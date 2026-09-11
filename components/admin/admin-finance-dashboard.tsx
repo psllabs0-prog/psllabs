@@ -11,6 +11,9 @@ import type {
 
 type FinancePayload = {
   sheetsConfigured: boolean;
+  tagadaApiConfigured: boolean;
+  /** Optional backup; false means Not configured / optional — not a blocker. */
+  tagadaWebhookConfigured: boolean;
   lastReconciliation: FinanceJobRunRow | null;
   events: PaymentEventRow[];
   transactions: FinanceTransactionRow[];
@@ -103,9 +106,10 @@ export function AdminFinanceDashboard() {
             Payment events and revenue mirror status. Neon remains the source of
             truth; Google Sheets is a reporting mirror only. Processor fees use
             finance_transactions.processor_fee (NULL when unknown) — not the
-            legacy ledger fee default of 0. Automatic reconciliation runs daily
-            as a backup; successful payments are recorded at checkout/webhook
-            time.
+            legacy ledger fee default of 0. Tagada card finance is recorded on
+            successful checkout; daily reconciliation uses the Tagada API and
+            pay_/ord_ identifiers as the integrity check. A Tagada webhook is
+            optional backup only.
           </p>
         </div>
         <button
@@ -120,13 +124,26 @@ export function AdminFinanceDashboard() {
 
       {reconMessage && <p className="text-sm text-ash">{reconMessage}</p>}
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <article className="premium-card p-5">
           <p className="mono text-xs uppercase tracking-wider text-ash">
             Sheets mirror
           </p>
           <p className="mt-2 text-lg text-ink">
             {data.sheetsConfigured ? "Configured" : "Not configured"}
+          </p>
+        </article>
+        <article className="premium-card p-5">
+          <p className="mono text-xs uppercase tracking-wider text-ash">
+            Tagada webhook
+          </p>
+          <p className="mt-2 text-lg text-ink">
+            {data.tagadaWebhookConfigured
+              ? "Configured"
+              : "Not configured / optional"}
+          </p>
+          <p className="mt-1 text-sm text-ash">
+            Backup only — checkout + daily API reconcile remain primary.
           </p>
         </article>
         <article className="premium-card p-5">
@@ -141,6 +158,7 @@ export function AdminFinanceDashboard() {
           </p>
           <p className="mt-1 text-sm text-ash">
             {data.lastReconciliation?.status ?? "never run"}
+            {data.tagadaApiConfigured ? " · Tagada API ready" : ""}
           </p>
         </article>
         <article className="premium-card p-5">
