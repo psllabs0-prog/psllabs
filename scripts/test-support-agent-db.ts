@@ -205,6 +205,51 @@ async function main() {
       "successful Luke notification does not repeat"
     );
 
+    // --- Auto-send kill switch blocks customer retry; escalation notify still works ---
+    const killMsg = fixture({
+      providerMessageId: `kill-${Date.now()}@fixture.local`,
+      subject: "Where is the COA?",
+      normalizedBody: "Need COA please",
+      threadKey: `pair:fixture@example.com|kill-switch`,
+    });
+    const k1 = await processInboundEmail(killMsg);
+    await sql`
+      UPDATE support_messages
+      SET status = 'failed', updated_at = now()
+      WHERE id = ${k1.messageId}
+    `;
+    process.env.SUPPORT_AUTO_SEND_ENABLED = "false";
+    const blocked = await retryDurableSideEffects(k1.messageId, {
+      forceCustomerSendRetry: true,
+    });
+    assert(blocked.autoSent === false, "kill switch blocks force customer retry");
+    const draftStill = await getLatestDraft(k1.messageId);
+    assert(draftStill && draftStill.sentAt === null, "draft remains unsent");
+
+    process.env.SUPPORT_AUTO_SEND_ENABLED = "true";
+    // With auto-send on, retry is intended; TEST_MODE still won't SMTP-send,
+    // but isCustomerSendRetryable path is exercised via markResponseSent below.
+    const allowedList = await listRetryableCustomerSendMessages(50);
+    assert(
+      allowedList.some((r) => r.message.id === k1.messageId),
+      "auto-send true again → failed response is retryable"
+    );
+    process.env.SUPPORT_AUTO_SEND_ENABLED = "false";
+
+    // Escalation notify while auto-send false
+    await sql`
+      UPDATE support_escalations
+      SET notified_at = NULL
+      WHERE message_id = ${r3.messageId}
+    `;
+    process.env.SUPPORT_AUTO_SEND_ENABLED = "false";
+    const escWhileOff = await retryDurableSideEffects(r3.messageId);
+    assert(
+      escWhileOff.escalationNotified === true,
+      "internal escalation notification retries while auto-send false"
+    );
+    assert(escWhileOff.autoSent === false, "no customer send during esc retry");
+
     const human = fixture({
       providerMessageId: `dose-${Date.now()}@fixture.local`,
       subject: "Dosing",
@@ -230,6 +275,7 @@ async function main() {
 
     console.log("[test-support-agent-db] all passed.");
   } finally {
+    process.env.SUPPORT_AUTO_SEND_ENABLED = "false";
     await cleanupFixtures(sql);
   }
 }

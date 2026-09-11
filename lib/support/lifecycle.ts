@@ -19,7 +19,10 @@ export function isCustomerSendRetryable(input: {
   status: MessageStatus;
   sentAt: string | null;
   sendIntended: boolean;
+  /** Absolute kill switch — false blocks ALL autonomous customer retries. */
+  autoSendEnabled: boolean;
 }): boolean {
+  if (!input.autoSendEnabled) return false;
   if (!input.sendIntended) return false;
   if (input.sentAt) return false;
   return (
@@ -27,6 +30,14 @@ export function isCustomerSendRetryable(input: {
     input.status === "drafted" ||
     input.status === "escalated"
   );
+}
+
+/**
+ * Whether an automatic (non-admin) customer send may proceed.
+ * SUPPORT_AUTO_SEND_ENABLED=false is an absolute kill switch.
+ */
+export function mayAutoSendCustomerReply(autoSendEnabled: boolean): boolean {
+  return autoSendEnabled === true;
 }
 
 /** After a successful send, never send again. */

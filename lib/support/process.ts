@@ -1,6 +1,7 @@
 import { SITE_URL } from "@/lib/seo";
 
 import { classifySupportMessage } from "./classify";
+import { isSupportAutoSendEnabled } from "./constants";
 import { decideOutboundAction, draftSupportResponse } from "./draft";
 import {
   fetchUnreadSupportEmails,
@@ -11,6 +12,7 @@ import {
   isCustomerSendRetryable,
   isDurableHandledStatus,
   isEscalationNotifyRetryable,
+  mayAutoSendCustomerReply,
   shouldMarkImapSeenAfterProcess,
 } from "./lifecycle";
 import { ensureSupportSchema } from "./schema";
@@ -136,6 +138,10 @@ function classificationFromStored(c: {
 /**
  * Retry customer send / Luke notification for an already-durable message.
  * Does not re-classify or create duplicate drafts/escalations.
+ *
+ * SUPPORT_AUTO_SEND_ENABLED=false is an absolute kill switch for ALL
+ * autonomous customer sends (including failed-send retries).
+ * Internal Luke escalation notifications still retry.
  */
 export async function retryDurableSideEffects(
   messageId: number,
@@ -155,25 +161,31 @@ export async function retryDurableSideEffects(
   let escalationNotified = false;
   let error: string | undefined;
 
-  let sendIntended = options?.forceCustomerSendRetry === true;
-  if (!sendIntended && classification && draft) {
-    const stubDraft: DraftResult = {
-      bodyText: draft.draftBody,
-      bodyHtml: "",
-      knowledgeSources: [],
-      aiDrafted: false,
-      requiresEscalation: Boolean(await getOpenEscalation(messageId)),
-      escalationReason: null,
-      policyDecision: "retry",
-    };
-    const action = decideOutboundAction({
-      classification: classificationFromStored(classification),
-      draft: stubDraft,
-      threadAutoSendDisabled: thread.autoSendDisabled,
-    });
-    sendIntended = action.sendCustomerReply || message.status === "failed";
-  } else if (message.status === "failed") {
-    sendIntended = true;
+  const autoSendEnabled = isSupportAutoSendEnabled();
+  let sendIntended = false;
+
+  // Kill switch: never intend autonomous customer send when disabled.
+  if (mayAutoSendCustomerReply(autoSendEnabled)) {
+    sendIntended = options?.forceCustomerSendRetry === true;
+    if (!sendIntended && classification && draft) {
+      const stubDraft: DraftResult = {
+        bodyText: draft.draftBody,
+        bodyHtml: "",
+        knowledgeSources: [],
+        aiDrafted: false,
+        requiresEscalation: Boolean(await getOpenEscalation(messageId)),
+        escalationReason: null,
+        policyDecision: "retry",
+      };
+      const action = decideOutboundAction({
+        classification: classificationFromStored(classification),
+        draft: stubDraft,
+        threadAutoSendDisabled: thread.autoSendDisabled,
+      });
+      sendIntended = action.sendCustomerReply || message.status === "failed";
+    } else if (!sendIntended && message.status === "failed") {
+      sendIntended = true;
+    }
   }
 
   if (
@@ -182,6 +194,7 @@ export async function retryDurableSideEffects(
       status: message.status,
       sentAt: draft.sentAt,
       sendIntended,
+      autoSendEnabled,
     })
   ) {
     const send = await tryCustomerSend({
@@ -404,17 +417,20 @@ export async function runSupportInboxJob(options?: {
   const uidsToMarkSeen: number[] = [];
 
   try {
-    // Retry Neon-side failures first (independent of IMAP UNSEEN).
-    for (const row of await listRetryableCustomerSendMessages(25)) {
-      const retry = await retryDurableSideEffects(row.message.id, {
-        forceCustomerSendRetry: true,
-      });
-      if (retry.autoSent) summary.autoSent += 1;
-      if (retry.error) {
-        summary.failed += 1;
-        summary.errors.push(retry.error);
+    // Retry Neon-side customer-send failures only when auto-send kill switch is on.
+    if (isSupportAutoSendEnabled()) {
+      for (const row of await listRetryableCustomerSendMessages(25)) {
+        const retry = await retryDurableSideEffects(row.message.id, {
+          forceCustomerSendRetry: true,
+        });
+        if (retry.autoSent) summary.autoSent += 1;
+        if (retry.error) {
+          summary.failed += 1;
+          summary.errors.push(retry.error);
+        }
       }
     }
+    // Luke escalation notifications always retry (independent of customer auto-send).
     for (const row of await listUnnotifiedEscalations(25)) {
       const retry = await retryDurableSideEffects(row.message.id);
       if (retry.error && !retry.escalationNotified) {

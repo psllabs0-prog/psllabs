@@ -226,14 +226,34 @@ function testReliabilityLifecycle() {
       status: "failed",
       sentAt: null,
       sendIntended: true,
+      autoSendEnabled: true,
     }) === true,
-    "SMTP failure retries"
+    "SMTP failure retries when auto-send on"
+  );
+  assert(
+    isCustomerSendRetryable({
+      status: "failed",
+      sentAt: null,
+      sendIntended: true,
+      autoSendEnabled: false,
+    }) === false,
+    "failed auto-send + auto-send false → no customer retry"
+  );
+  assert(
+    isCustomerSendRetryable({
+      status: "failed",
+      sentAt: null,
+      sendIntended: true,
+      autoSendEnabled: true,
+    }) === true,
+    "same failed response + auto-send true again → retries"
   );
   assert(
     isCustomerSendRetryable({
       status: "failed",
       sentAt: "2026-09-11T00:00:00.000Z",
       sendIntended: true,
+      autoSendEnabled: true,
     }) === false,
     "sent_at blocks retry"
   );
@@ -259,6 +279,52 @@ function testReliabilityLifecycle() {
   );
 }
 
+function testAutoSendKillSwitch() {
+  process.env.SUPPORT_AUTO_SEND_ENABLED = "false";
+  const c = classifySupportMessage({
+    subject: "Where is the COA?",
+    body: "Where can I find the COA report?",
+  });
+  const draft = {
+    bodyText: "COA info",
+    bodyHtml: "<p>COA info</p>",
+    knowledgeSources: ["policy:coa"],
+    aiDrafted: false,
+    requiresEscalation: false,
+    escalationReason: null,
+    policyDecision: "green_knowledge:coa_location",
+  };
+  const action = decideOutboundAction({
+    classification: { ...c, autoResponseAllowed: true, confidence: 0.95 },
+    draft,
+    threadAutoSendDisabled: false,
+  });
+  assert(action.sendCustomerReply === false, "kill switch blocks GREEN auto");
+
+  assert(
+    isCustomerSendRetryable({
+      status: "failed",
+      sentAt: null,
+      sendIntended: true,
+      autoSendEnabled: false,
+    }) === false,
+    "kill switch blocks failed-send force retry"
+  );
+
+  // Manual approve path is independent (admin uses sendSupportCustomerEmail directly).
+  assert(
+    canSendCustomerReply(null) === true,
+    "manual approve/send still allowed while auto-send false"
+  );
+
+  assert(
+    isEscalationNotifyRetryable({ notifiedAt: null, resolvedAt: null }) === true,
+    "internal escalation notification retries while auto-send false"
+  );
+
+  process.env.SUPPORT_AUTO_SEND_ENABLED = "false";
+}
+
 async function main() {
   console.log("[test-support-agent] running…");
   testIdempotentProviderKey();
@@ -275,6 +341,7 @@ async function main() {
   testInventorySellableOnlyConcept();
   await testYellowAckNoPromise();
   testReliabilityLifecycle();
+  testAutoSendKillSwitch();
   console.log("[test-support-agent] all passed.");
 }
 
