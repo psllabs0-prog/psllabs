@@ -70,6 +70,29 @@ async function main() {
   `) as { stock: number }[];
   assert((mid[0]?.stock ?? 0) === sellableBefore, "in_transit ≠ sellable change");
 
+  // Status received without quantity_received must block RELEASE.
+  await sql`
+    UPDATE inventory_pipeline_lots
+    SET status = 'received_awaiting_testing',
+        received_at = now(),
+        quantity_received = NULL,
+        updated_at = now()
+    WHERE id = ${lot.id}
+  `;
+  const noQty = await releasePipelineLotToSellable(lot.id, true);
+  assert(!noQty.ok, "release without quantity_received blocked");
+  assert(
+    (noQty.error ?? "").includes("Record quantity received"),
+    `expected received-qty error, got: ${noQty.error}`
+  );
+  mid = (await sql`
+    SELECT stock FROM products WHERE handle = ${product.handle} LIMIT 1
+  `) as { stock: number }[];
+  assert(
+    (mid[0]?.stock ?? 0) === sellableBefore,
+    "failed release left sellable unchanged"
+  );
+
   await updatePipelineLotStage({
     lotId: lot.id,
     status: "received_awaiting_testing",

@@ -384,12 +384,21 @@ export function AdminInventoryDashboard({
                           "INSUFFICIENT SALES DATA"
                         ) : (
                           <>
-                            <div>DOS {fmtNum(m.daysSupply, 1)}</div>
-                            <div>risk {fmtNum(m.riskAdjustedDaysSupply, 1)}</div>
+                            <div>sellable DOS {fmtNum(m.daysSupply, 1)}</div>
                             <div>
-                              out{" "}
+                              plan adj {fmtNum(m.planningAdjustedDaysSupply, 1)}
+                            </div>
+                            <div>risk adj {fmtNum(m.riskAdjustedDaysSupply, 1)}</div>
+                            <div>
+                              out (sellable){" "}
                               {m.projectedStockoutAt
                                 ? m.projectedStockoutAt.slice(0, 10)
+                                : "—"}
+                            </div>
+                            <div>
+                              out (plan){" "}
+                              {m.planningAdjustedProjectedStockoutAt
+                                ? m.planningAdjustedProjectedStockoutAt.slice(0, 10)
                                 : "—"}
                             </div>
                             <div>

@@ -69,8 +69,10 @@ export async function ensureInventoryMonitorSchema(): Promise<void> {
         avg_28d NUMERIC(12,4),
         planning_velocity NUMERIC(12,4),
         days_supply NUMERIC(12,2),
+        planning_adjusted_days_supply NUMERIC(12,2),
         risk_adjusted_days_supply NUMERIC(12,2),
         projected_stockout_at DATE,
+        planning_adjusted_projected_stockout_at DATE,
         reorder_review_at DATE,
         baseline_stock INTEGER,
         depletion_pct NUMERIC(8,4),
@@ -82,6 +84,16 @@ export async function ensureInventoryMonitorSchema(): Promise<void> {
     await sql`
       CREATE INDEX IF NOT EXISTS inventory_monitor_snapshots_date_idx
       ON inventory_monitor_snapshots (snapshot_date DESC)
+    `;
+
+    // Idempotent column adds for environments that already created snapshots.
+    await sql`
+      ALTER TABLE inventory_monitor_snapshots
+      ADD COLUMN IF NOT EXISTS planning_adjusted_days_supply NUMERIC(12,2)
+    `;
+    await sql`
+      ALTER TABLE inventory_monitor_snapshots
+      ADD COLUMN IF NOT EXISTS planning_adjusted_projected_stockout_at DATE
     `;
 
     await sql`
@@ -174,11 +186,15 @@ export async function ensureInventoryMonitorSchema(): Promise<void> {
           );
         END IF;
 
-        -- Prefer received qty; fall back to ordered when received not set.
-        v_qty := COALESCE(lot.quantity_received, lot.quantity_ordered);
-        IF v_qty IS NULL OR v_qty <= 0 THEN
-          RETURN jsonb_build_object('ok', false, 'error', 'invalid release quantity');
+        -- Require an explicitly recorded received quantity (never infer from ordered).
+        IF lot.quantity_received IS NULL OR lot.quantity_received <= 0 THEN
+          RETURN jsonb_build_object(
+            'ok', false,
+            'error', 'Record quantity received before releasing inventory.'
+          );
         END IF;
+
+        v_qty := lot.quantity_received;
 
         SELECT handle INTO v_handle
         FROM products
@@ -198,7 +214,6 @@ export async function ensureInventoryMonitorSchema(): Promise<void> {
         SET
           status = 'released',
           released_at = now(),
-          quantity_received = COALESCE(quantity_received, v_qty),
           updated_at = now()
         WHERE id = p_lot_id
           AND status <> 'released';

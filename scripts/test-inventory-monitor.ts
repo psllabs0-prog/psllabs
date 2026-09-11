@@ -10,6 +10,7 @@ import {
   TESTING_COST_HIGH_USD,
   TESTING_COST_LOW_USD,
 } from "../lib/inventory/monitor/constants";
+import { decideAlertSend } from "../lib/inventory/monitor/alerts";
 import {
   buildSkuMonitorMetrics,
   computeTestingEconomics,
@@ -65,6 +66,26 @@ function baseLot(
   };
 }
 
+/** Mirrors inventory_release_pipeline_lot received-qty gate. */
+function validateReleaseQuantity(lot: {
+  status: string;
+  quantityReceived: number | null;
+}): { ok: boolean; error?: string; quantity?: number } {
+  if (lot.status !== "received_awaiting_testing") {
+    return {
+      ok: false,
+      error: "lot must be received_awaiting_testing before release",
+    };
+  }
+  if (lot.quantityReceived === null || lot.quantityReceived <= 0) {
+    return {
+      ok: false,
+      error: "Record quantity received before releasing inventory.",
+    };
+  }
+  return { ok: true, quantity: lot.quantityReceived };
+}
+
 function testTestingEconomics() {
   const rows = computeTestingEconomics();
   assert(rows.length === 4, "four candidate sizes");
@@ -109,7 +130,6 @@ function testInsufficientData() {
 }
 
 function testReliableReorderReview() {
-  // Velocity 2/day → 35-day need = 70. Sellable 20 → risk coverage < 35.
   const m = buildSkuMonitorMetrics({
     productName: "Retatrutide",
     sellableStock: 20,
@@ -170,6 +190,33 @@ function testDepletionWatch() {
   );
 }
 
+function testAbsoluteLowStockBoundary() {
+  const mk = (sellable: number) =>
+    buildSkuMonitorMetrics({
+      productName: "Retatrutide",
+      sellableStock: sellable,
+      pipeline: { ordered: 0, inTransit: 0, awaitingTesting: 0 },
+      openLots: [],
+      demand: baseDemand({ lifetimeSold: 0 }),
+      baselineStock: 100,
+      absoluteLowThreshold: 15,
+      asOf: new Date("2026-09-10T00:00:00.000Z"),
+    });
+
+  assert(
+    mk(14).statusFlags.includes("ABSOLUTE_LOW_STOCK"),
+    "14 = absolute low"
+  );
+  assert(
+    mk(15).statusFlags.includes("ABSOLUTE_LOW_STOCK"),
+    "15 = absolute low (<= threshold)"
+  );
+  assert(
+    !mk(16).statusFlags.includes("ABSOLUTE_LOW_STOCK"),
+    "16 = no absolute low"
+  );
+}
+
 function testInboundDoesNotIncreaseSellable() {
   const lot = baseLot({ status: "in_transit", quantityOrdered: 170 });
   const m = buildSkuMonitorMetrics({
@@ -194,6 +241,22 @@ function testInboundDoesNotIncreaseSellable() {
   assert(
     m.planningReleaseEvents.length === 1,
     "future release event for coverage"
+  );
+  assert(
+    m.planningAdjustedDaysSupply !== null &&
+      m.daysSupply !== null &&
+      m.planningAdjustedDaysSupply > m.daysSupply,
+    "planning-adjusted coverage > sellable-only"
+  );
+  assert(
+    m.riskAdjustedDaysSupply !== null &&
+      m.planningAdjustedDaysSupply !== null &&
+      m.riskAdjustedDaysSupply <= m.planningAdjustedDaysSupply,
+    "risk-adjusted <= planning-adjusted (later inbound)"
+  );
+  assert(
+    m.planningAdjustedProjectedStockoutAt !== null,
+    "planning projected stockout exposed"
   );
 }
 
@@ -228,7 +291,6 @@ function testReleaseDateEstimates() {
 
 function testCoverageSimulationTiming() {
   const asOf = new Date("2026-09-01T00:00:00.000Z");
-  // 10 sellable, release 20 on day 5, demand 2/day
   const days = simulateCoverageDays({
     sellable: 10,
     velocityPerDay: 2,
@@ -236,7 +298,6 @@ function testCoverageSimulationTiming() {
     asOf,
   });
   assert(days !== null && days > 5, "inbound only helps after release day");
-  // Without release, 10/2 = 5 days
   const alone = simulateCoverageDays({
     sellable: 10,
     velocityPerDay: 2,
@@ -251,31 +312,62 @@ function testEarlyDataThresholdConstants() {
   assert(MIN_DAYS_FOR_FORECAST === 7, "7 days");
 }
 
-function testAlertStateMachineLogic() {
-  // Pure state transition rules (mirrored from alerts.ts behavior).
-  type State = "open" | "resolved" | null;
-  function shouldSend(prev: State, nowActive: boolean): {
-    next: State;
-    send: boolean;
-  } {
-    if (nowActive) {
-      if (prev === "open") return { next: "open", send: false };
-      return { next: "open", send: true };
-    }
-    if (prev === "open") return { next: "resolved", send: false };
-    return { next: prev, send: false };
-  }
-  assert(shouldSend(null, true).send === true, "first enter sends");
-  assert(shouldSend("open", true).send === false, "unchanged does not resend");
-  assert(shouldSend("open", false).next === "resolved", "resolves");
+function testAlertRetryLifecycle() {
   assert(
-    shouldSend("resolved", true).send === true,
-    "re-enter after resolve sends"
+    decideAlertSend({ status: null, lastSentAt: null }).shouldSend === true,
+    "first enter sends"
+  );
+  assert(
+    decideAlertSend({ status: "open", lastSentAt: null }).shouldSend === true,
+    "SMTP failure remains retryable"
+  );
+  assert(
+    decideAlertSend({
+      status: "open",
+      lastSentAt: "2026-09-10T00:00:00.000Z",
+    }).shouldSend === false,
+    "successful open state does not resend"
+  );
+  assert(
+    decideAlertSend({
+      status: "resolved",
+      lastSentAt: "2026-09-01T00:00:00.000Z",
+    }).shouldSend === true,
+    "resolved → re-entry sends again"
   );
 }
 
+function testReleaseRequiresReceivedQuantity() {
+  const missing = validateReleaseQuantity({
+    status: "received_awaiting_testing",
+    quantityReceived: null,
+  });
+  assert(!missing.ok, "null received blocked");
+  assert(
+    missing.error === "Record quantity received before releasing inventory.",
+    "clear error message"
+  );
+
+  const zero = validateReleaseQuantity({
+    status: "received_awaiting_testing",
+    quantityReceived: 0,
+  });
+  assert(!zero.ok, "zero received blocked");
+
+  const ok = validateReleaseQuantity({
+    status: "received_awaiting_testing",
+    quantityReceived: 7,
+  });
+  assert(ok.ok && ok.quantity === 7, "releases exact quantity_received");
+
+  const wrongStage = validateReleaseQuantity({
+    status: "in_transit",
+    quantityReceived: 7,
+  });
+  assert(!wrongStage.ok, "wrong stage blocked");
+}
+
 function testQaExclusionPredicate() {
-  // Mirrors demand.ts NOT EXISTS reporting_excluded = true rule.
   const qualifies = (orderStatus: string, reportingExcluded: boolean | null) =>
     (orderStatus === "paid" || orderStatus === "shipped") &&
     reportingExcluded !== true;
@@ -294,10 +386,12 @@ testTestingEconomics();
 testInsufficientData();
 testReliableReorderReview();
 testDepletionWatch();
+testAbsoluteLowStockBoundary();
 testInboundDoesNotIncreaseSellable();
 testReleaseDateEstimates();
 testCoverageSimulationTiming();
 testEarlyDataThresholdConstants();
-testAlertStateMachineLogic();
+testAlertRetryLifecycle();
+testReleaseRequiresReceivedQuantity();
 testQaExclusionPredicate();
 console.log("[test-inventory-monitor] all passed.");

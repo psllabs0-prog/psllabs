@@ -7,6 +7,25 @@ export type AlertKey =
   | "reorder_review"
   | "depletion_watch";
 
+export type AlertRowState = {
+  status: "open" | "resolved" | null;
+  lastSentAt: string | null;
+};
+
+/**
+ * Pure send decision for alert lifecycle tests / run loop.
+ *
+ * - First enter (null/resolved) → send
+ * - Open without last_sent_at (prior SMTP failure) → retry send
+ * - Open with last_sent_at (successful delivery) → do not resend
+ */
+export function decideAlertSend(state: AlertRowState): { shouldSend: boolean } {
+  if (state.status === "open" && state.lastSentAt) {
+    return { shouldSend: false };
+  }
+  return { shouldSend: true };
+}
+
 export async function getOpenAlertKeys(sku: string): Promise<Set<AlertKey>> {
   await ensureInventoryMonitorSchema();
   const sql = getSql();
@@ -18,7 +37,10 @@ export async function getOpenAlertKeys(sku: string): Promise<Set<AlertKey>> {
   return new Set(rows.map((r) => r.alert_key as AlertKey));
 }
 
-/** Mark alert open and return whether a new send should happen (entered/re-entered). */
+/**
+ * Establish (or keep) open alert state.
+ * Does NOT set last_sent_at — call markAlertSent only after SMTP success.
+ */
 export async function enterAlertState(input: {
   sku: string;
   alertKey: AlertKey;
@@ -29,20 +51,30 @@ export async function enterAlertState(input: {
   const details = input.details ?? null;
 
   const existing = (await sql`
-    SELECT status FROM inventory_monitor_alert_states
+    SELECT status, last_sent_at
+    FROM inventory_monitor_alert_states
     WHERE sku = ${input.sku} AND alert_key = ${input.alertKey}
     LIMIT 1
-  `) as { status: string }[];
+  `) as { status: string; last_sent_at: string | null }[];
 
-  if (existing[0]?.status === "open") {
+  const row = existing[0];
+  const decision = decideAlertSend({
+    status: row
+      ? (row.status as "open" | "resolved")
+      : null,
+    lastSentAt: row?.last_sent_at ?? null,
+  });
+
+  if (row?.status === "open") {
     await sql`
       UPDATE inventory_monitor_alert_states
       SET details_json = ${details}, updated_at = now()
       WHERE sku = ${input.sku} AND alert_key = ${input.alertKey}
     `;
-    return { shouldSend: false };
+    return decision;
   }
 
+  // New entry or re-entry after resolve: open, clear last_sent_at until success.
   await sql`
     INSERT INTO inventory_monitor_alert_states (
       sku, alert_key, status, last_sent_at, resolved_at, details_json
@@ -50,18 +82,34 @@ export async function enterAlertState(input: {
       ${input.sku},
       ${input.alertKey},
       'open',
-      now(),
+      NULL,
       NULL,
       ${details}
     )
     ON CONFLICT (sku, alert_key) DO UPDATE SET
       status = 'open',
-      last_sent_at = now(),
+      last_sent_at = NULL,
       resolved_at = NULL,
       details_json = EXCLUDED.details_json,
       updated_at = now()
   `;
   return { shouldSend: true };
+}
+
+/** Record successful email delivery; enables no-spam while open. */
+export async function markAlertSent(
+  sku: string,
+  alertKey: AlertKey
+): Promise<void> {
+  await ensureInventoryMonitorSchema();
+  const sql = getSql();
+  await sql`
+    UPDATE inventory_monitor_alert_states
+    SET last_sent_at = now(), updated_at = now()
+    WHERE sku = ${sku}
+      AND alert_key = ${alertKey}
+      AND status = 'open'
+  `;
 }
 
 export async function resolveAlertState(

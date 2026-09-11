@@ -7,6 +7,7 @@ import { sendInventoryMonitorAlertEmail } from "@/lib/email/inventory-monitor-al
 import {
   enterAlertState,
   getOpenAlertKeys,
+  markAlertSent,
   resolveAlertState,
   type AlertKey,
 } from "./alerts";
@@ -76,8 +77,10 @@ async function writeSnapshot(
       avg_28d,
       planning_velocity,
       days_supply,
+      planning_adjusted_days_supply,
       risk_adjusted_days_supply,
       projected_stockout_at,
+      planning_adjusted_projected_stockout_at,
       reorder_review_at,
       baseline_stock,
       depletion_pct,
@@ -98,8 +101,10 @@ async function writeSnapshot(
       ${m.avg28d},
       ${m.planningVelocity},
       ${m.daysSupply},
+      ${m.planningAdjustedDaysSupply},
       ${m.riskAdjustedDaysSupply},
       ${m.projectedStockoutAt},
+      ${m.planningAdjustedProjectedStockoutAt},
       ${m.reorderReviewAt},
       ${m.baselineStock},
       ${m.depletionPct},
@@ -119,8 +124,10 @@ async function writeSnapshot(
       avg_28d = EXCLUDED.avg_28d,
       planning_velocity = EXCLUDED.planning_velocity,
       days_supply = EXCLUDED.days_supply,
+      planning_adjusted_days_supply = EXCLUDED.planning_adjusted_days_supply,
       risk_adjusted_days_supply = EXCLUDED.risk_adjusted_days_supply,
       projected_stockout_at = EXCLUDED.projected_stockout_at,
+      planning_adjusted_projected_stockout_at = EXCLUDED.planning_adjusted_projected_stockout_at,
       reorder_review_at = EXCLUDED.reorder_review_at,
       baseline_stock = EXCLUDED.baseline_stock,
       depletion_pct = EXCLUDED.depletion_pct,
@@ -252,8 +259,9 @@ export async function runInventoryMonitor(
                     ? `Depletion ${(m.depletionPct * 100).toFixed(1)}% of baseline ${m.baselineStock}. Sold 7d=${m.sold7d}.`
                     : key === "reorder_review"
                       ? `Risk-adjusted days supply=${m.riskAdjustedDaysSupply?.toFixed(1) ?? "n/a"}. Planning velocity=${m.planningVelocity?.toFixed(3) ?? "n/a"}.`
-                      : `Sellable ${m.sellableStock} below absolute threshold ${LOW_STOCK_THRESHOLD}.`,
+                      : `Sellable ${m.sellableStock} at/below absolute threshold ${LOW_STOCK_THRESHOLD}.`,
               });
+              await markAlertSent(m.sku, key);
               alertsSent += 1;
             } catch (error) {
               alertsFailed += 1;

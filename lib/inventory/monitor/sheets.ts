@@ -24,9 +24,11 @@ export const INVENTORY_MONITOR_HEADERS = [
   "Avg/Day 28d",
   "Planning Velocity",
   "Forecast Confidence",
-  "Current Days Supply",
+  "Current Days Supply (Sellable Only)",
+  "Planning Adjusted Days Supply",
   "Risk Adjusted Days Supply",
-  "Projected Stockout",
+  "Projected Stockout (Sellable Only)",
+  "Planning Projected Stockout",
   "Reorder Review Date",
   "Baseline Stock",
   "Depletion %",
@@ -39,6 +41,10 @@ export const INVENTORY_MONITOR_HEADERS = [
   "Last Updated",
 ] as const;
 
+const HEADER_RANGE = "A1:AD1";
+const ROW_RANGE_PREFIX = "A";
+const ROW_RANGE_SUFFIX = "AD";
+
 function fmtNum(n: number | null | undefined, digits = 2): string {
   if (n === null || n === undefined || Number.isNaN(n)) return "";
   return n.toFixed(digits);
@@ -48,6 +54,7 @@ function rowValues(m: SkuMonitorMetrics, asOf: string): string[] {
   const econ = Object.fromEntries(
     m.testingEconomics.map((e) => [e.quantity, e])
   );
+  const insuff = m.forecastConfidence === "INSUFFICIENT_SALES_DATA";
   return [
     asOf,
     m.sku,
@@ -62,17 +69,13 @@ function rowValues(m: SkuMonitorMetrics, asOf: string): string[] {
     fmtNum(m.avg7d, 3),
     fmtNum(m.avg14d, 3),
     fmtNum(m.avg28d, 3),
-    m.forecastConfidence === "INSUFFICIENT_SALES_DATA"
-      ? "INSUFFICIENT SALES DATA"
-      : fmtNum(m.planningVelocity, 3),
+    insuff ? "INSUFFICIENT SALES DATA" : fmtNum(m.planningVelocity, 3),
     m.forecastConfidence,
-    m.forecastConfidence === "INSUFFICIENT_SALES_DATA"
-      ? "INSUFFICIENT SALES DATA"
-      : fmtNum(m.daysSupply, 1),
-    m.forecastConfidence === "INSUFFICIENT_SALES_DATA"
-      ? "INSUFFICIENT SALES DATA"
-      : fmtNum(m.riskAdjustedDaysSupply, 1),
+    insuff ? "INSUFFICIENT SALES DATA" : fmtNum(m.daysSupply, 1),
+    insuff ? "INSUFFICIENT SALES DATA" : fmtNum(m.planningAdjustedDaysSupply, 1),
+    insuff ? "INSUFFICIENT SALES DATA" : fmtNum(m.riskAdjustedDaysSupply, 1),
     m.projectedStockoutAt ?? "",
+    m.planningAdjustedProjectedStockoutAt ?? "",
     m.reorderReviewAt ?? "",
     String(m.baselineStock),
     m.depletionPct === null ? "" : fmtNum(m.depletionPct * 100, 1),
@@ -130,7 +133,7 @@ async function ensureSheetTab(token: string, spreadsheetId: string): Promise<voi
 async function ensureHeader(token: string, spreadsheetId: string): Promise<void> {
   await ensureSheetTab(token, spreadsheetId);
   const tab = INVENTORY_MONITOR_SHEET_TAB;
-  const range = encodeURIComponent(`${tab}!A1:AB1`);
+  const range = encodeURIComponent(`${tab}!${HEADER_RANGE}`);
   const getRes = await googleSheetsFetch(
     token,
     `/spreadsheets/${spreadsheetId}/values/${range}`
@@ -140,7 +143,11 @@ async function ensureHeader(token: string, spreadsheetId: string): Promise<void>
     throw new Error(`Inventory sheet header read failed (${getRes.status}): ${text.slice(0, 200)}`);
   }
   const data = (await getRes.json()) as { values?: string[][] };
-  if (data.values?.[0]?.[0] === INVENTORY_MONITOR_HEADERS[0]) return;
+  const existing = data.values?.[0] ?? [];
+  const matches =
+    existing.length === INVENTORY_MONITOR_HEADERS.length &&
+    INVENTORY_MONITOR_HEADERS.every((h, i) => existing[i] === h);
+  if (matches) return;
 
   const putRes = await googleSheetsFetch(
     token,
@@ -202,7 +209,7 @@ export async function syncInventoryMonitorSheet(
       const existing = await findSkuRow(token, config.spreadsheetId, m.sku);
       if (existing) {
         const range = encodeURIComponent(
-          `${INVENTORY_MONITOR_SHEET_TAB}!A${existing}:AB${existing}`
+          `${INVENTORY_MONITOR_SHEET_TAB}!${ROW_RANGE_PREFIX}${existing}:${ROW_RANGE_SUFFIX}${existing}`
         );
         const res = await googleSheetsFetch(
           token,
@@ -217,7 +224,9 @@ export async function syncInventoryMonitorSheet(
           throw new Error(`Update failed for ${m.sku}: ${text.slice(0, 200)}`);
         }
       } else {
-        const range = encodeURIComponent(`${INVENTORY_MONITOR_SHEET_TAB}!A:AB`);
+        const range = encodeURIComponent(
+          `${INVENTORY_MONITOR_SHEET_TAB}!${ROW_RANGE_PREFIX}:${ROW_RANGE_SUFFIX}`
+        );
         const res = await googleSheetsFetch(
           token,
           `/spreadsheets/${config.spreadsheetId}/values/${range}:append?valueInputOption=USER_ENTERED&insertDataOption=INSERT_ROWS`,

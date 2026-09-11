@@ -43,8 +43,14 @@ export type SkuMonitorMetrics = {
   planningVelocity: number | null;
   forecastConfidence: ForecastConfidence;
   daysSupply: number | null;
+  /** Coverage including inbound on planning (22d / testing+14) release estimates. */
+  planningAdjustedDaysSupply: number | null;
+  /** Coverage including inbound on conservative risk (35d) release estimates. */
   riskAdjustedDaysSupply: number | null;
+  /** Stockout from current sellable only (no inbound). */
   projectedStockoutAt: string | null;
+  /** Stockout simulating planning-timed inbound releases. */
+  planningAdjustedProjectedStockoutAt: string | null;
   reorderReviewAt: string | null;
   baselineStock: number;
   depletionPct: number | null;
@@ -207,8 +213,10 @@ export function buildSkuMonitorMetrics(input: {
   }
 
   let daysSupply: number | null = null;
+  let planningAdjustedDaysSupply: number | null = null;
   let riskAdjustedDaysSupply: number | null = null;
   let projectedStockoutAt: string | null = null;
+  let planningAdjustedProjectedStockoutAt: string | null = null;
   let reorderReviewAt: string | null = null;
   let minimumRiskWindowGap: number | null = null;
 
@@ -217,6 +225,18 @@ export function buildSkuMonitorMetrics(input: {
     projectedStockoutAt = toDateOnly(
       addDays(asOf, Math.floor(daysSupply))
     );
+
+    planningAdjustedDaysSupply = simulateCoverageDays({
+      sellable: input.sellableStock,
+      velocityPerDay: planningVelocity,
+      releases: planningEvents.map((e) => ({ at: new Date(e.at), qty: e.qty })),
+      asOf,
+    });
+    if (planningAdjustedDaysSupply !== null) {
+      planningAdjustedProjectedStockoutAt = toDateOnly(
+        addDays(asOf, Math.floor(planningAdjustedDaysSupply))
+      );
+    }
 
     riskAdjustedDaysSupply = simulateCoverageDays({
       sellable: input.sellableStock,
@@ -268,7 +288,7 @@ export function buildSkuMonitorMetrics(input: {
   ) {
     statusFlags.push("REORDER_REVIEW");
   }
-  if (input.sellableStock < input.absoluteLowThreshold) {
+  if (input.sellableStock <= input.absoluteLowThreshold) {
     statusFlags.push("ABSOLUTE_LOW_STOCK");
   }
   if (statusFlags.length === 0) statusFlags.push("OK");
@@ -298,10 +318,16 @@ export function buildSkuMonitorMetrics(input: {
     forecastConfidence,
     daysSupply:
       forecastConfidence === "RELIABLE" ? daysSupply : null,
+    planningAdjustedDaysSupply:
+      forecastConfidence === "RELIABLE" ? planningAdjustedDaysSupply : null,
     riskAdjustedDaysSupply:
       forecastConfidence === "RELIABLE" ? riskAdjustedDaysSupply : null,
     projectedStockoutAt:
       forecastConfidence === "RELIABLE" ? projectedStockoutAt : null,
+    planningAdjustedProjectedStockoutAt:
+      forecastConfidence === "RELIABLE"
+        ? planningAdjustedProjectedStockoutAt
+        : null,
     reorderReviewAt:
       forecastConfidence === "RELIABLE" ? reorderReviewAt : null,
     baselineStock: input.baselineStock,
