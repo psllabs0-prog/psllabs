@@ -307,7 +307,7 @@ export function AdminInventoryDashboard({
             {monitor.assumptions.riskLeadDays}d · testing ~
             {monitor.assumptions.testingTurnaroundDays}d · test $
             {monitor.assumptions.testingCostLowUsd}–$
-            {monitor.assumptions.testingCostHighUsd}/lot · absolute low &lt;{" "}
+            {monitor.assumptions.testingCostHighUsd}/lot · absolute low ≤{" "}
             {monitor.assumptions.absoluteLowThreshold} · Sheets{" "}
             {monitor.sheetsConfigured ? "configured" : "not configured"}
           </p>
