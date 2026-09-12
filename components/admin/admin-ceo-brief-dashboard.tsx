@@ -288,6 +288,45 @@ export function AdminCeoBriefDashboard() {
 
           <Section title="SEO / Authority">
             <p className="text-ash">{brief.seo.message}</p>
+            {brief.seo.status === "available" && (
+              <div className="mt-2 space-y-1">
+                <p>
+                  Clicks: {brief.seo.clicks ?? 0}
+                  {brief.seo.clicksChangeNote
+                    ? ` (${brief.seo.clicksChangeNote})`
+                    : ""}{" "}
+                  · Impressions: {brief.seo.impressions ?? 0}
+                  {brief.seo.impressionsChangeNote
+                    ? ` (${brief.seo.impressionsChangeNote})`
+                    : ""}
+                </p>
+                <p>
+                  Non-brand clicks: {brief.seo.nonBrandClicks ?? 0} · Non-brand
+                  impressions: {brief.seo.nonBrandImpressions ?? 0}
+                </p>
+                <p>
+                  CTR:{" "}
+                  {brief.seo.ctr == null
+                    ? "—"
+                    : `${(brief.seo.ctr * 100).toFixed(2)}%`}{" "}
+                  · Avg position:{" "}
+                  {brief.seo.averagePosition == null
+                    ? "—"
+                    : brief.seo.averagePosition.toFixed(1)}
+                </p>
+                {brief.seo.pagesGaining.length > 0 && (
+                  <p className="text-ash">
+                    Pages gaining: {brief.seo.pagesGaining.slice(0, 3).join(", ")}
+                  </p>
+                )}
+                {brief.seo.queryChanges.length > 0 && (
+                  <p className="text-ash">
+                    Queries gaining:{" "}
+                    {brief.seo.queryChanges.slice(0, 3).join(", ")}
+                  </p>
+                )}
+              </div>
+            )}
           </Section>
 
           <Section title="System Health">

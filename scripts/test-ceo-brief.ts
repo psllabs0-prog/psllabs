@@ -32,6 +32,37 @@ function assert(cond: unknown, message: string): asserts cond {
   if (!cond) throw new Error(message);
 }
 
+const UNAVAILABLE_ACQUISITION: CeoAcquisitionSnapshot = {
+  status: "unavailable",
+  message: "Paid acquisition spend data not yet available.",
+  spendUsd: null,
+  sessionsOrClicks: null,
+  attributedOrders: null,
+  attributedRevenueUsd: null,
+  cacUsd: null,
+  roas: null,
+  winners: [],
+  losers: [],
+};
+
+const PENDING_SEO: CeoSeoSnapshot = {
+  status: "pending",
+  message: "External SEO data pending sync.",
+  clicks: null,
+  impressions: null,
+  nonBrandImpressions: null,
+  nonBrandClicks: null,
+  ctr: null,
+  averagePosition: null,
+  priorClicks: null,
+  priorImpressions: null,
+  clicksChangeNote: null,
+  impressionsChangeNote: null,
+  pagesGaining: [],
+  queryChanges: [],
+  materialOpportunity: false,
+};
+
 function emptySales(over: Partial<CeoSalesSnapshot> = {}): CeoSalesSnapshot {
   return {
     periodLabel: "2026-09-01 → 2026-09-07",
@@ -265,8 +296,8 @@ function testInboundNeverSellable() {
   );
 }
 
-function testMissingPaidNotFabricated() {
-  const a = collectAcquisitionSnapshot();
+async function testMissingPaidNotFabricated() {
+  const a = await collectAcquisitionSnapshot();
   assert(a.status === "unavailable", "paid unavailable");
   assert(a.spendUsd === null, "no spend invent");
   assert(a.cacUsd === null, "no cac invent");
@@ -274,11 +305,12 @@ function testMissingPaidNotFabricated() {
   assert(/not yet available/i.test(a.message), "explicit message");
 }
 
-function testMissingSeoNotFabricated() {
-  const s = collectSeoSnapshot();
+async function testMissingSeoNotFabricated() {
+  const s = await collectSeoSnapshot();
   assert(s.status === "pending", "seo pending");
   assert(s.clicks === null && s.impressions === null, "no seo invent");
   assert(/pending sync/i.test(s.message), "seo message");
+  assert(s.materialOpportunity === false, "no material opp");
 }
 
 function testMaxThreeActionsAndRedBeatsSeo() {
@@ -292,15 +324,20 @@ function testMaxThreeActionsAndRedBeatsSeo() {
     unresolvedEscalations: 1,
   });
   const health: CeoHealthSnapshot = { warnings: [] };
-  const acquisition: CeoAcquisitionSnapshot = collectAcquisitionSnapshot();
+  const acquisition = UNAVAILABLE_ACQUISITION;
   const seo: CeoSeoSnapshot = {
+    ...PENDING_SEO,
     status: "available",
     message: "ok",
-    clicks: 10,
-    impressions: 1000,
-    nonBrandImpressions: 800,
+    clicks: 100,
+    impressions: 5000,
+    nonBrandImpressions: 4000,
+    nonBrandClicks: 80,
+    ctr: 0.02,
+    averagePosition: 18,
     pagesGaining: ["/guides/verify-peptide-coa"],
     queryChanges: [],
+    materialOpportunity: true,
   };
 
   const candidates = buildLukeActionCandidates({
@@ -341,10 +378,10 @@ function testFinanceFailureSurfaced() {
         },
       ],
     }),
-    acquisition: collectAcquisitionSnapshot(),
+    acquisition: UNAVAILABLE_ACQUISITION,
     inventory: emptyInventory(),
     support: emptySupport(),
-    seo: collectSeoSnapshot(),
+    seo: PENDING_SEO,
     health: { warnings: ["Finance reconciliation failed: timeout"] },
   });
   assert(
@@ -365,10 +402,10 @@ function testEmailSubject() {
     periodLabel: "2026-08-31 → 2026-09-06",
     generatedAt: "2026-09-07T15:00:00.000Z",
     sales: emptySales(),
-    acquisition: collectAcquisitionSnapshot(),
+    acquisition: UNAVAILABLE_ACQUISITION,
     inventory: emptyInventory(),
     support: emptySupport(),
-    seo: collectSeoSnapshot(),
+    seo: PENDING_SEO,
     health: { warnings: [] },
   });
   assert(
@@ -403,7 +440,7 @@ function testSanitizeEmailError() {
   assert(/redacted/i.test(cleaned), "redaction marker");
 }
 
-function main() {
+async function main() {
   console.log("[test-ceo-brief] running…");
   testPeriodMondayWindow();
   testZeroSalesNoPct();
@@ -411,8 +448,8 @@ function main() {
   testSpamVendorExcludedFromCustomer();
   testInventoryLukeActionsInboundAware();
   testInboundNeverSellable();
-  testMissingPaidNotFabricated();
-  testMissingSeoNotFabricated();
+  await testMissingPaidNotFabricated();
+  await testMissingSeoNotFabricated();
   testMaxThreeActionsAndRedBeatsSeo();
   testFinanceFailureSurfaced();
   testEmailSubject();
@@ -421,4 +458,7 @@ function main() {
   console.log("[test-ceo-brief] all passed.");
 }
 
-main();
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

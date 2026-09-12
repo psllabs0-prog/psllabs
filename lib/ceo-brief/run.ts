@@ -1,3 +1,6 @@
+import { collectOpsExceptions } from "@/lib/ops/exceptions";
+import { topOpsActions } from "@/lib/ops/types";
+
 import { collectAcquisitionSnapshot } from "./acquisition";
 import { composeWeeklyBrief } from "./compose";
 import { sendCeoBriefEmail } from "./email";
@@ -41,14 +44,28 @@ async function buildBrief(asOf: Date): Promise<{
   const period = getLastCompletedWeekUtc(asOf);
   const prior = previousWeekPeriod(period);
 
-  const [sales, inventory, support] = await Promise.all([
+  const [sales, inventory, support, acquisition, seo] = await Promise.all([
     collectSalesSnapshot(period, prior),
     collectInventorySnapshot(asOf),
     collectSupportSnapshot(period),
+    collectAcquisitionSnapshot(period),
+    collectSeoSnapshot(period, prior),
   ]);
-  const acquisition = collectAcquisitionSnapshot();
-  const seo = collectSeoSnapshot();
   const health = await collectHealthSnapshot({ support });
+
+  // Share ops priority surface with CEO health (no second prioritization system).
+  try {
+    const ops = await collectOpsExceptions();
+    const top = topOpsActions(ops, 3);
+    for (const ex of top) {
+      if (ex.priority === "P0" || ex.priority === "P1") {
+        health.warnings.push(`[Ops ${ex.priority}] ${ex.title}`);
+      }
+    }
+    health.warnings = [...new Set(health.warnings)];
+  } catch {
+    // never block brief
+  }
 
   const brief = composeWeeklyBrief({
     periodStart: period.periodStart.toISOString(),

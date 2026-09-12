@@ -104,8 +104,17 @@ export type CeoSeoSnapshot = {
   clicks: number | null;
   impressions: number | null;
   nonBrandImpressions: number | null;
+  nonBrandClicks: number | null;
+  ctr: number | null;
+  averagePosition: number | null;
+  priorClicks: number | null;
+  priorImpressions: number | null;
+  clicksChangeNote: string | null;
+  impressionsChangeNote: string | null;
   pagesGaining: string[];
   queryChanges: string[];
+  /** True only when volume + gains clear a materiality bar. */
+  materialOpportunity: boolean;
 };
 
 export type CeoHealthSnapshot = {

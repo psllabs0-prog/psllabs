@@ -162,12 +162,13 @@ export function buildLukeActionCandidates(input: {
 
   if (
     input.seo.status === "available" &&
+    input.seo.materialOpportunity &&
     input.seo.pagesGaining.length > 0
   ) {
     candidates.push({
       priority: 7,
       action: `Review SEO page gaining visibility: ${input.seo.pagesGaining[0]}`,
-      why: "Search Console data available for a page with rising visibility.",
+      why: "Material non-brand Search Console gains cleared the minimum-volume bar.",
       urgency: null,
       section: "seo",
     });

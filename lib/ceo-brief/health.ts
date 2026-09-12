@@ -5,6 +5,7 @@ import {
 } from "@/lib/finance/store";
 import { isGoogleSheetsConfigured } from "@/lib/finance/google-sheets";
 import { getLatestJobRun as getLatestSupportJobRun } from "@/lib/support/store";
+import { getLatestExternalMetricSyncRun } from "@/lib/external-metrics/store";
 
 import type { CeoHealthSnapshot, CeoSupportSnapshot } from "./types";
 
@@ -13,10 +14,11 @@ export async function collectHealthSnapshot(input: {
 }): Promise<CeoHealthSnapshot> {
   const warnings: string[] = [];
 
-  const [financeJob, supportJob, openWarnings] = await Promise.all([
+  const [financeJob, supportJob, openWarnings, gscRun] = await Promise.all([
     getLatestFinanceJobRun("finance_reconciliation").catch(() => null),
     getLatestSupportJobRun().catch(() => null),
     listOpenReconciliationWarnings(10),
+    getLatestExternalMetricSyncRun("search_console").catch(() => null),
   ]);
 
   if (financeJob?.status === "error") {
@@ -49,6 +51,12 @@ export async function collectHealthSnapshot(input: {
     } catch {
       // ignore optional sync probe failures
     }
+  }
+
+  if (gscRun?.status === "error") {
+    warnings.push(
+      `Search Console sync failed: ${gscRun.errorSummary ?? "unknown"}`
+    );
   }
 
   return { warnings: [...new Set(warnings)] };

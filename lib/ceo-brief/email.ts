@@ -71,6 +71,21 @@ export function formatCeoBriefEmailHtml(brief: CeoWeeklyBrief): string {
     ${support}
     <h2 style="margin:16px 0 8px;font-size:15px;">SEO / Authority</h2>
     <p style="margin:0 0 8px;color:#9CA3AF;">${escapeHtml(brief.seo.message)}</p>
+    ${
+      brief.seo.status === "available"
+        ? `<p style="margin:0 0 8px;">Clicks ${brief.seo.clicks ?? 0}${brief.seo.clicksChangeNote ? ` (${escapeHtml(brief.seo.clicksChangeNote)})` : ""} · Impressions ${brief.seo.impressions ?? 0}${brief.seo.impressionsChangeNote ? ` (${escapeHtml(brief.seo.impressionsChangeNote)})` : ""} · Non-brand clicks ${brief.seo.nonBrandClicks ?? 0} · Non-brand impressions ${brief.seo.nonBrandImpressions ?? 0} · CTR ${brief.seo.ctr == null ? "—" : `${(brief.seo.ctr * 100).toFixed(2)}%`} · Avg position ${brief.seo.averagePosition == null ? "—" : brief.seo.averagePosition.toFixed(1)}</p>
+    ${
+      brief.seo.pagesGaining.length > 0
+        ? `<p style="margin:0 0 8px;">Pages gaining: ${escapeHtml(brief.seo.pagesGaining.slice(0, 3).join(", "))}</p>`
+        : ""
+    }
+    ${
+      brief.seo.queryChanges.length > 0
+        ? `<p style="margin:0 0 8px;">Queries gaining: ${escapeHtml(brief.seo.queryChanges.slice(0, 3).join(", "))}</p>`
+        : ""
+    }`
+        : ""
+    }
     <h2 style="margin:16px 0 8px;font-size:15px;">System health</h2>
     ${health}
     <h2 style="margin:16px 0 8px;font-size:15px;">Three actions for Luke</h2>
