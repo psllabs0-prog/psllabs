@@ -6,10 +6,15 @@ export function isDiscordTestMode(): boolean {
   return process.env.DISCORD_TEST_MODE?.trim() === "true";
 }
 
+export function isDiscordAnalyticsHashConfigured(): boolean {
+  return Boolean(process.env.DISCORD_ANALYTICS_HASH_SECRET?.trim());
+}
+
 export function getDiscordConfig(): {
   applicationId: string | null;
   publicKey: string | null;
   botTokenConfigured: boolean;
+  analyticsHashConfigured: boolean;
   guildId: string | null;
   inviteUrl: string;
   rateLimitPerMinute: number;
@@ -19,6 +24,7 @@ export function getDiscordConfig(): {
   const applicationId = process.env.DISCORD_APPLICATION_ID?.trim() || null;
   const publicKey = process.env.DISCORD_PUBLIC_KEY?.trim() || null;
   const botTokenConfigured = Boolean(process.env.DISCORD_BOT_TOKEN?.trim());
+  const analyticsHashConfigured = isDiscordAnalyticsHashConfigured();
   const guildId = process.env.DISCORD_GUILD_ID?.trim() || null;
   const inviteRaw =
     process.env.DISCORD_INVITE_URL?.trim() ||
@@ -38,12 +44,19 @@ export function getDiscordConfig(): {
   })();
 
   const enabled = isDiscordBotEnabled();
-  const ready = Boolean(applicationId && publicKey && botTokenConfigured);
+  // Hash secret required — rate limiting must not silently disable.
+  const ready = Boolean(
+    applicationId &&
+      publicKey &&
+      botTokenConfigured &&
+      analyticsHashConfigured
+  );
 
   return {
     applicationId,
     publicKey,
     botTokenConfigured,
+    analyticsHashConfigured,
     guildId,
     inviteUrl,
     rateLimitPerMinute,
@@ -60,6 +73,7 @@ export function getDiscordAdminStatusSafe() {
     applicationConfigured: Boolean(c.applicationId),
     publicKeyConfigured: Boolean(c.publicKey),
     botTokenConfigured: c.botTokenConfigured,
+    analyticsHashConfigured: c.analyticsHashConfigured,
     guildIdConfigured: Boolean(c.guildId),
     inviteUrl: c.inviteUrl,
     rateLimitPerMinute: c.rateLimitPerMinute,

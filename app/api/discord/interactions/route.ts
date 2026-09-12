@@ -10,11 +10,18 @@ export const maxDuration = 10;
 /**
  * Public Discord HTTP Interactions endpoint.
  * Signature verification uses the RAW body BEFORE JSON parsing.
+ * When enabled, full readiness (incl. analytics hash secret) is required.
  */
 export async function POST(request: Request) {
   const cfg = getDiscordConfig();
-  if (!isDiscordBotEnabled() || !cfg.publicKey) {
+
+  if (!isDiscordBotEnabled()) {
     return new NextResponse("Discord bot not enabled", { status: 503 });
+  }
+
+  // Fail closed: do not process with incomplete config / no durable rate limit.
+  if (!cfg.ready || !cfg.publicKey) {
+    return new NextResponse("Discord bot not ready", { status: 503 });
   }
 
   const signature = request.headers.get("x-signature-ed25519");
@@ -60,7 +67,7 @@ export async function POST(request: Request) {
         body as Parameters<typeof handleDiscordApplicationCommand>[0]
       );
       return NextResponse.json(response);
-    } catch (error) {
+    } catch {
       console.error("[discord/interactions] command error");
       return NextResponse.json({
         type: 4,

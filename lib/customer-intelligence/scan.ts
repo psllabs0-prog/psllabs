@@ -2,7 +2,6 @@ import { getSql } from "@/lib/db/sql";
 import { ensureSupportSchema } from "@/lib/support/schema";
 import { ensureFinanceSchema } from "@/lib/finance/schema";
 import { ensureExternalMetricsSchema } from "@/lib/external-metrics/schema";
-import { aggregateSearchConsolePeriod } from "@/lib/external-metrics/store";
 
 import { ensureCustomerIntelligenceSchema } from "./schema";
 import { ensureCustomerFeedbackSchema } from "./store";
@@ -26,6 +25,11 @@ import {
   type EvidenceClass,
 } from "./taxonomy";
 import { textLooksRestrictedHumanUse } from "./guardrails";
+import {
+  aggregateSearchDemandByTheme,
+  getCustomerIntelSearchMinImpressions,
+  searchDemandThemeToCiTheme,
+} from "./search-demand";
 
 function ymd(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -325,28 +329,61 @@ export async function runCustomerIntelligenceScan(options?: {
     // discord_interactions may not exist yet during partial deploy
   }
 
-  // --- Search demand (separate evidence class; never customer) ---
+  // --- Search demand from ACTUAL queries (never aggregate non-brand traffic) ---
   let searchCurrentImp = 0;
   try {
-    const search = await aggregateSearchConsolePeriod({
-      startDate: periodStart,
-      endDate: periodEnd,
-    });
-    searchCurrentImp = search.nonBrandImpressions;
-    if (search.nonBrandImpressions >= 40) {
-      // Corroboration hint only — does not inflate customer sample sizes
-      bump(buckets, `search:coa_verification_demand`, {
-        theme: "coa_findability",
+    const queryRows = (await sql`
+      SELECT
+        query,
+        BOOL_OR(is_brand) AS is_brand,
+        COALESCE(SUM(impressions), 0)::float AS impressions,
+        COALESCE(SUM(clicks), 0)::float AS clicks
+      FROM search_console_daily
+      WHERE date >= ${periodStart}::date
+        AND date <= ${periodEnd}::date
+        AND query <> ''
+      GROUP BY query
+    `) as Array<{
+      query: string;
+      is_brand: boolean;
+      impressions: number;
+      clicks: number;
+    }>;
+
+    const aggs = aggregateSearchDemandByTheme(
+      queryRows.map((r) => ({
+        query: r.query,
+        isBrand: Boolean(r.is_brand),
+        impressions: Number(r.impressions),
+        clicks: Number(r.clicks),
+      }))
+    );
+    searchCurrentImp = aggs.reduce((s, a) => s + a.impressions, 0);
+    const minImp = getCustomerIntelSearchMinImpressions();
+
+    for (const a of aggs) {
+      if (a.impressions < minImp) continue;
+      const theme = searchDemandThemeToCiTheme(a.theme);
+      // Count for confidence within search_demand only — never mixed into customer n
+      const observationUnits = Math.min(
+        20,
+        Math.max(1, Math.floor(a.impressions / minImp))
+      );
+      const key = `search:${a.theme}`;
+      bump(buckets, key, {
+        theme,
         evidenceClass: "search_demand",
         sourceChannel: "search_console",
-        signalType: "search_demand_hint",
+        signalType: "search_demand_query_theme",
         period: "current",
         inferredOnly: true,
       });
-      // Represent volume as min(impressions/40, 10) observation units for confidence only within search class
-      const b = buckets.get(`search:coa_verification_demand`);
+      const b = buckets.get(key);
       if (b) {
-        b.current = Math.min(10, Math.max(1, Math.floor(search.nonBrandImpressions / 40)));
+        b.current = observationUnits;
+        b.explicitQuotes = a.matchingQueries.slice(0, 5).map(
+          (q) => `Search query evidence: ${q}`
+        );
       }
     }
   } catch {

@@ -12,11 +12,20 @@ import {
 import {
   answerAsk,
   answerCoa,
+  answerProducts,
   answerShipping,
   answerSupport,
+  matchKnownPublicBatch,
+  matchKnownPublicProduct,
 } from "../lib/discord/answers";
-import { isDiscordBotEnabled, getDiscordAdminStatusSafe } from "../lib/discord/config";
+import {
+  getDiscordConfig,
+  getDiscordAdminStatusSafe,
+  isDiscordBotEnabled,
+} from "../lib/discord/config";
+import { hashDiscordUserId } from "../lib/discord/store";
 import { canCreateContentOpportunityFromTheme } from "../lib/customer-intelligence/guardrails";
+import { createHmac } from "node:crypto";
 import { readFileSync } from "fs";
 import { join } from "path";
 
@@ -68,6 +77,8 @@ function testSignatureVerification() {
   assert(textIdx > 0 && parseIdx > textIdx, "raw body before JSON parse");
   assert(/status:\s*401/.test(route), "invalid signature => 401");
   assert(/type === 1/.test(route) && /type:\s*1/.test(route), "PING => PONG");
+  assert(/cfg\.ready/.test(route), "interactions uses full readiness gate");
+  assert(/Discord bot not ready/.test(route), "incomplete config => 503");
 }
 
 function testSanitizeAndMentions() {
@@ -99,8 +110,30 @@ function testAnswers() {
   assert(/ship/i.test(shipping.content), "/shipping from policy");
   assert(shipping.responseSource === "policy:shipping", "approved policy only");
 
-  const coa = answerCoa("made-up-batch-xyz");
-  assert(/will not invent/i.test(coa.content), "/coa does not invent batch");
+  const coaUnknown = answerCoa("made-up-batch-xyz");
+  assert(/will not invent/i.test(coaUnknown.content), "/coa does not invent batch");
+  assert(!/made-up-batch-xyz/i.test(coaUnknown.content), "unknown hint not echoed");
+  assert(coaUnknown.ephemeral === true, "freeform unknown COA hint ephemeral");
+
+  const coaGeneric = answerCoa();
+  assert(coaGeneric.ephemeral === false, "no-hint COA can be public");
+  assert(/coa|certificate|report/i.test(coaGeneric.content), "generic COA guidance");
+
+  const known = matchKnownPublicProduct("Retatrutide");
+  assert(known?.handle === "retatrutide", "known public product matches");
+  const coaKnown = answerCoa("Retatrutide");
+  assert(/Retatrutide/i.test(coaKnown.content), "known product => specific");
+  assert(coaKnown.ephemeral === false, "known public product COA can be public");
+
+  const coaEmail = answerCoa("please check order for luke@example.com");
+  assert(!/luke@example\.com/i.test(coaEmail.content), "email not echoed");
+  assert(coaEmail.ephemeral === true, "PII-like COA hint ephemeral");
+
+  const coaHuman = answerCoa("retatrutide for weight loss");
+  assert(coaHuman.category === "restricted_human_use_request", "human-use COA boundary");
+  assert(coaHuman.riskLevel === "restricted", "human-use restricted");
+
+  assert(matchKnownPublicBatch("totally-private-inbound-xyz") === null, "unknown batch null");
 }
 
 async function testProductsNoInbound() {
@@ -124,6 +157,95 @@ async function testProductsNoInbound() {
     /not internal unit counts/i.test(ansSrc),
     "unit counts explicitly withheld"
   );
+  // Restricted gate runs before inventory/pricing lookup.
+  const productsFn = ansSrc.slice(ansSrc.indexOf("export async function answerProducts"));
+  const restrictedIdx = productsFn.indexOf("textLooksRestrictedHumanUse");
+  const lookupIdx = productsFn.indexOf("lookupSellableAvailabilitySummary");
+  assert(
+    restrictedIdx > 0 && lookupIdx > restrictedIdx,
+    "/products checks human-use before pricing/availability"
+  );
+
+  // Restricted paths return before DB lookup — safe offline.
+  const restricted = await answerProducts("retatrutide for weight loss");
+  assert(
+    restricted.category === "restricted_human_use_request",
+    "/products human-use => boundary"
+  );
+  assert(restricted.ephemeral === true, "/products boundary ephemeral");
+  assert(!/\$\d/.test(restricted.content), "/products restricted: no pricing");
+  assert(
+    !canCreateContentOpportunityFromTheme(restricted.category),
+    "restricted products feeds compliance only"
+  );
+
+  const dosing = await answerProducts("retatrutide dosing schedule");
+  assert(dosing.riskLevel === "restricted", "dosing phrase => boundary");
+
+  // Normal product catalog line (no DB required for this assertion).
+  assert(
+    matchKnownPublicProduct("retatrutide")?.name === "Retatrutide",
+    "normal retatrutide resolves to public catalog product"
+  );
+}
+
+function testHashAndReadiness() {
+  const prev = {
+    enabled: process.env.DISCORD_BOT_ENABLED,
+    app: process.env.DISCORD_APPLICATION_ID,
+    pub: process.env.DISCORD_PUBLIC_KEY,
+    token: process.env.DISCORD_BOT_TOKEN,
+    hash: process.env.DISCORD_ANALYTICS_HASH_SECRET,
+  };
+
+  delete process.env.DISCORD_ANALYTICS_HASH_SECRET;
+  process.env.DISCORD_BOT_ENABLED = "true";
+  process.env.DISCORD_APPLICATION_ID = "app";
+  process.env.DISCORD_PUBLIC_KEY = "ab".repeat(32);
+  process.env.DISCORD_BOT_TOKEN = "token";
+  assert(getDiscordConfig().ready === false, "secret missing => bot not ready");
+  assert(
+    getDiscordAdminStatusSafe().analyticsHashConfigured === false,
+    "admin shows hashing no"
+  );
+  assert(hashDiscordUserId("12345") === null, "no hash without secret");
+
+  process.env.DISCORD_ANALYTICS_HASH_SECRET = "test-secret-for-hmac";
+  assert(getDiscordConfig().ready === true, "secret present + ids => ready");
+  assert(
+    getDiscordAdminStatusSafe().analyticsHashConfigured === true,
+    "admin shows hashing yes"
+  );
+  const h1 = hashDiscordUserId("12345");
+  const h2 = hashDiscordUserId("12345");
+  assert(typeof h1 === "string" && h1 === h2, "stable HMAC hash");
+  assert(h1 !== "12345", "raw Discord id never returned as hash");
+  const expected = createHmac("sha256", "test-secret-for-hmac")
+    .update("12345")
+    .digest("hex");
+  assert(h1 === expected, "HMAC matches expected");
+
+  const storeSrc = readFileSync(
+    join(process.cwd(), "lib/discord/store.ts"),
+    "utf8"
+  );
+  assert(
+    /if\s*\(\s*!userHash\s*\)[\s\S]*allowed:\s*false/.test(storeSrc),
+    "rate limiter fails closed without hash"
+  );
+  assert(!/CRON_SECRET/.test(storeSrc), "does not use CRON_SECRET");
+
+  // restore
+  for (const [k, v] of Object.entries({
+    DISCORD_BOT_ENABLED: prev.enabled,
+    DISCORD_APPLICATION_ID: prev.app,
+    DISCORD_PUBLIC_KEY: prev.pub,
+    DISCORD_BOT_TOKEN: prev.token,
+    DISCORD_ANALYTICS_HASH_SECRET: prev.hash,
+  })) {
+    if (v === undefined) delete process.env[k];
+    else process.env[k] = v;
+  }
 }
 
 function testAdminAndDisabled() {
@@ -136,6 +258,10 @@ function testAdminAndDisabled() {
       typeof status.botTokenConfigured === "boolean",
     "bot token only as boolean"
   );
+  assert(
+    typeof status.analyticsHashConfigured === "boolean",
+    "analytics hash configured flag present"
+  );
 
   const reg = readFileSync(
     join(process.cwd(), "lib/discord/register.ts"),
@@ -147,6 +273,15 @@ function testAdminAndDisabled() {
     "utf8"
   );
   assert(/requireAdminAuth/.test(adminRoute), "command registration requires admin");
+
+  const dash = readFileSync(
+    join(process.cwd(), "components/admin/admin-discord-dashboard.tsx"),
+    "utf8"
+  );
+  assert(
+    /Analytics\/rate-limit hashing configured/.test(dash),
+    "admin UI shows hashing configured"
+  );
 }
 
 async function main() {
@@ -155,6 +290,7 @@ async function main() {
   testSanitizeAndMentions();
   testAnswers();
   await testProductsNoInbound();
+  testHashAndReadiness();
   testAdminAndDisabled();
   console.log("[test:discord] ok");
 }

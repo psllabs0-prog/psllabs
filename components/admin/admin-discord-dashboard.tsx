@@ -8,6 +8,7 @@ type Payload = {
     applicationConfigured: boolean;
     publicKeyConfigured: boolean;
     botTokenConfigured: boolean;
+    analyticsHashConfigured: boolean;
     guildIdConfigured: boolean;
     inviteUrl: string;
     rateLimitPerMinute: number;
@@ -110,6 +111,10 @@ export function AdminDiscordDashboard() {
           <li>Application configured? {s?.applicationConfigured ? "yes" : "no"}</li>
           <li>Public key configured? {s?.publicKeyConfigured ? "yes" : "no"}</li>
           <li>Bot token configured? {s?.botTokenConfigured ? "yes" : "no"}</li>
+          <li>
+            Analytics/rate-limit hashing configured?{" "}
+            {s?.analyticsHashConfigured ? "yes" : "no"}
+          </li>
           <li>Guild ID configured? {s?.guildIdConfigured ? "yes" : "no"}</li>
           <li>Ready? {s?.ready ? "yes" : "no"}</li>
           <li>Test mode? {s?.testMode ? "yes" : "no"}</li>

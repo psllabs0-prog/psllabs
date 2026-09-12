@@ -42,6 +42,11 @@ async function main() {
   const r2 = await checkDiscordRateLimit("rate_test_hash");
   if (r2.count < r1.count) throw new Error("rate limit should accumulate");
 
+  const denied = await checkDiscordRateLimit(null);
+  if (denied.allowed) {
+    throw new Error("null user hash must fail closed (not allow)");
+  }
+
   console.log("[test:discord-db] all passed.");
 }
 

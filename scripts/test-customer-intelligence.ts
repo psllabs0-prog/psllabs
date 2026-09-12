@@ -2,6 +2,8 @@
  * Offline tests for Phase 11 customer intelligence.
  * Run: npm run test:customer-intelligence
  */
+import { readFileSync } from "fs";
+import { join } from "path";
 import {
   confidenceFromCounts,
   formatEvidenceNote,
@@ -17,8 +19,12 @@ import {
   canCreateContentOpportunityFromTheme,
   textLooksRestrictedHumanUse,
 } from "../lib/customer-intelligence/guardrails";
-import { buildLukeActionCandidates, composeWeeklyBrief } from "../lib/ceo-brief/compose";
-import { selectLukeActions } from "../lib/ceo-brief/period";
+import {
+  aggregateSearchDemandByTheme,
+  classifySearchDemandQuery,
+  getCustomerIntelSearchMinImpressions,
+} from "../lib/customer-intelligence/search-demand";
+import { composeWeeklyBrief } from "../lib/ceo-brief/compose";
 import type {
   CeoAcquisitionSnapshot,
   CeoHealthSnapshot,
@@ -97,6 +103,62 @@ function testEvidenceClassSeparation() {
   assert(
     themeFromSupportCategory("coa_location") === "coa_findability",
     "support coa maps"
+  );
+}
+
+function testSearchDemandQuerySpecific() {
+  process.env.CUSTOMER_INTEL_SEARCH_MIN_IMPRESSIONS = "40";
+  assert(getCustomerIntelSearchMinImpressions() === 40, "search min 40");
+
+  assert(classifySearchDemandQuery("buy peptide shipping") === null, "shipping not thematic");
+  assert(classifySearchDemandQuery("psl labs retatrutide") === null, "unrelated product query");
+  assert(classifySearchDemandQuery("certificate of analysis") === "coa_findability", "coa phrase");
+  assert(classifySearchDemandQuery("where to find coa") === "coa_findability", "coa token");
+  assert(classifySearchDemandQuery("hplc purity testing") === "analytical_education", "analytical");
+  assert(classifySearchDemandQuery("coating spray") === null, "coa not substring of coating");
+
+  // 100 unrelated non-brand impressions => no COA theme aggregation
+  const unrelated = aggregateSearchDemandByTheme([
+    { query: "peptide supplier usa", isBrand: false, impressions: 100, clicks: 5 },
+    { query: "research chemicals shipping", isBrand: false, impressions: 50, clicks: 2 },
+  ]);
+  assert(unrelated.length === 0, "100 unrelated non-brand => no search-demand theme");
+
+  // Branded excluded even if query contains coa
+  const branded = aggregateSearchDemandByTheme([
+    { query: "psl labs coa", isBrand: true, impressions: 80, clicks: 4 },
+  ]);
+  assert(branded.length === 0, "branded COA query excluded");
+
+  // 40+ actual COA-related impressions => COA theme crosses threshold input
+  const coaAggs = aggregateSearchDemandByTheme([
+    { query: "certificate of analysis peptide", isBrand: false, impressions: 25, clicks: 1 },
+    { query: "lab report verification", isBrand: false, impressions: 20, clicks: 1 },
+  ]);
+  assert(coaAggs.length === 1 && coaAggs[0].theme === "coa_findability", "COA theme present");
+  assert(coaAggs[0].impressions >= 40, "COA impressions aggregate to 40+");
+
+  const analytical = aggregateSearchDemandByTheme([
+    { query: "hplc purity", isBrand: false, impressions: 45, clicks: 2 },
+  ]);
+  assert(
+    analytical[0]?.theme === "analytical_education" && analytical[0].impressions >= 40,
+    "analytical search-demand"
+  );
+
+  // Contract: search evidence never mixes into customer sample in scan recommendations gate
+  const scanSrc = readFileSync(
+    join(process.cwd(), "lib/customer-intelligence/scan.ts"),
+    "utf8"
+  );
+  assert(/evidenceClass:\s*"search_demand"/.test(scanSrc), "search stays search_demand");
+  assert(
+    /b\.evidenceClass === "customer"/.test(scanSrc),
+    "recommendations only from customer evidence"
+  );
+  assert(
+    !/coa_verification_demand/.test(scanSrc),
+    "no aggregate coa_verification_demand signal"
   );
 }
 
@@ -215,6 +277,7 @@ function main() {
   testExclusionsAndTaxonomy();
   testThresholds();
   testEvidenceClassSeparation();
+  testSearchDemandQuerySpecific();
   testCeoCapAndNoOpsClutterContract();
   console.log("[test:customer-intelligence] ok");
 }

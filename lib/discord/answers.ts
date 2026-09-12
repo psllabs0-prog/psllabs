@@ -9,6 +9,12 @@ import {
   looksLikeOrderPiiRequest,
   sanitizeDiscordInput,
 } from "./sanitize";
+import { getActiveCatalogProducts } from "@/lib/products/catalog";
+import {
+  getAvailableBatchReports,
+  type BatchReport,
+} from "@/lib/batch-reports";
+import type { CatalogProduct } from "@/lib/products/catalog";
 
 export type DiscordAnswer = {
   content: string;
@@ -29,6 +35,11 @@ const PRIVATE_SUPPORT =
   SUPPORT_EMAIL +
   " from your order email (include your order number). Do not post order numbers, emails, addresses, or payment details in Discord.";
 
+const COA_GENERIC =
+  (getApprovedKnowledgeLibrary().find((k) => k.id === "policy:coa")?.text ??
+    "Certificates of Analysis are published at /coa and on product pages. Verify originals with the testing lab using the task number on the report.") +
+  "\n\nWe only reference batches/reports that are currently published. We will not invent a report.";
+
 function scoreSnippet(question: string, text: string): number {
   const q = question.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
   const t = text.toLowerCase();
@@ -37,6 +48,60 @@ function scoreSnippet(question: string, text: string): number {
     if (t.includes(w)) score += 1;
   }
   return score;
+}
+
+function looksUnsafeToEcho(hint: string): boolean {
+  return (
+    looksLikeOrderPiiRequest(hint) ||
+    /@/.test(hint) ||
+    /\b\d{5}(-\d{4})?\b/.test(hint) ||
+    /\border\b/i.test(hint) ||
+    /\baddress\b/i.test(hint) ||
+    /\bemail\b/i.test(hint)
+  );
+}
+
+/** Exact/public catalog match only — no invention. */
+export function matchKnownPublicProduct(
+  hint: string
+): CatalogProduct | null {
+  const h = hint.trim().toLowerCase();
+  if (!h) return null;
+  const products = getActiveCatalogProducts();
+  return (
+    products.find(
+      (p) =>
+        p.handle === h ||
+        p.sku.toLowerCase() === h ||
+        p.name.toLowerCase() === h ||
+        p.name.toLowerCase().replace(/\s+/g, "-") === h
+    ) ?? null
+  );
+}
+
+/** Exact public published batch/task match only. */
+export function matchKnownPublicBatch(hint: string): BatchReport | null {
+  const h = hint.trim().toLowerCase();
+  if (!h) return null;
+  return (
+    getAvailableBatchReports().find(
+      (r) =>
+        r.batch.toLowerCase() === h ||
+        r.taskNumber.toLowerCase() === h ||
+        r.sku.toLowerCase() === h
+    ) ?? null
+  );
+}
+
+function restrictedBoundary(): DiscordAnswer {
+  return {
+    content: getHumanUseBoundaryText(),
+    ephemeral: true,
+    category: "restricted_human_use_request",
+    riskLevel: "restricted",
+    outcome: "boundary",
+    responseSource: "policy:research-use",
+  };
 }
 
 /** Deterministic /ask — no generative LLM. */
@@ -54,14 +119,7 @@ export function answerAsk(questionRaw: string): DiscordAnswer {
   }
 
   if (textLooksRestrictedHumanUse(question)) {
-    return {
-      content: getHumanUseBoundaryText(),
-      ephemeral: true,
-      category: "restricted_human_use_request",
-      riskLevel: "restricted",
-      outcome: "boundary",
-      responseSource: "policy:research-use",
-    };
+    return restrictedBoundary();
   }
 
   if (looksLikeOrderPiiRequest(question)) {
@@ -115,28 +173,63 @@ export function answerAsk(questionRaw: string): DiscordAnswer {
 
 export function answerCoa(productOrBatchRaw?: string): DiscordAnswer {
   const hint = sanitizeDiscordInput(productOrBatchRaw);
-  if (textLooksRestrictedHumanUse(hint)) {
+
+  if (!hint) {
     return {
-      content: getHumanUseBoundaryText(),
-      ephemeral: true,
-      category: "restricted_human_use_request",
-      riskLevel: "restricted",
-      outcome: "boundary",
-      responseSource: "policy:research-use",
+      content: COA_GENERIC,
+      ephemeral: false,
+      category: "coa_location",
+      riskLevel: "low",
+      outcome: "answered",
+      responseSource: "policy:coa",
     };
   }
 
-  const base =
-    getApprovedKnowledgeLibrary().find((k) => k.id === "policy:coa")?.text ??
-    "Certificates of Analysis are published at /coa. We do not invent batch reports.";
+  if (textLooksRestrictedHumanUse(hint)) {
+    return restrictedBoundary();
+  }
 
-  const extra = hint
-    ? `\n\nYou asked about “${hint}”. Use the product page and /coa for published batch documentation. We only confirm batches that appear in current public PSL documentation — we will not invent a report.`
-    : "\n\nWe only reference batches/reports that are currently published. We will not invent a report.";
+  if (looksUnsafeToEcho(hint)) {
+    return {
+      content: COA_GENERIC,
+      ephemeral: true,
+      category: "coa_location",
+      riskLevel: "low",
+      outcome: "answered",
+      responseSource: "policy:coa",
+    };
+  }
 
+  const product = matchKnownPublicProduct(hint);
+  if (product) {
+    return {
+      content:
+        `${COA_GENERIC}\n\nFor ${product.name}, check the product page (${product.href}) and /coa for any currently published batch report. We will not invent a report.`,
+      ephemeral: false,
+      category: "coa_location",
+      riskLevel: "low",
+      outcome: "answered",
+      responseSource: "policy:coa+catalog",
+    };
+  }
+
+  const batch = matchKnownPublicBatch(hint);
+  if (batch) {
+    return {
+      content:
+        `${COA_GENERIC}\n\nA published public report is listed for ${batch.product} (batch ${batch.batch}). Verify the original with the testing lab using the task number on that report. We do not invent reports.`,
+      ephemeral: false,
+      category: "coa_location",
+      riskLevel: "low",
+      outcome: "answered",
+      responseSource: "policy:coa+public_batch",
+    };
+  }
+
+  // Unknown freeform hint — do not echo raw text; generic guidance, ephemeral.
   return {
-    content: base + extra,
-    ephemeral: false,
+    content: COA_GENERIC,
+    ephemeral: true,
     category: "coa_location",
     riskLevel: "low",
     outcome: "answered",
@@ -148,9 +241,13 @@ export async function answerProducts(
   productHint?: string
 ): Promise<DiscordAnswer> {
   const hint = sanitizeDiscordInput(productHint);
+
+  if (hint && textLooksRestrictedHumanUse(hint)) {
+    return restrictedBoundary();
+  }
+
   const summary = await lookupSellableAvailabilitySummary(hint || null);
-  const catalog = await import("@/lib/products/catalog");
-  const products = catalog.getActiveCatalogProducts();
+  const products = getActiveCatalogProducts();
   const priceLines = products
     .filter((p) => {
       if (!hint) return true;
@@ -162,7 +259,10 @@ export async function answerProducts(
       );
     })
     .slice(0, 12)
-    .map((p) => `- ${p.name} (${p.strength}): $${p.price.toFixed(2)} · ${p.href}`);
+    .map(
+      (p) =>
+        `- ${p.name} (${p.strength}): $${p.price.toFixed(2)} · ${p.href}`
+    );
 
   return {
     content:

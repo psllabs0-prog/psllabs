@@ -109,12 +109,14 @@ export async function setDiscordInteractionReportingExcluded(input: {
   `;
 }
 
-/** Durable per-minute rate limit using hashed user id. */
+/** Durable per-minute rate limit using hashed user id. Fail closed without hash. */
 export async function checkDiscordRateLimit(userHash: string | null): Promise<{
   allowed: boolean;
   count: number;
 }> {
-  if (!userHash) return { allowed: true, count: 0 };
+  if (!userHash) {
+    return { allowed: false, count: 0 };
+  }
   await ensureDiscordSchema();
   const sql = getSql();
   const limit = getDiscordConfig().rateLimitPerMinute;
