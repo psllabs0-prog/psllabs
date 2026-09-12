@@ -22,6 +22,8 @@ import {
   markResponseSent,
   restoreMessageToActiveSupport,
   setMessageReportingExcluded,
+  claimSupportInboxLease,
+  releaseSupportInboxLease,
 } from "@/lib/support/store";
 import { canSendCustomerReply } from "@/lib/support/lifecycle";
 import { decideOutboundAction } from "@/lib/support/draft";
@@ -446,9 +448,21 @@ async function main() {
       "excluded escalation does not count in CEO brief"
     );
 
+    // Overlapping inbox runs: second invocation must skip via lease.
+    await releaseSupportInboxLease();
+    const leased = await claimSupportInboxLease({ claimedBy: "test-holder" });
+    assert(leased === true, "claim lease");
+    const overlap = await runSupportInboxJob({
+      fixtures: [fixture({ subject: "lease overlap" })],
+    });
+    assert(overlap.skippedDueToLease === true, "overlapping run skips");
+    assert(overlap.newMessages === 0, "no duplicate handling under lease");
+    await releaseSupportInboxLease();
+
     console.log("[test-support-agent-db] all passed.");
   } finally {
     process.env.SUPPORT_AUTO_SEND_ENABLED = "false";
+    await releaseSupportInboxLease().catch(() => undefined);
     await cleanupFixtures(sql);
   }
 }

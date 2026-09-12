@@ -6,6 +6,12 @@ import { collectOpsSystemStatuses } from "@/lib/ops/status";
 import { topOpsActions } from "@/lib/ops/types";
 import { acknowledgeOpsException } from "@/lib/ops/store";
 import { ensureOpsSchema } from "@/lib/ops/schema";
+import { collectFulfillmentBoard } from "@/lib/fulfillment/store";
+import {
+  getLatestJobRun as getLatestSupportJobRun,
+  getLatestSuccessfulSupportJobRun,
+  getSupportExpectedPollMinutes,
+} from "@/lib/support/store";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -19,11 +25,25 @@ export async function GET() {
     const exceptions = await collectOpsExceptions();
     const topActions = topOpsActions(exceptions, 3);
     const statuses = await collectOpsSystemStatuses(exceptions);
+
+    const [board, supportLatest, supportOk] = await Promise.all([
+      collectFulfillmentBoard().catch(() => null),
+      getLatestSupportJobRun().catch(() => null),
+      getLatestSuccessfulSupportJobRun().catch(() => null),
+    ]);
+
     return NextResponse.json({
       exceptions,
       topActions,
       statuses,
       activeCount: exceptions.filter((e) => !e.acknowledged).length,
+      warehouse: board?.summary ?? null,
+      supportHealth: {
+        latestRunAt: supportLatest?.finishedAt ?? null,
+        latestOk: supportLatest?.ok ?? null,
+        lastSuccessfulAt: supportOk?.finishedAt ?? null,
+        expectedPollMinutes: getSupportExpectedPollMinutes(),
+      },
     });
   } catch (error) {
     console.error("[admin/ops] GET", error);

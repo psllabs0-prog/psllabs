@@ -22,6 +22,7 @@ import {
   upsertCeoWeeklyBrief,
 } from "./store";
 import { collectSupportSnapshot } from "./support";
+import { collectFulfillmentSnapshot } from "./fulfillment";
 import type { CeoBriefRow, CeoWeeklyBrief } from "./types";
 
 export type GenerateCeoBriefResult = {
@@ -44,13 +45,15 @@ async function buildBrief(asOf: Date): Promise<{
   const period = getLastCompletedWeekUtc(asOf);
   const prior = previousWeekPeriod(period);
 
-  const [sales, inventory, support, acquisition, seo] = await Promise.all([
-    collectSalesSnapshot(period, prior),
-    collectInventorySnapshot(asOf),
-    collectSupportSnapshot(period),
-    collectAcquisitionSnapshot(period),
-    collectSeoSnapshot(period, prior),
-  ]);
+  const [sales, inventory, support, acquisition, seo, fulfillment] =
+    await Promise.all([
+      collectSalesSnapshot(period, prior),
+      collectInventorySnapshot(asOf),
+      collectSupportSnapshot(period),
+      collectAcquisitionSnapshot(period),
+      collectSeoSnapshot(period, prior),
+      collectFulfillmentSnapshot(),
+    ]);
   const health = await collectHealthSnapshot({ support });
 
   // Share ops priority surface with CEO health (no second prioritization system).
@@ -78,6 +81,7 @@ async function buildBrief(asOf: Date): Promise<{
     support,
     seo,
     health,
+    fulfillment,
   });
 
   return {

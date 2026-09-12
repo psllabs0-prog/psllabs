@@ -87,4 +87,8 @@ export const SUPPORT_TABLES = [
   "support_responses",
   "support_escalations",
   "support_job_runs",
+  "support_inbox_lease",
 ] as const;
+
+/** Stale lease window so a crashed worker cannot block hourly runs forever. */
+export const SUPPORT_INBOX_LEASE_STALE_MINUTES = 15;

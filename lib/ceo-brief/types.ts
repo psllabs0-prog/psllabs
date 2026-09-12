@@ -6,6 +6,7 @@ export type CeoBriefSectionKey =
   | "support"
   | "seo"
   | "health"
+  | "fulfillment"
   | "actions";
 
 export type DataAvailability = "known" | "insufficient" | "warning";
@@ -121,6 +122,14 @@ export type CeoHealthSnapshot = {
   warnings: string[];
 };
 
+export type CeoFulfillmentSnapshot = {
+  readyOrders: number;
+  holds: number;
+  packedWaitingTracking: number;
+  /** Only populated when noteworthy (blocked orders or large queue). */
+  notes: string[];
+};
+
 export type CeoWeeklyBrief = {
   periodStart: string;
   periodEnd: string;
@@ -133,6 +142,7 @@ export type CeoWeeklyBrief = {
   support: CeoSupportSnapshot;
   seo: CeoSeoSnapshot;
   health: CeoHealthSnapshot;
+  fulfillment?: CeoFulfillmentSnapshot;
   actions: CeoLukeAction[];
 };
 

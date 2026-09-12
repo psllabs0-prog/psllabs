@@ -10,6 +10,18 @@ type Payload = {
   topActions: OpsException[];
   statuses: OpsSystemStatus[];
   activeCount: number;
+  warehouse: {
+    readyOrders: number;
+    unitsToPick: number;
+    holds: number;
+    packedWaitingTracking: number;
+  } | null;
+  supportHealth: {
+    latestRunAt: string | null;
+    latestOk: boolean | null;
+    lastSuccessfulAt: string | null;
+    expectedPollMinutes: number;
+  } | null;
 };
 
 export function AdminOpsDashboard() {
@@ -149,6 +161,23 @@ export function AdminOpsDashboard() {
             </ul>
           </section>
         </>
+      )}
+
+      {data && (
+        <section className="premium-card px-5 py-4 text-sm text-ink">
+          <p>
+            Warehouse — Ready: {data.warehouse?.readyOrders ?? 0} · Units:{" "}
+            {data.warehouse?.unitsToPick ?? 0} · Holds:{" "}
+            {data.warehouse?.holds ?? 0} · Packed awaiting tracking:{" "}
+            {data.warehouse?.packedWaitingTracking ?? 0}
+          </p>
+          <p className="mt-2 text-ash">
+            Support inbox — latest: {data.supportHealth?.latestRunAt ?? "—"}
+            {data.supportHealth?.latestOk === false ? " (failed)" : ""} · last
+            success: {data.supportHealth?.lastSuccessfulAt ?? "—"} · expected
+            poll ~{data.supportHealth?.expectedPollMinutes ?? 60}m
+          </p>
+        </section>
       )}
 
       {data && (

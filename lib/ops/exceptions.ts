@@ -13,9 +13,12 @@ import { getSql } from "@/lib/db/sql";
 import { ensureSupportSchema } from "@/lib/support/schema";
 import {
   getLatestJobRun as getLatestSupportJobRun,
+  getLatestSuccessfulSupportJobRun,
+  getSupportExpectedPollMinutes,
   listRetryableCustomerSendMessages,
   listUnnotifiedEscalations,
 } from "@/lib/support/store";
+import { collectFulfillmentBoard } from "@/lib/fulfillment/store";
 import { getLatestCeoBrief } from "@/lib/ceo-brief/store";
 import { ensureCeoBriefSchema } from "@/lib/ceo-brief/schema";
 import {
@@ -223,10 +226,18 @@ async function collectSupportExceptions(): Promise<RawOpsException[]> {
       });
     }
 
-    const [failedSends, unnotified, supportJob] = await Promise.all([
+    const [
+      failedSends,
+      unnotified,
+      supportJob,
+      lastOk,
+      expectedMinutes,
+    ] = await Promise.all([
       listRetryableCustomerSendMessages(10),
       listUnnotifiedEscalations(10),
       getLatestSupportJobRun(),
+      getLatestSuccessfulSupportJobRun().catch(() => null),
+      Promise.resolve(getSupportExpectedPollMinutes()),
     ]);
 
     if (failedSends.length > 0) {
@@ -267,6 +278,28 @@ async function collectSupportExceptions(): Promise<RawOpsException[]> {
         href: "/admin-support",
       });
     }
+
+    // Stale polling — avoid false alarm right after deploy (grace = 2x expected).
+    if (lastOk?.finishedAt) {
+      const ageMin =
+        (Date.now() - Date.parse(lastOk.finishedAt)) / (60 * 1000);
+      const staleAfter = expectedMinutes * 2;
+      if (ageMin > staleAfter) {
+        out.push({
+          sourceType: "support_polling_stale",
+          sourceId: lastOk.finishedAt,
+          priority: "P2",
+          area: "support",
+          title: "Support polling stale",
+          why: `Last successful inbox run ${lastOk.finishedAt}. Expected ~${expectedMinutes}m (stale after ${staleAfter}m).`,
+          detectedAt: lastOk.finishedAt,
+          href: "/admin-support",
+        });
+      }
+    } else if (supportJob?.finishedAt) {
+      // Had runs but none successful — already covered by failed job above when ok=false.
+    }
+    // No job history yet → Day-0 / post-deploy: do not alarm.
   } catch {
     // ignore
   }
@@ -345,57 +378,82 @@ async function collectInventoryExceptions(): Promise<RawOpsException[]> {
 async function collectFulfillmentExceptions(): Promise<RawOpsException[]> {
   const out: RawOpsException[] = [];
   try {
-    const orders = await getOrdersNeedingTracking(50);
-    if (orders.length === 0) return out;
-
+    const board = await collectFulfillmentBoard();
     const hours = getUnshippedReviewHours();
     const now = Date.now();
 
-    if (hours == null) {
+    if (board.hold.length > 0) {
+      const first = board.hold[0];
       out.push({
-        sourceType: "fulfillment_queue",
-        sourceId: "paid_untracked",
+        sourceType: "fulfillment_blocked",
+        sourceId: first.orderId,
         priority: "P1",
         area: "fulfillment",
-        title: `${orders.length} paid order(s) awaiting tracking`,
-        why: "Paid orders without tracking. No overdue SLA configured (OPS_UNSHIPPED_REVIEW_HOURS).",
-        detectedAt: orders[0]?.paidAt ?? orders[0]?.createdAt ?? new Date().toISOString(),
-        href: "/admin-ledger",
+        title: `${board.hold.length} payment-confirmed order(s) blocked from fulfillment`,
+        why: first.blocker || first.holdReason || "Hold / review required",
+        detectedAt: first.paidAt ?? first.createdAt,
+        href: "/admin-fulfillment",
       });
-      return out;
     }
 
-    const overdue = orders.filter((o) => {
-      const t = Date.parse(o.paidAt ?? o.createdAt);
-      if (!Number.isFinite(t)) return false;
-      return (now - t) / (60 * 60 * 1000) >= hours;
-    });
+    const awaiting = board.ready.length + board.packed.length;
+    if (awaiting > 0) {
+      let overdueCount = 0;
+      if (hours != null) {
+        for (const c of [...board.ready, ...board.packed]) {
+          const t = Date.parse(c.paidAt ?? c.createdAt);
+          if (Number.isFinite(t) && (now - t) / (60 * 60 * 1000) >= hours) {
+            overdueCount += 1;
+          }
+        }
+      }
 
-    if (overdue.length > 0) {
-      out.push({
-        sourceType: "fulfillment_unshipped_review",
-        sourceId: "overdue_batch",
-        priority: "P1",
-        area: "fulfillment",
-        title: `${overdue.length} order(s) past unshipped review hours`,
-        why: `Configured OPS_UNSHIPPED_REVIEW_HOURS=${hours}. Review fulfillment — do not invent carrier SLAs.`,
-        detectedAt: overdue[0]?.paidAt ?? new Date().toISOString(),
-        href: "/admin-ledger",
-      });
-    } else if (orders.length > 0) {
-      out.push({
-        sourceType: "fulfillment_queue",
-        sourceId: "paid_untracked",
-        priority: "P2",
-        area: "fulfillment",
-        title: `${orders.length} paid order(s) awaiting tracking`,
-        why: "In fulfillment queue; none past configured review hours yet.",
-        detectedAt: orders[0]?.paidAt ?? new Date().toISOString(),
-        href: "/admin-ledger",
-      });
+      if (overdueCount > 0) {
+        out.push({
+          sourceType: "fulfillment_unshipped_review",
+          sourceId: "overdue_batch",
+          priority: "P1",
+          area: "fulfillment",
+          title: `${overdueCount} order(s) past unshipped review hours`,
+          why: `Configured OPS_UNSHIPPED_REVIEW_HOURS=${hours}. Awaiting fulfillment review — not a carrier SLA.`,
+          detectedAt: new Date().toISOString(),
+          href: "/admin-fulfillment",
+        });
+      } else {
+        out.push({
+          sourceType: "fulfillment_queue",
+          sourceId: "ready_pack",
+          priority: "P2",
+          area: "fulfillment",
+          title: `${board.summary.readyOrders} ready to pack · ${board.summary.packedWaitingTracking} packed awaiting tracking`,
+          why:
+            hours == null
+              ? `Awaiting fulfillment (units to pick: ${board.summary.unitsToPick}). No overdue threshold configured.`
+              : `Awaiting fulfillment; none past ${hours}h review window yet.`,
+          detectedAt: new Date().toISOString(),
+          href: "/admin-fulfillment",
+        });
+      }
     }
   } catch {
-    // ignore
+    // Fallback: paid untracked count without workflow metadata.
+    try {
+      const orders = await getOrdersNeedingTracking(50);
+      if (orders.length > 0) {
+        out.push({
+          sourceType: "fulfillment_queue",
+          sourceId: "paid_untracked",
+          priority: "P2",
+          area: "fulfillment",
+          title: `${orders.length} paid order(s) awaiting fulfillment`,
+          why: "Awaiting fulfillment.",
+          detectedAt: orders[0]?.paidAt ?? new Date().toISOString(),
+          href: "/admin-fulfillment",
+        });
+      }
+    } catch {
+      // ignore
+    }
   }
   return out;
 }

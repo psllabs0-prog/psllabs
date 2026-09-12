@@ -16,6 +16,8 @@
     "migrate-ceo-brief": "tsx scripts/migrate-ceo-brief.ts",
     "migrate-external-metrics": "tsx scripts/migrate-external-metrics.ts",
     "migrate-ops": "tsx scripts/migrate-ops.ts",
+    "migrate-retention": "tsx scripts/migrate-retention.ts",
+    "migrate-fulfillment": "tsx scripts/migrate-fulfillment.ts",
     "test:inventory-monitor": "tsx scripts/test-inventory-monitor.ts",
     "test:inventory-monitor-db": "tsx scripts/test-inventory-monitor-db.ts",
     "test:support-agent": "tsx scripts/test-support-agent.ts",
@@ -25,6 +27,8 @@
     "test:external-metrics": "tsx scripts/test-external-metrics.ts",
     "test:external-metrics-db": "tsx scripts/test-external-metrics-db.ts",
     "test:ops": "tsx scripts/test-ops.ts",
+    "test:retention": "tsx scripts/test-retention.ts",
+    "test:fulfillment": "tsx scripts/test-fulfillment.ts",
     "seed-catalog": "tsx scripts/seed-catalog-inventory.ts",
     "sync-tagada": "tsx scripts/sync-tagada.ts",
     "sync-tagada:dry-run": "tsx scripts/sync-tagada.ts --dry-run"

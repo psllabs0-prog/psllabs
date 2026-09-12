@@ -1,6 +1,7 @@
 import { getSql } from "@/lib/db/sql";
 
 import type { MessageStatus, SupportCategory, SupportRiskLevel } from "./constants";
+import { SUPPORT_INBOX_LEASE_STALE_MINUTES } from "./constants";
 import { ensureSupportSchema } from "./schema";
 import type {
   ClassificationResult,
@@ -226,14 +227,18 @@ export async function createEscalation(input: {
   return { id: Number(rows[0].id), created: true };
 }
 
-export async function markEscalationNotified(id: number): Promise<void> {
+export async function markEscalationNotified(id: number): Promise<boolean> {
   await ensureSupportSchema();
   const sql = getSql();
-  await sql`
+  const rows = (await sql`
     UPDATE support_escalations
     SET notified_at = now()
     WHERE id = ${id}
-  `;
+      AND notified_at IS NULL
+      AND resolved_at IS NULL
+    RETURNING id
+  `) as Array<{ id: number }>;
+  return rows.length > 0;
 }
 
 export async function setMessageStatus(
@@ -823,4 +828,70 @@ export async function recordJobRun(
       ${summary.details ? JSON.stringify(summary.details) : null}::jsonb
     )
   `;
+}
+
+/**
+ * Atomic singleton lease so overlapping cron/admin inbox runs skip safely.
+ * Stale claims (crashed workers) can be taken after SUPPORT_INBOX_LEASE_STALE_MINUTES.
+ */
+export async function claimSupportInboxLease(options?: {
+  claimedBy?: string;
+  staleMinutes?: number;
+}): Promise<boolean> {
+  await ensureSupportSchema();
+  const sql = getSql();
+  const stale = options?.staleMinutes ?? SUPPORT_INBOX_LEASE_STALE_MINUTES;
+  const claimedBy = options?.claimedBy ?? "support-inbox";
+  const rows = (await sql`
+    UPDATE support_inbox_lease
+    SET
+      claimed_at = now(),
+      claimed_by = ${claimedBy},
+      updated_at = now()
+    WHERE id = 1
+      AND (
+        claimed_at IS NULL
+        OR claimed_at < now() - (${stale}::int * interval '1 minute')
+      )
+    RETURNING id
+  `) as Array<{ id: number }>;
+  return rows.length > 0;
+}
+
+export async function releaseSupportInboxLease(): Promise<void> {
+  await ensureSupportSchema();
+  const sql = getSql();
+  await sql`
+    UPDATE support_inbox_lease
+    SET claimed_at = NULL, claimed_by = NULL, updated_at = now()
+    WHERE id = 1
+  `;
+}
+
+export async function getLatestSuccessfulSupportJobRun(): Promise<{
+  finishedAt: string;
+  ok: boolean;
+} | null> {
+  await ensureSupportSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT finished_at, ok
+    FROM support_job_runs
+    WHERE ok = true
+      AND finished_at IS NOT NULL
+    ORDER BY finished_at DESC
+    LIMIT 1
+  `) as Array<{ finished_at: string; ok: boolean }>;
+  if (!rows[0]?.finished_at) return null;
+  return {
+    finishedAt: new Date(rows[0].finished_at).toISOString(),
+    ok: Boolean(rows[0].ok),
+  };
+}
+
+export function getSupportExpectedPollMinutes(): number {
+  const raw = process.env.SUPPORT_EXPECTED_POLL_MINUTES?.trim();
+  const n = raw ? Number(raw) : 60;
+  if (!Number.isFinite(n) || n <= 0) return 60;
+  return Math.min(Math.max(n, 15), 24 * 60);
 }

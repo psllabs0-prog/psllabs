@@ -1,7 +1,9 @@
 import { selectLukeActions, type ActionCandidate } from "./period";
 import { buildInventoryLukeActionCandidates } from "./inventory";
+import { buildFulfillmentLukeActionCandidates } from "./fulfillment";
 import type {
   CeoAcquisitionSnapshot,
+  CeoFulfillmentSnapshot,
   CeoHealthSnapshot,
   CeoInventorySnapshot,
   CeoLukeAction,
@@ -17,9 +19,10 @@ function buildExecutiveSummary(input: {
   support: CeoSupportSnapshot;
   health: CeoHealthSnapshot;
   acquisition: CeoAcquisitionSnapshot;
+  fulfillment?: CeoFulfillmentSnapshot;
 }): string[] {
   const bullets: string[] = [];
-  const { sales, inventory, support, health } = input;
+  const { sales, inventory, support, health, fulfillment } = input;
 
   if (sales.legitimateOrders > 0 || sales.priorLegitimateOrders > 0) {
     const change = sales.revenueChangeNote
@@ -62,6 +65,10 @@ function buildExecutiveSummary(input: {
     );
   }
 
+  for (const note of fulfillment?.notes ?? []) {
+    bullets.push(`Fulfillment: ${note}`);
+  }
+
   if (health.warnings.length > 0) {
     bullets.push(`System: ${health.warnings[0]}`);
   }
@@ -76,6 +83,7 @@ export function buildLukeActionCandidates(input: {
   health: CeoHealthSnapshot;
   acquisition: CeoAcquisitionSnapshot;
   seo: CeoSeoSnapshot;
+  fulfillment?: CeoFulfillmentSnapshot;
 }): ActionCandidate[] {
   const candidates: ActionCandidate[] = [];
 
@@ -119,6 +127,10 @@ export function buildLukeActionCandidates(input: {
       urgency: "Urgent",
       section: "health",
     });
+  }
+
+  if (input.fulfillment) {
+    candidates.push(...buildFulfillmentLukeActionCandidates(input.fulfillment));
   }
 
   candidates.push(...buildInventoryLukeActionCandidates(input.inventory));
@@ -188,6 +200,7 @@ export function composeWeeklyBrief(input: {
   support: CeoSupportSnapshot;
   seo: CeoSeoSnapshot;
   health: CeoHealthSnapshot;
+  fulfillment?: CeoFulfillmentSnapshot;
 }): CeoWeeklyBrief {
   const actions: CeoLukeAction[] = selectLukeActions(
     buildLukeActionCandidates(input)
@@ -205,6 +218,7 @@ export function composeWeeklyBrief(input: {
     support: input.support,
     seo: input.seo,
     health: input.health,
+    fulfillment: input.fulfillment,
     actions,
   };
 }

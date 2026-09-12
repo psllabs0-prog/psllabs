@@ -122,4 +122,6 @@ export type SupportJobSummary = {
   failed: number;
   skipped: number;
   errors: string[];
+  /** True when another worker held the inbox lease. */
+  skippedDueToLease?: boolean;
 };

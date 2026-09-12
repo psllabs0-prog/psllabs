@@ -122,6 +122,21 @@ export async function ensureSupportSchema(): Promise<void> {
         details_json JSONB
       )
     `;
+
+    // Singleton concurrency lease for hourly-safe overlapping cron/admin runs.
+    await sql`
+      CREATE TABLE IF NOT EXISTS support_inbox_lease (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        claimed_at TIMESTAMPTZ,
+        claimed_by TEXT,
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `;
+    await sql`
+      INSERT INTO support_inbox_lease (id, claimed_at, claimed_by)
+      VALUES (1, NULL, NULL)
+      ON CONFLICT (id) DO NOTHING
+    `;
   })().catch((error) => {
     schemaReady = null;
     throw error;

@@ -19,6 +19,7 @@ import {
 import { ensureSupportSchema } from "./schema";
 import { sendSupportCustomerEmail, sendSupportEscalationEmail } from "./smtp";
 import {
+  claimSupportInboxLease,
   createEscalation,
   findMessageByProviderId,
   getClassificationForMessage,
@@ -31,6 +32,7 @@ import {
   markEscalationNotified,
   markResponseSent,
   recordJobRun,
+  releaseSupportInboxLease,
   saveClassification,
   saveDraftResponse,
   setMessageStatus,
@@ -105,8 +107,8 @@ async function tryEscalationNotify(input: {
       suggestedResponse: input.suggestedResponse,
       adminUrl: `${SITE_URL}/admin-support`,
     });
-    await markEscalationNotified(input.escalationId);
-    return { notified: true };
+    const marked = await markEscalationNotified(input.escalationId);
+    return { notified: marked };
   } catch (error) {
     console.error(
       "[support] escalation notify failed:",
@@ -414,6 +416,37 @@ export async function runSupportInboxJob(options?: {
 }): Promise<SupportJobSummary> {
   await ensureSupportSchema();
 
+  const empty: SupportJobSummary = {
+    messagesChecked: 0,
+    newMessages: 0,
+    autoSent: 0,
+    escalated: 0,
+    failed: 0,
+    skipped: 0,
+    errors: [],
+  };
+
+  const leased = await claimSupportInboxLease({
+    claimedBy: options?.fixtures ? "support-inbox-test" : "support-inbox",
+  });
+  if (!leased) {
+    return {
+      ...empty,
+      skippedDueToLease: true,
+      errors: ["Support inbox already running — skipped overlapping invocation."],
+    };
+  }
+
+  try {
+    return await runSupportInboxJobLocked(options);
+  } finally {
+    await releaseSupportInboxLease().catch(() => undefined);
+  }
+}
+
+async function runSupportInboxJobLocked(options?: {
+  fixtures?: InboundEmailNormalized[];
+}): Promise<SupportJobSummary> {
   const summary: SupportJobSummary = {
     messagesChecked: 0,
     newMessages: 0,
