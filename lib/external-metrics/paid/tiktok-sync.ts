@@ -23,6 +23,12 @@ type TikTokReportRow = {
 /**
  * Read-only TikTok Ads reporting sync into paid_acquisition_daily.
  * Never mutates campaigns/budgets.
+ *
+ * Important: TikTok `conversion` is the selected optimization event — NOT a
+ * purchase. App-oriented purchase-value metrics are also not PSL website SoT.
+ * platformPurchases / platformPurchaseValueUsd stay null unless a verified
+ * website purchase metric is confirmed (not claimed here).
+ * Generic `conversion` may be stored as platformConversions diagnostic only.
  */
 export async function syncTikTokAdsDaily(options?: {
   asOf?: Date;
@@ -78,8 +84,8 @@ export async function syncTikTokAdsDaily(options?: {
             "spend",
             "impressions",
             "clicks",
+            // Diagnostic only — NOT purchases / website payment.
             "conversion",
-            "total_purchase_value",
           ]),
           start_date: ymd(since),
           end_date: ymd(until),
@@ -132,12 +138,14 @@ export async function syncTikTokAdsDaily(options?: {
           spendUsd: Number(met.spend ?? 0),
           impressions: Number(met.impressions ?? 0),
           clicks: Number(met.clicks ?? 0),
-          platformPurchases:
-            met.conversion != null ? Number(met.conversion) : null,
-          platformPurchaseValueUsd:
-            met.total_purchase_value != null
-              ? Number(met.total_purchase_value)
+          // Never label generic conversion as purchase.
+          platformPurchases: null,
+          platformPurchaseValueUsd: null,
+          platformConversions:
+            met.conversion != null && met.conversion !== ""
+              ? Number(met.conversion)
               : null,
+          platformConversionValueUsd: null,
         });
       }
 

@@ -5,7 +5,8 @@ import { ensureExternalMetricsSchema } from "@/lib/external-metrics/schema";
 import {
   chooseRevenueTruth,
   normalizePaidPlatform,
-  paidAttributionMatchScore,
+  assignOrderToUniqueCampaign,
+  assignOrderToUniqueCreative,
 } from "@/lib/external-metrics/paid/attribution";
 import {
   countPaidAcquisitionRows,
@@ -35,6 +36,7 @@ export type AcquisitionCampaignRow = {
   cacUsd: number | null;
   roas: number | null;
   platformPurchaseValueUsd: number | null;
+  platformConversions: number | null;
   sampleNote: string;
   dataConfidence: "low" | "adequate";
 };
@@ -133,7 +135,8 @@ export async function buildAcquisitionDashboard(options?: {
       COALESCE(SUM(spend_usd), 0)::float AS spend,
       COALESCE(SUM(impressions), 0)::bigint AS impressions,
       COALESCE(SUM(clicks), 0)::bigint AS clicks,
-      COALESCE(SUM(platform_purchase_value_usd), 0)::float AS platform_value
+      COALESCE(SUM(platform_purchase_value_usd), 0)::float AS platform_value,
+      COALESCE(SUM(platform_conversions), 0)::float AS platform_conversions
     FROM paid_acquisition_daily
     WHERE date >= ${startDate}::date
       AND date <= ${endDate}::date
@@ -148,12 +151,15 @@ export async function buildAcquisitionDashboard(options?: {
     impressions: number;
     clicks: number;
     platform_value: number;
+    platform_conversions: number;
   }>;
 
   const creativeAgg = (await sql`
     SELECT
       platform,
       COALESCE(NULLIF(ad_name, ''), NULLIF(ad_id, ''), campaign_id) AS content_key,
+      MAX(ad_id) AS ad_id,
+      MAX(ad_name) AS ad_name,
       COALESCE(SUM(spend_usd), 0)::float AS spend
     FROM paid_acquisition_daily
     WHERE date >= ${startDate}::date
@@ -161,7 +167,13 @@ export async function buildAcquisitionDashboard(options?: {
     GROUP BY platform, COALESCE(NULLIF(ad_name, ''), NULLIF(ad_id, ''), campaign_id)
     ORDER BY spend DESC
     LIMIT 100
-  `) as Array<{ platform: string; content_key: string; spend: number }>;
+  `) as Array<{
+    platform: string;
+    content_key: string;
+    ad_id: string | null;
+    ad_name: string | null;
+    spend: number;
+  }>;
 
   const orderRows = (await sql`
     SELECT
@@ -194,32 +206,92 @@ export async function buildAcquisitionDashboard(options?: {
     )
   );
 
-  const campaigns: AcquisitionCampaignRow[] = paidAgg.map((c) => {
-    let pslOrders = 0;
-    let pslRevenue = 0;
-    for (const o of paidOrders) {
-      const attr = o.attribution ?? {};
-      const score = paidAttributionMatchScore(
-        {
-          utmSource: attr.utmSource as string | null,
-          utmMedium: attr.utmMedium as string | null,
-          utmCampaign: attr.utmCampaign as string | null,
-          utmContent: attr.utmContent as string | null,
-        },
-        {
-          platform: c.platform,
-          campaignId: c.campaign_id,
-          utmCampaign: c.campaign_name,
-        }
-      );
-      // Require meaningful join (platform + campaign signal)
-      if (score >= 5) {
-        pslOrders += 1;
-        pslRevenue += Number(o.total);
+  const campaignKeys = paidAgg.map((c) => ({
+    key: `${c.platform}:${c.campaign_id}`,
+    platform: c.platform,
+    campaignId: c.campaign_id,
+    campaignName: c.campaign_name,
+    utmCampaign: c.campaign_name,
+  }));
+
+  const campaignStats = new Map<
+    string,
+    { orders: number; revenue: number }
+  >();
+  for (const c of campaignKeys) {
+    campaignStats.set(c.key, { orders: 0, revenue: 0 });
+  }
+
+  const creativeKeys = creativeAgg.map((c) => ({
+    key: `${c.platform}:${c.content_key}`,
+    platform: c.platform,
+    contentKey: c.content_key,
+    adId: c.ad_id,
+    adName: c.ad_name,
+  }));
+  const creativeStats = new Map<
+    string,
+    { orders: number; revenue: number }
+  >();
+  for (const c of creativeKeys) {
+    creativeStats.set(c.key, { orders: 0, revenue: 0 });
+  }
+
+  const measurementWarnings: string[] = [];
+  const unmatchedPlatform: string[] = [];
+  const unmatchedOrders: string[] = [];
+  let ambiguousOrderCount = 0;
+
+  for (const o of paidOrders) {
+    const attr = o.attribution ?? {};
+    const orderFields = {
+      utmSource: attr.utmSource as string | null,
+      utmMedium: attr.utmMedium as string | null,
+      utmCampaign: attr.utmCampaign as string | null,
+      utmContent: attr.utmContent as string | null,
+      campaignId:
+        typeof attr.campaignId === "string" ? attr.campaignId : null,
+      adId: typeof attr.adId === "string" ? attr.adId : null,
+    };
+
+    const campAssign = assignOrderToUniqueCampaign(orderFields, campaignKeys);
+    if (campAssign.status === "matched") {
+      const stats = campaignStats.get(campAssign.campaign.key);
+      if (stats) {
+        stats.orders += 1;
+        stats.revenue += Number(o.total);
       }
+    } else if (campAssign.status === "ambiguous") {
+      ambiguousOrderCount += 1;
+      measurementWarnings.push(
+        `AMBIGUOUS attribution for order ${o.order_id}: multiple exact campaign matches; assigned to none.`
+      );
+    } else if (paidAgg.length > 0) {
+      unmatchedOrders.push(o.order_id);
     }
+
+    const creativeAssign = assignOrderToUniqueCreative(
+      orderFields,
+      creativeKeys
+    );
+    if (creativeAssign.status === "matched") {
+      const stats = creativeStats.get(creativeAssign.campaign.key);
+      if (stats) {
+        stats.orders += 1;
+        stats.revenue += Number(o.total);
+      }
+    } else if (creativeAssign.status === "ambiguous") {
+      measurementWarnings.push(
+        `AMBIGUOUS creative attribution for order ${o.order_id}: assigned to none.`
+      );
+    }
+  }
+
+  const campaigns: AcquisitionCampaignRow[] = paidAgg.map((c) => {
+    const key = `${c.platform}:${c.campaign_id}`;
+    const stats = campaignStats.get(key) ?? { orders: 0, revenue: 0 };
     const truth = chooseRevenueTruth({
-      pslAttributedRevenueUsd: pslRevenue,
+      pslAttributedRevenueUsd: stats.revenue,
       platformPurchaseValueUsd: c.platform_value,
     });
     const spend = Number(c.spend);
@@ -228,7 +300,7 @@ export async function buildAcquisitionDashboard(options?: {
     const adequate = hasEnoughEvidenceForPerformanceConclusion({
       clicks,
       spendUsd: spend,
-      orders: pslOrders,
+      orders: stats.orders,
     });
     return {
       platform: c.platform,
@@ -240,11 +312,16 @@ export async function buildAcquisitionDashboard(options?: {
       ctr: impressions > 0 ? clicks / impressions : null,
       cpc: clicks > 0 ? spend / clicks : null,
       cpm: impressions > 0 ? (spend / impressions) * 1000 : null,
-      pslOrders,
+      pslOrders: stats.orders,
       pslRevenueUsd: truth.revenueUsd,
-      cacUsd: pslOrders > 0 ? spend / pslOrders : null,
+      cacUsd: stats.orders > 0 ? spend / stats.orders : null,
       roas: spend > 0 ? truth.revenueUsd / spend : null,
-      platformPurchaseValueUsd: Number(c.platform_value) || null,
+      platformPurchaseValueUsd:
+        Number(c.platform_value) > 0 ? Number(c.platform_value) : null,
+      platformConversions:
+        Number(c.platform_conversions) > 0
+          ? Number(c.platform_conversions)
+          : null,
       sampleNote: adequate
         ? "Evidence thresholds met for comparison"
         : "Insufficient sample — show data only; no strong conclusion",
@@ -253,32 +330,22 @@ export async function buildAcquisitionDashboard(options?: {
   });
 
   const creatives: AcquisitionCreativeRow[] = creativeAgg.map((c) => {
-    let orders = 0;
-    let revenue = 0;
-    for (const o of paidOrders) {
-      const attr = o.attribution ?? {};
-      const content = String(attr.utmContent ?? "").toLowerCase();
-      const key = String(c.content_key ?? "").toLowerCase();
-      const src = normalizePaidPlatform(attr.utmSource as string | null);
-      if (src === normalizePaidPlatform(c.platform) && content && key && content === key) {
-        orders += 1;
-        revenue += Number(o.total);
-      }
-    }
+    const key = `${c.platform}:${c.content_key}`;
+    const stats = creativeStats.get(key) ?? { orders: 0, revenue: 0 };
     const spend = Number(c.spend);
     const adequate = hasEnoughEvidenceForPerformanceConclusion({
       clicks: 0,
       spendUsd: spend,
-      orders,
+      orders: stats.orders,
     });
     return {
       platform: c.platform,
       contentKey: c.content_key,
       spendUsd: spend,
-      orders,
-      revenueUsd: revenue,
-      cacUsd: orders > 0 ? spend / orders : null,
-      roas: spend > 0 ? revenue / spend : null,
+      orders: stats.orders,
+      revenueUsd: stats.revenue,
+      cacUsd: stats.orders > 0 ? spend / stats.orders : null,
+      roas: spend > 0 ? stats.revenue / spend : null,
       sampleNote: adequate
         ? "Evidence thresholds met"
         : "Insufficient sample for winner/loser labeling",
@@ -319,39 +386,9 @@ export async function buildAcquisitionDashboard(options?: {
     };
   });
 
-  const measurementWarnings: string[] = [];
-  const unmatchedPlatform: string[] = [];
-  const unmatchedOrders: string[] = [];
-
   for (const c of campaigns) {
     if (c.spendUsd > 0 && c.pslOrders === 0) {
       unmatchedPlatform.push(`${c.platform}:${c.campaignName}`);
-    }
-  }
-  for (const o of paidOrders) {
-    const attr = o.attribution ?? {};
-    let matched = false;
-    for (const c of paidAgg) {
-      const score = paidAttributionMatchScore(
-        {
-          utmSource: attr.utmSource as string | null,
-          utmMedium: attr.utmMedium as string | null,
-          utmCampaign: attr.utmCampaign as string | null,
-          utmContent: attr.utmContent as string | null,
-        },
-        {
-          platform: c.platform,
-          campaignId: c.campaign_id,
-          utmCampaign: c.campaign_name,
-        }
-      );
-      if (score >= 5) {
-        matched = true;
-        break;
-      }
-    }
-    if (!matched && paidAgg.length > 0) {
-      unmatchedOrders.push(o.order_id);
     }
   }
 
@@ -365,9 +402,14 @@ export async function buildAcquisitionDashboard(options?: {
       `${unmatchedOrders.length} PSL paid-attributed order(s) without matching platform reporting row.`
     );
   }
+  if (ambiguousOrderCount > 0) {
+    measurementWarnings.push(
+      `${ambiguousOrderCount} order(s) with AMBIGUOUS campaign attribution (assigned to none).`
+    );
+  }
 
   const reviewSignals: AcquisitionReviewSignal[] = [];
-  if (unmatchedPlatform.length || unmatchedOrders.length) {
+  if (unmatchedPlatform.length || unmatchedOrders.length || ambiguousOrderCount) {
     reviewSignals.push({
       code: "MEASUREMENT_WARNING",
       severity: "warning",

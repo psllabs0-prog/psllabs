@@ -11,6 +11,11 @@ type Dashboard = {
     message: string;
     lastSyncAt: string | null;
     lastError: string | null;
+    diagnostics?: {
+      marketingApiVersion?: string;
+      marketingApiVersionSource?: string;
+      marketingApiVersionNote?: string | null;
+    };
   }>;
   learningBudget: {
     ceilingUsd: number;
@@ -171,9 +176,25 @@ export function AdminAcquisitionDashboard() {
                   {" — "}
                   <span>{c.state}</span>
                   <span className="text-ash"> · {c.message}</span>
+                  {c.diagnostics?.marketingApiVersion && (
+                    <span className="block text-xs text-ash">
+                      Marketing API {c.diagnostics.marketingApiVersion}
+                      {c.diagnostics.marketingApiVersionSource
+                        ? ` (${c.diagnostics.marketingApiVersionSource})`
+                        : ""}
+                      {c.diagnostics.marketingApiVersionNote
+                        ? ` · ${c.diagnostics.marketingApiVersionNote}`
+                        : ""}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
+            <p className="mt-2 text-xs text-ash">
+              Platform conversion metrics are diagnostic only when present.
+              Generic platform conversions are never labeled as purchases.
+              PSL Neon orders remain the revenue source of truth.
+            </p>
           </section>
 
           <section>

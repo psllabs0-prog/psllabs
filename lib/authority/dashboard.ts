@@ -17,6 +17,7 @@ import {
 import { generateDeterministicBrief, formatBriefForExport } from "./briefs";
 import { recommendInternalLinks, getKnownSitePages } from "./pages";
 import { ensureAuthoritySchema } from "./schema";
+import { requireApprovedForBriefGeneration } from "./workflow";
 
 export async function buildAuthorityDashboard() {
   await ensureAuthoritySchema();
@@ -122,12 +123,11 @@ export async function authorityAdminAction(input: {
   if (input.action === "generate_brief" && input.opportunityId) {
     const op = await getAuthorityOpportunity(input.opportunityId);
     if (!op) return { ok: false, error: "Opportunity not found" };
-    if (op.status === "suggested") {
-      await updateOpportunityStatus({
-        id: op.id,
-        status: "approved",
-      });
+    const gate = requireApprovedForBriefGeneration(op.status);
+    if (!gate.ok) {
+      return { ok: false, error: gate.error };
     }
+    const statusBefore = op.status;
     const generated = generateDeterministicBrief({
       opportunity: {
         type: op.type,
@@ -150,7 +150,16 @@ export async function authorityAdminAction(input: {
       riskLevel: generated.riskLevel,
       claimsReviewRequired: generated.claimsReviewRequired,
     });
-    return { ok: true, brief };
+    const after = await getAuthorityOpportunity(op.id);
+    return {
+      ok: true,
+      brief,
+      opportunityStatus: after?.status ?? statusBefore,
+      note:
+        after?.status === statusBefore
+          ? undefined
+          : "Opportunity status unexpectedly changed during brief generation.",
+    };
   }
 
   if (input.action === "export_brief" && input.briefId) {

@@ -10,7 +10,15 @@ import {
 import {
   chooseRevenueTruth,
   paidAttributionMatchScore,
+  assignOrderToUniqueCampaign,
+  isExactCampaignMatch,
+  isExactCreativeMatch,
 } from "../lib/external-metrics/paid/attribution";
+import {
+  DEFAULT_META_MARKETING_API_VERSION,
+  buildMetaInsightsUrl,
+  resolveMetaMarketingApiVersion,
+} from "../lib/external-metrics/paid/meta-api-version";
 import {
   metaAdsAdapter,
   tiktokAdsAdapter,
@@ -139,6 +147,170 @@ function testMatchScoreNotFuzzyGarbage() {
   assert(score < 5, "unrelated campaigns do not silently match");
 }
 
+function testDeterministicAttributionNoDoubleCount() {
+  const campaigns = [
+    {
+      key: "meta:1",
+      platform: "meta",
+      campaignId: "1",
+      campaignName: "reta_us_test",
+      utmCampaign: "reta_us_test",
+    },
+    {
+      key: "meta:2",
+      platform: "meta",
+      campaignId: "2",
+      campaignName: "reta_us_test2",
+      utmCampaign: "reta_us_test2",
+    },
+  ];
+
+  // Overlapping substring must NOT match both / either incorrectly via includes
+  assert(
+    !isExactCampaignMatch(
+      { utmSource: "meta", utmCampaign: "reta_us_test" },
+      campaigns[1]
+    ),
+    "reta_us_test does not match reta_us_test2"
+  );
+  assert(
+    !isExactCampaignMatch(
+      { utmSource: "meta", utmCampaign: "reta_us_test2" },
+      campaigns[0]
+    ),
+    "reta_us_test2 does not match reta_us_test"
+  );
+
+  const exact = assignOrderToUniqueCampaign(
+    { utmSource: "meta", utmCampaign: "reta_us_test" },
+    campaigns
+  );
+  assert(exact.status === "matched", "exact campaign match succeeds");
+  if (exact.status === "matched") {
+    assert(exact.campaign.key === "meta:1", "exact assigns reta_us_test only");
+  }
+
+  const unmatched = assignOrderToUniqueCampaign(
+    { utmSource: "meta", utmCampaign: "unknown_campaign" },
+    campaigns
+  );
+  assert(unmatched.status === "unmatched", "unmatched stays unmatched");
+
+  // Ambiguous: same campaign name on two campaign ids
+  const amb = assignOrderToUniqueCampaign(
+    { utmSource: "meta", utmCampaign: "dup_name" },
+    [
+      {
+        key: "meta:a",
+        platform: "meta",
+        campaignId: "a",
+        campaignName: "dup_name",
+      },
+      {
+        key: "meta:b",
+        platform: "meta",
+        campaignId: "b",
+        campaignName: "dup_name",
+      },
+    ]
+  );
+  assert(amb.status === "ambiguous", "ambiguous match assigns no campaign");
+
+  // One order contributes to at most one campaign
+  const orders = [
+    { id: "o1", utmCampaign: "reta_us_test", total: 100 },
+    { id: "o2", utmCampaign: "reta_us_test2", total: 50 },
+    { id: "o3", utmCampaign: "reta_us_test", total: 25 },
+  ];
+  const totals = new Map<string, { orders: number; revenue: number }>();
+  for (const c of campaigns) totals.set(c.key, { orders: 0, revenue: 0 });
+  let matchedUnique = 0;
+  for (const o of orders) {
+    const a = assignOrderToUniqueCampaign(
+      { utmSource: "meta", utmCampaign: o.utmCampaign },
+      campaigns
+    );
+    if (a.status === "matched") {
+      matchedUnique += 1;
+      const t = totals.get(a.campaign.key)!;
+      t.orders += 1;
+      t.revenue += o.total;
+    }
+  }
+  const sumCampaignOrders = [...totals.values()].reduce(
+    (s, t) => s + t.orders,
+    0
+  );
+  assert(matchedUnique === 3, "all exact orders matched once");
+  assert(
+    sumCampaignOrders === matchedUnique,
+    "total campaign PSL orders <= unique paid-attributed orders (equal when all matched)"
+  );
+  assert(sumCampaignOrders <= orders.length, "never exceed unique order count");
+
+  assert(
+    !isExactCreativeMatch(
+      { utmSource: "meta", utmContent: "batch_docs" },
+      { platform: "meta", contentKey: "batch_docs_a" }
+    ),
+    "fuzzy creative content does not match"
+  );
+  assert(
+    isExactCreativeMatch(
+      { utmSource: "meta", utmContent: "batch_docs_a" },
+      { platform: "meta", contentKey: "batch_docs_a" }
+    ),
+    "exact creative match works"
+  );
+}
+
+function testMetaApiVersion() {
+  delete process.env.META_MARKETING_API_VERSION;
+  const d = resolveMetaMarketingApiVersion(undefined);
+  assert(d.version === "v26.0", "default version is v26.0");
+  assert(d.version === DEFAULT_META_MARKETING_API_VERSION, "default constant");
+  assert(d.configError == null, "no error on default");
+
+  const ok = resolveMetaMarketingApiVersion("v25.0");
+  assert(ok.version === "v25.0" && ok.source === "env", "valid version honored");
+
+  const bad = resolveMetaMarketingApiVersion("https://evil.example/v1");
+  assert(bad.version === "v26.0", "invalid URL falls back safely");
+  assert(bad.configError != null, "reports configuration error");
+
+  const badForm = resolveMetaMarketingApiVersion("26.0");
+  assert(badForm.version === "v26.0", "missing v falls back");
+  assert(badForm.configError != null, "reports form error");
+
+  const url = buildMetaInsightsUrl({
+    version: "v26.0",
+    accountId: "123",
+    query: "fields=spend",
+  });
+  assert(
+    url.startsWith("https://graph.facebook.com/v26.0/act_123/insights?"),
+    "insights URL host+version fixed"
+  );
+  assert(!url.includes("evil"), "no arbitrary host");
+}
+
+function testTikTokConversionNotPurchase() {
+  const src = readFileSync(
+    join(process.cwd(), "lib/external-metrics/paid/tiktok-sync.ts"),
+    "utf8"
+  );
+  assert(
+    /platformPurchases:\s*null/.test(src),
+    "generic conversion never stored as purchase"
+  );
+  assert(
+    /platformPurchaseValueUsd:\s*null/.test(src),
+    "purchase value null without verified website purchase metric"
+  );
+  assert(/platformConversions:/.test(src), "optional conversion diagnostic");
+  assert(!/total_purchase_value/.test(src), "does not map app purchase value");
+}
+
 function testContributionInsufficient() {
   assert(
     contributionEconomicsLabel() === "insufficient data",
@@ -202,10 +374,25 @@ async function main() {
   testEvidenceGates();
   testPslBeatsPlatform();
   testMatchScoreNotFuzzyGarbage();
+  testDeterministicAttributionNoDoubleCount();
+  testMetaApiVersion();
+  testTikTokConversionNotPurchase();
   testContributionInsufficient();
   testNoCampaignMutationInAdapters();
   await testCeoUnavailableWithoutSpend();
   await testProviderIsolationShape();
+
+  const metaStatus = await metaAdsAdapter.getStatus();
+  assert(
+    metaStatus.diagnostics?.marketingApiVersion != null,
+    "meta diagnostics expose API version"
+  );
+  assert(
+    !JSON.stringify(metaStatus).includes("EAAB") &&
+      !JSON.stringify(metaStatus).toLowerCase().includes("access_token"),
+    "token never exposed in status"
+  );
+
   console.log("[test:acquisition] ok");
 }
 

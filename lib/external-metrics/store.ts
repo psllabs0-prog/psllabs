@@ -189,6 +189,9 @@ export type PaidAcquisitionDailyRow = {
   clicks: number;
   platformPurchases: number | null;
   platformPurchaseValueUsd: number | null;
+  /** Diagnostic only — never treated as website purchases. */
+  platformConversions?: number | null;
+  platformConversionValueUsd?: number | null;
 };
 
 /** Idempotent upsert into paid_acquisition_daily. */
@@ -202,6 +205,12 @@ export async function upsertPaidAcquisitionDailyRows(
   for (const row of rows) {
     const adsetKey = row.adsetId ?? "";
     const adKey = row.adId ?? "";
+    const conversions =
+      row.platformConversions === undefined ? null : row.platformConversions;
+    const conversionValue =
+      row.platformConversionValueUsd === undefined
+        ? null
+        : row.platformConversionValueUsd;
     const updated = (await sql`
       UPDATE paid_acquisition_daily
       SET
@@ -215,6 +224,8 @@ export async function upsertPaidAcquisitionDailyRows(
         clicks = ${row.clicks},
         platform_purchases = ${row.platformPurchases},
         platform_purchase_value_usd = ${row.platformPurchaseValueUsd},
+        platform_conversions = ${conversions},
+        platform_conversion_value_usd = ${conversionValue},
         synced_at = now()
       WHERE date = ${row.date}::date
         AND platform = ${row.platform}
@@ -231,7 +242,8 @@ export async function upsertPaidAcquisitionDailyRows(
           date, platform, account_id, campaign_id, campaign_name,
           adset_id, adset_name, ad_id, ad_name,
           spend_usd, impressions, clicks,
-          platform_purchases, platform_purchase_value_usd, synced_at
+          platform_purchases, platform_purchase_value_usd,
+          platform_conversions, platform_conversion_value_usd, synced_at
         ) VALUES (
           ${row.date}::date,
           ${row.platform},
@@ -247,11 +259,12 @@ export async function upsertPaidAcquisitionDailyRows(
           ${row.clicks},
           ${row.platformPurchases},
           ${row.platformPurchaseValueUsd},
+          ${conversions},
+          ${conversionValue},
           now()
         )
         ON CONFLICT DO NOTHING
       `;
-      // If unique race: update again
       await sql`
         UPDATE paid_acquisition_daily
         SET
@@ -263,6 +276,8 @@ export async function upsertPaidAcquisitionDailyRows(
           clicks = ${row.clicks},
           platform_purchases = ${row.platformPurchases},
           platform_purchase_value_usd = ${row.platformPurchaseValueUsd},
+          platform_conversions = ${conversions},
+          platform_conversion_value_usd = ${conversionValue},
           synced_at = now()
         WHERE date = ${row.date}::date
           AND platform = ${row.platform}

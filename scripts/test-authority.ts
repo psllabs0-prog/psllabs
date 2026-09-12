@@ -15,6 +15,10 @@ import {
   findMatchingKnownPage,
   recommendInternalLinks,
 } from "../lib/authority/pages";
+import {
+  requireApprovedForBriefGeneration,
+  publishedStatusIsRecordingOnly,
+} from "../lib/authority/workflow";
 import { buildLukeActionCandidates, composeWeeklyBrief } from "../lib/ceo-brief/compose";
 import { selectLukeActions } from "../lib/ceo-brief/period";
 import type {
@@ -185,6 +189,33 @@ function testKnownPageInventory() {
   assert(hit?.path === "/guides/batch-specific-vs-generic-coa", "known page");
 }
 
+function testAuthorityApprovalGate() {
+  const rejected = requireApprovedForBriefGeneration("suggested");
+  assert(rejected.ok === false, "suggested -> generate brief rejected");
+  if (!rejected.ok) {
+    assert(
+      rejected.error === "Approve this opportunity before generating a brief.",
+      "clear approve-first error"
+    );
+  }
+
+  const approved = requireApprovedForBriefGeneration("approved");
+  assert(approved.ok === true, "explicit approve -> generate succeeds");
+
+  const inProgress = requireApprovedForBriefGeneration("in_progress");
+  assert(inProgress.ok === true, "in_progress may generate");
+
+  // Gate does not mutate status — pure function.
+  assert(
+    requireApprovedForBriefGeneration("approved").ok === true,
+    "generate does not alter approved status unexpectedly"
+  );
+  assert(
+    publishedStatusIsRecordingOnly() === true,
+    "published is recording only — no public content mutation"
+  );
+}
+
 function emptySales(): CeoSalesSnapshot {
   return {
     periodLabel: "t",
@@ -324,6 +355,7 @@ function main() {
   testRiskyTopics();
   testInternalLinksNonDestructive();
   testKnownPageInventory();
+  testAuthorityApprovalGate();
   testCeoActionCapAndNoAutoPublish();
   console.log("[test:authority] ok");
 }

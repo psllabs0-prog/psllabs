@@ -4,6 +4,10 @@ import {
   upsertPaidAcquisitionDailyRows,
   type PaidAcquisitionDailyRow,
 } from "@/lib/external-metrics/store";
+import {
+  buildMetaInsightsUrl,
+  resolveMetaMarketingApiVersion,
+} from "./meta-api-version";
 
 function ymd(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -58,6 +62,7 @@ export async function syncMetaAdsDaily(options?: {
   status: "ok" | "error" | "not_configured";
   recordsWritten: number;
   errorSummary?: string;
+  apiVersion?: string;
 }> {
   const token = process.env.META_ADS_ACCESS_TOKEN?.trim();
   const accountRaw = process.env.META_ADS_ACCOUNT_ID?.trim();
@@ -70,6 +75,7 @@ export async function syncMetaAdsDaily(options?: {
     };
   }
 
+  const apiVersion = resolveMetaMarketingApiVersion();
   const accountId = normalizeAccountId(accountRaw);
   const runId = await startExternalMetricSyncRun("meta_ads");
   const asOf = options?.asOf ?? new Date();
@@ -82,20 +88,24 @@ export async function syncMetaAdsDaily(options?: {
 
   try {
     const rows: PaidAcquisitionDailyRow[] = [];
-    let nextUrl: string | null =
-      `https://graph.facebook.com/v21.0/act_${accountId}/insights?` +
-      new URLSearchParams({
-        level: "ad",
-        fields:
-          "campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,spend,impressions,clicks,actions,action_values,date_start",
-        time_increment: "1",
-        time_range: JSON.stringify({
-          since: ymd(since),
-          until: ymd(until),
-        }),
-        limit: "500",
-        access_token: token,
-      }).toString();
+    const query = new URLSearchParams({
+      level: "ad",
+      fields:
+        "campaign_id,campaign_name,adset_id,adset_name,ad_id,ad_name,spend,impressions,clicks,actions,action_values,date_start",
+      time_increment: "1",
+      time_range: JSON.stringify({
+        since: ymd(since),
+        until: ymd(until),
+      }),
+      limit: "500",
+      access_token: token,
+    }).toString();
+
+    let nextUrl: string | null = buildMetaInsightsUrl({
+      version: apiVersion.version,
+      accountId,
+      query,
+    });
 
     let pages = 0;
     while (nextUrl && pages < 20) {
@@ -128,9 +138,20 @@ export async function syncMetaAdsDaily(options?: {
           clicks: Number(r.clicks ?? 0),
           platformPurchases: extractPurchase(r.actions),
           platformPurchaseValueUsd: extractPurchase(r.action_values),
+          platformConversions: null,
+          platformConversionValueUsd: null,
         });
       }
-      nextUrl = data.paging?.next ?? null;
+      // Paging next is Graph-provided absolute URL — accept only graph.facebook.com.
+      const pagingNext = data.paging?.next ?? null;
+      if (
+        pagingNext &&
+        pagingNext.startsWith("https://graph.facebook.com/")
+      ) {
+        nextUrl = pagingNext;
+      } else {
+        nextUrl = null;
+      }
     }
 
     const written = await upsertPaidAcquisitionDailyRows(rows);
@@ -140,11 +161,15 @@ export async function syncMetaAdsDaily(options?: {
       recordsReceived: rows.length,
       recordsWritten: written,
     });
-    return { ok: true, status: "ok", recordsWritten: written };
+    return {
+      ok: true,
+      status: "ok",
+      recordsWritten: written,
+      apiVersion: apiVersion.version,
+    };
   } catch (error) {
     const msg =
       error instanceof Error ? error.message.slice(0, 500) : "Meta sync failed";
-    // Never log the access token
     const safe = msg.replace(token, "[redacted]");
     await finishExternalMetricSyncRun({
       id: runId,
@@ -156,6 +181,7 @@ export async function syncMetaAdsDaily(options?: {
       status: "error",
       recordsWritten: 0,
       errorSummary: safe,
+      apiVersion: apiVersion.version,
     };
   }
 }

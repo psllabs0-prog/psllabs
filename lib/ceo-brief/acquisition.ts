@@ -8,7 +8,7 @@ import {
 } from "@/lib/acquisition/config";
 import {
   normalizePaidPlatform,
-  paidAttributionMatchScore,
+  assignOrderToUniqueCampaign,
 } from "@/lib/external-metrics/paid/attribution";
 
 import type { BriefPeriod } from "./period";
@@ -123,41 +123,62 @@ export async function collectAcquisitionSnapshot(
     let topCampaign: string | null = null;
     let bestRoas = -1;
 
-    for (const c of campaignRows) {
-      let matchedOrders = 0;
-      let matchedRevenue = 0;
-      for (const o of orderRows) {
-        const attr = o.attribution ?? {};
-        const score = paidAttributionMatchScore(
-          {
-            utmSource: attr.utmSource as string | null,
-            utmMedium: attr.utmMedium as string | null,
-            utmCampaign: attr.utmCampaign as string | null,
-            utmContent: attr.utmContent as string | null,
-          },
-          {
-            platform: c.platform,
-            campaignId: c.campaign_id,
-            utmCampaign: c.campaign_name,
-          }
-        );
-        if (score >= 5) {
-          matchedOrders += 1;
-          matchedRevenue += Number(o.total);
+    const campaignKeys = campaignRows.map((c) => ({
+      key: `${c.platform}:${c.campaign_id}`,
+      platform: c.platform,
+      campaignId: c.campaign_id,
+      campaignName: c.campaign_name,
+      utmCampaign: c.campaign_name,
+    }));
+    const campaignStats = new Map<
+      string,
+      { orders: number; revenue: number }
+    >();
+    for (const c of campaignKeys) {
+      campaignStats.set(c.key, { orders: 0, revenue: 0 });
+    }
+
+    for (const o of orderRows) {
+      const attr = o.attribution ?? {};
+      const assign = assignOrderToUniqueCampaign(
+        {
+          utmSource: attr.utmSource as string | null,
+          utmMedium: attr.utmMedium as string | null,
+          utmCampaign: attr.utmCampaign as string | null,
+          utmContent: attr.utmContent as string | null,
+          campaignId:
+            typeof attr.campaignId === "string" ? attr.campaignId : null,
+        },
+        campaignKeys
+      );
+      if (assign.status === "matched") {
+        const stats = campaignStats.get(assign.campaign.key);
+        if (stats) {
+          stats.orders += 1;
+          stats.revenue += Number(o.total);
         }
+      } else if (assign.status === "ambiguous") {
+        measurementWarnings.push(
+          `AMBIGUOUS attribution for order ${o.order_id}; assigned to no campaign.`
+        );
       }
-      if (Number(c.spend) > 0 && matchedOrders === 0) {
+    }
+
+    for (const c of campaignRows) {
+      const key = `${c.platform}:${c.campaign_id}`;
+      const stats = campaignStats.get(key) ?? { orders: 0, revenue: 0 };
+      if (Number(c.spend) > 0 && stats.orders === 0) {
         measurementWarnings.push(
           `Platform spend without matched PSL campaign: ${c.platform}/${c.campaign_name || c.campaign_id}`
         );
       }
       const campRoas =
-        Number(c.spend) > 0 ? matchedRevenue / Number(c.spend) : 0;
+        Number(c.spend) > 0 ? stats.revenue / Number(c.spend) : 0;
       if (
         hasEnoughEvidenceForPerformanceConclusion({
           clicks: Number(c.clicks),
           spendUsd: Number(c.spend),
-          orders: matchedOrders,
+          orders: stats.orders,
         }) &&
         campRoas > bestRoas
       ) {

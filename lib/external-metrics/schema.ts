@@ -77,6 +77,14 @@ export async function ensureExternalMetricsSchema(): Promise<void> {
         )
       `;
       await sql`
+        ALTER TABLE paid_acquisition_daily
+        ADD COLUMN IF NOT EXISTS platform_conversions NUMERIC(12,2)
+      `;
+      await sql`
+        ALTER TABLE paid_acquisition_daily
+        ADD COLUMN IF NOT EXISTS platform_conversion_value_usd NUMERIC(12,2)
+      `;
+      await sql`
         CREATE UNIQUE INDEX IF NOT EXISTS paid_acquisition_daily_uniq
         ON paid_acquisition_daily (
           date,

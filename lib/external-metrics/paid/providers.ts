@@ -12,6 +12,12 @@ export type PaidProviderStatus = {
   message: string;
   lastSyncAt: string | null;
   lastError: string | null;
+  /** Non-secret connector diagnostics (e.g. Meta API version). */
+  diagnostics?: {
+    marketingApiVersion?: string;
+    marketingApiVersionSource?: "env" | "default";
+    marketingApiVersionNote?: string | null;
+  };
 };
 
 export interface PaidAdsProviderAdapter {
@@ -32,6 +38,16 @@ function envConfigured(...keys: string[]): boolean {
 export const metaAdsAdapter: PaidAdsProviderAdapter = {
   id: "meta",
   async getStatus() {
+    const { resolveMetaMarketingApiVersion } = await import(
+      "./meta-api-version"
+    );
+    const apiVersion = resolveMetaMarketingApiVersion();
+    const diagnostics = {
+      marketingApiVersion: apiVersion.version,
+      marketingApiVersionSource: apiVersion.source,
+      marketingApiVersionNote: apiVersion.configError,
+    };
+
     const configured = envConfigured(
       "META_ADS_ACCESS_TOKEN",
       "META_ADS_ACCOUNT_ID"
@@ -43,6 +59,7 @@ export const metaAdsAdapter: PaidAdsProviderAdapter = {
         message: "Meta Ads credentials not configured.",
         lastSyncAt: null,
         lastError: null,
+        diagnostics,
       };
     }
     try {
@@ -57,15 +74,17 @@ export const metaAdsAdapter: PaidAdsProviderAdapter = {
           message: last.errorSummary ?? "Meta sync error",
           lastSyncAt: last.completedAt ?? last.startedAt,
           lastError: last.errorSummary,
+          diagnostics,
         };
       }
       if (last?.status === "ok") {
         return {
           provider: "meta",
           state: "healthy",
-          message: "Meta read-only reporting sync healthy.",
+          message: `Meta read-only reporting sync healthy (API ${apiVersion.version}).`,
           lastSyncAt: last.completedAt ?? last.startedAt,
           lastError: null,
+          diagnostics,
         };
       }
     } catch {
@@ -74,9 +93,10 @@ export const metaAdsAdapter: PaidAdsProviderAdapter = {
     return {
       provider: "meta",
       state: "configured",
-      message: "Meta credentials present; awaiting successful sync.",
+      message: `Meta credentials present; awaiting successful sync (API ${apiVersion.version}).`,
       lastSyncAt: null,
       lastError: null,
+      diagnostics,
     };
   },
   async sync(options) {
