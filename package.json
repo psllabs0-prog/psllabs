@@ -18,6 +18,7 @@
     "migrate-ops": "tsx scripts/migrate-ops.ts",
     "migrate-retention": "tsx scripts/migrate-retention.ts",
     "migrate-fulfillment": "tsx scripts/migrate-fulfillment.ts",
+    "migrate-authority": "tsx scripts/migrate-authority.ts",
     "test:inventory-monitor": "tsx scripts/test-inventory-monitor.ts",
     "test:inventory-monitor-db": "tsx scripts/test-inventory-monitor-db.ts",
     "test:support-agent": "tsx scripts/test-support-agent.ts",
@@ -30,6 +31,8 @@
     "test:retention": "tsx scripts/test-retention.ts",
     "test:retention-db": "tsx scripts/test-retention-db.ts",
     "test:fulfillment": "tsx scripts/test-fulfillment.ts",
+    "test:acquisition": "tsx scripts/test-acquisition.ts",
+    "test:authority": "tsx scripts/test-authority.ts",
     "seed-catalog": "tsx scripts/seed-catalog-inventory.ts",
     "sync-tagada": "tsx scripts/sync-tagada.ts",
     "sync-tagada:dry-run": "tsx scripts/sync-tagada.ts --dry-run"

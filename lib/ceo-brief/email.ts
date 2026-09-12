@@ -64,7 +64,23 @@ export function formatCeoBriefEmailHtml(brief: CeoWeeklyBrief): string {
     <ul style="margin:0 0 12px;padding-left:18px;">${exec || "<li>No meaningful changes recorded.</li>"}</ul>
     <h2 style="margin:16px 0 8px;font-size:15px;">Sales / Finance</h2>
     ${sales}
+    <h2 style="margin:16px 0 8px;font-size:15px;">Paid acquisition</h2>
     <p style="margin:0 0 8px;color:#9CA3AF;">${escapeHtml(brief.acquisition.message)}</p>
+    ${
+      brief.acquisition.status === "available"
+        ? `<p style="margin:0 0 8px;">Spend $${(brief.acquisition.spendUsd ?? 0).toFixed(2)} · Attributed orders ${brief.acquisition.attributedOrders ?? 0} · Revenue $${(brief.acquisition.attributedRevenueUsd ?? 0).toFixed(2)} · CAC ${brief.acquisition.cacUsd == null ? "—" : `$${brief.acquisition.cacUsd.toFixed(2)}`} · ROAS ${brief.acquisition.roas == null ? "—" : brief.acquisition.roas.toFixed(2)}</p>
+    ${
+      brief.acquisition.topCampaign
+        ? `<p style="margin:0 0 8px;">Top campaign (meaningful sample): ${escapeHtml(brief.acquisition.topCampaign)}</p>`
+        : ""
+    }
+    ${
+      (brief.acquisition.measurementWarnings?.length ?? 0) > 0
+        ? `<p style="margin:0 0 8px;">Measurement warnings: ${escapeHtml((brief.acquisition.measurementWarnings ?? []).slice(0, 3).join("; "))}</p>`
+        : ""
+    }`
+        : ""
+    }
     <h2 style="margin:16px 0 8px;font-size:15px;">Inventory</h2>
     ${inv}
     <h2 style="margin:16px 0 8px;font-size:15px;">Customer / Support</h2>

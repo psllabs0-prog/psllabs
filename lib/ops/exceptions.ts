@@ -24,9 +24,16 @@ import { ensureCeoBriefSchema } from "@/lib/ceo-brief/schema";
 import {
   getLatestExternalMetricSyncRun,
   getLatestSuccessfulExternalMetricSyncRun,
+  sumPaidAcquisitionSpendUsd,
+  aggregateSearchConsolePeriod,
 } from "@/lib/external-metrics/store";
 import { ensureExternalMetricsSchema } from "@/lib/external-metrics/schema";
 import { getSearchConsoleConnectorStatus } from "@/lib/external-metrics/search-console";
+import { getAllPaidProviderStatuses } from "@/lib/external-metrics/paid/providers";
+import { computeLearningBudget } from "@/lib/acquisition/config";
+import { countApprovedBriefsWaitingDays } from "@/lib/authority/store";
+import { ensureAuthoritySchema } from "@/lib/authority/schema";
+import { SEO_MIN_IMPRESSIONS_FOR_SIGNAL } from "@/lib/external-metrics/seo-brief";
 
 import { listOpenOpsAcknowledgements } from "./store";
 import {
@@ -530,10 +537,193 @@ async function collectCeoAndDataExceptions(): Promise<RawOpsException[]> {
         });
       }
     }
+
+    // Material non-brand visibility drop (authority P3 only when material)
+    try {
+      const end = new Date();
+      const endStr = end.toISOString().slice(0, 10);
+      const start28 = new Date(end.getTime() - 27 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 10);
+      const priorEnd = new Date(end.getTime() - 28 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 10);
+      const priorStart = new Date(end.getTime() - 55 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .slice(0, 10);
+      const [cur, prior] = await Promise.all([
+        aggregateSearchConsolePeriod({ startDate: start28, endDate: endStr }),
+        aggregateSearchConsolePeriod({
+          startDate: priorStart,
+          endDate: priorEnd,
+        }),
+      ]);
+      if (
+        prior.nonBrandImpressions >= SEO_MIN_IMPRESSIONS_FOR_SIGNAL &&
+        cur.nonBrandImpressions < prior.nonBrandImpressions * 0.6 &&
+        prior.nonBrandImpressions - cur.nonBrandImpressions >=
+          SEO_MIN_IMPRESSIONS_FOR_SIGNAL
+      ) {
+        out.push({
+          sourceType: "authority_visibility_drop",
+          sourceId: "nonbrand_28d",
+          priority: "P3",
+          area: "seo",
+          title: "Significant non-brand visibility drop",
+          why: `Non-brand impressions ${prior.nonBrandImpressions.toFixed(0)} → ${cur.nonBrandImpressions.toFixed(0)} vs prior 28d.`,
+          detectedAt: new Date().toISOString(),
+          href: "/admin-authority",
+        });
+      }
+    } catch {
+      // ignore
+    }
+
+    try {
+      await ensureAuthoritySchema();
+      const waiting = await countApprovedBriefsWaitingDays(21);
+      if (waiting > 0) {
+        out.push({
+          sourceType: "authority_brief_waiting",
+          sourceId: "approved_waiting",
+          priority: "P3",
+          area: "seo",
+          title: "Approved authority brief waiting",
+          why: `${waiting} approved/in-progress opportunit(ies) older than 21 days.`,
+          detectedAt: new Date().toISOString(),
+          href: "/admin-authority",
+        });
+      }
+    } catch {
+      // ignore
+    }
   } catch {
     // ignore
   }
 
+  return out;
+}
+
+async function collectAcquisitionExceptions(): Promise<RawOpsException[]> {
+  const out: RawOpsException[] = [];
+  try {
+    await ensureExternalMetricsSchema();
+    const spend = await sumPaidAcquisitionSpendUsd();
+    const providers = await getAllPaidProviderStatuses();
+    const adsLikelyActive = spend > 0;
+
+    for (const p of providers) {
+      // Do NOT exception merely because Meta/TikTok is not configured before ads.
+      if (p.state === "not_configured") continue;
+
+      if (p.state === "error" && adsLikelyActive) {
+        out.push({
+          sourceType: "paid_connector",
+          sourceId: p.provider,
+          priority: "P1",
+          area: "acquisition",
+          title: `${p.provider} paid reporting connector failed`,
+          why: (p.lastError ?? p.message).slice(0, 240),
+          detectedAt: p.lastSyncAt ?? new Date().toISOString(),
+          href: "/admin-acquisition",
+        });
+      } else if (p.state === "error" && !adsLikelyActive) {
+        out.push({
+          sourceType: "paid_connector",
+          sourceId: `${p.provider}:pre_spend`,
+          priority: "P3",
+          area: "acquisition",
+          title: `${p.provider} connector error (no spend yet)`,
+          why: (p.lastError ?? p.message).slice(0, 240),
+          detectedAt: new Date().toISOString(),
+          href: "/admin-acquisition",
+        });
+      } else if (p.state === "configured" || p.state === "healthy") {
+        // Stale sync when configured and spend exists
+        if (adsLikelyActive && p.lastSyncAt) {
+          const age =
+            (Date.now() - Date.parse(p.lastSyncAt)) / (24 * 60 * 60 * 1000);
+          if (age > 3.5) {
+            out.push({
+              sourceType: "paid_sync_stale",
+              sourceId: p.provider,
+              priority: "P3",
+              area: "acquisition",
+              title: `${p.provider} paid sync stale`,
+              why: `Last sync ${p.lastSyncAt}.`,
+              detectedAt: p.lastSyncAt,
+              href: "/admin-acquisition",
+            });
+          }
+        }
+      }
+    }
+
+    const budget = computeLearningBudget(spend);
+    if (budget.reviewState === "exceeded" || budget.reviewState === "reached") {
+      out.push({
+        sourceType: "learning_budget",
+        sourceId: "ceiling",
+        priority: "P2",
+        area: "acquisition",
+        title: "Paid learning ceiling reached/exceeded",
+        why: `Spent $${budget.spentUsd.toFixed(2)} vs ceiling $${budget.ceilingUsd} (${budget.reviewState}). Informational — system does not change budgets.`,
+        detectedAt: new Date().toISOString(),
+        href: "/admin-acquisition",
+      });
+    }
+
+    // Serious attribution mismatch only when active spend
+    if (adsLikelyActive) {
+      const sql = getSql();
+      const unmatchedSpend = (await sql`
+        SELECT COUNT(*)::int AS n FROM (
+          SELECT campaign_id
+          FROM paid_acquisition_daily
+          WHERE spend_usd > 0
+            AND date >= (CURRENT_DATE - interval '14 days')
+          GROUP BY platform, campaign_id
+        ) t
+      `) as Array<{ n: number }>;
+      // Lightweight heuristic: if we have spend rows but zero paid-attributed orders in 14d
+      const paidOrders = (await sql`
+        SELECT COUNT(*)::int AS n
+        FROM orders o
+        WHERE o.status IN ('paid', 'shipped')
+          AND COALESCE(o.paid_at, o.created_at) >= now() - interval '14 days'
+          AND NOT EXISTS (
+            SELECT 1 FROM finance_transactions ft
+            WHERE ft.psl_order_id = o.order_id
+              AND ft.reporting_excluded = true
+          )
+          AND (
+            LOWER(COALESCE(o.attribution->>'utmMedium', '')) IN
+              ('cpc', 'paid_social', 'display', 'sponsored', 'ppc')
+            OR LOWER(COALESCE(o.attribution->>'utmSource', '')) IN
+              ('meta', 'facebook', 'instagram', 'tiktok', 'google')
+          )
+      `) as Array<{ n: number }>;
+      const spendRows = Number(unmatchedSpend[0]?.n ?? 0);
+      const orders = Number(paidOrders[0]?.n ?? 0);
+      const minSpend = Number(
+        process.env.ACQUISITION_REVIEW_MIN_SPEND_USD ?? 0
+      );
+      if (spendRows > 0 && orders === 0 && spend >= Math.max(minSpend, 50)) {
+        out.push({
+          sourceType: "paid_attribution_mismatch",
+          sourceId: "14d",
+          priority: "P2",
+          area: "acquisition",
+          title: "Serious paid attribution mismatch during active spend",
+          why: "Platform spend present with no matched PSL paid-attributed orders in 14d.",
+          detectedAt: new Date().toISOString(),
+          href: "/admin-acquisition",
+        });
+      }
+    }
+  } catch {
+    // ignore
+  }
   return out;
 }
 
@@ -542,13 +732,14 @@ async function collectCeoAndDataExceptions(): Promise<RawOpsException[]> {
  * Does not invent urgency; empty Day-0 → [].
  */
 export async function collectOpsExceptions(): Promise<OpsException[]> {
-  const [finance, support, inventory, fulfillment, ceoData, acks] =
+  const [finance, support, inventory, fulfillment, ceoData, acquisition, acks] =
     await Promise.all([
       collectFinanceExceptions(),
       collectSupportExceptions(),
       collectInventoryExceptions(),
       collectFulfillmentExceptions(),
       collectCeoAndDataExceptions(),
+      collectAcquisitionExceptions(),
       listOpenOpsAcknowledgements().catch(() => []),
     ]);
 
@@ -558,6 +749,7 @@ export async function collectOpsExceptions(): Promise<OpsException[]> {
     ...inventory,
     ...fulfillment,
     ...ceoData,
+    ...acquisition,
   ];
   return applyAcknowledgements(raw, acks);
 }

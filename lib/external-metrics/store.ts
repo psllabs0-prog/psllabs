@@ -174,6 +174,135 @@ export async function sumPaidAcquisitionSpendUsd(): Promise<number> {
   return Number(rows[0]?.total ?? 0);
 }
 
+export type PaidAcquisitionDailyRow = {
+  date: string;
+  platform: string;
+  accountId: string;
+  campaignId: string;
+  campaignName: string;
+  adsetId: string | null;
+  adsetName: string | null;
+  adId: string | null;
+  adName: string | null;
+  spendUsd: number;
+  impressions: number;
+  clicks: number;
+  platformPurchases: number | null;
+  platformPurchaseValueUsd: number | null;
+};
+
+/** Idempotent upsert into paid_acquisition_daily. */
+export async function upsertPaidAcquisitionDailyRows(
+  rows: PaidAcquisitionDailyRow[]
+): Promise<number> {
+  if (rows.length === 0) return 0;
+  await ensureExternalMetricsSchema();
+  const sql = getSql();
+  let written = 0;
+  for (const row of rows) {
+    const adsetKey = row.adsetId ?? "";
+    const adKey = row.adId ?? "";
+    const updated = (await sql`
+      UPDATE paid_acquisition_daily
+      SET
+        campaign_name = ${row.campaignName},
+        adset_id = ${row.adsetId},
+        adset_name = ${row.adsetName},
+        ad_id = ${row.adId},
+        ad_name = ${row.adName},
+        spend_usd = ${row.spendUsd},
+        impressions = ${row.impressions},
+        clicks = ${row.clicks},
+        platform_purchases = ${row.platformPurchases},
+        platform_purchase_value_usd = ${row.platformPurchaseValueUsd},
+        synced_at = now()
+      WHERE date = ${row.date}::date
+        AND platform = ${row.platform}
+        AND account_id = ${row.accountId}
+        AND campaign_id = ${row.campaignId}
+        AND COALESCE(adset_id, '') = ${adsetKey}
+        AND COALESCE(ad_id, '') = ${adKey}
+      RETURNING id
+    `) as Array<{ id: number }>;
+
+    if (updated.length === 0) {
+      await sql`
+        INSERT INTO paid_acquisition_daily (
+          date, platform, account_id, campaign_id, campaign_name,
+          adset_id, adset_name, ad_id, ad_name,
+          spend_usd, impressions, clicks,
+          platform_purchases, platform_purchase_value_usd, synced_at
+        ) VALUES (
+          ${row.date}::date,
+          ${row.platform},
+          ${row.accountId},
+          ${row.campaignId},
+          ${row.campaignName},
+          ${row.adsetId},
+          ${row.adsetName},
+          ${row.adId},
+          ${row.adName},
+          ${row.spendUsd},
+          ${row.impressions},
+          ${row.clicks},
+          ${row.platformPurchases},
+          ${row.platformPurchaseValueUsd},
+          now()
+        )
+        ON CONFLICT DO NOTHING
+      `;
+      // If unique race: update again
+      await sql`
+        UPDATE paid_acquisition_daily
+        SET
+          campaign_name = ${row.campaignName},
+          adset_name = ${row.adsetName},
+          ad_name = ${row.adName},
+          spend_usd = ${row.spendUsd},
+          impressions = ${row.impressions},
+          clicks = ${row.clicks},
+          platform_purchases = ${row.platformPurchases},
+          platform_purchase_value_usd = ${row.platformPurchaseValueUsd},
+          synced_at = now()
+        WHERE date = ${row.date}::date
+          AND platform = ${row.platform}
+          AND account_id = ${row.accountId}
+          AND campaign_id = ${row.campaignId}
+          AND COALESCE(adset_id, '') = ${adsetKey}
+          AND COALESCE(ad_id, '') = ${adKey}
+      `;
+    }
+    written += 1;
+  }
+  return written;
+}
+
+export async function sumPaidSpendByPlatform(): Promise<
+  Array<{ platform: string; spendUsd: number }>
+> {
+  await ensureExternalMetricsSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT platform, COALESCE(SUM(spend_usd), 0)::float AS spend
+    FROM paid_acquisition_daily
+    GROUP BY platform
+    ORDER BY spend DESC
+  `) as Array<{ platform: string; spend: number }>;
+  return rows.map((r) => ({
+    platform: r.platform,
+    spendUsd: Number(r.spend),
+  }));
+}
+
+export async function countPaidAcquisitionRows(): Promise<number> {
+  await ensureExternalMetricsSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT COUNT(*)::int AS n FROM paid_acquisition_daily
+  `) as Array<{ n: number }>;
+  return Number(rows[0]?.n ?? 0);
+}
+
 export type PeriodSeoTotals = {
   clicks: number;
   impressions: number;

@@ -56,6 +56,11 @@ export type CeoAcquisitionSnapshot = {
   roas: number | null;
   winners: string[];
   losers: string[];
+  /** Measurement warnings only — not automatic performance failures. */
+  measurementWarnings?: string[];
+  /** Top campaign label when evidence thresholds are met; otherwise null. */
+  topCampaign?: string | null;
+  contributionEconomics?: "insufficient data";
 };
 
 export type CeoInventorySkuRow = {

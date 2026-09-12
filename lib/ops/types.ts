@@ -7,6 +7,8 @@ export type OpsArea =
   | "fulfillment"
   | "ceo"
   | "data"
+  | "acquisition"
+  | "seo"
   | "system";
 
 export type OpsException = {

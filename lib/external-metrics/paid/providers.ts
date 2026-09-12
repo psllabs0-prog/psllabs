@@ -17,9 +17,9 @@ export type PaidProviderStatus = {
 export interface PaidAdsProviderAdapter {
   id: PaidProviderId;
   getStatus(): Promise<PaidProviderStatus>;
-  /** Optional future sync — returns not_configured until credentials exist. */
-  sync?(options?: { asOf?: Date }): Promise<{
+  sync(options?: { asOf?: Date; lookbackDays?: number }): Promise<{
     ok: boolean;
+    status: "ok" | "error" | "not_configured";
     recordsWritten: number;
     errorSummary?: string;
   }>;
@@ -63,7 +63,7 @@ export const metaAdsAdapter: PaidAdsProviderAdapter = {
         return {
           provider: "meta",
           state: "healthy",
-          message: "Meta sync succeeded.",
+          message: "Meta read-only reporting sync healthy.",
           lastSyncAt: last.completedAt ?? last.startedAt,
           lastError: null,
         };
@@ -74,10 +74,14 @@ export const metaAdsAdapter: PaidAdsProviderAdapter = {
     return {
       provider: "meta",
       state: "configured",
-      message: "Meta credentials present; live sync not activated in this phase.",
+      message: "Meta credentials present; awaiting successful sync.",
       lastSyncAt: null,
       lastError: null,
     };
+  },
+  async sync(options) {
+    const { syncMetaAdsDaily } = await import("./meta-sync");
+    return syncMetaAdsDaily(options);
   },
 };
 
@@ -115,7 +119,7 @@ export const tiktokAdsAdapter: PaidAdsProviderAdapter = {
         return {
           provider: "tiktok",
           state: "healthy",
-          message: "TikTok sync succeeded.",
+          message: "TikTok read-only reporting sync healthy.",
           lastSyncAt: last.completedAt ?? last.startedAt,
           lastError: null,
         };
@@ -126,11 +130,14 @@ export const tiktokAdsAdapter: PaidAdsProviderAdapter = {
     return {
       provider: "tiktok",
       state: "configured",
-      message:
-        "TikTok credentials present; live sync not activated in this phase.",
+      message: "TikTok credentials present; awaiting successful sync.",
       lastSyncAt: null,
       lastError: null,
     };
+  },
+  async sync(options) {
+    const { syncTikTokAdsDaily } = await import("./tiktok-sync");
+    return syncTikTokAdsDaily(options);
   },
 };
 

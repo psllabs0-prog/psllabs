@@ -19,10 +19,12 @@ function buildExecutiveSummary(input: {
   support: CeoSupportSnapshot;
   health: CeoHealthSnapshot;
   acquisition: CeoAcquisitionSnapshot;
+  seo?: CeoSeoSnapshot;
   fulfillment?: CeoFulfillmentSnapshot;
 }): string[] {
   const bullets: string[] = [];
-  const { sales, inventory, support, health, fulfillment } = input;
+  const { sales, inventory, support, health, fulfillment, acquisition, seo } =
+    input;
 
   if (sales.legitimateOrders > 0 || sales.priorLegitimateOrders > 0) {
     const change = sales.revenueChangeNote
@@ -67,6 +69,24 @@ function buildExecutiveSummary(input: {
 
   for (const note of fulfillment?.notes ?? []) {
     bullets.push(`Fulfillment: ${note}`);
+  }
+
+  if (
+    acquisition.status === "available" &&
+    acquisition.spendUsd != null &&
+    acquisition.spendUsd > 0
+  ) {
+    bullets.push(
+      `Paid: $${acquisition.spendUsd.toFixed(2)} spend · ${acquisition.attributedOrders ?? 0} attributed orders · $${(acquisition.attributedRevenueUsd ?? 0).toFixed(2)} revenue · CAC ${acquisition.cacUsd == null ? "—" : `$${acquisition.cacUsd.toFixed(2)}`} · ROAS ${acquisition.roas == null ? "—" : acquisition.roas.toFixed(2)}.`
+    );
+  }
+
+  if (
+    seo?.status === "available" &&
+    seo.materialOpportunity &&
+    seo.pagesGaining.length > 0
+  ) {
+    bullets.push(`SEO: material traction on ${seo.pagesGaining[0]}.`);
   }
 
   if (health.warnings.length > 0) {
@@ -151,13 +171,29 @@ export function buildLukeActionCandidates(input: {
     input.acquisition.status === "available" &&
     input.acquisition.spendUsd != null &&
     input.acquisition.roas != null &&
-    input.acquisition.roas < 1
+    input.acquisition.roas < 1 &&
+    (input.acquisition.attributedOrders ?? 0) > 0 &&
+    // Never scale/pause from tiny samples; only review when thresholds configured elsewhere
+    // and winners array already indicates meaningful sample.
+    input.acquisition.winners.length > 0
   ) {
     candidates.push({
       priority: 5,
-      action: "Review underperforming paid campaigns",
-      why: `Observed ROAS ${input.acquisition.roas.toFixed(2)} with spend data present.`,
+      action: "Review paid campaigns with weak ROAS (measurement-aware)",
+      why: `Observed ROAS ${input.acquisition.roas.toFixed(2)} with enough comparative sample for a review signal — not an auto scale/pause.`,
       urgency: "This week",
+      section: "acquisition",
+    });
+  } else if (
+    (input.acquisition.measurementWarnings?.length ?? 0) > 0 &&
+    input.acquisition.status === "available" &&
+    (input.acquisition.spendUsd ?? 0) > 0
+  ) {
+    candidates.push({
+      priority: 5,
+      action: "Review paid measurement warnings",
+      why: input.acquisition.measurementWarnings![0],
+      urgency: null,
       section: "acquisition",
     });
   }
@@ -211,7 +247,10 @@ export function composeWeeklyBrief(input: {
     periodEnd: input.periodEnd,
     periodLabel: input.periodLabel,
     generatedAt: input.generatedAt,
-    executiveSummary: buildExecutiveSummary(input),
+    executiveSummary: buildExecutiveSummary({
+      ...input,
+      seo: input.seo,
+    }),
     sales: input.sales,
     acquisition: input.acquisition,
     inventory: input.inventory,
