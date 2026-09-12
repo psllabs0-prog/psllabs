@@ -26,19 +26,45 @@ export function getMarketingPostalAddress(): string | null {
   return process.env.MARKETING_POSTAL_ADDRESS?.trim() || null;
 }
 
-/** Compliance gate — never invent a mailing address. */
+/** Dedicated unsubscribe signing secret — required for production retention readiness. */
+export function getMarketingUnsubSecret(): string | null {
+  return process.env.MARKETING_UNSUB_SECRET?.trim() || null;
+}
+
+/**
+ * Signing secret for tokens.
+ * Production retention readiness requires MARKETING_UNSUB_SECRET.
+ * Dev/test may use a controlled fallback so unit tests can run without prod secrets.
+ */
+function unsubSecretForSigning(): string | null {
+  const dedicated = getMarketingUnsubSecret();
+  if (dedicated) return dedicated;
+
+  const allowFallback =
+    isRetentionTestMode() ||
+    process.env.NODE_ENV === "test" ||
+    process.env.NODE_ENV === "development";
+
+  if (!allowFallback) return null;
+  return "dev-only-unsub-secret";
+}
+
+/** Compliance gate — never invent a mailing address or unsigned unsub tokens. */
 export function getRetentionReadiness(): {
   ready: boolean;
   reasons: string[];
   fromEmail: string | null;
   postalAddress: string | null;
   autoSendEnabled: boolean;
+  unsubSecretConfigured: boolean;
 } {
   const fromEmail = getMarketingFromEmail();
   const postalAddress = getMarketingPostalAddress();
+  const unsubSecretConfigured = Boolean(getMarketingUnsubSecret());
   const reasons: string[] = [];
   if (!fromEmail) reasons.push("MARKETING_FROM_EMAIL missing");
   if (!postalAddress) reasons.push("MARKETING_POSTAL_ADDRESS missing");
+  if (!unsubSecretConfigured) reasons.push("MARKETING_UNSUB_SECRET missing");
   const autoSendEnabled = isRetentionAutoSendEnabled();
   if (!autoSendEnabled) reasons.push("RETENTION_AUTO_SEND_ENABLED is not true");
   return {
@@ -47,6 +73,7 @@ export function getRetentionReadiness(): {
     fromEmail,
     postalAddress,
     autoSendEnabled,
+    unsubSecretConfigured,
   };
 }
 
@@ -58,18 +85,26 @@ export function retentionProductsUrl(siteUrl: string): string {
   return u.toString();
 }
 
-function unsubSecret(): string {
-  return (
-    process.env.MARKETING_UNSUB_SECRET?.trim() ||
-    process.env.CRON_SECRET?.trim() ||
-    "dev-only-unsub-secret"
-  );
+/** Human confirmation page (visible email body link). */
+export function humanUnsubscribeUrl(siteUrl: string, token: string): string {
+  const base = siteUrl.replace(/\/$/, "");
+  return `${base}/unsubscribe?token=${encodeURIComponent(token)}`;
+}
+
+/** List-Unsubscribe / one-click API URL (email header only). */
+export function listUnsubscribeApiUrl(siteUrl: string, token: string): string {
+  const base = siteUrl.replace(/\/$/, "");
+  return `${base}/api/marketing/unsubscribe?token=${encodeURIComponent(token)}`;
 }
 
 export function createUnsubscribeToken(email: string): string {
+  const secret = unsubSecretForSigning();
+  if (!secret) {
+    throw new Error("MARKETING_UNSUB_SECRET is required to create unsubscribe tokens");
+  }
   const normalized = email.trim().toLowerCase();
   const sig = crypto
-    .createHmac("sha256", unsubSecret())
+    .createHmac("sha256", secret)
     .update(`unsub:${normalized}`)
     .digest("hex")
     .slice(0, 32);
@@ -80,16 +115,23 @@ export function verifyUnsubscribeToken(
   token: string
 ): { ok: true; email: string } | { ok: false } {
   try {
+    const secret = unsubSecretForSigning();
+    if (!secret || !token) return { ok: false };
+
     const raw = Buffer.from(token, "base64url").toString("utf8");
     const idx = raw.lastIndexOf(":");
     if (idx <= 0) return { ok: false };
     const email = raw.slice(0, idx).trim().toLowerCase();
     const sig = raw.slice(idx + 1);
-    const expected = createUnsubscribeToken(email);
-    const expectedRaw = Buffer.from(expected, "base64url").toString("utf8");
-    const expectedSig = expectedRaw.slice(expectedRaw.lastIndexOf(":") + 1);
+    if (!email.includes("@") || !sig) return { ok: false };
+
+    const expectedSig = crypto
+      .createHmac("sha256", secret)
+      .update(`unsub:${email}`)
+      .digest("hex")
+      .slice(0, 32);
+
     if (
-      !email.includes("@") ||
       sig.length !== expectedSig.length ||
       !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig))
     ) {

@@ -12,7 +12,9 @@ import {
   createUnsubscribeToken,
   getMarketingFromEmail,
   getMarketingPostalAddress,
+  humanUnsubscribeUrl,
   isRetentionTestMode,
+  listUnsubscribeApiUrl,
   RETENTION_SUBJECT,
   retentionProductsUrl,
 } from "./config";
@@ -20,11 +22,20 @@ import {
 export function buildRetention30dEmail(input: {
   email: string;
   siteUrl?: string;
-}): { subject: string; text: string; html: string; listUnsubscribeUrl: string } {
+}): {
+  subject: string;
+  text: string;
+  html: string;
+  /** Visible body link → human confirmation page. */
+  humanUnsubscribeUrl: string;
+  /** List-Unsubscribe header → one-click API. */
+  listUnsubscribeUrl: string;
+} {
   const site = input.siteUrl ?? SITE_URL;
   const ctaUrl = retentionProductsUrl(site);
   const unsubToken = createUnsubscribeToken(input.email);
-  const unsubUrl = `${site.replace(/\/$/, "")}/unsubscribe?token=${encodeURIComponent(unsubToken)}`;
+  const humanUrl = humanUnsubscribeUrl(site, unsubToken);
+  const listUrl = listUnsubscribeApiUrl(site, unsubToken);
   const postal = getMarketingPostalAddress() ?? "[postal address not configured]";
   const { muted, accent } = EMAIL_COLORS;
 
@@ -50,7 +61,7 @@ export function buildRetention30dEmail(input: {
     postal,
     `Support: ${SUPPORT_EMAIL}`,
     "",
-    `Unsubscribe: ${unsubUrl}`,
+    `Unsubscribe: ${humanUrl}`,
   ].join("\n");
 
   const html = emailPageWrapper(`
@@ -68,10 +79,16 @@ export function buildRetention30dEmail(input: {
     <p style="margin:0 0 12px;font-size:13px;color:${muted};">All products are for laboratory research use only. Not for human or animal consumption.</p>
     <p style="margin:0 0 12px;font-size:13px;color:${muted};">No discount code is included. This message is informational.</p>
     <p style="margin:24px 0 0;font-size:12px;color:${muted};">${escapeHtml(LEGAL_ENTITY_NAME)}<br/>${escapeHtml(postal)}<br/>Support: ${escapeHtml(SUPPORT_EMAIL)}</p>
-    <p style="margin:12px 0 0;font-size:12px;"><a href="${escapeHtml(unsubUrl)}" style="color:${muted};">Unsubscribe</a></p>
+    <p style="margin:12px 0 0;font-size:12px;"><a href="${escapeHtml(humanUrl)}" style="color:${muted};">Unsubscribe</a></p>
   `);
 
-  return { subject, text, html, listUnsubscribeUrl: unsubUrl };
+  return {
+    subject,
+    text,
+    html,
+    humanUnsubscribeUrl: humanUrl,
+    listUnsubscribeUrl: listUrl,
+  };
 }
 
 export async function sendRetention30dEmail(input: {

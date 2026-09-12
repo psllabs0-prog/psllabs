@@ -50,15 +50,34 @@ export async function getMarketingPreference(
   };
 }
 
-/** Explicit admin/API action only — never inferred from checkout. */
+/**
+ * Explicit admin/API action only — never inferred from checkout.
+ * Does NOT clear an unsubscribe or remove unsubscribe suppression.
+ * Re-consent would require a distinct future action.
+ */
 export async function setMarketingEligible(input: {
   email: string;
   eligible: boolean;
   source: string;
-}): Promise<MarketingPreference> {
+}): Promise<MarketingPreference & { blockedByUnsubscribe?: boolean }> {
   await ensureRetentionSchema();
   const sql = getSql();
   const email = normEmail(input.email);
+
+  const existing = await getMarketingPreference(email);
+  const unsubSuppressed = await hasUnsubscribeSuppression(email);
+
+  if (input.eligible && (existing?.unsubscribedAt || unsubSuppressed)) {
+    return {
+      email,
+      marketingEligible: false,
+      source: existing?.source ?? "unsubscribe",
+      consentedAt: existing?.consentedAt ?? null,
+      unsubscribedAt: existing?.unsubscribedAt ?? null,
+      blockedByUnsubscribe: true,
+    };
+  }
+
   const rows = (await sql`
     INSERT INTO customer_marketing_preferences (
       email, marketing_eligible, source, consented_at, unsubscribed_at, updated_at
@@ -80,13 +99,25 @@ export async function setMarketingEligible(input: {
         )
         ELSE customer_marketing_preferences.consented_at
       END,
-      unsubscribed_at = CASE
-        WHEN EXCLUDED.marketing_eligible THEN NULL
-        ELSE customer_marketing_preferences.unsubscribed_at
-      END,
+      -- Never erase an existing unsubscribe timestamp via eligibility toggle.
+      unsubscribed_at = customer_marketing_preferences.unsubscribed_at,
       updated_at = now()
+    WHERE customer_marketing_preferences.unsubscribed_at IS NULL
     RETURNING *
   `) as Record<string, unknown>[];
+
+  if (!rows[0]) {
+    const again = await getMarketingPreference(email);
+    return {
+      email,
+      marketingEligible: again?.marketingEligible ?? false,
+      source: again?.source ?? null,
+      consentedAt: again?.consentedAt ?? null,
+      unsubscribedAt: again?.unsubscribedAt ?? null,
+      blockedByUnsubscribe: Boolean(again?.unsubscribedAt),
+    };
+  }
+
   const row = rows[0];
   return {
     email: String(row.email),
@@ -101,6 +132,18 @@ export async function setMarketingEligible(input: {
   };
 }
 
+export async function hasUnsubscribeSuppression(email: string): Promise<boolean> {
+  await ensureRetentionSchema();
+  const sql = getSql();
+  const rows = (await sql`
+    SELECT 1 FROM marketing_suppressions
+    WHERE email = ${normEmail(email)}
+      AND reason = 'unsubscribed'
+    LIMIT 1
+  `) as Array<Record<string, unknown>>;
+  return rows.length > 0;
+}
+
 export async function markMarketingUnsubscribed(email: string): Promise<void> {
   await ensureRetentionSchema();
   const sql = getSql();
@@ -111,7 +154,10 @@ export async function markMarketingUnsubscribed(email: string): Promise<void> {
     ) VALUES (${e}, false, 'unsubscribe', now(), now())
     ON CONFLICT (email) DO UPDATE SET
       marketing_eligible = false,
-      unsubscribed_at = now(),
+      unsubscribed_at = COALESCE(
+        customer_marketing_preferences.unsubscribed_at,
+        now()
+      ),
       updated_at = now()
   `;
   await addMarketingSuppression({

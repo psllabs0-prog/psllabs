@@ -92,6 +92,14 @@ export async function POST(request: Request) {
         eligible,
         source: "admin_explicit",
       });
+      if (pref.blockedByUnsubscribe) {
+        return NextResponse.json({
+          ok: false,
+          error:
+            "This address unsubscribed. Eligibility toggle cannot clear unsubscribe; distinct re-consent required later.",
+          preference: pref,
+        });
+      }
       return NextResponse.json({ ok: true, preference: pref });
     }
 

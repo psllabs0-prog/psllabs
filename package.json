@@ -28,6 +28,7 @@
     "test:external-metrics-db": "tsx scripts/test-external-metrics-db.ts",
     "test:ops": "tsx scripts/test-ops.ts",
     "test:retention": "tsx scripts/test-retention.ts",
+    "test:retention-db": "tsx scripts/test-retention-db.ts",
     "test:fulfillment": "tsx scripts/test-fulfillment.ts",
     "seed-catalog": "tsx scripts/seed-catalog-inventory.ts",
     "sync-tagada": "tsx scripts/sync-tagada.ts",

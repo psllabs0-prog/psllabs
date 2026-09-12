@@ -16,6 +16,10 @@ export default async function UnsubscribePage({
   searchParams: Promise<{ token?: string; done?: string; error?: string }>;
 }) {
   const params = await searchParams;
+  const token = params.token ?? "";
+  const action = token
+    ? `/api/marketing/unsubscribe?token=${encodeURIComponent(token)}&redirect=1`
+    : "/api/marketing/unsubscribe";
 
   return (
     <main className="min-h-screen bg-page px-6 py-16 md:px-16">
@@ -30,15 +34,16 @@ export default async function UnsubscribePage({
           </p>
         ) : params.error === "1" ? (
           <p className="mt-4 text-sm text-ash">
-            That unsubscribe link is invalid or expired. Contact support@psllabs.org
-            if you need help.
+            That unsubscribe link is invalid or expired. Contact
+            support@psllabs.org if you need help.
           </p>
         ) : params.token ? (
-          <form action="/api/marketing/unsubscribe" method="get" className="mt-6">
-            <input type="hidden" name="token" value={params.token} />
+          <form action={action} method="post" className="mt-6">
+            <input type="hidden" name="List-Unsubscribe" value="One-Click" />
             <p className="text-sm text-ash">
-              Confirm unsubscribe from marketing emails only (not order or support
-              mail).
+              Confirm unsubscribe from marketing emails only (not order or
+              support mail). Opening this page does not unsubscribe until you
+              confirm.
             </p>
             <button
               type="submit"
