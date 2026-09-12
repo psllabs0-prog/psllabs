@@ -135,6 +135,13 @@ export type CeoFulfillmentSnapshot = {
   notes: string[];
 };
 
+export type CeoCustomerIntelligenceSnapshot = {
+  status: "available" | "unavailable";
+  message: string;
+  highlights: string[];
+  lukeAction: { action: string; why: string } | null;
+};
+
 export type CeoWeeklyBrief = {
   periodStart: string;
   periodEnd: string;
@@ -148,6 +155,7 @@ export type CeoWeeklyBrief = {
   seo: CeoSeoSnapshot;
   health: CeoHealthSnapshot;
   fulfillment?: CeoFulfillmentSnapshot;
+  customerIntelligence?: CeoCustomerIntelligenceSnapshot;
   actions: CeoLukeAction[];
 };
 

@@ -11,6 +11,7 @@ import type {
   CeoSeoSnapshot,
   CeoSupportSnapshot,
   CeoWeeklyBrief,
+  CeoCustomerIntelligenceSnapshot,
 } from "./types";
 
 function buildExecutiveSummary(input: {
@@ -20,11 +21,20 @@ function buildExecutiveSummary(input: {
   health: CeoHealthSnapshot;
   acquisition: CeoAcquisitionSnapshot;
   seo?: CeoSeoSnapshot;
+  customerIntelligence?: CeoCustomerIntelligenceSnapshot;
   fulfillment?: CeoFulfillmentSnapshot;
 }): string[] {
   const bullets: string[] = [];
-  const { sales, inventory, support, health, fulfillment, acquisition, seo } =
-    input;
+  const {
+    sales,
+    inventory,
+    support,
+    health,
+    fulfillment,
+    acquisition,
+    seo,
+    customerIntelligence,
+  } = input;
 
   if (sales.legitimateOrders > 0 || sales.priorLegitimateOrders > 0) {
     const change = sales.revenueChangeNote
@@ -89,6 +99,13 @@ function buildExecutiveSummary(input: {
     bullets.push(`SEO: material traction on ${seo.pagesGaining[0]}.`);
   }
 
+  if (
+    customerIntelligence?.status === "available" &&
+    customerIntelligence.highlights.length > 0
+  ) {
+    bullets.push(`Customer intel: ${customerIntelligence.highlights[0]}`);
+  }
+
   if (health.warnings.length > 0) {
     bullets.push(`System: ${health.warnings[0]}`);
   }
@@ -104,6 +121,7 @@ export function buildLukeActionCandidates(input: {
   acquisition: CeoAcquisitionSnapshot;
   seo: CeoSeoSnapshot;
   fulfillment?: CeoFulfillmentSnapshot;
+  customerIntelligence?: CeoCustomerIntelligenceSnapshot;
 }): ActionCandidate[] {
   const candidates: ActionCandidate[] = [];
 
@@ -222,6 +240,17 @@ export function buildLukeActionCandidates(input: {
     });
   }
 
+  // At most one Customer Intelligence Luke action; lower than payment/inventory/support.
+  if (input.customerIntelligence?.lukeAction) {
+    candidates.push({
+      priority: 8,
+      action: input.customerIntelligence.lukeAction.action,
+      why: input.customerIntelligence.lukeAction.why,
+      urgency: null,
+      section: "support",
+    });
+  }
+
   return candidates;
 }
 
@@ -237,6 +266,7 @@ export function composeWeeklyBrief(input: {
   seo: CeoSeoSnapshot;
   health: CeoHealthSnapshot;
   fulfillment?: CeoFulfillmentSnapshot;
+  customerIntelligence?: CeoCustomerIntelligenceSnapshot;
 }): CeoWeeklyBrief {
   const actions: CeoLukeAction[] = selectLukeActions(
     buildLukeActionCandidates(input)
@@ -258,6 +288,7 @@ export function composeWeeklyBrief(input: {
     seo: input.seo,
     health: input.health,
     fulfillment: input.fulfillment,
+    customerIntelligence: input.customerIntelligence,
     actions,
   };
 }

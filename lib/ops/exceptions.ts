@@ -34,6 +34,13 @@ import { computeLearningBudget } from "@/lib/acquisition/config";
 import { countApprovedBriefsWaitingDays } from "@/lib/authority/store";
 import { ensureAuthoritySchema } from "@/lib/authority/schema";
 import { SEO_MIN_IMPRESSIONS_FOR_SIGNAL } from "@/lib/external-metrics/seo-brief";
+import { listCustomerIntelSignals } from "@/lib/customer-intelligence/signals-store";
+import { getCustomerIntelMinTrendCount } from "@/lib/customer-intelligence/thresholds";
+import {
+  getDiscordConfig,
+  isDiscordBotEnabled,
+} from "@/lib/discord/config";
+import { getDiscordAnalyticsSummary } from "@/lib/discord/store";
 
 import { listOpenOpsAcknowledgements } from "./store";
 import {
@@ -727,21 +734,126 @@ async function collectAcquisitionExceptions(): Promise<RawOpsException[]> {
   return out;
 }
 
+async function collectCustomerIntelAndDiscordExceptions(): Promise<
+  RawOpsException[]
+> {
+  const out: RawOpsException[] = [];
+
+  try {
+    const signals = await listCustomerIntelSignals({ limit: 30 });
+    const minTrend = getCustomerIntelMinTrendCount();
+    for (const s of signals) {
+      if (s.status === "dismissed" || s.status === "resolved") continue;
+      if (s.theme === "restricted_human_use_request") continue;
+      if (s.evidenceClass !== "customer") continue;
+
+      if (
+        s.confidenceLevel === "strong" &&
+        s.currentCount >= minTrend &&
+        [
+          "checkout_friction",
+          "payment_friction",
+          "shipping_question",
+          "coa_findability",
+        ].includes(s.theme)
+      ) {
+        out.push({
+          sourceType: "customer_intel_friction",
+          sourceId: s.signalKey,
+          priority: "P2",
+          area: "support",
+          title: `Repeated customer friction: ${s.theme}`,
+          why: String(s.evidenceJson.note ?? `${s.currentCount} observations`),
+          detectedAt: s.lastSeenAt,
+          href: "/admin-customer-intelligence",
+        });
+      } else if (
+        (s.confidenceLevel === "meaningful" ||
+          s.confidenceLevel === "strong") &&
+        s.recommendation &&
+        s.currentCount >= minTrend
+      ) {
+        out.push({
+          sourceType: "customer_intel_review",
+          sourceId: s.signalKey,
+          priority: "P3",
+          area: "support",
+          title: `Customer intel review: ${s.recommendation}`,
+          why: String(s.evidenceJson.note ?? s.theme),
+          detectedAt: s.lastSeenAt,
+          href: "/admin-customer-intelligence",
+        });
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  // Discord: no exception when disabled
+  try {
+    if (isDiscordBotEnabled()) {
+      const cfg = getDiscordConfig();
+      if (!cfg.ready) {
+        out.push({
+          sourceType: "discord_config",
+          sourceId: "enabled_not_ready",
+          priority: "P2",
+          area: "system",
+          title: "Discord bot enabled but not fully configured",
+          why: "DISCORD_BOT_ENABLED=true but application/public key/token incomplete.",
+          detectedAt: new Date().toISOString(),
+          href: "/admin-discord",
+        });
+      } else {
+        const analytics = await getDiscordAnalyticsSummary();
+        if (
+          analytics.interactionCount >= 20 &&
+          analytics.restrictedCount / analytics.interactionCount > 0.5
+        ) {
+          out.push({
+            sourceType: "discord_error_rate",
+            sourceId: "restricted_share",
+            priority: "P3",
+            area: "system",
+            title: "Elevated Discord restricted-request share",
+            why: `${analytics.restrictedCount}/${analytics.interactionCount} restricted outcomes (compliance watch only).`,
+            detectedAt: analytics.lastInteractionAt ?? new Date().toISOString(),
+            href: "/admin-discord",
+          });
+        }
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return out;
+}
+
 /**
  * Live exceptions from authoritative tables + optional acknowledgements.
  * Does not invent urgency; empty Day-0 → [].
  */
 export async function collectOpsExceptions(): Promise<OpsException[]> {
-  const [finance, support, inventory, fulfillment, ceoData, acquisition, acks] =
-    await Promise.all([
-      collectFinanceExceptions(),
-      collectSupportExceptions(),
-      collectInventoryExceptions(),
-      collectFulfillmentExceptions(),
-      collectCeoAndDataExceptions(),
-      collectAcquisitionExceptions(),
-      listOpenOpsAcknowledgements().catch(() => []),
-    ]);
+  const [
+    finance,
+    support,
+    inventory,
+    fulfillment,
+    ceoData,
+    acquisition,
+    customerDiscord,
+    acks,
+  ] = await Promise.all([
+    collectFinanceExceptions(),
+    collectSupportExceptions(),
+    collectInventoryExceptions(),
+    collectFulfillmentExceptions(),
+    collectCeoAndDataExceptions(),
+    collectAcquisitionExceptions(),
+    collectCustomerIntelAndDiscordExceptions(),
+    listOpenOpsAcknowledgements().catch(() => []),
+  ]);
 
   const raw = [
     ...finance,
@@ -750,6 +862,7 @@ export async function collectOpsExceptions(): Promise<OpsException[]> {
     ...fulfillment,
     ...ceoData,
     ...acquisition,
+    ...customerDiscord,
   ];
   return applyAcknowledgements(raw, acks);
 }
