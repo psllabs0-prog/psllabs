@@ -24,6 +24,7 @@ import {
 import { collectSupportSnapshot } from "./support";
 import { collectFulfillmentSnapshot } from "./fulfillment";
 import { collectCustomerIntelligenceSnapshot } from "./customer-intelligence";
+import { collectDecisionSnapshot } from "./decisions";
 import type { CeoBriefRow, CeoWeeklyBrief } from "./types";
 
 export type GenerateCeoBriefResult = {
@@ -46,7 +47,7 @@ async function buildBrief(asOf: Date): Promise<{
   const period = getLastCompletedWeekUtc(asOf);
   const prior = previousWeekPeriod(period);
 
-  const [sales, inventory, support, acquisition, seo, fulfillment, customerIntelligence] =
+  const [sales, inventory, support, acquisition, seo, fulfillment, customerIntelligence, decisions] =
     await Promise.all([
       collectSalesSnapshot(period, prior),
       collectInventorySnapshot(asOf),
@@ -55,6 +56,7 @@ async function buildBrief(asOf: Date): Promise<{
       collectSeoSnapshot(period, prior),
       collectFulfillmentSnapshot(),
       collectCustomerIntelligenceSnapshot(),
+      collectDecisionSnapshot(),
     ]);
   const health = await collectHealthSnapshot({ support });
 
@@ -72,6 +74,16 @@ async function buildBrief(asOf: Date): Promise<{
     // never block brief
   }
 
+  if (decisions.status === "available" && decisions.highPriorityCount === 0) {
+    health.warnings = health.warnings; // keep
+  } else if (decisions.message) {
+    // Surface decision headline in health only when high-priority exists
+    if (decisions.highPriorityCount > 0) {
+      health.warnings.push(`[Decisions] ${decisions.message}`);
+      health.warnings = [...new Set(health.warnings)];
+    }
+  }
+
   const brief = composeWeeklyBrief({
     periodStart: period.periodStart.toISOString(),
     periodEnd: period.periodEnd.toISOString(),
@@ -85,6 +97,7 @@ async function buildBrief(asOf: Date): Promise<{
     health,
     fulfillment,
     customerIntelligence,
+    decisions,
   });
 
   return {

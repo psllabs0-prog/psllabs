@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 
 import { requireAdminAuth } from "@/lib/admin/require-auth";
 import { collectOpsExceptions } from "@/lib/ops/exceptions";
-import { collectOpsSystemStatuses } from "@/lib/ops/status";
 import { topOpsActions } from "@/lib/ops/types";
 import { acknowledgeOpsException } from "@/lib/ops/store";
 import { ensureOpsSchema } from "@/lib/ops/schema";
@@ -12,6 +11,12 @@ import {
   getLatestSuccessfulSupportJobRun,
   getSupportExpectedPollMinutes,
 } from "@/lib/support/store";
+import {
+  listDecisionSignals,
+  topDecisionSignals,
+} from "@/lib/decision-engine";
+import { collectSystemReadinessMatrix } from "@/lib/decision-engine/readiness";
+import { ensureDecisionEngineSchema } from "@/lib/decision-engine/schema";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -22,9 +27,16 @@ export async function GET() {
 
   try {
     await ensureOpsSchema();
+    await ensureDecisionEngineSchema().catch(() => undefined);
     const exceptions = await collectOpsExceptions();
     const topActions = topOpsActions(exceptions, 3);
-    const statuses = await collectOpsSystemStatuses(exceptions);
+    const readiness = await collectSystemReadinessMatrix();
+
+    const decisionSignals = await listDecisionSignals({
+      statuses: ["active"],
+      limit: 20,
+    }).catch(() => []);
+    const topDecisions = topDecisionSignals(decisionSignals, 3);
 
     const [board, supportLatest, supportOk] = await Promise.all([
       collectFulfillmentBoard().catch(() => null),
@@ -32,11 +44,19 @@ export async function GET() {
       getLatestSuccessfulSupportJobRun().catch(() => null),
     ]);
 
+    const opsActive = exceptions.filter((e) => !e.acknowledged).length;
+    const decisionActive = decisionSignals.length;
+    // Owner headline: decisions + ops without double-counting presentation
+    const lukeItems = opsActive + decisionActive;
+
     return NextResponse.json({
       exceptions,
       topActions,
-      statuses,
-      activeCount: exceptions.filter((e) => !e.acknowledged).length,
+      statuses: readiness,
+      activeCount: lukeItems,
+      opsActiveCount: opsActive,
+      decisionActiveCount: decisionActive,
+      topDecisions,
       warehouse: board?.summary ?? null,
       supportHealth: {
         latestRunAt: supportLatest?.finishedAt ?? null,

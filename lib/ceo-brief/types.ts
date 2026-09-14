@@ -142,6 +142,20 @@ export type CeoCustomerIntelligenceSnapshot = {
   lukeAction: { action: string; why: string } | null;
 };
 
+/** Phase 13 Decision Engine rollup — not a second independent CEO reasoner. */
+export type CeoDecisionSnapshot = {
+  status: "available" | "unavailable";
+  message: string;
+  /** Active P0/P1 first; max consumed by compose (≤3 Luke actions overall). */
+  lukeActions: Array<{
+    priority: string;
+    action: string;
+    why: string;
+    signalKey: string;
+  }>;
+  highPriorityCount: number;
+};
+
 export type CeoWeeklyBrief = {
   periodStart: string;
   periodEnd: string;
@@ -156,6 +170,7 @@ export type CeoWeeklyBrief = {
   health: CeoHealthSnapshot;
   fulfillment?: CeoFulfillmentSnapshot;
   customerIntelligence?: CeoCustomerIntelligenceSnapshot;
+  decisions?: CeoDecisionSnapshot;
   actions: CeoLukeAction[];
 };
 

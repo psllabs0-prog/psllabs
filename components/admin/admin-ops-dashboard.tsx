@@ -3,13 +3,22 @@
 import { useCallback, useEffect, useState } from "react";
 
 import type { OpsException } from "@/lib/ops/types";
-import type { OpsSystemStatus } from "@/lib/ops/status";
 
 type Payload = {
   exceptions: OpsException[];
   topActions: OpsException[];
-  statuses: OpsSystemStatus[];
+  statuses: Array<{ area: string; status: string; detail: string | null }>;
   activeCount: number;
+  opsActiveCount?: number;
+  decisionActiveCount?: number;
+  topDecisions?: Array<{
+    signalKey: string;
+    priority: string;
+    title: string;
+    recommendation: string;
+    sourceHref: string;
+    area: string;
+  }>;
   warehouse: {
     readyOrders: number;
     unitsToPick: number;
@@ -121,6 +130,39 @@ export function AdminOpsDashboard() {
             </section>
           )}
 
+          {(data.topDecisions?.length ?? 0) > 0 && (
+            <section>
+              <h2 className="font-display text-lg font-bold text-ink">
+                Decision Engine
+              </h2>
+              <p className="mt-1 text-xs text-ash">
+                Cross-business reasoning — max 3.{" "}
+                <a href="/admin-decisions" className="underline">
+                  Open /admin-decisions
+                </a>
+              </p>
+              <ul className="mt-3 space-y-3">
+                {data.topDecisions!.map((d) => (
+                  <li
+                    key={d.signalKey}
+                    className="premium-card px-4 py-3 text-sm"
+                  >
+                    <p className="font-medium text-ink">
+                      {d.priority} · {d.area} · {d.title}
+                    </p>
+                    <p className="mt-1 text-ash">{d.recommendation}</p>
+                    <a
+                      href={d.sourceHref || "/admin-decisions"}
+                      className="mt-2 inline-block text-ink underline"
+                    >
+                      Open source
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           <section>
             <h2 className="font-display text-lg font-bold text-ink">
               Active exceptions
@@ -183,7 +225,7 @@ export function AdminOpsDashboard() {
       {data && (
         <section>
           <h2 className="font-display text-sm font-bold uppercase tracking-wide text-ash">
-            System status
+            System readiness
           </h2>
           <ul className="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-sm text-ink">
             {data.statuses.map((s) => (

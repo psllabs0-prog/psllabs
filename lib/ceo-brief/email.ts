@@ -12,7 +12,10 @@ const DEFAULT_TO = "support@psllabs.org";
 
 function actionLines(brief: CeoWeeklyBrief): string {
   if (brief.actions.length === 0) {
-    return "<p style=\"margin:0 0 8px;\">No high-priority personal actions this week.</p>";
+    const msg =
+      brief.decisions?.message ||
+      "No high-priority personal actions this week.";
+    return `<p style="margin:0 0 8px;">${escapeHtml(msg)}</p>`;
   }
   return brief.actions
     .map(

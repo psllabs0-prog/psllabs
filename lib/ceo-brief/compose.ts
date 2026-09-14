@@ -12,6 +12,7 @@ import type {
   CeoSupportSnapshot,
   CeoWeeklyBrief,
   CeoCustomerIntelligenceSnapshot,
+  CeoDecisionSnapshot,
 } from "./types";
 
 function buildExecutiveSummary(input: {
@@ -122,8 +123,21 @@ export function buildLukeActionCandidates(input: {
   seo: CeoSeoSnapshot;
   fulfillment?: CeoFulfillmentSnapshot;
   customerIntelligence?: CeoCustomerIntelligenceSnapshot;
+  decisions?: CeoDecisionSnapshot;
 }): ActionCandidate[] {
   const candidates: ActionCandidate[] = [];
+
+  // Phase 13: P0/P1 decision signals outrank optimization busywork.
+  for (const d of input.decisions?.lukeActions ?? []) {
+    if (d.priority !== "P0" && d.priority !== "P1") continue;
+    candidates.push({
+      priority: d.priority === "P0" ? 1 : 2,
+      action: d.action,
+      why: d.why,
+      urgency: d.priority === "P0" ? "Urgent" : "This week",
+      section: "health",
+    });
+  }
 
   for (const w of input.sales.reconciliationWarnings.slice(0, 3)) {
     const isPayment =
@@ -251,6 +265,19 @@ export function buildLukeActionCandidates(input: {
     });
   }
 
+  // P2 decision signals only if slots would otherwise be empty of higher work —
+  // still subject to selectLukeActions max=3; never fill with P3 busywork.
+  for (const d of input.decisions?.lukeActions ?? []) {
+    if (d.priority !== "P2") continue;
+    candidates.push({
+      priority: 9,
+      action: d.action,
+      why: d.why,
+      urgency: null,
+      section: "health",
+    });
+  }
+
   return candidates;
 }
 
@@ -267,10 +294,21 @@ export function composeWeeklyBrief(input: {
   health: CeoHealthSnapshot;
   fulfillment?: CeoFulfillmentSnapshot;
   customerIntelligence?: CeoCustomerIntelligenceSnapshot;
+  decisions?: CeoDecisionSnapshot;
 }): CeoWeeklyBrief {
   const actions: CeoLukeAction[] = selectLukeActions(
     buildLukeActionCandidates(input)
   );
+
+  // Prefer an explicit empty high-priority message when decision engine says so
+  // and no other actions were selected.
+  if (
+    actions.length === 0 &&
+    input.decisions?.status === "available" &&
+    input.decisions.highPriorityCount === 0
+  ) {
+    // Valid outcome: no high-priority owner decisions — do not invent busywork.
+  }
 
   return {
     periodStart: input.periodStart,
@@ -289,6 +327,7 @@ export function composeWeeklyBrief(input: {
     health: input.health,
     fulfillment: input.fulfillment,
     customerIntelligence: input.customerIntelligence,
+    decisions: input.decisions,
     actions,
   };
 }
