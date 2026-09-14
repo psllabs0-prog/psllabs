@@ -1,6 +1,25 @@
 import type { DecisionConfidence, DecisionEvidenceItem } from "./types";
 
 /**
+ * Deterministic downgrade when finance is untrusted but partial interpretation remains.
+ * high→moderate, moderate→early, early→insufficient.
+ */
+export function downgradeConfidenceForUntrustedFinance(
+  confidence: DecisionConfidence
+): DecisionConfidence {
+  switch (confidence) {
+    case "high":
+      return "moderate";
+    case "moderate":
+      return "early";
+    case "early":
+      return "insufficient";
+    default:
+      return "insufficient";
+  }
+}
+
+/**
  * Confidence from independent evidence classes — do not sum raw counts.
  */
 export function confidenceFromCorroboration(input: {
@@ -10,22 +29,29 @@ export function confidenceFromCorroboration(input: {
   financeTrusted?: boolean;
 }): DecisionConfidence {
   if (!input.dataFresh) return "insufficient";
-  if (input.financeTrusted === false && input.sampleHint !== "strong") {
-    // Lower confidence when financial totals are not fully trusted
-  }
 
   const classes = new Set(input.evidenceClasses.filter(Boolean));
   const n = classes.size;
 
-  if (input.sampleHint === "tiny") return "insufficient";
-  if (n >= 3 && input.sampleHint === "strong") return "high";
-  if (n >= 3 && (input.sampleHint === "adequate" || input.sampleHint === "small"))
-    return "moderate";
-  if (n === 2) return "moderate";
-  if (n === 1 && input.sampleHint === "strong") return "moderate";
-  if (n === 1 && input.sampleHint === "adequate") return "early";
-  if (n === 1 && input.sampleHint === "small") return "early";
-  return "insufficient";
+  let confidence: DecisionConfidence = "insufficient";
+  if (input.sampleHint === "tiny") confidence = "insufficient";
+  else if (n >= 3 && input.sampleHint === "strong") confidence = "high";
+  else if (
+    n >= 3 &&
+    (input.sampleHint === "adequate" || input.sampleHint === "small")
+  )
+    confidence = "moderate";
+  else if (n === 2) confidence = "moderate";
+  else if (n === 1 && input.sampleHint === "strong") confidence = "moderate";
+  else if (n === 1 && input.sampleHint === "adequate") confidence = "early";
+  else if (n === 1 && input.sampleHint === "small") confidence = "early";
+  else confidence = "insufficient";
+
+  if (input.financeTrusted === false && confidence !== "insufficient") {
+    confidence = downgradeConfidenceForUntrustedFinance(confidence);
+  }
+
+  return confidence;
 }
 
 export function evidenceClassesOf(

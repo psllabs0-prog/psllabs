@@ -13,7 +13,10 @@ export async function GET(request: Request) {
 
   try {
     const result = await runDecisionEngine({ sendDigest: true });
-    return NextResponse.json(result);
+    if (!result.ok) {
+      return NextResponse.json(result, { status: 500 });
+    }
+    return NextResponse.json(result, { status: 200 });
   } catch (error) {
     console.error("[cron/decision-engine]", error);
     return NextResponse.json(

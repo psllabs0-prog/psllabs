@@ -11,6 +11,7 @@ type Payload = {
   activeCount: number;
   opsActiveCount?: number;
   decisionActiveCount?: number;
+  ownerReviewCount?: number;
   topDecisions?: Array<{
     signalKey: string;
     priority: string;
@@ -100,6 +101,11 @@ export function AdminOpsDashboard() {
           <section className="premium-card px-5 py-4">
             <p className="font-display text-xl font-bold text-ink">
               LUKE HAS {activeCount} ITEM{activeCount === 1 ? "" : "S"} TO REVIEW
+            </p>
+            <p className="mt-1 text-xs text-ash">
+              Ops {data.opsActiveCount ?? "—"} · Decisions{" "}
+              {data.decisionActiveCount ?? "—"} · Owner review (deduped){" "}
+              {data.ownerReviewCount ?? activeCount}
             </p>
           </section>
 

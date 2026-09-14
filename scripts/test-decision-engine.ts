@@ -411,11 +411,10 @@ function testDigestIdempotency() {
     resolvedAt: null,
     dismissedAt: null,
     lastNotifiedAt: "already",
-    lastNotifiedEvidenceHash: null, // will compute mismatch
+    lastNotifiedEvidenceHash: null,
     createdAt: "a",
     updatedAt: "b",
   };
-  // With lastNotifiedAt set and hash matching current evidence — should not re-notify
   const { createHash } = require("node:crypto") as typeof import("node:crypto");
   const hash = createHash("sha256")
     .update(
@@ -431,7 +430,7 @@ function testDigestIdempotency() {
   const unchanged = { ...base, lastNotifiedEvidenceHash: hash };
   assert(
     decideDigestNotifications([unchanged]).length === 0,
-    "unchanged signal does not repeatedly notify"
+    "unchanged P1 not re-notified"
   );
 
   const changed = {
@@ -441,13 +440,290 @@ function testDigestIdempotency() {
   };
   assert(
     decideDigestNotifications([changed]).length === 1,
-    "materially changed evidence can re-notify"
+    "materially changed P1 re-notified"
+  );
+
+  const contentP2 = {
+    ...base,
+    priority: "P2" as const,
+    recommendedOwner: "content" as const,
+    confidence: "moderate" as const,
+    lastNotifiedAt: null,
+  };
+  assert(
+    decideDigestNotifications([contentP2]).length === 0,
+    "content-owned P2 no email"
+  );
+
+  const growthP2 = {
+    ...base,
+    priority: "P2" as const,
+    recommendedOwner: "growth_contractor" as const,
+    lastNotifiedAt: null,
+  };
+  assert(
+    decideDigestNotifications([growthP2]).length === 0,
+    "growth contractor P2 no email"
+  );
+
+  const weakP2 = {
+    ...base,
+    priority: "P2" as const,
+    recommendedOwner: "luke" as const,
+    confidence: "early" as const,
+    signalType: "COA_FRICTION",
+    lastNotifiedAt: null,
+  };
+  assert(
+    decideDigestNotifications([weakP2]).length === 0,
+    "weak early optimization P2 no email"
+  );
+
+  const lukeP2 = {
+    ...base,
+    priority: "P2" as const,
+    recommendedOwner: "luke" as const,
+    confidence: "moderate" as const,
+    lastNotifiedAt: null,
+  };
+  assert(
+    decideDigestNotifications([lukeP2]).length === 1,
+    "meaningful Luke-owned P2 can email"
   );
 
   const p3 = { ...base, priority: "P3" as const, lastNotifiedAt: null };
+  assert(decideDigestNotifications([p3]).length === 0, "P3 never emails");
+}
+
+function testSourceHealthBlocks() {
+  const { markSourceFailed } = require("../lib/decision-engine/source-health") as typeof import("../lib/decision-engine/source-health");
+  const ctx = emptyDecisionContext();
+  markSourceFailed(ctx.sourceHealth, "acquisition", new Error("boom"));
+  ctx.acquisition.metaConfigured = true;
+  ctx.acquisition.metaFresh = true;
+  ctx.acquisition.spendUsd7d = 200;
+  ctx.acquisition.clicks7d = 80;
+  ctx.acquisition.pslAttributedOrders7d = 0;
+  ctx.acquisition.measurementWarnings = ["no matched PSL orders"];
+  const sigs = evaluateDecisionPatterns(ctx);
   assert(
-    decideDigestNotifications([p3]).length === 0,
-    "P3 alone does not notify"
+    sigs.some((s) => s.signalType === "SOURCE_UNAVAILABLE"),
+    "acquisition collection failure => SOURCE_UNAVAILABLE"
+  );
+  assert(
+    !sigs.some((s) => s.signalType === "ATTRIBUTION_MEASUREMENT"),
+    "failed acquisition does not conclude paid performance"
+  );
+
+  const inv = emptyDecisionContext();
+  markSourceFailed(inv.sourceHealth, "inventory", new Error("down"));
+  inv.inventory.skus = [
+    {
+      sku: "PSL-RTA-10MG",
+      handle: "retatrutide",
+      name: "Retatrutide",
+      sellableUnits: 2,
+      orderedInbound: 0,
+      inTransit: 0,
+      awaitingTesting: 0,
+      inboundPipelineTotal: 0,
+      forecastConfidence: "RELIABLE",
+      statusFlags: ["REORDER_REVIEW"],
+      daysSupply: 5,
+    },
+  ];
+  assert(
+    !evaluateDecisionPatterns(inv).some(
+      (s) => s.signalType === "INVENTORY_DEMAND_RISK"
+    ),
+    "failed inventory does not conclude risk disappeared or create risk"
+  );
+}
+
+function testFinanceConfidenceAndBaseline() {
+  const {
+    confidenceFromCorroboration,
+    downgradeConfidenceForUntrustedFinance,
+  } = require("../lib/decision-engine/confidence") as typeof import("../lib/decision-engine/confidence");
+
+  assert(
+    downgradeConfidenceForUntrustedFinance("high") === "moderate",
+    "high->moderate"
+  );
+  assert(
+    downgradeConfidenceForUntrustedFinance("moderate") === "early",
+    "moderate->early"
+  );
+  assert(
+    confidenceFromCorroboration({
+      evidenceClasses: ["orders", "meta"],
+      sampleHint: "adequate",
+      dataFresh: true,
+      financeTrusted: false,
+    }) === "early",
+    "financeTrusted=false downgrades moderate->early"
+  );
+
+  // Checkout / sales-trend blocked without baseline
+  const noBase = emptyDecisionContext();
+  noBase.observedBaselineDays.sales = 2;
+  noBase.finance.paymentHealthWarnings = 3;
+  noBase.finance.openReconciliationWarnings = 2;
+  noBase.finance.legitimateOrders7d = 0;
+  assert(
+    !evaluateDecisionPatterns(noBase).some(
+      (s) => s.signalType === "PAYMENT_CHECKOUT"
+    ),
+    "insufficient sales baseline blocks sales/checkout trend conclusion"
+  );
+
+  // Data quality still fires without baseline
+  const dq = emptyDecisionContext();
+  dq.observedBaselineDays.sales = 0;
+  dq.finance.reconcileFailed = true;
+  dq.finance.fresh = false;
+  assert(
+    evaluateDecisionPatterns(dq).some((s) => s.signalType === "DATA_QUALITY"),
+    "data-quality P0 still fires without baseline"
+  );
+
+  // Regulatory still fires without sales baseline
+  const reg = emptyDecisionContext();
+  reg.observedBaselineDays.sales = 0;
+  reg.customerIntelligence.signals = [
+    {
+      signalKey: "r1",
+      theme: "restricted_human_use_request",
+      evidenceClass: "compliance",
+      currentCount: 5,
+      confidenceLevel: "early_signal",
+      recommendation: null,
+      status: "early",
+    },
+  ];
+  assert(
+    evaluateDecisionPatterns(reg).some(
+      (s) => s.signalType === "REGULATORY_CLAIMS_REVIEW"
+    ),
+    "regulatory signal still fires without sales baseline"
+  );
+}
+
+function testOwnerRoutingAndOpsDedupe() {
+  const {
+    partitionDecisionSignals,
+    computeOwnerReviewCount,
+  } = require("../lib/decision-engine/owner-count") as typeof import("../lib/decision-engine/owner-count");
+
+  const mk = (
+    owner: DecisionSignalRow["recommendedOwner"],
+    priority: DecisionSignalRow["priority"],
+    key: string
+  ): DecisionSignalRow => ({
+    id: 1,
+    signalKey: key,
+    signalType: "X",
+    area: "seo",
+    priority,
+    confidence: "moderate",
+    status: "active",
+    title: "t",
+    summary: "s",
+    recommendation: "r",
+    reasoningJson: {},
+    evidenceJson: {},
+    risksJson: {},
+    whatCouldMakeWrongJson: [],
+    dataNeededJson: [],
+    recommendedOwner: owner,
+    sourceHref: "/admin-decisions",
+    firstDetectedAt: "a",
+    lastDetectedAt: "b",
+    acknowledgedAt: null,
+    resolvedAt: null,
+    dismissedAt: null,
+    lastNotifiedAt: null,
+    lastNotifiedEvidenceHash: null,
+    createdAt: "a",
+    updatedAt: "b",
+  });
+
+  const parts = partitionDecisionSignals([
+    mk("content", "P2", "c1"),
+    mk("growth_contractor", "P2", "g1"),
+    mk("luke", "P1", "l1"),
+    mk("regulatory_counsel", "P1", "r1"),
+  ]);
+  assert(parts.lukeDecisions.length === 2, "Luke + regulatory count as owner");
+  assert(parts.specialistActions.length === 2, "content/growth are specialist");
+  assert(
+    !parts.lukeDecisions.some((s) => s.recommendedOwner === "content"),
+    "content P2 does not increment Luke count"
+  );
+
+  const merge = computeOwnerReviewCount({
+    opsExceptions: [
+      {
+        sourceType: "finance_job_failure",
+        sourceId: "finance_reconciliation",
+        priority: "P0",
+        area: "finance",
+        title: "Finance job failed",
+        why: "job error",
+        detectedAt: new Date().toISOString(),
+        href: "/admin-finance",
+        acknowledged: false,
+        acknowledgedAt: null,
+        note: null,
+      },
+    ],
+    lukeDecisionSignals: [
+      {
+        ...mk("luke", "P0", "data:quality:finance"),
+        signalType: "DATA_QUALITY",
+        area: "data_quality",
+        title: "Finance reconciliation not fully trusted",
+      },
+    ],
+  });
+  assert(merge.opsActiveCount === 1, "ops still counted raw");
+  assert(merge.decisionActiveCount === 1, "decision counted");
+  assert(
+    merge.ownerReviewCount === 1,
+    "one underlying finance issue not double-counted"
+  );
+}
+
+function testCronHttpMapping() {
+  const route = require("fs").readFileSync(
+    require("path").join(
+      process.cwd(),
+      "app/api/cron/decision-engine/route.ts"
+    ),
+    "utf8"
+  ) as string;
+  assert(/status:\s*500/.test(route), "ok=false / throw => cron 500");
+  assert(/status:\s*200/.test(route), "ok => cron 200");
+  assert(/!result\.ok/.test(route), "checks result.ok");
+}
+
+function testSourceAwareResolveHelper() {
+  const {
+    requiredSourcesUnavailable,
+    emptySourceHealth,
+    markSourceOk,
+    markSourceFailed,
+  } = require("../lib/decision-engine/source-health") as typeof import("../lib/decision-engine/source-health");
+  const h = emptySourceHealth();
+  markSourceOk(h, "inventory");
+  assert(
+    !requiredSourcesUnavailable(["inventory"], h),
+    "healthy inventory allows resolve"
+  );
+  markSourceFailed(h, "inventory", new Error("x"));
+  assert(
+    requiredSourcesUnavailable(["inventory"], h),
+    "failed inventory blocks resolve"
   );
 }
 
@@ -621,6 +897,11 @@ function main() {
   testDigestIdempotency();
   testCeoMaxThree();
   testLifecycleKeysStable();
+  testSourceHealthBlocks();
+  testFinanceConfidenceAndBaseline();
+  testOwnerRoutingAndOpsDedupe();
+  testCronHttpMapping();
+  testSourceAwareResolveHelper();
   console.log("[test:decision-engine] ok");
 }
 

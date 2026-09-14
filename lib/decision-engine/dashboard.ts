@@ -6,6 +6,7 @@ import {
 } from "./thresholds";
 import type { DecisionSignalRow } from "./types";
 import { collectSystemReadinessMatrix } from "./readiness";
+import { partitionDecisionSignals } from "./owner-count";
 
 export function topDecisionSignals(
   signals: DecisionSignalRow[],
@@ -24,21 +25,30 @@ export async function buildDecisionDashboard() {
 
   const active = all.filter((s) => s.status === "active");
   const acknowledged = all.filter((s) => s.status === "acknowledged");
-  const resolved = all
-    .filter((s) => s.status === "resolved")
-    .slice(0, 20);
+  const resolved = all.filter((s) => s.status === "resolved").slice(0, 20);
   const dataQuality = active.filter(
-    (s) => s.area === "data_quality" || s.signalType.includes("STALE") || s.signalType.includes("DATA_QUALITY")
+    (s) =>
+      s.area === "data_quality" ||
+      s.signalType.includes("STALE") ||
+      s.signalType.includes("DATA_QUALITY") ||
+      s.signalType.includes("UNAVAILABLE")
   );
+  const { lukeDecisions, specialistActions, automationHandled } =
+    partitionDecisionSignals(active);
   const top = topDecisionSignals(all, 3);
-  const lukeCount = active.length;
+  const lukeCount = lukeDecisions.length;
 
   return {
     headline:
       lukeCount === 0
-        ? "ALL SYSTEMS NORMAL"
+        ? specialistActions.length > 0
+          ? "NO OWNER DECISIONS"
+          : "ALL SYSTEMS NORMAL"
         : `LUKE HAS ${lukeCount} DECISION${lukeCount === 1 ? "" : "S"}`,
     lukeDecisionCount: lukeCount,
+    lukeDecisions,
+    specialistActions,
+    automationHandled,
     topDecisions: top,
     active,
     acknowledged,

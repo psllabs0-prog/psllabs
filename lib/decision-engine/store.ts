@@ -59,12 +59,14 @@ function mapRow(r: Record<string, unknown>): DecisionSignalRow {
   };
 }
 
-export async function startDecisionRun(sourcesChecked: string[]): Promise<number> {
+export async function startDecisionRun(
+  sourcesChecked: unknown
+): Promise<number> {
   await ensureDecisionEngineSchema();
   const sql = getSql();
   const rows = (await sql`
     INSERT INTO decision_engine_runs (status, sources_checked_json)
-    VALUES ('running', ${asJson({ sources: sourcesChecked })}::jsonb)
+    VALUES ('running', ${asJson(sourcesChecked)}::jsonb)
     RETURNING id
   `) as Array<{ id: number }>;
   return Number(rows[0].id);
@@ -141,6 +143,36 @@ export async function upsertDecisionSignal(
   await ensureDecisionEngineSchema();
   const sql = getSql();
   const existing = await getDecisionSignalByKey(candidate.signalKey);
+  const dependsOnSources = [
+    ...new Set(
+      candidate.evidence.flatMap((e) => {
+        switch (e.sourceClass) {
+          case "finance":
+          case "orders":
+            return ["finance"];
+          case "meta":
+          case "tiktok":
+            return ["acquisition"];
+          case "inventory":
+            return ["inventory"];
+          case "fulfillment":
+            return ["fulfillment"];
+          case "support":
+            return ["support"];
+          case "customer_feedback":
+          case "customer_intelligence":
+            return ["customerIntelligence"];
+          case "search_console":
+          case "authority":
+            return ["seo"];
+          case "discord_community":
+            return ["discord"];
+          default:
+            return [];
+        }
+      })
+    ),
+  ];
   const reasoning = {
     decision: candidate.decision,
     why: candidate.why,
@@ -149,6 +181,7 @@ export async function upsertDecisionSignal(
     nextAction: candidate.nextAction,
     recommendedOwner: candidate.recommendedOwner,
     autoResolveWhenGone: candidate.autoResolveWhenGone,
+    dependsOnSources,
   };
   const evidence = { items: candidate.evidence };
   const risks = { mainRisks: candidate.mainRisks };
@@ -225,18 +258,26 @@ export async function upsertDecisionSignal(
   return { created: false, reactivated: reactivate };
 }
 
+import type { SourceHealthMap } from "./source-health";
+import { requiredSourcesUnavailable } from "./source-health";
+
 export async function resolveMissingAutoSignals(
-  activeKeys: Set<string>
+  activeKeys: Set<string>,
+  sourceHealth?: SourceHealthMap
 ): Promise<number> {
   await ensureDecisionEngineSchema();
   const sql = getSql();
   const rows = (await sql`
-    SELECT signal_key, reasoning_json, status
+    SELECT signal_key, reasoning_json, evidence_json, status
     FROM decision_signals
     WHERE status IN ('active', 'acknowledged')
   `) as Array<{
     signal_key: string;
-    reasoning_json: { autoResolveWhenGone?: boolean };
+    reasoning_json: {
+      autoResolveWhenGone?: boolean;
+      dependsOnSources?: string[];
+    };
+    evidence_json: { items?: Array<{ sourceClass: string }> };
     status: string;
   }>;
 
@@ -245,6 +286,16 @@ export async function resolveMissingAutoSignals(
     if (activeKeys.has(row.signal_key)) continue;
     // Sticky friction (false) needs stability — never auto-resolve from one quiet day.
     if (row.reasoning_json?.autoResolveWhenGone !== true) continue;
+
+    // Source-aware: do not resolve when a required source was unavailable this run.
+    if (sourceHealth) {
+      const required = (row.reasoning_json?.dependsOnSources ?? []) as Array<
+        keyof SourceHealthMap
+      >;
+      if (required.length > 0 && requiredSourcesUnavailable(required, sourceHealth)) {
+        continue;
+      }
+    }
 
     await sql`
       UPDATE decision_signals SET

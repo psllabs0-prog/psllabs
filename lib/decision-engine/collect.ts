@@ -1,6 +1,6 @@
 /**
  * Collect live DecisionContext from existing authoritative systems.
- * Read-only — no duplicate transactional facts invented here.
+ * Read-only — never confuse collection failure with zero activity.
  */
 
 import { collectAcquisitionSnapshot } from "@/lib/ceo-brief/acquisition";
@@ -18,7 +18,6 @@ import { getDiscordAdminStatusSafe } from "@/lib/discord/config";
 import { getDiscordAnalyticsSummary } from "@/lib/discord/store";
 import { getAllPaidProviderStatuses } from "@/lib/external-metrics/paid/providers";
 import {
-  getLatestExternalMetricSyncRun,
   getLatestSuccessfulExternalMetricSyncRun,
   countSearchConsoleRows,
 } from "@/lib/external-metrics/store";
@@ -33,8 +32,15 @@ import { getSql } from "@/lib/db/sql";
 import { getLatestCeoBrief } from "@/lib/ceo-brief/store";
 import { getLatestJobRun as getLatestSupportJobRun } from "@/lib/support/store";
 import { listAuthorityOpportunities } from "@/lib/authority/store";
+import { getDecisionMinDaysForBaseline } from "./thresholds";
 
 import { emptyDecisionContext, type DecisionContext } from "./types";
+import {
+  emptySourceHealth,
+  markSourceFailed,
+  markSourceOk,
+  sourcesAuditJson,
+} from "./source-health";
 
 const MS_DAY = 24 * 60 * 60 * 1000;
 
@@ -45,7 +51,11 @@ function ageDays(iso: string | null | undefined, asOf: Date): number | null {
   return (asOf.getTime() - t) / MS_DAY;
 }
 
-function isStale(iso: string | null | undefined, asOf: Date, maxDays: number): boolean {
+function isStale(
+  iso: string | null | undefined,
+  asOf: Date,
+  maxDays: number
+): boolean {
   const age = ageDays(iso, asOf);
   if (age == null) return true;
   return age > maxDays;
@@ -53,19 +63,26 @@ function isStale(iso: string | null | undefined, asOf: Date, maxDays: number): b
 
 export async function collectDecisionContext(
   asOf: Date = new Date()
-): Promise<{ ctx: DecisionContext; sourcesChecked: string[] }> {
-  const sourcesChecked: string[] = [];
+): Promise<{
+  ctx: DecisionContext;
+  sourcesAudit: ReturnType<typeof sourcesAuditJson>;
+}> {
   const period = getLastCompletedWeekUtc(asOf);
   const prior = previousWeekPeriod(period);
   const ctx = emptyDecisionContext(asOf.toISOString());
+  // Live collection starts with unchecked sources (fixture defaults are for tests).
+  ctx.sourceHealth = emptySourceHealth();
   ctx.recentStart = period.labelStart;
   ctx.recentEnd = period.labelEnd;
   ctx.priorStart = prior.labelStart;
   ctx.priorEnd = prior.labelEnd;
 
+  const minBaseline = getDecisionMinDaysForBaseline();
+  // Completed week = 7 observed days when sales snapshot succeeds.
+  ctx.observedBaselineDays = { sales: 0, paid: 0, fulfillment: 0 };
+
   // Finance
   try {
-    sourcesChecked.push("finance");
     const [sales, job, warnings, sheetNeed] = await Promise.all([
       collectSalesSnapshot(period, prior),
       getLatestFinanceJobRun("finance_reconciliation"),
@@ -88,13 +105,16 @@ export async function collectDecisionContext(
     ctx.finance.fresh = job?.status !== "error";
     ctx.systemHealth.financeJobFailed = job?.status === "error";
     ctx.systemHealth.sheetsFailed = ctx.finance.sheetsSyncFailed > 0;
-  } catch {
+    // Two completed weeks available when prior also collected
+    ctx.observedBaselineDays.sales = 14;
+    markSourceOk(ctx.sourceHealth, "finance");
+  } catch (e) {
     ctx.finance.fresh = false;
+    markSourceFailed(ctx.sourceHealth, "finance", e);
   }
 
   // Acquisition
   try {
-    sourcesChecked.push("acquisition");
     const [acq, paid] = await Promise.all([
       collectAcquisitionSnapshot(period),
       getAllPaidProviderStatuses(),
@@ -115,7 +135,8 @@ export async function collectDecisionContext(
       ctx.acquisition.tiktokConfigured &&
       isStale(tiktok?.lastSyncAt ?? null, asOf, 3.5)
     );
-    ctx.systemHealth.metaStale = !ctx.acquisition.metaFresh;
+    ctx.systemHealth.metaStale =
+      ctx.acquisition.metaConfigured && !ctx.acquisition.metaFresh;
     if (acq.status === "available") {
       ctx.acquisition.spendUsd7d = acq.spendUsd ?? 0;
       ctx.acquisition.clicks7d = acq.sessionsOrClicks ?? 0;
@@ -127,16 +148,16 @@ export async function collectDecisionContext(
       ctx.acquisition.contributionEconomicsAvailable =
         acq.contributionEconomics !== "insufficient data" &&
         acq.contributionEconomics != null;
+      ctx.observedBaselineDays.paid = 7;
     }
-    // Funnel path data still unavailable in V1
     ctx.acquisition.funnelDataAvailable = false;
-  } catch {
-    // keep defaults
+    markSourceOk(ctx.sourceHealth, "acquisition");
+  } catch (e) {
+    markSourceFailed(ctx.sourceHealth, "acquisition", e);
   }
 
   // Inventory
   try {
-    sourcesChecked.push("inventory");
     const sql = getSql();
     const snap = (await sql`
       SELECT MAX(snapshot_date)::text AS d FROM inventory_monitor_snapshots
@@ -145,7 +166,6 @@ export async function collectDecisionContext(
     ctx.inventory.monitorFresh = !(snapDate
       ? isStale(`${snapDate}T00:00:00.000Z`, asOf, 2.5)
       : false);
-    // Day-0 no snapshots → fresh enough to avoid false stock conclusions, but also no SKU risk
     if (!snapDate) ctx.inventory.monitorFresh = true;
     ctx.systemHealth.inventoryMonitorStale = Boolean(
       snapDate && isStale(`${snapDate}T00:00:00.000Z`, asOf, 2.5)
@@ -172,13 +192,14 @@ export async function collectDecisionContext(
         daysSupply: m?.daysSupply ?? null,
       };
     });
-  } catch {
+    markSourceOk(ctx.sourceHealth, "inventory");
+  } catch (e) {
     ctx.inventory.monitorFresh = false;
+    markSourceFailed(ctx.sourceHealth, "inventory", e);
   }
 
   // Fulfillment
   try {
-    sourcesChecked.push("fulfillment");
     const f = await collectFulfillmentSnapshot();
     ctx.fulfillment.readyOrders = f.readyOrders;
     ctx.fulfillment.holds = f.holds;
@@ -186,13 +207,17 @@ export async function collectDecisionContext(
     ctx.fulfillment.packingOrReadyBacklog =
       f.readyOrders + f.packedWaitingTracking;
     ctx.fulfillment.slaConfigured = false;
-  } catch {
-    // keep
+    ctx.observedBaselineDays.fulfillment = Math.max(
+      minBaseline,
+      ctx.observedBaselineDays.sales || 7
+    );
+    markSourceOk(ctx.sourceHealth, "fulfillment");
+  } catch (e) {
+    markSourceFailed(ctx.sourceHealth, "fulfillment", e);
   }
 
   // Support
   try {
-    sourcesChecked.push("support");
     const [support, supportJob] = await Promise.all([
       collectSupportSnapshot(period),
       getLatestSupportJobRun().catch(() => null),
@@ -208,13 +233,13 @@ export async function collectDecisionContext(
     }));
     ctx.support.failedJobs = supportJob?.ok === false ? 1 : 0;
     ctx.systemHealth.supportJobFailed = supportJob?.ok === false;
-  } catch {
-    // keep
+    markSourceOk(ctx.sourceHealth, "support");
+  } catch (e) {
+    markSourceFailed(ctx.sourceHealth, "support", e);
   }
 
   // Customer intelligence
   try {
-    sourcesChecked.push("customer_intelligence");
     const signals = await listCustomerIntelSignals({ limit: 40 });
     ctx.customerIntelligence.signals = signals.map((s) => ({
       signalKey: s.signalKey,
@@ -225,13 +250,13 @@ export async function collectDecisionContext(
       recommendation: s.recommendation,
       status: s.status,
     }));
-  } catch {
-    // keep
+    markSourceOk(ctx.sourceHealth, "customerIntelligence");
+  } catch (e) {
+    markSourceFailed(ctx.sourceHealth, "customerIntelligence", e);
   }
 
   // SEO
   try {
-    sourcesChecked.push("seo");
     const [seo, lastOk, rows, waiting] = await Promise.all([
       collectSeoSnapshot(period, prior),
       getLatestSuccessfulExternalMetricSyncRun("search_console"),
@@ -244,12 +269,8 @@ export async function collectDecisionContext(
     const property = getSearchConsoleProperty();
     ctx.seo.gscConfigured = Boolean(property);
     ctx.seo.gscFresh = !(
-      ctx.seo.gscConfigured &&
-      (isStale(lastOk?.completedAt ?? null, asOf, 3.5) && rows === 0
-        ? true
-        : isStale(lastOk?.completedAt ?? null, asOf, 3.5))
+      ctx.seo.gscConfigured && isStale(lastOk?.completedAt ?? null, asOf, 3.5)
     );
-    // If never synced and configured → stale for conclusions
     if (ctx.seo.gscConfigured && !lastOk) ctx.seo.gscFresh = false;
     ctx.systemHealth.gscStale = ctx.seo.gscConfigured && !ctx.seo.gscFresh;
     if (seo.status === "available") {
@@ -258,14 +279,15 @@ export async function collectDecisionContext(
       ctx.seo.materialOpportunity = seo.materialOpportunity;
       ctx.seo.pagesGaining = seo.pagesGaining ?? [];
     }
+    void rows;
     ctx.seo.approvedBriefsWaiting = waiting.length;
-  } catch {
-    // keep
+    markSourceOk(ctx.sourceHealth, "seo");
+  } catch (e) {
+    markSourceFailed(ctx.sourceHealth, "seo", e);
   }
 
   // Discord
   try {
-    sourcesChecked.push("discord");
     const status = getDiscordAdminStatusSafe();
     const analytics = await getDiscordAnalyticsSummary().catch(() => null);
     ctx.discord.enabled = status.enabled;
@@ -273,19 +295,20 @@ export async function collectDecisionContext(
     ctx.discord.testMode = status.testMode;
     ctx.discord.interactionCount = analytics?.interactionCount ?? 0;
     ctx.discord.restrictedCount = analytics?.restrictedCount ?? 0;
-  } catch {
-    // keep
+    markSourceOk(ctx.sourceHealth, "discord");
+  } catch (e) {
+    markSourceFailed(ctx.sourceHealth, "discord", e);
   }
 
   // CEO brief health
   try {
-    sourcesChecked.push("ceo_brief");
     const latest = await getLatestCeoBrief();
     ctx.systemHealth.ceoBriefEmailFailed = Boolean(
       latest?.emailSendLastError && !latest.emailSentAt
     );
-  } catch {
-    // keep
+    markSourceOk(ctx.sourceHealth, "ceoBrief");
+  } catch (e) {
+    markSourceFailed(ctx.sourceHealth, "ceoBrief", e);
   }
 
   ctx.systemHealth.failureCount = [
@@ -296,7 +319,10 @@ export async function collectDecisionContext(
     ctx.systemHealth.inventoryMonitorStale,
     ctx.systemHealth.metaStale,
     ctx.systemHealth.gscStale,
+    !ctx.sourceHealth.finance.ok,
+    !ctx.sourceHealth.acquisition.ok,
+    !ctx.sourceHealth.inventory.ok,
   ].filter(Boolean).length;
 
-  return { ctx, sourcesChecked };
+  return { ctx, sourcesAudit: sourcesAuditJson(ctx.sourceHealth) };
 }

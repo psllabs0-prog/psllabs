@@ -78,11 +78,49 @@ async function main() {
   const ack = await getDecisionSignalByKey(key);
   if (ack?.status !== "acknowledged") throw new Error("acknowledge failed");
 
-  // Condition gone => auto-resolve
-  const resolved = await resolveMissingAutoSignals(new Set());
+  // Condition gone + healthy sources => auto-resolve
+  const {
+    emptySourceHealth,
+    markSourceOk,
+    markSourceFailed,
+  } = await import("@/lib/decision-engine/source-health");
+  const healthy = emptySourceHealth();
+  for (const k of Object.keys(healthy) as Array<keyof typeof healthy>) {
+    markSourceOk(healthy, k);
+  }
+  const resolved = await resolveMissingAutoSignals(new Set(), healthy);
   if (resolved < 1) throw new Error("auto-resolve should clear missing auto signals");
   const after = await getDecisionSignalByKey(key);
   if (after?.status !== "resolved") throw new Error("expected resolved");
+
+  // Source-aware: inventory unavailable must NOT resolve inventory-dependent signal
+  const invKey = `${key}:inv`;
+  const invSample: DecisionCandidate = {
+    ...sample(invKey),
+    signalType: "INVENTORY_DEMAND_RISK",
+    area: "inventory",
+    evidence: [
+      {
+        sourceClass: "inventory",
+        label: "coverage",
+        detail: "test inventory evidence",
+      },
+    ],
+  };
+  await upsertDecisionSignal(invSample);
+  const unhealthy = emptySourceHealth();
+  for (const k of Object.keys(unhealthy) as Array<keyof typeof unhealthy>) {
+    markSourceOk(unhealthy, k);
+  }
+  markSourceFailed(unhealthy, "inventory", new Error("read failed"));
+  const blocked = await resolveMissingAutoSignals(new Set(), unhealthy);
+  const stillActive = await getDecisionSignalByKey(invKey);
+  if (stillActive?.status !== "active" && stillActive?.status !== "acknowledged") {
+    throw new Error("inventory-unavailable must not auto-resolve inventory signal");
+  }
+  // cleanup
+  await markDecisionSignalResolved(invKey);
+  void blocked;
 
   // Reappear
   const re = await upsertDecisionSignal(sample(key));

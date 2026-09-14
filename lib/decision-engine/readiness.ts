@@ -26,6 +26,15 @@ export type SystemReadinessRow = {
   detail: string | null;
 };
 
+const MS_DAY = 24 * 60 * 60 * 1000;
+
+function ageDays(iso: string | null | undefined, asOf = new Date()): number | null {
+  if (!iso) return null;
+  const t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return null;
+  return (asOf.getTime() - t) / MS_DAY;
+}
+
 function mapOps(s: OpsSystemStatus): SystemReadinessRow {
   return {
     area: s.area,
@@ -112,16 +121,28 @@ export async function collectSystemReadinessMatrix(): Promise<
 
   try {
     const snap = await getLatestCustomerIntelSnapshot();
-    byArea.set("Customer Intelligence", {
-      area: "Customer Intelligence",
-      status: snap ? "Healthy" : "Insufficient data",
-      detail: snap ? null : "No CI snapshot yet",
-    });
+    if (!snap) {
+      byArea.set("Customer Intelligence", {
+        area: "Customer Intelligence",
+        status: "Insufficient data",
+        detail: "No CI snapshot yet",
+      });
+    } else {
+      const age = ageDays(snap.generatedAt);
+      byArea.set("Customer Intelligence", {
+        area: "Customer Intelligence",
+        status: age != null && age > 10 ? "Attention" : "Healthy",
+        detail:
+          age != null && age > 10
+            ? `Snapshot age ${age.toFixed(1)}d (>10d)`
+            : snap.generatedAt,
+      });
+    }
   } catch {
     byArea.set("Customer Intelligence", {
       area: "Customer Intelligence",
-      status: "Insufficient data",
-      detail: null,
+      status: "Attention",
+      detail: "CI snapshot retrieval failed",
     });
   }
 
@@ -133,47 +154,76 @@ export async function collectSystemReadinessMatrix(): Promise<
       : !discord.ready
         ? "Not configured"
         : "Healthy",
-    detail:
-      discord.enabled && !discord.ready ? "Incomplete bot config" : null,
+    detail: !discord.enabled
+      ? null
+      : !discord.ready
+        ? "Incomplete bot config"
+        : discord.testMode
+          ? "TEST MODE"
+          : null,
   });
 
   try {
     const last = await getLatestDecisionRun();
-    byArea.set("Decision Engine", {
-      area: "Decision Engine",
-      status: !last
-        ? "Insufficient data"
-        : last.status === "error"
-          ? "Attention"
-          : "Healthy",
-      detail: last?.completedAt ?? null,
-    });
+    if (!last) {
+      byArea.set("Decision Engine", {
+        area: "Decision Engine",
+        status: "Insufficient data",
+        detail: null,
+      });
+    } else if (last.status === "error") {
+      byArea.set("Decision Engine", {
+        area: "Decision Engine",
+        status: "Attention",
+        detail: "Last run failed",
+      });
+    } else {
+      const age = ageDays(last.completedAt);
+      byArea.set("Decision Engine", {
+        area: "Decision Engine",
+        status: age != null && age > 2 ? "Attention" : "Healthy",
+        detail:
+          age != null && age > 2
+            ? `No successful run in ${age.toFixed(1)}d`
+            : last.completedAt,
+      });
+    }
   } catch {
     byArea.set("Decision Engine", {
       area: "Decision Engine",
-      status: "Insufficient data",
-      detail: null,
+      status: "Attention",
+      detail: "Decision run status retrieval failed",
     });
   }
 
-  if (!byArea.has("CEO Brief")) {
-    try {
-      const latest = await getLatestCeoBrief();
+  // Always set CEO Brief explicitly (override ops base if present)
+  try {
+    const latest = await getLatestCeoBrief();
+    if (!latest) {
       byArea.set("CEO Brief", {
         area: "CEO Brief",
-        status:
-          latest?.emailSendLastError && !latest.emailSentAt
-            ? "Attention"
-            : "Healthy",
-        detail: null,
+        status: "Insufficient data",
+        detail: "No CEO brief yet",
       });
-    } catch {
+    } else if (latest.emailSendLastError && !latest.emailSentAt) {
+      byArea.set("CEO Brief", {
+        area: "CEO Brief",
+        status: "Attention",
+        detail: "Email send error",
+      });
+    } else {
       byArea.set("CEO Brief", {
         area: "CEO Brief",
         status: "Healthy",
-        detail: null,
+        detail: latest.generatedAt,
       });
     }
+  } catch {
+    byArea.set("CEO Brief", {
+      area: "CEO Brief",
+      status: "Attention",
+      detail: "CEO brief retrieval failed",
+    });
   }
 
   const order = [

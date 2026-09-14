@@ -10,8 +10,25 @@ export type {
 export { buildDecisionDashboard, topDecisionSignals } from "./dashboard";
 export { collectSystemReadinessMatrix } from "./readiness";
 export {
+  computeOwnerReviewCount,
+  partitionDecisionSignals,
+  isLukeOwnerAttention,
+} from "./owner-count";
+export {
   acknowledgeDecisionSignal,
   dismissDecisionSignal,
   markDecisionSignalResolved,
   listDecisionSignals,
 } from "./store";
+export {
+  downgradeConfidenceForUntrustedFinance,
+  confidenceFromCorroboration,
+} from "./confidence";
+export { decideDigestNotifications } from "./digest";
+export {
+  emptySourceHealth,
+  markSourceFailed,
+  markSourceOk,
+  requiredSourcesUnavailable,
+} from "./source-health";
+export { getDecisionMinDaysForBaseline } from "./thresholds";

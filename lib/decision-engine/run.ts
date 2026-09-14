@@ -1,3 +1,5 @@
+import { getSql } from "@/lib/db/sql";
+
 import { collectDecisionContext } from "./collect";
 import { evaluateDecisionPatterns } from "./evaluate";
 import { ensureDecisionEngineSchema } from "./schema";
@@ -23,7 +25,7 @@ export type DecisionEngineRunResult = {
 
 /**
  * Idempotent decision engine run.
- * Never executes business actions (refunds, POs, ads, content, etc.).
+ * Always creates an audit row. Never executes business actions.
  */
 export async function runDecisionEngine(options?: {
   asOf?: Date;
@@ -31,15 +33,40 @@ export async function runDecisionEngine(options?: {
   sendDigest?: boolean;
 }): Promise<DecisionEngineRunResult> {
   await ensureDecisionEngineSchema();
-  let runId: number | null = null;
+  // Audit first — even collection failures get a run row.
+  const runId = await startDecisionRun({
+    phase: "started",
+    succeeded: [],
+    failed: [],
+    notReached: [
+      "finance",
+      "acquisition",
+      "inventory",
+      "fulfillment",
+      "support",
+      "customerIntelligence",
+      "seo",
+      "discord",
+      "ceoBrief",
+    ],
+  });
   let signalsCreated = 0;
   let signalsResolved = 0;
 
   try {
-    const { ctx, sourcesChecked } = await collectDecisionContext(
+    const { ctx, sourcesAudit } = await collectDecisionContext(
       options?.asOf ?? new Date()
     );
-    runId = await startDecisionRun(sourcesChecked);
+
+    const sql = getSql();
+    await sql`
+      UPDATE decision_engine_runs SET
+        sources_checked_json = ${JSON.stringify({
+          phase: "collected",
+          ...sourcesAudit,
+        })}::jsonb
+      WHERE id = ${runId}
+    `;
 
     const candidates: DecisionCandidate[] = evaluateDecisionPatterns(ctx);
     const activeKeys = new Set<string>();
@@ -50,7 +77,10 @@ export async function runDecisionEngine(options?: {
       if (created || reactivated) signalsCreated += 1;
     }
 
-    signalsResolved = await resolveMissingAutoSignals(activeKeys);
+    signalsResolved = await resolveMissingAutoSignals(
+      activeKeys,
+      ctx.sourceHealth
+    );
 
     await finishDecisionRun({
       id: runId,
@@ -77,16 +107,15 @@ export async function runDecisionEngine(options?: {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Decision engine failed";
-    if (runId != null) {
-      await finishDecisionRun({
-        id: runId,
-        status: "error",
-        signalsCreated,
-        signalsResolved,
-        errorSummary: message.slice(0, 500),
-      }).catch(() => undefined);
-    }
-    console.error("[decision-engine]", message);
+    const safe = message.replace(/Bearer\s+\S+/gi, "[redacted]").slice(0, 500);
+    await finishDecisionRun({
+      id: runId,
+      status: "error",
+      signalsCreated,
+      signalsResolved,
+      errorSummary: safe,
+    }).catch(() => undefined);
+    console.error("[decision-engine]", safe);
     return {
       ok: false,
       runId,
@@ -94,7 +123,7 @@ export async function runDecisionEngine(options?: {
       signalsResolved,
       signalsActive: 0,
       candidates: 0,
-      error: message,
+      error: safe,
     };
   }
 }

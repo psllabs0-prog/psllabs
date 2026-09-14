@@ -17,6 +17,10 @@ import {
 } from "@/lib/decision-engine";
 import { collectSystemReadinessMatrix } from "@/lib/decision-engine/readiness";
 import { ensureDecisionEngineSchema } from "@/lib/decision-engine/schema";
+import {
+  computeOwnerReviewCount,
+  partitionDecisionSignals,
+} from "@/lib/decision-engine/owner-count";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -36,7 +40,12 @@ export async function GET() {
       statuses: ["active"],
       limit: 20,
     }).catch(() => []);
-    const topDecisions = topDecisionSignals(decisionSignals, 3);
+    const { lukeDecisions } = partitionDecisionSignals(decisionSignals);
+    const topDecisions = topDecisionSignals(lukeDecisions, 3);
+    const merge = computeOwnerReviewCount({
+      opsExceptions: exceptions,
+      lukeDecisionSignals: lukeDecisions,
+    });
 
     const [board, supportLatest, supportOk] = await Promise.all([
       collectFulfillmentBoard().catch(() => null),
@@ -44,18 +53,14 @@ export async function GET() {
       getLatestSuccessfulSupportJobRun().catch(() => null),
     ]);
 
-    const opsActive = exceptions.filter((e) => !e.acknowledged).length;
-    const decisionActive = decisionSignals.length;
-    // Owner headline: decisions + ops without double-counting presentation
-    const lukeItems = opsActive + decisionActive;
-
     return NextResponse.json({
       exceptions,
       topActions,
       statuses: readiness,
-      activeCount: lukeItems,
-      opsActiveCount: opsActive,
-      decisionActiveCount: decisionActive,
+      activeCount: merge.ownerReviewCount,
+      opsActiveCount: merge.opsActiveCount,
+      decisionActiveCount: merge.decisionActiveCount,
+      ownerReviewCount: merge.ownerReviewCount,
       topDecisions,
       warehouse: board?.summary ?? null,
       supportHealth: {

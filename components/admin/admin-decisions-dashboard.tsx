@@ -33,6 +33,9 @@ type Signal = {
 type Payload = {
   headline: string;
   lukeDecisionCount: number;
+  lukeDecisions?: Signal[];
+  specialistActions?: Signal[];
+  automationHandled?: Signal[];
   topDecisions: Signal[];
   active: Signal[];
   acknowledged: Signal[];
@@ -265,6 +268,32 @@ export function AdminDecisionsDashboard() {
               ))}
             </section>
           )}
+
+          <section className="space-y-3">
+            <h2 className="font-display text-lg font-bold text-ink">
+              Luke / owner attention ({data.lukeDecisionCount})
+            </h2>
+            {(data.lukeDecisions ?? []).length === 0 ? (
+              <p className="text-sm text-ash">None.</p>
+            ) : (
+              (data.lukeDecisions ?? []).map((s) => (
+                <SignalCard key={s.signalKey} s={s} busy={busy} onAction={onAction} />
+              ))
+            )}
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="font-display text-lg font-bold text-ink">
+              Specialist / contractor
+            </h2>
+            {(data.specialistActions ?? []).length === 0 ? (
+              <p className="text-sm text-ash">None.</p>
+            ) : (
+              (data.specialistActions ?? []).map((s) => (
+                <SignalCard key={s.signalKey} s={s} busy={busy} onAction={onAction} />
+              ))
+            )}
+          </section>
 
           <section className="space-y-3">
             <h2 className="font-display text-lg font-bold text-ink">

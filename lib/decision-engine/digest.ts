@@ -8,6 +8,7 @@ import {
 } from "@/lib/email/shared";
 
 import { sortByPriorityThenConfidence } from "./confidence";
+import { isLukeOwnerAttention } from "./owner-count";
 import {
   listDecisionSignals,
   markDecisionSignalsNotified,
@@ -32,18 +33,44 @@ function hashFromRow(signal: DecisionSignalRow): string {
     .slice(0, 32);
 }
 
+function isOwnerRequiredOperational(signal: DecisionSignalRow): boolean {
+  return (
+    signal.signalType === "SOURCE_STALE" ||
+    signal.signalType === "SOURCE_UNAVAILABLE" ||
+    signal.signalType === "DATA_QUALITY" ||
+    signal.signalType === "SYSTEM_HEALTH_RISK" ||
+    signal.signalType === "PAYMENT_CHECKOUT" ||
+    signal.signalType === "INVENTORY_DEMAND_RISK" ||
+    signal.signalType === "FULFILLMENT_HOLDS" ||
+    signal.area === "regulatory"
+  );
+}
+
 function shouldNotify(signal: DecisionSignalRow): boolean {
   if (signal.status !== "active") return false;
   if (signal.priority === "P3") return false;
+
   const hash = hashFromRow(signal);
+  const changed =
+    !signal.lastNotifiedAt || signal.lastNotifiedEvidenceHash !== hash;
+
   if (signal.priority === "P0" || signal.priority === "P1") {
-    if (!signal.lastNotifiedAt) return true;
-    return signal.lastNotifiedEvidenceHash !== hash;
+    return changed;
   }
+
+  // P2: only Luke / regulatory_counsel, with moderate/high OR owner-required ops
   if (signal.priority === "P2") {
-    if (!signal.lastNotifiedAt) return true;
-    return signal.lastNotifiedEvidenceHash !== hash;
+    if (!isLukeOwnerAttention(signal.recommendedOwner)) return false;
+    if (
+      signal.confidence !== "moderate" &&
+      signal.confidence !== "high" &&
+      !isOwnerRequiredOperational(signal)
+    ) {
+      return false;
+    }
+    return changed;
   }
+
   return false;
 }
 

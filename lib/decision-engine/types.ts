@@ -3,6 +3,14 @@
  * Never a transactional source of truth; never executes business actions.
  */
 
+import type { SourceHealthMap } from "./source-health";
+import { emptySourceHealth, markSourceOk } from "./source-health";
+export type {
+  SourceHealthMap,
+  SourceHealthEntry,
+  SourceHealthKey,
+} from "./source-health";
+
 export type DecisionPriority = "P0" | "P1" | "P2" | "P3";
 
 export type DecisionConfidence =
@@ -137,6 +145,19 @@ export type DecisionContext = {
   priorStart: string;
   priorEnd: string;
 
+  /**
+   * Observed completed baseline days available for trend conclusions
+   * (sales / paid / fulfillment). Not applied to data-quality or regulatory.
+   */
+  observedBaselineDays: {
+    sales: number;
+    paid: number;
+    fulfillment: number;
+  };
+
+  /** Explicit collection health — never confuse unread with zero. */
+  sourceHealth: SourceHealthMap;
+
   finance: {
     fresh: boolean;
     reconcileFailed: boolean;
@@ -254,12 +275,24 @@ export function emptyDecisionContext(asOfIso = new Date().toISOString()): Decisi
   priorStart.setUTCDate(priorEnd.getUTCDate() - 7);
   const ymd = (d: Date) => d.toISOString().slice(0, 10);
 
+  // Default fixture assumes healthy sources for pure unit tests unless overridden.
+  const sourceHealth = emptySourceHealth();
+  for (const k of Object.keys(sourceHealth) as Array<keyof typeof sourceHealth>) {
+    markSourceOk(sourceHealth, k);
+  }
+
   return {
     asOfIso,
     recentStart: ymd(recentStart),
     recentEnd: ymd(end),
     priorStart: ymd(priorStart),
     priorEnd: ymd(priorEnd),
+    observedBaselineDays: {
+      sales: 14,
+      paid: 14,
+      fulfillment: 14,
+    },
+    sourceHealth,
     finance: {
       fresh: true,
       reconcileFailed: false,

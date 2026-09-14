@@ -6,6 +6,7 @@
 import { confidenceFromCorroboration, evidenceClassesOf } from "./confidence";
 import {
   getDecisionFulfillmentBacklogMaterial,
+  getDecisionMinDaysForBaseline,
   getDecisionMinOrdersForTrend,
   getDecisionMinPaidClicks,
   getDecisionMinPaidSpendUsd,
@@ -13,6 +14,7 @@ import {
   getDecisionMinSupportCount,
 } from "./thresholds";
 import type { DecisionCandidate, DecisionContext } from "./types";
+import type { SourceHealthKey } from "./source-health";
 import {
   INVENTORY_MOQ,
   PLANNING_LEAD_DAYS,
@@ -21,6 +23,25 @@ import {
   TESTING_COST_LOW_USD,
 } from "@/lib/inventory/monitor/constants";
 import { shouldCreateInventoryRiskLukeAction } from "@/lib/ceo-brief/inventory";
+
+function sourceOk(ctx: DecisionContext, key: SourceHealthKey): boolean {
+  return ctx.sourceHealth[key]?.ok === true;
+}
+
+function financeTrusted(ctx: DecisionContext): boolean {
+  return (
+    sourceOk(ctx, "finance") &&
+    ctx.finance.fresh &&
+    !ctx.finance.reconcileFailed
+  );
+}
+
+function hasTrendBaseline(
+  ctx: DecisionContext,
+  kind: "sales" | "paid" | "fulfillment"
+): boolean {
+  return ctx.observedBaselineDays[kind] >= getDecisionMinDaysForBaseline();
+}
 
 function baseCard(
   partial: Omit<
@@ -64,6 +85,81 @@ function baseCard(
 /** N. System health / data quality — prefer over performance conclusions. */
 function evaluateDataQuality(ctx: DecisionContext): DecisionCandidate[] {
   const out: DecisionCandidate[] = [];
+
+  const unavailable: Array<{
+    key: SourceHealthKey;
+    href: string;
+    title: string;
+  }> = [
+    {
+      key: "finance",
+      href: "/admin-finance",
+      title: "Finance source unavailable",
+    },
+    {
+      key: "acquisition",
+      href: "/admin-acquisition",
+      title: "Acquisition source unavailable",
+    },
+    {
+      key: "inventory",
+      href: "/admin-inventory",
+      title: "Inventory source unavailable",
+    },
+    {
+      key: "support",
+      href: "/admin-support",
+      title: "Support source unavailable",
+    },
+    {
+      key: "seo",
+      href: "/admin-intelligence",
+      title: "SEO / Search Console source unavailable",
+    },
+    {
+      key: "fulfillment",
+      href: "/admin-fulfillment",
+      title: "Fulfillment source unavailable",
+    },
+    {
+      key: "customerIntelligence",
+      href: "/admin-customer-intelligence",
+      title: "Customer intelligence source unavailable",
+    },
+  ];
+
+  for (const u of unavailable) {
+    const h = ctx.sourceHealth[u.key];
+    if (h?.checked && !h.ok) {
+      out.push(
+        baseCard({
+          signalKey: `data:unavailable:${u.key}`,
+          signalType: "SOURCE_UNAVAILABLE",
+          area: "data_quality",
+          priority: u.key === "finance" || u.key === "inventory" ? "P0" : "P1",
+          confidence: "moderate",
+          title: u.title,
+          decision: `Do not draw business conclusions from ${u.key} until collection succeeds.`,
+          summary:
+            h.safeErrorSummary ??
+            "Source collection failed — not the same as zero activity.",
+          recommendation:
+            "Restore source collection. Zero activity must not be inferred from an unread source.",
+          recommendedOwner: "luke",
+          why: "A failed read is not evidence that activity disappeared.",
+          evidence: [
+            {
+              sourceClass: "system_health",
+              label: "Collection health",
+              detail: `${u.key}: ${h.errorCode ?? "COLLECTION_FAILED"}`,
+            },
+          ],
+          sourceHref: u.href,
+          autoResolveWhenGone: true,
+        })
+      );
+    }
+  }
 
   if (ctx.systemHealth.metaStale && ctx.acquisition.metaConfigured) {
     out.push(
@@ -220,6 +316,11 @@ function evaluateDataQuality(ctx: DecisionContext): DecisionCandidate[] {
 
 /** A. Acquisition + attribution break */
 function evaluateAttributionBreak(ctx: DecisionContext): DecisionCandidate[] {
+  if (!sourceOk(ctx, "acquisition")) return [];
+  if (!hasTrendBaseline(ctx, "paid") && ctx.acquisition.spendUsd7d > 0) {
+    // Allow measurement warnings without full baseline only when warnings exist
+    // and spend clears min — still require paid baseline for spend+zero-order pattern.
+  }
   const minSpend = getDecisionMinPaidSpendUsd();
   const paidFresh =
     (!ctx.acquisition.metaConfigured ||
@@ -229,6 +330,8 @@ function evaluateAttributionBreak(ctx: DecisionContext): DecisionCandidate[] {
   if (!paidFresh) return []; // data quality handles stale
   if (ctx.systemHealth.metaStale && ctx.acquisition.metaConfigured) return [];
   if (ctx.acquisition.spendUsd7d < minSpend) return [];
+  // Trend-style paid conclusion needs baseline days
+  if (!hasTrendBaseline(ctx, "paid")) return [];
   if (ctx.acquisition.clicks7d < getDecisionMinPaidClicks() / 2) return [];
 
   const hasWarning = ctx.acquisition.measurementWarnings.length > 0;
@@ -313,7 +416,9 @@ function evaluatePaidWithoutProgression(
 function evaluateCheckoutDiscontinuity(
   ctx: DecisionContext
 ): DecisionCandidate[] {
-  if (!ctx.finance.fresh || ctx.finance.reconcileFailed) return [];
+  // Business-performance path depending on finance — blocked when untrusted.
+  if (!financeTrusted(ctx)) return [];
+  if (!hasTrendBaseline(ctx, "sales")) return [];
   if (ctx.finance.paymentHealthWarnings < 2) return [];
   if (ctx.finance.legitimateOrders7d >= getDecisionMinOrdersForTrend()) return [];
 
@@ -357,6 +462,7 @@ function evaluateCheckoutDiscontinuity(
 /** D + E. Inventory demand / testing bottleneck */
 function evaluateInventory(ctx: DecisionContext): DecisionCandidate[] {
   const out: DecisionCandidate[] = [];
+  if (!sourceOk(ctx, "inventory")) return out;
   if (!ctx.inventory.monitorFresh) return out;
 
   for (const sku of ctx.inventory.skus) {
@@ -446,6 +552,7 @@ function evaluateInventory(ctx: DecisionContext): DecisionCandidate[] {
 
 /** F. Fulfillment bottleneck */
 function evaluateFulfillment(ctx: DecisionContext): DecisionCandidate[] {
+  if (!sourceOk(ctx, "fulfillment")) return [];
   const material = getDecisionFulfillmentBacklogMaterial();
   const out: DecisionCandidate[] = [];
 
@@ -479,6 +586,9 @@ function evaluateFulfillment(ctx: DecisionContext): DecisionCandidate[] {
 
   if (
     ctx.fulfillment.packingOrReadyBacklog >= material &&
+    sourceOk(ctx, "finance") &&
+    hasTrendBaseline(ctx, "fulfillment") &&
+    hasTrendBaseline(ctx, "sales") &&
     ctx.finance.legitimateOrders7d >= getDecisionMinOrdersForTrend()
   ) {
     const slaNote = ctx.fulfillment.slaConfigured
@@ -521,10 +631,22 @@ function evaluateFulfillment(ctx: DecisionContext): DecisionCandidate[] {
 /** G/H/I/L Customer intelligence friction patterns */
 function evaluateCustomerFriction(ctx: DecisionContext): DecisionCandidate[] {
   const out: DecisionCandidate[] = [];
+  // Friction conclusions need support and/or CI; if both failed, skip business friction
+  if (!sourceOk(ctx, "support") && !sourceOk(ctx, "customerIntelligence")) {
+    return out;
+  }
   const minSupport = getDecisionMinSupportCount();
-  const signals = ctx.customerIntelligence.signals.filter(
-    (s) => s.status !== "resolved" && s.status !== "dismissed"
-  );
+  const signals = sourceOk(ctx, "customerIntelligence")
+    ? ctx.customerIntelligence.signals.filter(
+        (s) => s.status !== "resolved" && s.status !== "dismissed"
+      )
+    : [];
+  const supportCategories = sourceOk(ctx, "support")
+    ? ctx.support.topCategories
+    : [];
+  const supportGenuine = sourceOk(ctx, "support")
+    ? ctx.support.genuineMessages7d
+    : 0;
 
   // Restricted human-use → regulatory / compliance only
   const restricted = signals.filter(
@@ -573,7 +695,7 @@ function evaluateCustomerFriction(ctx: DecisionContext): DecisionCandidate[] {
     (s) =>
       s.theme === "coa_findability" && s.evidenceClass === "search_demand"
   );
-  const supportCoa = ctx.support.topCategories.find((c) =>
+  const supportCoa = supportCategories.find((c) =>
     /coa|documentation|batch|lab.?report/i.test(c.category)
   );
 
@@ -669,7 +791,7 @@ function evaluateCustomerFriction(ctx: DecisionContext): DecisionCandidate[] {
     );
   }
 
-  const shippingCat = ctx.support.topCategories.find((c) =>
+  const shippingCat = supportCategories.find((c) =>
     /ship/i.test(c.category)
   );
   if ((shippingCat?.count ?? 0) >= minSupport) {
@@ -730,11 +852,11 @@ function evaluateCustomerFriction(ctx: DecisionContext): DecisionCandidate[] {
   }
 
   // L. Support burden from specific friction
-  const top = ctx.support.topCategories[0];
+  const top = supportCategories[0];
   if (
     top &&
     top.count >= minSupport * 2 &&
-    ctx.support.genuineMessages7d >= minSupport * 2
+    supportGenuine >= minSupport * 2
   ) {
     const ciMatch = signals.find(
       (s) =>
@@ -776,18 +898,27 @@ function evaluateCustomerFriction(ctx: DecisionContext): DecisionCandidate[] {
 
 /** J. SEO authority opportunity corroborated by customers */
 function evaluateSeoAuthority(ctx: DecisionContext): DecisionCandidate[] {
+  if (!sourceOk(ctx, "seo")) return [];
   if (!ctx.seo.gscFresh || !ctx.seo.gscConfigured) return [];
   const minImp = getDecisionMinSeoNonBrandImpressions();
   if (ctx.seo.nonBrandImpressions28d < minImp) return [];
   if (!ctx.seo.materialOpportunity) return [];
 
-  const customerQs = ctx.customerIntelligence.signals.filter(
-    (s) =>
-      s.evidenceClass === "customer" &&
-      s.currentCount >= getDecisionMinSupportCount() &&
-      /analytical|coa|purity|identity|testing/i.test(s.theme)
-  );
-  if (customerQs.length === 0 && ctx.support.genuineMessages7d < getDecisionMinSupportCount()) {
+  const customerQs = sourceOk(ctx, "customerIntelligence")
+    ? ctx.customerIntelligence.signals.filter(
+        (s) =>
+          s.evidenceClass === "customer" &&
+          s.currentCount >= getDecisionMinSupportCount() &&
+          /analytical|coa|purity|identity|testing/i.test(s.theme)
+      )
+    : [];
+  const supportGenuine = sourceOk(ctx, "support")
+    ? ctx.support.genuineMessages7d
+    : 0;
+  if (
+    customerQs.length === 0 &&
+    supportGenuine < getDecisionMinSupportCount()
+  ) {
     // SEO-only weak — skip strong decision; tiny changes already gated by materialOpportunity + min impressions
     return [];
   }
@@ -833,6 +964,8 @@ function evaluateSeoAuthority(ctx: DecisionContext): DecisionCandidate[] {
 function evaluatePaidInventoryConstraint(
   ctx: DecisionContext
 ): DecisionCandidate[] {
+  if (!sourceOk(ctx, "acquisition") || !sourceOk(ctx, "inventory")) return [];
+  if (!hasTrendBaseline(ctx, "paid")) return [];
   const minOrders = getDecisionMinOrdersForTrend();
   if (ctx.acquisition.pslAttributedOrders7d < minOrders) return [];
   if (!ctx.inventory.monitorFresh) return [];
@@ -881,6 +1014,8 @@ function evaluatePaidInventoryConstraint(
 
 /** M. Data conflict — platform vs internal */
 function evaluateDataConflict(ctx: DecisionContext): DecisionCandidate[] {
+  if (!sourceOk(ctx, "acquisition")) return [];
+  if (!hasTrendBaseline(ctx, "paid")) return [];
   if (ctx.acquisition.measurementWarnings.length === 0) return [];
   if (ctx.acquisition.spendUsd7d < getDecisionMinPaidSpendUsd()) return [];
   const mismatch = ctx.acquisition.measurementWarnings.some((w) =>
@@ -923,6 +1058,7 @@ function evaluateDataConflict(ctx: DecisionContext): DecisionCandidate[] {
 
 /** Discord restricted trend — compliance only */
 function evaluateDiscord(ctx: DecisionContext): DecisionCandidate[] {
+  if (!sourceOk(ctx, "discord")) return [];
   if (!ctx.discord.enabled) return [];
   // TEST interactions excluded via reportingExcluded / analytics already
   if (ctx.discord.interactionCount < 20) return [];
