@@ -33,6 +33,7 @@
     "test:retention": "tsx scripts/test-retention.ts",
     "test:retention-db": "tsx scripts/test-retention-db.ts",
     "test:fulfillment": "tsx scripts/test-fulfillment.ts",
+    "test:order-notification": "tsx scripts/test-order-notification.ts",
     "test:acquisition": "tsx scripts/test-acquisition.ts",
     "test:authority": "tsx scripts/test-authority.ts",
     "test:customer-intelligence": "tsx scripts/test-customer-intelligence.ts",

@@ -4,6 +4,7 @@ import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { formatDiscountEmailLine } from "@/lib/email/discount-line";
 import { getStockLevels } from "@/lib/inventory/store";
 import type { Order } from "@/lib/orders/types";
+import { SITE_URL } from "@/lib/seo";
 
 const FROM_EMAIL = "PSL Labs Orders <support@psllabs.org>";
 const DEFAULT_TO = "support@psllabs.org";
@@ -27,6 +28,27 @@ function escapeHtml(value: string): string {
 }
 
 /**
+ * Merchant-only links for the internal paid-order notification.
+ * Never constructs BTCPay `/invoices/{id}` (requires store permission; 403 in practice).
+ * Never embeds customer PII in URLs.
+ */
+export function buildMerchantOrderNotificationLinks(input?: {
+  btcpayUrl?: string | null;
+  siteUrl?: string;
+}): {
+  adminLedgerUrl: string;
+  btcpayRootUrl: string | null;
+} {
+  const site = (input?.siteUrl ?? SITE_URL).replace(/\/+$/, "");
+  const rawBtcpay = (input?.btcpayUrl ?? process.env.BTCPAY_URL ?? "").trim();
+  const btcpayRootUrl = rawBtcpay ? rawBtcpay.replace(/\/+$/, "") : null;
+  return {
+    adminLedgerUrl: `${site}/admin-ledger`,
+    btcpayRootUrl,
+  };
+}
+
+/**
  * Send the internal order notification to support@psllabs.org.
  * Must only be called from the verified webhook handler on InvoiceSettled.
  * Throws on failure so the caller can record the error and allow a retry.
@@ -40,11 +62,7 @@ export async function sendOrderEmail(order: Order): Promise<void> {
   }
 
   const to = process.env.ORDER_NOTIFICATION_EMAIL || DEFAULT_TO;
-  const btcpayUrl = (process.env.BTCPAY_URL ?? "").replace(/\/+$/, "");
-  const invoiceLink =
-    btcpayUrl && order.invoiceId
-      ? `${btcpayUrl}/invoices/${order.invoiceId}`
-      : "";
+  const { adminLedgerUrl, btcpayRootUrl } = buildMerchantOrderNotificationLinks();
   const placedAt = new Date(order.paidAt ?? order.createdAt).toUTCString();
   const name = `${order.shipping.firstName} ${order.shipping.lastName}`.trim();
   const stockLevels = await getStockLevels(order.items.map((it) => it.handle));
@@ -106,8 +124,14 @@ export async function sendOrderEmail(order: Order): Promise<void> {
         ? `<p style="margin:12px 0 4px;"><strong>${escapeHtml(discountLine)}</strong></p>`
         : ""
     }
-    <p style="margin:12px 0 4px;"><strong>BTCPay invoice:</strong> ${escapeHtml(order.invoiceId ?? "—")}</p>
-    ${invoiceLink ? `<p style="margin:0;"><a href="${invoiceLink}">${escapeHtml(invoiceLink)}</a></p>` : ""}
+    <p style="margin:12px 0 4px;"><strong>PSL order ID:</strong> ${escapeHtml(order.orderId)}</p>
+    <p style="margin:0 0 4px;"><strong>BTCPay invoice ID:</strong> ${escapeHtml(order.invoiceId ?? "—")}</p>
+    <p style="margin:12px 0 4px;"><a href="${escapeHtml(adminLedgerUrl)}">Open admin ledger</a> — review this order in PSL Labs.</p>
+    ${
+      btcpayRootUrl
+        ? `<p style="margin:0 0 4px;"><a href="${escapeHtml(btcpayRootUrl)}">Open BTCPay</a> — server root (sign in to locate the invoice by ID above).</p>`
+        : ""
+    }
     <p style="margin:16px 0 0;font-size:12px;color:#64748b;line-height:1.5;">${escapeHtml(LEGAL_FOOTER)}</p>
   </div>`;
 
@@ -143,8 +167,10 @@ export async function sendOrderEmail(order: Order): Promise<void> {
     `Order total: ${money(order.total)}`,
     "",
     ...(discountLine ? [discountLine, ""] : []),
-    `BTCPay invoice: ${order.invoiceId ?? "—"}`,
-    ...(invoiceLink ? [invoiceLink] : []),
+    `PSL order ID: ${order.orderId}`,
+    `BTCPay invoice ID: ${order.invoiceId ?? "—"}`,
+    `Open admin ledger: ${adminLedgerUrl}`,
+    ...(btcpayRootUrl ? [`Open BTCPay: ${btcpayRootUrl}`] : []),
     "",
     LEGAL_FOOTER,
   ].join("\n");
