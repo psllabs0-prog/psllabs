@@ -3,7 +3,7 @@ import nodemailer from "nodemailer";
 import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { formatDiscountEmailLine } from "@/lib/email/discount-line";
 import { getStockLevels } from "@/lib/inventory/store";
-import type { Order } from "@/lib/orders/types";
+import type { Order, PaymentMethod } from "@/lib/orders/types";
 import { SITE_URL } from "@/lib/seo";
 
 const FROM_EMAIL = "PSL Labs Orders <support@psllabs.org>";
@@ -27,24 +27,56 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
+export type MerchantPaymentNotificationFields = {
+  paymentMethodDisplay: string;
+  paymentIdLabel: string;
+  paymentIdValue: string;
+  showBtcpayLink: boolean;
+};
+
+/**
+ * Payment-provider-aware labels for the internal merchant notification.
+ * Bitcoin uses BTCPay terminology; card (and non-bitcoin) uses a generic ID label.
+ */
+export function buildMerchantPaymentNotificationFields(
+  order: Pick<Order, "paymentMethod" | "invoiceId">
+): MerchantPaymentNotificationFields {
+  const method = order.paymentMethod;
+  const isBitcoin = method === "bitcoin";
+  return {
+    paymentMethodDisplay:
+      method === "bitcoin" ? "Bitcoin" : method === "card" ? "Card" : "—",
+    paymentIdLabel: isBitcoin
+      ? "BTCPay invoice ID"
+      : "Payment / transaction ID",
+    paymentIdValue: order.invoiceId ?? "—",
+    showBtcpayLink: isBitcoin,
+  };
+}
+
 /**
  * Merchant-only links for the internal paid-order notification.
  * Never constructs BTCPay `/invoices/{id}` (requires store permission; 403 in practice).
  * Never embeds customer PII in URLs.
+ * BTCPay root link is only offered for Bitcoin orders.
  */
 export function buildMerchantOrderNotificationLinks(input?: {
   btcpayUrl?: string | null;
   siteUrl?: string;
+  paymentMethod?: PaymentMethod | null;
 }): {
   adminLedgerUrl: string;
   btcpayRootUrl: string | null;
 } {
   const site = (input?.siteUrl ?? SITE_URL).replace(/\/+$/, "");
   const rawBtcpay = (input?.btcpayUrl ?? process.env.BTCPAY_URL ?? "").trim();
-  const btcpayRootUrl = rawBtcpay ? rawBtcpay.replace(/\/+$/, "") : null;
+  const btcpayRoot =
+    rawBtcpay && input?.paymentMethod === "bitcoin"
+      ? rawBtcpay.replace(/\/+$/, "")
+      : null;
   return {
     adminLedgerUrl: `${site}/admin-ledger`,
-    btcpayRootUrl,
+    btcpayRootUrl: btcpayRoot,
   };
 }
 
@@ -62,7 +94,12 @@ export async function sendOrderEmail(order: Order): Promise<void> {
   }
 
   const to = process.env.ORDER_NOTIFICATION_EMAIL || DEFAULT_TO;
-  const { adminLedgerUrl, btcpayRootUrl } = buildMerchantOrderNotificationLinks();
+  const paymentFields = buildMerchantPaymentNotificationFields(order);
+  const { adminLedgerUrl, btcpayRootUrl } = buildMerchantOrderNotificationLinks({
+    paymentMethod: order.paymentMethod,
+  });
+  const showBtcpay =
+    paymentFields.showBtcpayLink && Boolean(btcpayRootUrl);
   const placedAt = new Date(order.paidAt ?? order.createdAt).toUTCString();
   const name = `${order.shipping.firstName} ${order.shipping.lastName}`.trim();
   const stockLevels = await getStockLevels(order.items.map((it) => it.handle));
@@ -124,11 +161,12 @@ export async function sendOrderEmail(order: Order): Promise<void> {
         ? `<p style="margin:12px 0 4px;"><strong>${escapeHtml(discountLine)}</strong></p>`
         : ""
     }
-    <p style="margin:12px 0 4px;"><strong>PSL order ID:</strong> ${escapeHtml(order.orderId)}</p>
-    <p style="margin:0 0 4px;"><strong>BTCPay invoice ID:</strong> ${escapeHtml(order.invoiceId ?? "—")}</p>
+    <p style="margin:12px 0 4px;"><strong>Payment method:</strong> ${escapeHtml(paymentFields.paymentMethodDisplay)}</p>
+    <p style="margin:0 0 4px;"><strong>PSL order ID:</strong> ${escapeHtml(order.orderId)}</p>
+    <p style="margin:0 0 4px;"><strong>${escapeHtml(paymentFields.paymentIdLabel)}:</strong> ${escapeHtml(paymentFields.paymentIdValue)}</p>
     <p style="margin:12px 0 4px;"><a href="${escapeHtml(adminLedgerUrl)}">Open admin ledger</a> — review this order in PSL Labs.</p>
     ${
-      btcpayRootUrl
+      showBtcpay && btcpayRootUrl
         ? `<p style="margin:0 0 4px;"><a href="${escapeHtml(btcpayRootUrl)}">Open BTCPay</a> — server root (sign in to locate the invoice by ID above).</p>`
         : ""
     }
@@ -167,10 +205,13 @@ export async function sendOrderEmail(order: Order): Promise<void> {
     `Order total: ${money(order.total)}`,
     "",
     ...(discountLine ? [discountLine, ""] : []),
+    `Payment method: ${paymentFields.paymentMethodDisplay}`,
     `PSL order ID: ${order.orderId}`,
-    `BTCPay invoice ID: ${order.invoiceId ?? "—"}`,
+    `${paymentFields.paymentIdLabel}: ${paymentFields.paymentIdValue}`,
     `Open admin ledger: ${adminLedgerUrl}`,
-    ...(btcpayRootUrl ? [`Open BTCPay: ${btcpayRootUrl}`] : []),
+    ...(showBtcpay && btcpayRootUrl
+      ? [`Open BTCPay: ${btcpayRootUrl}`]
+      : []),
     "",
     LEGAL_FOOTER,
   ].join("\n");
