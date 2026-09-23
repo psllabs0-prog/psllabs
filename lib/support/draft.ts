@@ -202,17 +202,12 @@ export function decideOutboundAction(input: {
     !input.threadAutoSendDisabled &&
     !input.draft.requiresEscalation;
 
-  // Human-use: may send fixed boundary when auto-send on, always escalate.
+  // Human-use: may send fixed RUO boundary when auto-send on, always escalate.
+  // Category is GREEN for the fixed boundary reply only.
   const humanUseAuto =
     c.category === "human_use_request" &&
     autoEnabled &&
     !input.threadAutoSendDisabled;
-
-  // YELLOW/RED acknowledgments only when auto-send enabled (still escalate).
-  const ackAuto =
-    autoEnabled &&
-    !input.threadAutoSendDisabled &&
-    (c.riskLevel === "YELLOW" || c.riskLevel === "RED");
 
   if (!autoEnabled) {
     return {
@@ -246,18 +241,14 @@ export function decideOutboundAction(input: {
     };
   }
 
-  if (ackAuto) {
-    return {
-      sendCustomerReply: true,
-      escalate: true,
-      reason: `${c.riskLevel} acknowledgment + escalate`,
-    };
-  }
-
+  // YELLOW/RED: owner review only — never autonomous customer send.
   return {
     sendCustomerReply: false,
     escalate: true,
-    reason: "Draft only — escalate for human review",
+    reason:
+      c.riskLevel === "GREEN"
+        ? "GREEN but not eligible for auto-send — escalate"
+        : `${c.riskLevel} owner review — no auto-send`,
   };
 }
 

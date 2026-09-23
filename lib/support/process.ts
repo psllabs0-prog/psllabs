@@ -2,6 +2,10 @@ import { SITE_URL } from "@/lib/seo";
 
 import { classifySupportMessage } from "./classify";
 import { isSupportAutoSendEnabled } from "./constants";
+import {
+  isAllowedCustomerReplyRecipient,
+  isEligibleWebsiteContactForm,
+} from "./contact-form";
 import { decideOutboundAction, draftSupportResponse } from "./draft";
 import { isSolicitationCategory } from "./solicitation";
 import {
@@ -46,6 +50,38 @@ import type {
   SupportJobSummary,
 } from "./types";
 
+function safeCustomerReplyTo(
+  inbound: InboundEmailNormalized
+): string | null {
+  const candidate =
+    inbound.customerReplyEmail?.trim() ||
+    (isAllowedCustomerReplyRecipient(inbound.fromEmail)
+      ? inbound.fromEmail.trim().toLowerCase()
+      : null);
+  if (!candidate || !isAllowedCustomerReplyRecipient(candidate)) {
+    return null;
+  }
+  return candidate;
+}
+
+function ineligibleSkipResult(
+  inbound: InboundEmailNormalized
+): ProcessMessageResult {
+  return {
+    messageId: 0,
+    providerMessageId: inbound.providerMessageId,
+    status: "ignored",
+    category: "other",
+    riskLevel: "YELLOW",
+    confidence: 0,
+    autoSent: false,
+    escalated: false,
+    skippedDuplicate: false,
+    durableCaptured: false,
+    skippedIneligible: true,
+  };
+}
+
 async function tryCustomerSend(input: {
   messageId: number;
   responseId: number;
@@ -54,6 +90,12 @@ async function tryCustomerSend(input: {
   text: string;
   providerMessageId: string;
 }): Promise<{ sent: boolean; error?: string }> {
+  if (!isAllowedCustomerReplyRecipient(input.to)) {
+    return {
+      sent: false,
+      error: `Customer reply blocked: forbidden recipient ${input.to}`,
+    };
+  }
   const latest = await getLatestDraft(input.messageId);
   if (!latest || !canSendCustomerReply(latest.sentAt)) {
     return { sent: false };
@@ -203,16 +245,23 @@ export async function retryDurableSideEffects(
       autoSendEnabled,
     })
   ) {
-    const send = await tryCustomerSend({
-      messageId,
-      responseId: draft.id,
-      to: message.fromEmail,
-      subject: message.subject,
-      text: draft.draftBody,
-      providerMessageId: message.providerMessageId,
-    });
-    autoSent = send.sent;
-    if (send.error) error = send.error;
+    if (!isAllowedCustomerReplyRecipient(message.fromEmail)) {
+      // Never retry a send to support@ / internal addresses.
+      error =
+        error ??
+        "Customer reply blocked: stored fromEmail is not an allowed customer recipient.";
+    } else {
+      const send = await tryCustomerSend({
+        messageId,
+        responseId: draft.id,
+        to: message.fromEmail,
+        subject: message.subject,
+        text: draft.draftBody,
+        providerMessageId: message.providerMessageId,
+      });
+      autoSent = send.sent;
+      if (send.error) error = send.error;
+    }
   }
 
   const escalation = await getOpenEscalation(messageId);
@@ -243,6 +292,18 @@ export async function retryDurableSideEffects(
 export async function processInboundEmail(
   inbound: InboundEmailNormalized
 ): Promise<ProcessMessageResult> {
+  // Hard gate: website contact-form submissions only.
+  if (
+    !isEligibleWebsiteContactForm({
+      subject: inbound.subject,
+      body: inbound.normalizedBody,
+    })
+  ) {
+    return ineligibleSkipResult(inbound);
+  }
+
+  const customerTo = safeCustomerReplyTo(inbound);
+
   const existing = await findMessageByProviderId(inbound.providerMessageId);
 
   // Already durably handled — retry side effects only; never duplicate response rows.
@@ -268,16 +329,22 @@ export async function processInboundEmail(
     };
   }
 
+  const threadCustomerEmail =
+    customerTo ??
+    (isAllowedCustomerReplyRecipient(inbound.fromEmail)
+      ? inbound.fromEmail
+      : "unknown-customer@invalid.local");
+
   const thread = await upsertThread({
     threadKey: inbound.threadKey,
-    fromEmail: inbound.fromEmail,
+    fromEmail: threadCustomerEmail,
     subject: inbound.subject,
   });
 
   const { message, inserted } = await insertInboundMessage({
     threadId: thread.id,
     providerMessageId: inbound.providerMessageId,
-    fromEmail: inbound.fromEmail,
+    fromEmail: threadCustomerEmail,
     subject: inbound.subject,
     receivedAt: inbound.receivedAt,
     normalizedBody: inbound.normalizedBody,
@@ -297,7 +364,7 @@ export async function processInboundEmail(
 
     const draft = await draftSupportResponse({
       classification,
-      fromEmail: inbound.fromEmail,
+      fromEmail: threadCustomerEmail,
       subject: inbound.subject,
       body: inbound.normalizedBody,
     });
@@ -315,16 +382,21 @@ export async function processInboundEmail(
     let sendError: string | undefined;
 
     if (action.sendCustomerReply) {
-      const send = await tryCustomerSend({
-        messageId: message.id,
-        responseId,
-        to: inbound.fromEmail,
-        subject: inbound.subject,
-        text: draft.bodyText,
-        providerMessageId: inbound.providerMessageId,
-      });
-      autoSent = send.sent;
-      sendError = send.error;
+      if (!customerTo) {
+        sendError =
+          "No safe customer reply address (Reply-To / Email: field). Not sending to support@.";
+      } else {
+        const send = await tryCustomerSend({
+          messageId: message.id,
+          responseId,
+          to: customerTo,
+          subject: inbound.subject,
+          text: draft.bodyText,
+          providerMessageId: inbound.providerMessageId,
+        });
+        autoSent = send.sent;
+        sendError = send.error;
+      }
       // SMTP failure still leaves a durable draft for later retry.
     }
 
@@ -334,7 +406,8 @@ export async function processInboundEmail(
         riskLevel: classification.riskLevel,
         reason:
           action.reason +
-          (draft.escalationReason ? ` | ${draft.escalationReason}` : ""),
+          (draft.escalationReason ? ` | ${draft.escalationReason}` : "") +
+          (!customerTo ? " | missing safe customer reply address" : ""),
       });
       escalated = true;
       const open = await getOpenEscalation(message.id);
@@ -347,7 +420,7 @@ export async function processInboundEmail(
       ) {
         const notify = await tryEscalationNotify({
           escalationId: esc.id,
-          fromEmail: inbound.fromEmail,
+          fromEmail: customerTo || threadCustomerEmail,
           subject: inbound.subject,
           category: classification.category,
           risk: classification.riskLevel,
@@ -490,7 +563,22 @@ async function runSupportInboxJobLocked(options?: {
 
     for (const inbound of fetched.messages) {
       try {
+        if (
+          !isEligibleWebsiteContactForm({
+            subject: inbound.subject,
+            body: inbound.normalizedBody,
+          })
+        ) {
+          // Completely ignore — do not mark Seen / classify / mutate.
+          summary.skipped += 1;
+          continue;
+        }
+
         const result = await processInboundEmail(inbound);
+        if (result.skippedIneligible) {
+          summary.skipped += 1;
+          continue;
+        }
         if (
           shouldMarkImapSeenAfterProcess({
             durableCaptured: result.durableCaptured,

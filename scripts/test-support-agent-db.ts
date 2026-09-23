@@ -37,20 +37,54 @@ function assert(cond: unknown, message: string): asserts cond {
   if (!cond) throw new Error(message);
 }
 
+function contactFormBody(message: string, email = "fixture@example.com", subject = "Support"): string {
+  return [
+    "Name: Fixture",
+    `Email: ${email}`,
+    `Subject: ${subject}`,
+    "",
+    "Message:",
+    message,
+    "",
+    "Source: PSL Labs Contact Form",
+  ].join("\n");
+}
+
 function fixture(overrides: Partial<InboundEmailNormalized> = {}): InboundEmailNormalized {
   const id = `test-${Date.now()}-${Math.random().toString(16).slice(2)}@fixture.local`;
+  const customer = "fixture@example.com";
+  const subjectCore = (overrides.subject ?? "Where is the COA?").replace(
+    /^\[PSL Labs Contact\]\s*/i,
+    ""
+  );
+  const rawBody =
+    overrides.normalizedBody ??
+    "Where can I find the certificate of analysis / COA?";
+  const alreadyEligible =
+    (overrides.subject ?? "").startsWith("[PSL Labs Contact]") &&
+    rawBody.includes("Source: PSL Labs Contact Form");
+  const subject = alreadyEligible
+    ? (overrides.subject as string)
+    : `[PSL Labs Contact] ${subjectCore}`;
+  const normalizedBody = alreadyEligible
+    ? rawBody
+    : contactFormBody(rawBody, customer, subjectCore);
+
   return {
     providerMessageId: id,
     imapUid: 900000 + Math.floor(Math.random() * 10000),
-    threadKey: `pair:fixture@example.com|coa question`,
-    fromEmail: "fixture@example.com",
+    threadKey: `pair:${customer}|${subject.toLowerCase()}`,
+    fromEmail: customer,
     fromName: "Fixture",
     toEmail: "support@psllabs.org",
-    subject: "Where is the COA?",
+    envelopeFromEmail: "support@psllabs.org",
+    replyToEmail: customer,
     receivedAt: new Date().toISOString(),
-    normalizedBody: "Where can I find the certificate of analysis / COA?",
     rawHeadersSummary: null,
     ...overrides,
+    subject,
+    normalizedBody,
+    customerReplyEmail: overrides.customerReplyEmail ?? customer,
   };
 }
 

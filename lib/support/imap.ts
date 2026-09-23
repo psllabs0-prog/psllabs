@@ -3,6 +3,10 @@ import { simpleParser } from "mailparser";
 
 import { isSupportTestMode } from "./constants";
 import {
+  isEligibleWebsiteContactForm,
+  resolveContactFormCustomerReplyEmail,
+} from "./contact-form";
+import {
   buildThreadKey,
   extractEmailAddress,
   normalizeBody,
@@ -36,9 +40,83 @@ export function isSupportImapConfigured(): boolean {
   return imapConfig() !== null;
 }
 
+function replyToFromParsed(parsed: {
+  replyTo?: { text?: string; value?: Array<{ address?: string }> } | string;
+}): string | null {
+  const replyTo = parsed.replyTo;
+  if (!replyTo) return null;
+  if (typeof replyTo === "string") return replyTo;
+  if (typeof replyTo.text === "string" && replyTo.text.trim()) return replyTo.text;
+  const addr = replyTo.value?.[0]?.address;
+  return addr ? String(addr) : null;
+}
+
+/**
+ * Normalize a raw IMAP/parser payload into an inbound message only when it is
+ * an eligible website contact-form submission. Returns null for all other mail
+ * (ordinary support@ traffic, internal, vendor) — callers must not mutate those.
+ */
+export function normalizeEligibleContactFormInbound(input: {
+  providerMessageId: string;
+  imapUid?: number | null;
+  envelopeFrom: string;
+  fromName?: string | null;
+  toEmail?: string | null;
+  replyToHeader?: string | null;
+  subject: string;
+  bodyText: string;
+  receivedAt: string;
+}): InboundEmailNormalized | null {
+  const subject = normalizeSubject(input.subject || "(no subject)");
+  const normalizedBody = normalizeBody(input.bodyText || "");
+  if (
+    !isEligibleWebsiteContactForm({
+      subject,
+      body: normalizedBody,
+    })
+  ) {
+    return null;
+  }
+
+  const envelopeFrom = extractEmailAddress(input.envelopeFrom);
+  const resolved = resolveContactFormCustomerReplyEmail({
+    replyToHeader: input.replyToHeader ?? null,
+    body: normalizedBody,
+    envelopeFrom,
+  });
+
+  const customerReplyEmail = resolved.email;
+  // Thread identity prefers the real customer; never leave support@ as customer.
+  const fromEmail = customerReplyEmail || envelopeFrom || "unknown@invalid";
+
+  return {
+    providerMessageId: input.providerMessageId.trim().slice(0, 500),
+    imapUid: input.imapUid ?? null,
+    threadKey: buildThreadKey({
+      fromEmail,
+      subject,
+      inReplyTo: null,
+      references: null,
+    }),
+    fromEmail,
+    fromName: input.fromName ?? null,
+    toEmail: input.toEmail ?? null,
+    envelopeFromEmail: envelopeFrom || null,
+    replyToEmail: input.replyToHeader
+      ? extractEmailAddress(input.replyToHeader) || null
+      : null,
+    customerReplyEmail,
+    subject,
+    receivedAt: input.receivedAt,
+    normalizedBody,
+    rawHeadersSummary: null,
+  };
+}
+
 /**
  * Connect → fetch recent UNSEEN → disconnect.
  * Does NOT mark \Seen — caller must mark only after durable Neon handling.
+ * Non-contact-form mail is left completely untouched (UNSEEN, unprocessed).
  */
 export async function fetchUnreadSupportEmails(
   limit = 25
@@ -72,45 +150,30 @@ export async function fetchUnreadSupportEmails(
         const downloaded = await client.download(uid, undefined, { uid: true });
         if (!downloaded?.content) continue;
         const parsed = await simpleParser(downloaded.content);
-        const fromEmail = extractEmailAddress(
+        const envelopeFrom = extractEmailAddress(
           parsed.from?.text || parsed.from?.value?.[0]?.address || ""
         );
-        if (!fromEmail || fromEmail.endsWith("@psllabs.org")) {
-          // Internal/empty noise — safe to acknowledge without Neon processing.
-          try {
-            await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
-          } catch {
-            /* ignore */
-          }
-          continue;
-        }
-
-        const providerMessageId =
-          (parsed.messageId || `uid-${uid}@imap.local`).trim().slice(0, 500);
-        const subject = normalizeSubject(parsed.subject || "(no subject)");
+        const providerMessageId = (
+          parsed.messageId || `uid-${uid}@imap.local`
+        )
+          .trim()
+          .slice(0, 500);
+        const subjectRaw = parsed.subject || "(no subject)";
         const bodyText =
           typeof parsed.text === "string"
             ? parsed.text
             : parsed.html
               ? String(parsed.html).replace(/<[^>]+>/g, " ")
               : "";
-        const normalized = normalizeBody(bodyText);
         const receivedAt = (
           parsed.date instanceof Date ? parsed.date : new Date()
         ).toISOString();
+        const replyToHeader = replyToFromParsed(parsed);
 
-        messages.push({
+        const inbound = normalizeEligibleContactFormInbound({
           providerMessageId,
           imapUid: Number(uid),
-          threadKey: buildThreadKey({
-            fromEmail,
-            subject,
-            inReplyTo: parsed.inReplyTo || null,
-            references: Array.isArray(parsed.references)
-              ? parsed.references.join(" ")
-              : parsed.references || null,
-          }),
-          fromEmail,
+          envelopeFrom,
           fromName: parsed.from?.value?.[0]?.name || null,
           toEmail: parsed.to
             ? extractEmailAddress(
@@ -119,12 +182,26 @@ export async function fetchUnreadSupportEmails(
                   : String(parsed.to)
               )
             : null,
-          subject,
+          replyToHeader,
+          subject: subjectRaw,
+          bodyText,
           receivedAt,
-          normalizedBody: normalized,
-          rawHeadersSummary: null,
         });
-        // Intentionally NOT marking \Seen here.
+
+        // Ineligible: ignore completely — do not mark Seen, label, or archive.
+        if (!inbound) continue;
+
+        // Preserve in-reply-to / references for thread key when present.
+        inbound.threadKey = buildThreadKey({
+          fromEmail: inbound.fromEmail,
+          subject: inbound.subject,
+          inReplyTo: parsed.inReplyTo || null,
+          references: Array.isArray(parsed.references)
+            ? parsed.references.join(" ")
+            : parsed.references || null,
+        });
+
+        messages.push(inbound);
       }
     } finally {
       lock.release();

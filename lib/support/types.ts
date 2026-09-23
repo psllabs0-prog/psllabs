@@ -9,9 +9,19 @@ export type InboundEmailNormalized = {
   /** IMAP UID when fetched from mailbox; used to mark \Seen after durable handling. */
   imapUid?: number | null;
   threadKey: string;
+  /** Customer identity used for threads (resolved contact-form customer when applicable). */
   fromEmail: string;
   fromName: string | null;
   toEmail: string | null;
+  /** Envelope From address (may be support@ for website contact-form forwards). */
+  envelopeFromEmail?: string | null;
+  /** Raw Reply-To header value when present. */
+  replyToEmail?: string | null;
+  /**
+   * Validated customer recipient for automated replies.
+   * Never support@psllabs.org. Null when no safe customer address can be resolved.
+   */
+  customerReplyEmail: string | null;
   subject: string;
   receivedAt: string;
   normalizedBody: string;
@@ -109,6 +119,8 @@ export type ProcessMessageResult = {
   skippedDuplicate: boolean;
   /** True when Neon has a durable draft/escalation/sent/failed-with-draft row. */
   durableCaptured: boolean;
+  /** True when message was ignored because it is not a website contact-form submission. */
+  skippedIneligible?: boolean;
   customerSendRetried?: boolean;
   escalationNotified?: boolean;
   error?: string;

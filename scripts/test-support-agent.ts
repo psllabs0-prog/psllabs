@@ -24,6 +24,13 @@ import {
   isEscalationNotifyRetryable,
   shouldMarkImapSeenAfterProcess,
 } from "../lib/support/lifecycle";
+import {
+  isEligibleWebsiteContactForm,
+  isForbiddenCustomerReplyRecipient,
+  resolveContactFormCustomerReplyEmail,
+  SUPPORT_MAILBOX_ADDRESS,
+} from "../lib/support/contact-form";
+import { normalizeEligibleContactFormInbound } from "../lib/support/imap";
 
 function assert(cond: unknown, message: string): asserts cond {
   if (!cond) throw new Error(message);
@@ -471,6 +478,196 @@ async function testVendorNeverAutoSends() {
   process.env.SUPPORT_AUTO_SEND_ENABLED = "false";
 }
 
+function contactFormBody(message: string, email = "customer@example.com") {
+  return [
+    "Name: Customer",
+    `Email: ${email}`,
+    "Subject: Help",
+    "",
+    "Message:",
+    message,
+    "",
+    "Source: PSL Labs Contact Form",
+  ].join("\n");
+}
+
+function testContactFormEligibilityGate() {
+  const eligibleSubject = "[PSL Labs Contact] Where is the COA?";
+  const eligibleBody = contactFormBody("Where is the COA?");
+  assert(
+    isEligibleWebsiteContactForm({
+      subject: eligibleSubject,
+      body: eligibleBody,
+    }) === true,
+    "[PSL Labs Contact] + Source marker → eligible"
+  );
+
+  assert(
+    isEligibleWebsiteContactForm({
+      subject: "Order question",
+      body: "Hi, where is my order?",
+    }) === false,
+    "ordinary email to support@ → ignored"
+  );
+
+  assert(
+    isEligibleWebsiteContactForm({
+      subject: "Internal note",
+      body: "Please review this order.",
+    }) === false,
+    "internal PSL email → ignored"
+  );
+
+  assert(
+    isEligibleWebsiteContactForm({
+      subject: "Wholesale peptides available",
+      body: "We manufacture peptides. Price list attached.",
+    }) === false,
+    "vendor email → ignored"
+  );
+
+  assert(
+    isEligibleWebsiteContactForm({
+      subject: eligibleSubject,
+      body: "Missing source marker entirely",
+    }) === false,
+    "contact subject alone without Source marker → ignored"
+  );
+
+  assert(
+    isEligibleWebsiteContactForm({
+      subject: "Where is the COA?",
+      body: eligibleBody,
+    }) === false,
+    "Source marker without subject prefix → ignored"
+  );
+
+  const ordinary = normalizeEligibleContactFormInbound({
+    providerMessageId: "<ordinary@mail>",
+    envelopeFrom: "someone@gmail.com",
+    subject: "Hi support",
+    bodyText: "Just checking in",
+    receivedAt: new Date().toISOString(),
+  });
+  assert(ordinary === null, "ordinary inbound normalizes to null (no mutate)");
+
+  const internal = normalizeEligibleContactFormInbound({
+    providerMessageId: "<internal@mail>",
+    envelopeFrom: SUPPORT_MAILBOX_ADDRESS,
+    subject: "Fwd: something",
+    bodyText: "Internal thread",
+    receivedAt: new Date().toISOString(),
+  });
+  assert(internal === null, "internal support@ mail ignored");
+
+  const vendor = normalizeEligibleContactFormInbound({
+    providerMessageId: "<vendor@mail>",
+    envelopeFrom: "sales@vendor.example",
+    subject: "Supply offer",
+    bodyText: "We can supply peptides wholesale",
+    receivedAt: new Date().toISOString(),
+  });
+  assert(vendor === null, "vendor mail ignored");
+
+  const contact = normalizeEligibleContactFormInbound({
+    providerMessageId: "<contact@mail>",
+    envelopeFrom: SUPPORT_MAILBOX_ADDRESS,
+    replyToHeader: "customer@example.com",
+    subject: eligibleSubject,
+    bodyText: eligibleBody,
+    receivedAt: new Date().toISOString(),
+  });
+  assert(contact !== null, "contact form eligible");
+  const replyTo = String(contact!.customerReplyEmail ?? "");
+  assert(
+    replyTo === "customer@example.com",
+    "contact-form customer's parsed email is the reply recipient"
+  );
+  assert(
+    !isForbiddenCustomerReplyRecipient(replyTo),
+    "resolved customer reply is allowed"
+  );
+  assert(
+    isForbiddenCustomerReplyRecipient(SUPPORT_MAILBOX_ADDRESS),
+    "support@psllabs.org is never an allowed customer recipient"
+  );
+}
+
+function testContactFormReplyRecipientResolution() {
+  const body = contactFormBody("Need COA", "body-customer@example.com");
+
+  const viaReplyTo = resolveContactFormCustomerReplyEmail({
+    replyToHeader: "replyto-customer@example.com",
+    body,
+    envelopeFrom: SUPPORT_MAILBOX_ADDRESS,
+  });
+  assert(viaReplyTo.source === "reply-to", "prefers Reply-To");
+  assert(
+    viaReplyTo.email === "replyto-customer@example.com",
+    "Reply-To is reply recipient"
+  );
+
+  const viaBody = resolveContactFormCustomerReplyEmail({
+    replyToHeader: null,
+    body,
+    envelopeFrom: SUPPORT_MAILBOX_ADDRESS,
+  });
+  assert(viaBody.source === "body-email-field", "falls back to Email: field");
+  assert(
+    viaBody.email === "body-customer@example.com",
+    "body Email: is reply recipient"
+  );
+
+  const poisoned = resolveContactFormCustomerReplyEmail({
+    replyToHeader: SUPPORT_MAILBOX_ADDRESS,
+    body: contactFormBody("x", SUPPORT_MAILBOX_ADDRESS),
+    envelopeFrom: SUPPORT_MAILBOX_ADDRESS,
+  });
+  assert(poisoned.email === null, "never resolves support@ as customer");
+  assert(
+    isForbiddenCustomerReplyRecipient(SUPPORT_MAILBOX_ADDRESS),
+    "support@ forbidden"
+  );
+}
+
+function testYellowRedNeverAutoSend() {
+  process.env.SUPPORT_AUTO_SEND_ENABLED = "true";
+  const c = classifySupportMessage({
+    subject: "Damaged package",
+    body: "My vial arrived damaged and leaking.",
+  });
+  const draft = {
+    bodyText: "We received your note.",
+    bodyHtml: "",
+    knowledgeSources: [],
+    aiDrafted: false,
+    requiresEscalation: true,
+    escalationReason: "yellow",
+    policyDecision: "yellow_ack",
+  };
+  const action = decideOutboundAction({
+    classification: c,
+    draft,
+    threadAutoSendDisabled: false,
+  });
+  assert(action.sendCustomerReply === false, "YELLOW remains owner review");
+  assert(action.escalate === true, "YELLOW escalates");
+  process.env.SUPPORT_AUTO_SEND_ENABLED = "false";
+}
+
+function testDuplicateResponsePreventionStillHolds() {
+  assert(
+    canSendCustomerReply("2026-01-01T00:00:00.000Z") === false,
+    "already-sent draft cannot send again"
+  );
+  assert(
+    canSendCustomerReply(null) === true,
+    "unsent draft may send once"
+  );
+  assert(isDurableHandledStatus("auto_sent"), "auto_sent is durable");
+  assert(isDurableHandledStatus("ignored"), "ignored is durable");
+}
+
 async function main() {
   console.log("[test-support-agent] running…");
   testIdempotentProviderKey();
@@ -500,6 +697,10 @@ async function main() {
   testCustomerOrderStillWorks();
   await testSpamNeverSendsOrEscalates();
   await testVendorNeverAutoSends();
+  testContactFormEligibilityGate();
+  testContactFormReplyRecipientResolution();
+  testYellowRedNeverAutoSend();
+  testDuplicateResponsePreventionStillHolds();
   console.log("[test-support-agent] all passed.");
 }
 
