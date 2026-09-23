@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { BtcpostageOrderPanel } from "@/components/admin/btcpostage-order-panel";
+
 type Card = {
   orderId: string;
   paidAt: string | null;
@@ -14,6 +16,9 @@ type Card = {
     quantity: number;
   }>;
   shipping: {
+    firstName: string;
+    lastName: string;
+    address: string;
     city: string;
     state: string;
     zip: string;
@@ -22,6 +27,22 @@ type Card = {
   workflowStatus: string;
   holdReason: string | null;
   blocker: string | null;
+};
+
+type LabelPublic = {
+  pslOrderId: string;
+  purchaseStatus: string;
+  btcpOrderId: string | null;
+  shipmentId: string | null;
+  carrier: string | null;
+  service: string | null;
+  postageCost: number | null;
+  trackingNumber: string | null;
+  labelUrl: string | null;
+  testMode: boolean;
+  purchasedAt: string | null;
+  lastError: string | null;
+  isRealShipment: boolean;
 };
 
 type Payload = {
@@ -35,12 +56,17 @@ type Payload = {
   ready: Card[];
   hold: Card[];
   packed: Card[];
+  btcpostage?: { configured: boolean; testMode: boolean };
+  labelsByOrderId?: Record<string, LabelPublic>;
 };
 
 export function AdminFulfillmentDashboard() {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [labelsByOrderId, setLabelsByOrderId] = useState<
+    Record<string, LabelPublic>
+  >({});
 
   const refresh = useCallback(async () => {
     setError(null);
@@ -49,7 +75,9 @@ export function AdminFulfillmentDashboard() {
       setError("Failed to load fulfillment board.");
       return;
     }
-    setData((await res.json()) as Payload);
+    const payload = (await res.json()) as Payload;
+    setData(payload);
+    setLabelsByOrderId(payload.labelsByOrderId ?? {});
   }, []);
 
   useEffect(() => {
@@ -157,6 +185,24 @@ export function AdminFulfillmentDashboard() {
             </a>
           )}
         </div>
+
+        {(mode === "ready" || mode === "packed") && data && (
+          <BtcpostageOrderPanel
+            orderId={card.orderId}
+            shipping={card.shipping}
+            testMode={Boolean(data.btcpostage?.testMode)}
+            configured={Boolean(data.btcpostage?.configured)}
+            initialLabel={labelsByOrderId[card.orderId] ?? null}
+            onLabelChange={(next) => {
+              setLabelsByOrderId((prev) => {
+                const copy = { ...prev };
+                if (!next) delete copy[card.orderId];
+                else copy[card.orderId] = next;
+                return copy;
+              });
+            }}
+          />
+        )}
       </li>
     );
   }
@@ -168,9 +214,15 @@ export function AdminFulfillmentDashboard() {
           Fulfillment
         </h1>
         <p className="mt-2 text-sm text-ash">
-          What Luke needs to pack, hold, or review. Tracking remains on the
-          ledger.
+          What Luke needs to pack, hold, or review. Buy labels here; confirm
+          tracking on the ledger (does not auto-mark shipped).
         </p>
+        {data?.btcpostage?.testMode && (
+          <p className="mt-2 text-sm font-medium text-amber-800">
+            BTCPOSTAGE TEST MODE is on — USPS test labels only; not real
+            shipments.
+          </p>
+        )}
       </header>
 
       {error && <p className="text-sm text-red-700">{error}</p>}

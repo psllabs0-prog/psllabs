@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 
 import { requireAdminAuth } from "@/lib/admin/require-auth";
+import { getBtcpostagePublicConfig } from "@/lib/btcpostage/config";
+import { ensureBtcpostageSchema } from "@/lib/btcpostage/schema";
+import {
+  listBtcpostageLabelsForOrders,
+  toPublicLabel,
+} from "@/lib/btcpostage/store";
 import { buildPackingSlipHtml } from "@/lib/fulfillment/packing-slip";
 import { ensureFulfillmentSchema } from "@/lib/fulfillment/schema";
 import {
@@ -21,6 +27,7 @@ export async function GET(request: Request) {
 
   try {
     await ensureFulfillmentSchema();
+    await ensureBtcpostageSchema();
     const url = new URL(request.url);
     const slipOrderId = url.searchParams.get("packingSlip");
     if (slipOrderId) {
@@ -34,12 +41,23 @@ export async function GET(request: Request) {
     }
 
     const board = await collectFulfillmentBoard();
+    const cards = [...board.ready, ...board.hold, ...board.packed];
+    const labels = await listBtcpostageLabelsForOrders(
+      cards.map((c) => c.orderId)
+    );
+    const labelsByOrderId: Record<string, ReturnType<typeof toPublicLabel>> = {};
+    for (const label of labels) {
+      labelsByOrderId[label.pslOrderId] = toPublicLabel(label);
+    }
+
     return NextResponse.json({
       summary: board.summary,
       pickList: board.pickList,
       ready: board.ready.map(sanitizeCard),
       hold: board.hold.map(sanitizeCard),
       packed: board.packed.map(sanitizeCard),
+      btcpostage: getBtcpostagePublicConfig(),
+      labelsByOrderId,
     });
   } catch (error) {
     console.error("[admin/fulfillment] GET", error);

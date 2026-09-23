@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { requireAdminAuth } from "@/lib/admin/require-auth";
+import { ensureBtcpostageSchema } from "@/lib/btcpostage/schema";
+import { getSuggestedTrackingForPaidOrders } from "@/lib/btcpostage/store";
 import { sendOrderShippedEmail } from "@/lib/email/order-shipped";
 import {
   getOrder,
@@ -16,8 +18,12 @@ export async function GET() {
   if (authError) return authError;
 
   try {
+    await ensureBtcpostageSchema();
     const orders = await getOrdersNeedingTracking();
-    return NextResponse.json({ orders });
+    const suggestedTracking = await getSuggestedTrackingForPaidOrders(
+      orders.map((o) => o.orderId)
+    );
+    return NextResponse.json({ orders, suggestedTracking });
   } catch (error) {
     console.error("[admin/tracking GET]", error);
     return NextResponse.json(

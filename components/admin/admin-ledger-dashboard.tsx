@@ -109,6 +109,10 @@ export function AdminLedgerDashboard() {
     const ledgerData = (await ledgerRes.json()) as { rows: LedgerRow[] };
     const trackingData = (await trackingRes.json()) as {
       orders: OrderTrackingRow[];
+      suggestedTracking?: Record<
+        string,
+        { trackingNumber: string; carrier: string; testMode: false }
+      >;
     };
 
     setKpi(kpiData);
@@ -118,8 +122,10 @@ export function AdminLedgerDashboard() {
     setTrackingDrafts((current) => {
       const next = { ...current };
       for (const order of trackingData.orders) {
-        if (next[order.orderId] === undefined) {
-          next[order.orderId] = "";
+        if (next[order.orderId] === undefined || next[order.orderId] === "") {
+          const suggested =
+            trackingData.suggestedTracking?.[order.orderId]?.trackingNumber;
+          next[order.orderId] = suggested ?? next[order.orderId] ?? "";
         }
       }
       return next;
