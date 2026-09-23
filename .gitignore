@@ -42,3 +42,6 @@ next-env.d.ts
 
 .vercel
 .env*
+
+# Obsidian local workspace (ops-knowledge may be browsed in Obsidian)
+.obsidian/
