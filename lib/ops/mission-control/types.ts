@@ -68,6 +68,17 @@ export type ActivityEvent = Required<
   providerCostUsd: number | null;
 };
 
+/** Default feed hides test/reporting-excluded events unless explicitly shown. */
+export function filterActivityFeed(
+  events: Iterable<ActivityEvent>,
+  options: { showExcluded: boolean; worker: string }
+): ActivityEvent[] {
+  return [...events]
+    .filter((e) => options.showExcluded || !e.excluded)
+    .filter((e) => options.worker === "all" || e.worker === options.worker)
+    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+}
+
 export type WorkerStatus =
   | "configured"
   | "disabled"

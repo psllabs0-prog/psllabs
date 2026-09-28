@@ -24,6 +24,10 @@ import {
   classifySearchDemandQuery,
   getCustomerIntelSearchMinImpressions,
 } from "../lib/customer-intelligence/search-demand";
+import {
+  customerIntelSnapshotExclusion,
+  pickLatestLegitimateSnapshot,
+} from "../lib/customer-intelligence/snapshot-validity";
 import { composeWeeklyBrief } from "../lib/ceo-brief/compose";
 import type {
   CeoAcquisitionSnapshot,
@@ -272,6 +276,53 @@ function testCeoCapAndNoOpsClutterContract() {
   else delete process.env.DISCORD_BOT_ENABLED;
 }
 
+function testSnapshotValidity() {
+  const real = {
+    periodStart: "2026-08-31",
+    periodEnd: "2026-09-27",
+    generatedAt: "2026-09-28T11:59:10.652Z",
+    snapshot: { evidenceHealth: {} },
+  };
+  assert(customerIntelSnapshotExclusion(real) === null, "real snapshot is legitimate");
+  assert(
+    customerIntelSnapshotExclusion({
+      periodStart: "2099-01-01",
+      periodEnd: "2099-01-28",
+      generatedAt: "2026-09-12T13:41:31.896Z",
+      snapshot: { test: true, pass: 2 },
+    }) === "test",
+    "smoke-test snapshot excluded as test"
+  );
+  assert(
+    customerIntelSnapshotExclusion({ ...real, snapshot: { reporting_excluded: "true" } }) ===
+      "reporting_excluded",
+    "reporting_excluded flag honoured"
+  );
+  assert(
+    customerIntelSnapshotExclusion({ ...real, periodStart: "2099-01-01", periodEnd: "2099-01-28", snapshot: {} }) ===
+      "future_dated",
+    "period ending after generation is excluded"
+  );
+  assert(
+    customerIntelSnapshotExclusion({ ...real, periodStart: "2026-09-27", periodEnd: "2026-08-31" }) === "invalid",
+    "inverted period is invalid"
+  );
+  assert(
+    customerIntelSnapshotExclusion({ ...real, generatedAt: null }) === "invalid",
+    "missing generated_at is invalid"
+  );
+  const picked = pickLatestLegitimateSnapshot([
+    { periodStart: "2099-01-01", periodEnd: "2099-01-28", generatedAt: "2026-09-29T00:00:00Z", snapshot: { test: true } },
+    { ...real, generatedAt: "2026-09-27T10:40:58Z", periodStart: "2026-08-30", periodEnd: "2026-09-26" },
+    real,
+  ]);
+  assert(picked === real, "newest legitimate snapshot by generated_at wins");
+  assert(
+    pickLatestLegitimateSnapshot([{ ...real, snapshot: { test: true } }]) === null,
+    "no legitimate snapshot → null"
+  );
+}
+
 function main() {
   console.log("[test:customer-intelligence] start");
   testExclusionsAndTaxonomy();
@@ -279,6 +330,7 @@ function main() {
   testEvidenceClassSeparation();
   testSearchDemandQuerySpecific();
   testCeoCapAndNoOpsClutterContract();
+  testSnapshotValidity();
   console.log("[test:customer-intelligence] ok");
 }
 

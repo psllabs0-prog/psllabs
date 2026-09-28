@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MissionControlSnapshot } from "@/lib/ops/mission-control/snapshot";
 import {
   MISSION_CONTROL_SYNC_HEADER,
+  filterActivityFeed,
   type ActivityEvent,
   type WorkerCard,
   type WorkerStatus,
@@ -208,10 +209,7 @@ export function MissionControl() {
 
   const feed = useMemo(
     () =>
-      [...events.values()]
-        .filter((e) => showExcluded || !e.excluded)
-        .filter((e) => workerFilter === "all" || e.worker === workerFilter)
-        .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt)),
+      filterActivityFeed(events.values(), { showExcluded, worker: workerFilter }),
     [events, showExcluded, workerFilter]
   );
 

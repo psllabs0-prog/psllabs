@@ -5,6 +5,10 @@
  */
 import { getSql } from "@/lib/db/sql";
 import { getBtcpostagePublicConfig } from "@/lib/btcpostage/config";
+import {
+  CUSTOMER_INTEL_SNAPSHOT_SCAN_LIMIT,
+  pickLatestLegitimateSnapshot,
+} from "@/lib/customer-intelligence/snapshot-validity";
 import { isLukeOwnerAttention } from "@/lib/decision-engine/owner-count";
 import { getDiscordAdminStatusSafe } from "@/lib/discord/config";
 import {
@@ -20,7 +24,7 @@ import { getSupportExpectedPollMinutes } from "@/lib/support/store";
 
 import { supportEscalationEligible } from "../exceptions";
 import { toIsoOrNull } from "./events";
-import { describeSourceError } from "./projectors";
+import { customerIntelSnapshotRecord, describeSourceError } from "./projectors";
 import { nextRunForWorker } from "./schedule";
 import type {
   MissionControlWorker,
@@ -470,10 +474,16 @@ async function observeAuthority(sql: SqlClient): Promise<WorkerObservationResult
 }
 
 async function observeCustomerIntel(sql: SqlClient): Promise<WorkerObservationResult> {
-  const generatedAt = await scalarIso(sql`
-    SELECT generated_at AS at FROM customer_intelligence_snapshots
-    ORDER BY period_end DESC LIMIT 1
+  const rows = await select(sql`
+    SELECT period_start, period_end, generated_at,
+      snapshot_json->'test' AS test_flag,
+      snapshot_json->'reporting_excluded' AS excluded_flag
+    FROM customer_intelligence_snapshots
+    ORDER BY generated_at DESC, id DESC
+    LIMIT ${CUSTOMER_INTEL_SNAPSHOT_SCAN_LIMIT}
   `);
+  const latest = pickLatestLegitimateSnapshot(rows.map(customerIntelSnapshotRecord));
+  const generatedAt = latest ? toIsoOrNull(latest.generatedAt) : null;
   return {
     observation: {
       enabled: true,

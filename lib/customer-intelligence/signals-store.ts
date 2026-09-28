@@ -1,6 +1,10 @@
 import { getSql } from "@/lib/db/sql";
 
 import { ensureCustomerIntelligenceSchema } from "./schema";
+import {
+  CUSTOMER_INTEL_SNAPSHOT_SCAN_LIMIT,
+  pickLatestLegitimateSnapshot,
+} from "./snapshot-validity";
 import type {
   CiConfidence,
   CiRecommendationType,
@@ -196,16 +200,25 @@ export async function getLatestCustomerIntelSnapshot(): Promise<{
   const rows = (await sql`
     SELECT period_start, period_end, generated_at, snapshot_json
     FROM customer_intelligence_snapshots
-    ORDER BY period_end DESC
-    LIMIT 1
+    ORDER BY generated_at DESC, id DESC
+    LIMIT ${CUSTOMER_INTEL_SNAPSHOT_SCAN_LIMIT}
   `) as Array<{
     period_start: string | Date;
     period_end: string | Date;
     generated_at: string | Date;
     snapshot_json: Record<string, unknown>;
   }>;
-  if (!rows[0]) return null;
-  const r = rows[0];
+  const latest = pickLatestLegitimateSnapshot(
+    rows.map((row) => ({
+      row,
+      periodStart: row.period_start,
+      periodEnd: row.period_end,
+      generatedAt: row.generated_at,
+      snapshot: row.snapshot_json,
+    }))
+  );
+  if (!latest) return null;
+  const r = latest.row;
   return {
     periodStart: String(r.period_start).slice(0, 10),
     periodEnd: String(r.period_end).slice(0, 10),

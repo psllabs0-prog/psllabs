@@ -93,8 +93,10 @@ function mapEventRow(row: Record<string, unknown>): ActivityEvent {
 }
 
 /**
- * Inserts events; duplicates (same source_event_key) are ignored.
- * Returns the number of newly inserted rows. Does nothing unless Mission
+ * Inserts events; duplicates (same source_event_key) are not re-inserted —
+ * only a changed `excluded` flag is carried onto the existing row, so a
+ * source record later marked test/reporting-excluded drops out of the default
+ * feed. Returns the number of newly inserted rows. Does nothing unless Mission
  * Control writes are enabled server-side; never creates tables. Throws on DB
  * errors so the projector can surface coverage issues — use
  * `recordActivityEventSafe` from business code paths.
@@ -139,10 +141,11 @@ export async function insertActivityEvents(
       ${col((e) => e.estimatedCostUsd ?? null)}::numeric[],
       ${col((e) => e.providerCostUsd ?? null)}::numeric[]
     ) AS u(k, c, p, s, w, t, o, ob, oc, sm, r, h, x, v, ec, pc)
-    ON CONFLICT (source_event_key) DO NOTHING
-    RETURNING id
-  `) as Array<{ id: number }>;
-  return rows.length;
+    ON CONFLICT (source_event_key) DO UPDATE SET excluded = EXCLUDED.excluded
+    WHERE ops_activity_events.excluded IS DISTINCT FROM EXCLUDED.excluded
+    RETURNING (xmax = 0) AS inserted
+  `) as Array<{ inserted: boolean }>;
+  return rows.filter((r) => r.inserted).length;
 }
 
 /** Observability must never block checkout, payment, inventory, or fulfillment. */
