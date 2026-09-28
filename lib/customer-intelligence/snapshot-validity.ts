@@ -28,14 +28,26 @@ function flag(value: unknown): boolean {
   return value === true || value === "true";
 }
 
-function dateMs(value: unknown): number | null {
+/**
+ * `YYYY-MM-DD` for a Postgres DATE. The Neon driver returns DATE as a JS Date
+ * at local midnight, so read local components — `String(date)` or
+ * `toISOString()` would yield "Sun Sep 27" or shift the day east of UTC.
+ */
+export function toDateOnly(value: unknown): string | null {
   if (value instanceof Date) {
-    return Number.isFinite(value.getTime())
-      ? Date.parse(`${value.toISOString().slice(0, 10)}T00:00:00Z`)
-      : null;
+    if (!Number.isFinite(value.getTime())) return null;
+    const m = String(value.getMonth() + 1).padStart(2, "0");
+    const d = String(value.getDate()).padStart(2, "0");
+    return `${value.getFullYear()}-${m}-${d}`;
   }
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}/.test(value)) return null;
-  const t = Date.parse(`${value.slice(0, 10)}T00:00:00Z`);
+  return value.slice(0, 10);
+}
+
+function dateMs(value: unknown): number | null {
+  const day = toDateOnly(value);
+  if (!day) return null;
+  const t = Date.parse(`${day}T00:00:00Z`);
   return Number.isFinite(t) ? t : null;
 }
 
@@ -81,3 +93,47 @@ export function pickLatestLegitimateSnapshot<T extends CustomerIntelSnapshotReco
 
 /** Recent rows scanned when picking the latest legitimate snapshot (weekly cadence). */
 export const CUSTOMER_INTEL_SNAPSHOT_SCAN_LIMIT = 50;
+
+export type LegitimateCustomerIntelSnapshot = {
+  id: string;
+  periodStart: string;
+  periodEnd: string;
+  generatedAt: string;
+  snapshot: Record<string, unknown>;
+};
+
+type SqlTag = (strings: TemplateStringsArray, ...values: unknown[]) => Promise<unknown>;
+
+/**
+ * The single read path for "latest customer intelligence snapshot": Mission
+ * Control worker + connections, CI dashboard, CEO Brief and Decision Engine
+ * readiness all resolve through here. Plain SELECT — callers decide whether
+ * to ensure schema first.
+ */
+export async function fetchLatestLegitimateCustomerIntelSnapshot(
+  sql: SqlTag
+): Promise<LegitimateCustomerIntelSnapshot | null> {
+  const rows = ((await sql`
+    SELECT id, period_start, period_end, generated_at, snapshot_json
+    FROM customer_intelligence_snapshots
+    ORDER BY generated_at DESC, id DESC
+    LIMIT ${CUSTOMER_INTEL_SNAPSHOT_SCAN_LIMIT}
+  `) ?? []) as Array<Record<string, unknown>>;
+  const best = pickLatestLegitimateSnapshot(
+    rows.map((row) => ({
+      row,
+      periodStart: row.period_start,
+      periodEnd: row.period_end,
+      generatedAt: row.generated_at,
+      snapshot: (row.snapshot_json ?? {}) as Record<string, unknown>,
+    }))
+  );
+  if (!best) return null;
+  return {
+    id: String(best.row.id),
+    periodStart: toDateOnly(best.periodStart)!,
+    periodEnd: toDateOnly(best.periodEnd)!,
+    generatedAt: new Date(timestampMs(best.generatedAt)!).toISOString(),
+    snapshot: best.snapshot ?? {},
+  };
+}

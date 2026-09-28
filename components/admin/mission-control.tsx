@@ -19,6 +19,7 @@ const MAX_EVENTS = 500;
 
 type ApiPayload = {
   serverTime: string;
+  build: { commit: string | null; environment: string | null };
   initialized: boolean;
   migrationRequired: string | null;
   missingTables: string[];
@@ -87,6 +88,7 @@ export function MissionControl() {
   const [events, setEvents] = useState<Map<number, ActivityEvent>>(new Map());
   const [snapshot, setSnapshot] = useState<MissionControlSnapshot | null>(null);
   const [serverState, setServerState] = useState<ServerState | null>(null);
+  const [build, setBuild] = useState<ApiPayload["build"] | null>(null);
   const [connection, setConnection] = useState<Connection>({ state: "live" });
   const [lastOkAt, setLastOkAt] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -147,6 +149,7 @@ export function MissionControl() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as ApiPayload;
         if (cancelled) return;
+        setBuild(data.build ?? null);
         setServerState({
           initialized: data.initialized,
           migrationRequired: data.migrationRequired,
@@ -230,6 +233,7 @@ export function MissionControl() {
           <span className="text-ash">
             Updated {lastOkAt ? ago(now - lastOkAt) : "—"}
             {snapshot ? ` · workers ${ago(now - Date.parse(snapshot.generatedAt))}` : ""}
+            {build?.commit ? ` · build ${build.commit}${build.environment ? ` (${build.environment})` : ""}` : ""}
           </span>
           <button
             type="button"
