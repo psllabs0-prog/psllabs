@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
-import { AdminOpsDashboard } from "@/components/admin/admin-ops-dashboard";
 import { AdminLoginForm } from "@/components/admin/admin-login-form";
+import { AdminOpsTabs } from "@/components/admin/admin-ops-tabs";
 import {
   isAdminAuthenticated,
   isAdminPasswordConfigured,
@@ -16,7 +16,14 @@ export const metadata: Metadata = createPageMetadata({
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminOpsPage() {
+export default async function AdminOpsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { tab } = await searchParams;
+  const initialTab = tab === "mission-control" ? "mission-control" : "overview";
+
   if (!isAdminPasswordConfigured()) {
     return (
       <main className="min-h-screen bg-page px-6 py-12 md:px-16">
@@ -46,7 +53,13 @@ export default async function AdminOpsPage() {
             Sign in to see what needs attention right now.
           </p>
           <div className="mt-8">
-            <AdminLoginForm redirectTo="/admin-ops" />
+            <AdminLoginForm
+              redirectTo={
+                initialTab === "mission-control"
+                  ? "/admin-ops?tab=mission-control"
+                  : "/admin-ops"
+              }
+            />
           </div>
         </div>
       </main>
@@ -55,9 +68,7 @@ export default async function AdminOpsPage() {
 
   return (
     <main className="min-h-screen bg-page px-6 py-12 md:px-16 lg:px-24">
-      <div className="mx-auto max-w-3xl">
-        <AdminOpsDashboard />
-      </div>
+      <AdminOpsTabs initialTab={initialTab} />
     </main>
   );
 }
