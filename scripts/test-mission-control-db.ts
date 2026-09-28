@@ -2,6 +2,7 @@
  * DB integration tests for Mission Control activity records.
  *
  * Writes only rows keyed `test:mc:*` (flagged excluded) and deletes them after.
+ * Enables the write gate for this process only; requires migrate-ops to have run.
  * Requires an explicit opt-in because `.env.local` may point at production:
  *   MISSION_CONTROL_DB_TEST=1 npm run test:mission-control-db
  */
@@ -17,8 +18,8 @@ import {
   listActivitySyncStates,
   syncActivityFromSources,
 } from "@/lib/ops/mission-control/projectors";
+import { getMissionControlSchemaState } from "@/lib/ops/mission-control/schema";
 import type { ActivityEventInput } from "@/lib/ops/mission-control/types";
-import { ensureOpsSchema } from "@/lib/ops/schema";
 
 loadEnvLocal();
 
@@ -58,7 +59,14 @@ async function main() {
   const url = process.env.DATABASE_URL ?? process.env.POSTGRES_URL ?? "";
   console.log(`[test-mission-control-db] target host: ${url.replace(/^.*@([^/]+).*$/, "$1")}`);
 
-  await ensureOpsSchema();
+  const schema = await getMissionControlSchemaState();
+  if (!schema.initialized) {
+    throw new Error(
+      `Mission Control tables missing (${schema.missing.join(", ")}). Run npm run migrate-ops against this database first; this test never creates schema.`
+    );
+  }
+  process.env.MISSION_CONTROL_SYNC_ENABLED = "1";
+  delete process.env.VERCEL_ENV;
   const sql = getSql();
   const before = (await sql`SELECT COALESCE(MAX(id), 0)::bigint AS id FROM ops_activity_events`) as Array<{ id: string }>;
   const cursor = Number(before[0].id);

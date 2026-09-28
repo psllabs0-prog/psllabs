@@ -1,5 +1,3 @@
-import { listDecisionSignals } from "@/lib/decision-engine";
-import { partitionDecisionSignals } from "@/lib/decision-engine/owner-count";
 import {
   collectSystemReadinessMatrix,
   type SystemReadinessRow,
@@ -7,8 +5,10 @@ import {
 
 import { collectOpsExceptions } from "../exceptions";
 import { sortOpsExceptions, type OpsException } from "../types";
+import type { MissionControlWriteMode } from "./config";
 import { listActivitySyncStates } from "./projectors";
 import { upcomingScheduledRuns } from "./schedule";
+import type { MissionControlSchemaState } from "./schema";
 import type { ActivitySyncState, WorkerCard } from "./types";
 import { collectWorkerCards } from "./workers";
 
@@ -37,11 +37,16 @@ export type MissionControlSnapshot = {
   generatedAt: string;
   pipeline: MissionControlPipeline;
   workers: WorkerCard[];
-  incidents: OpsException[];
-  connections: SystemReadinessRow[];
+  /** Null when not loaded (read-only mode); see `incidentsNote`. */
+  incidents: OpsException[] | null;
+  connections: SystemReadinessRow[] | null;
+  incidentsNote: string | null;
   coverage: ActivitySyncState[];
   coverageErrors: string[];
 };
+
+export const INCIDENTS_READ_ONLY_NOTE =
+  "Not loaded in read-only mode: the shared Ops incident collector runs its modules' schema checks, so Mission Control only calls it when MISSION_CONTROL_SYNC_ENABLED is true. Open the Overview tab for incidents.";
 
 /** Pure: derive the owner summary strictly from worker observations. */
 export function buildPipeline(
@@ -105,42 +110,44 @@ export function buildPipeline(
   return { active, waiting, blocked, upcoming };
 }
 
-export async function collectMissionControlSnapshot(
-  now = new Date()
-): Promise<MissionControlSnapshot> {
+export async function collectMissionControlSnapshot(input: {
+  writeMode: MissionControlWriteMode;
+  schema: MissionControlSchemaState;
+  now?: Date;
+}): Promise<MissionControlSnapshot> {
+  const now = input.now ?? new Date();
   const coverageErrors: string[] = [];
-  const [exceptions, connections, decisionSignals, coverage] = await Promise.all([
-    collectOpsExceptions().catch(() => {
-      coverageErrors.push("Incident sources could not be read");
-      return [] as OpsException[];
-    }),
-    collectSystemReadinessMatrix().catch(() => {
-      coverageErrors.push("System readiness could not be read");
-      return [] as SystemReadinessRow[];
-    }),
-    listDecisionSignals({ statuses: ["active"], limit: 50 }).catch(() => {
-      coverageErrors.push("Decision signals could not be read");
-      return [];
-    }),
-    listActivitySyncStates().catch(() => {
-      coverageErrors.push("Activity sync state could not be read");
-      return [] as ActivitySyncState[];
-    }),
-  ]);
 
-  const { lukeDecisions } = partitionDecisionSignals(decisionSignals);
-  const workers = await collectWorkerCards({
-    exceptions,
-    lukeDecisionCount: lukeDecisions.length,
-    now,
-  });
+  const collectorsAllowed = input.writeMode.enabled;
+  const [workers, exceptions, connections, coverage] = await Promise.all([
+    collectWorkerCards({ now }),
+    collectorsAllowed
+      ? collectOpsExceptions().catch(() => {
+          coverageErrors.push("Incident sources could not be read");
+          return [] as OpsException[];
+        })
+      : Promise.resolve(null),
+    collectorsAllowed
+      ? collectSystemReadinessMatrix().catch(() => {
+          coverageErrors.push("System readiness could not be read");
+          return [] as SystemReadinessRow[];
+        })
+      : Promise.resolve(null),
+    input.schema.initialized
+      ? listActivitySyncStates().catch(() => {
+          coverageErrors.push("Activity sync state could not be read");
+          return [] as ActivitySyncState[];
+        })
+      : Promise.resolve([] as ActivitySyncState[]),
+  ]);
 
   return {
     generatedAt: now.toISOString(),
     pipeline: buildPipeline(workers, now),
     workers,
-    incidents: sortOpsExceptions(exceptions),
+    incidents: exceptions ? sortOpsExceptions(exceptions) : null,
     connections,
+    incidentsNote: collectorsAllowed ? null : INCIDENTS_READ_ONLY_NOTE,
     coverage,
     coverageErrors,
   };

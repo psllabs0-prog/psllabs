@@ -1,29 +1,26 @@
+/**
+ * Worker cards. Every query here is a plain SELECT against existing tables —
+ * no business-module getters (they run `ensure*Schema()` DDL) and no writes,
+ * so opening Mission Control can never create or alter schema.
+ */
 import { getSql } from "@/lib/db/sql";
 import { getBtcpostagePublicConfig } from "@/lib/btcpostage/config";
-import { getLatestCeoBrief } from "@/lib/ceo-brief/store";
-import { getLatestCustomerIntelSnapshot } from "@/lib/customer-intelligence/signals-store";
+import { isLukeOwnerAttention } from "@/lib/decision-engine/owner-count";
 import { getDiscordAdminStatusSafe } from "@/lib/discord/config";
-import { getAllPaidProviderStatuses } from "@/lib/external-metrics/paid/providers";
-import { getLatestFinanceJobRun } from "@/lib/finance/store";
-import { collectFulfillmentBoard } from "@/lib/fulfillment/store";
 import {
   getRetentionReadiness,
   isRetentionTestMode,
 } from "@/lib/retention/config";
-import { getLatestRetentionJobRun } from "@/lib/retention/store";
 import {
   SUPPORT_INBOX_LEASE_STALE_MINUTES,
   isSupportAutoSendEnabled,
   isSupportTestMode,
 } from "@/lib/support/constants";
-import {
-  getLatestJobRun as getLatestSupportJobRun,
-  getLatestSuccessfulSupportJobRun,
-  getSupportExpectedPollMinutes,
-} from "@/lib/support/store";
+import { getSupportExpectedPollMinutes } from "@/lib/support/store";
 
-import type { OpsException } from "../types";
+import { supportEscalationEligible } from "../exceptions";
 import { toIsoOrNull } from "./events";
+import { describeSourceError } from "./projectors";
 import { nextRunForWorker } from "./schedule";
 import type {
   MissionControlWorker,
@@ -56,6 +53,7 @@ export type WorkerObservation = {
   leaseHeld?: boolean;
   waitingCount: number;
   observationFailed?: boolean;
+  observationError?: string | null;
   now: Date;
 };
 
@@ -74,7 +72,12 @@ export function deriveWorkerStatus(o: WorkerObservation): {
   detail: string | null;
 } {
   if (o.observationFailed) {
-    return { status: "unknown", detail: "Status query failed — not assumed healthy" };
+    return {
+      status: "unknown",
+      detail: o.observationError
+        ? `${o.observationError} — not assumed healthy`
+        : "Status query failed — not assumed healthy",
+    };
   }
   if (!o.enabled) return { status: "disabled", detail: null };
   if (o.misconfigured) return { status: "failed", detail: o.misconfigured };
@@ -160,7 +163,8 @@ const DEFINITIONS: Record<MissionControlWorker, WorkerDefinition> = {
     label: "Inventory",
     href: "/admin-inventory",
     coverage: "success_only",
-    coverageNote: "Only successful monitor snapshots are stored; failed runs are not logged (staleness only).",
+    coverageNote:
+      "Only successful monitor snapshots are stored; failed runs are not logged (staleness only). Reorder reviews appear under Incidents.",
   },
   fulfillment: {
     worker: "fulfillment",
@@ -181,7 +185,8 @@ const DEFINITIONS: Record<MissionControlWorker, WorkerDefinition> = {
     label: "Authority",
     href: "/admin-authority",
     coverage: "none",
-    coverageNote: "Admin-driven; no job-run log. Activity shown from opportunity/brief timestamps.",
+    coverageNote:
+      "Admin-driven; no job-run log. Activity shown from opportunity/brief timestamps; waiting briefs appear under Incidents.",
   },
   customer_intelligence: {
     worker: "customer_intelligence",
@@ -220,25 +225,18 @@ const DEFINITIONS: Record<MissionControlWorker, WorkerDefinition> = {
   },
 };
 
-function countExceptions(
-  exceptions: OpsException[],
-  predicate: (e: OpsException) => boolean
-): number {
-  return exceptions.filter((e) => !e.acknowledged && predicate(e)).length;
-}
-
 function queue(label: string, count: number, href: string): WorkerQueueItem[] {
   return count > 0 ? [{ label, count, href }] : [];
 }
 
-function runStatusToOutcome(status: string | null): LatestRunObservation["outcome"] {
+function runStatusToOutcome(status: string | null | undefined): LatestRunObservation["outcome"] {
   if (status === "running") return "running";
   if (status === "ok") return "ok";
   if (status === "error") return "failed";
   return "unknown";
 }
 
-function okFlag(ok: boolean | null | undefined): LatestRunObservation["outcome"] {
+function okFlag(ok: unknown): LatestRunObservation["outcome"] {
   if (ok === true) return "ok";
   if (ok === false) return "failed";
   return "unknown";
@@ -252,33 +250,62 @@ type WorkerObservationResult = {
   blocked?: WorkerQueueItem[];
 };
 
-type RunRow = { started_at: unknown; completed_at: unknown; status: string };
+type Row = Record<string, unknown>;
+type SqlClient = ReturnType<typeof getSql>;
+
+async function select(query: Promise<unknown>): Promise<Row[]> {
+  return ((await query) as Row[] | undefined) ?? [];
+}
 
 async function scalarIso(query: Promise<unknown>): Promise<string | null> {
-  const rows = (await query) as Array<{ at: unknown }>;
+  const rows = await select(query);
   return toIsoOrNull(rows[0]?.at);
 }
 
-async function observeSupport(exceptions: OpsException[]): Promise<WorkerObservationResult> {
-  const sql = getSql();
-  const [latest, lastOk, lease] = await Promise.all([
-    getLatestSupportJobRun(),
-    getLatestSuccessfulSupportJobRun(),
-    sql`
+async function scalarCount(query: Promise<unknown>): Promise<number> {
+  const rows = await select(query);
+  const n = Number(rows[0]?.n ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+async function observeSupport(sql: SqlClient): Promise<WorkerObservationResult> {
+  const [latestRows, lastOk, lease, openEscalations] = await Promise.all([
+    select(sql`SELECT ok, finished_at FROM support_job_runs ORDER BY id DESC LIMIT 1`),
+    scalarIso(sql`
+      SELECT finished_at AS at FROM support_job_runs
+      WHERE ok = true AND finished_at IS NOT NULL
+      ORDER BY finished_at DESC LIMIT 1
+    `),
+    select(sql`
       SELECT claimed_at FROM support_inbox_lease
       WHERE id = 1 AND claimed_at IS NOT NULL
         AND claimed_at > now() - (${SUPPORT_INBOX_LEASE_STALE_MINUTES}::int * interval '1 minute')
-    `.then((rows) => rows as Array<{ claimed_at: unknown }>),
+    `),
+    select(sql`
+      SELECT m.reporting_excluded, m.status AS msg_status, c.category
+      FROM support_escalations e
+      JOIN support_messages m ON m.id = e.message_id
+      LEFT JOIN support_classifications c ON c.message_id = m.id
+      WHERE e.resolved_at IS NULL
+      LIMIT 200
+    `),
   ]);
-  const escalations = countExceptions(exceptions, (e) => e.sourceType === "support_escalation");
+  const latest = latestRows[0];
+  const escalations = openEscalations.filter((r) =>
+    supportEscalationEligible({
+      reportingExcluded: Boolean(r.reporting_excluded),
+      category: r.category ? String(r.category) : null,
+      status: r.msg_status ? String(r.msg_status) : null,
+    })
+  ).length;
   const autoSend = isSupportAutoSendEnabled();
   return {
     observation: {
       enabled: true,
       latestRun: latest
-        ? { startedAt: null, finishedAt: latest.finishedAt, outcome: okFlag(latest.ok) }
+        ? { startedAt: null, finishedAt: toIsoOrNull(latest.finished_at), outcome: okFlag(latest.ok) }
         : null,
-      lastSuccessAt: lastOk?.finishedAt ?? null,
+      lastSuccessAt: lastOk,
       staleAfterMinutes: getSupportExpectedPollMinutes() * 2,
       leaseHeld: lease.length > 0,
       waitingCount: escalations,
@@ -289,28 +316,31 @@ async function observeSupport(exceptions: OpsException[]): Promise<WorkerObserva
   };
 }
 
-async function observeFinance(exceptions: OpsException[]): Promise<WorkerObservationResult> {
-  const sql = getSql();
-  const [latest, lastOk] = await Promise.all([
-    getLatestFinanceJobRun("finance_reconciliation"),
+async function observeFinance(sql: SqlClient): Promise<WorkerObservationResult> {
+  const [latestRows, lastOk, warnings] = await Promise.all([
+    select(sql`
+      SELECT started_at, finished_at, status FROM finance_job_runs
+      WHERE job_name = 'finance_reconciliation'
+      ORDER BY started_at DESC LIMIT 1
+    `),
     scalarIso(sql`
       SELECT finished_at AS at FROM finance_job_runs
       WHERE job_name = 'finance_reconciliation' AND status = 'ok'
       ORDER BY started_at DESC LIMIT 1
     `),
+    scalarCount(sql`
+      SELECT COUNT(*)::int AS n FROM finance_reconciliation_warnings WHERE status = 'open'
+    `),
   ]);
-  const warnings = countExceptions(
-    exceptions,
-    (e) => e.sourceType === "finance_reconciliation_warning"
-  );
+  const latest = latestRows[0];
   return {
     observation: {
       enabled: true,
       latestRun: latest
         ? {
-            startedAt: latest.startedAt,
-            finishedAt: latest.finishedAt,
-            outcome: runStatusToOutcome(latest.status),
+            startedAt: toIsoOrNull(latest.started_at),
+            finishedAt: toIsoOrNull(latest.finished_at),
+            outcome: runStatusToOutcome(latest.status as string | null),
           }
         : null,
       lastSuccessAt: lastOk,
@@ -321,19 +351,14 @@ async function observeFinance(exceptions: OpsException[]): Promise<WorkerObserva
   };
 }
 
-async function observeInventory(exceptions: OpsException[]): Promise<WorkerObservationResult> {
-  const sql = getSql();
-  const lastOk = await scalarIso(
-    sql`SELECT MAX(created_at) AS at FROM inventory_monitor_snapshots`
-  );
-  const awaitingTesting = countExceptions(
-    exceptions,
-    (e) => e.sourceType === "inventory_awaiting_testing"
-  );
-  const reorder = countExceptions(
-    exceptions,
-    (e) => e.sourceType === "inventory_reorder_review"
-  );
+async function observeInventory(sql: SqlClient): Promise<WorkerObservationResult> {
+  const [lastOk, awaitingTesting] = await Promise.all([
+    scalarIso(sql`SELECT MAX(created_at) AS at FROM inventory_monitor_snapshots`),
+    scalarCount(sql`
+      SELECT COUNT(*)::int AS n FROM inventory_pipeline_lots
+      WHERE status = 'received_awaiting_testing'
+    `),
+  ]);
   return {
     observation: {
       enabled: true,
@@ -341,24 +366,54 @@ async function observeInventory(exceptions: OpsException[]): Promise<WorkerObser
       lastSuccessAt: lastOk,
       // Matches the ops exception threshold (2.5 days).
       staleAfterMinutes: 2.5 * DAY_MINUTES,
-      waitingCount: awaitingTesting + reorder,
+      waitingCount: awaitingTesting,
     },
-    waiting: [
-      ...queue("Lots awaiting testing release", awaitingTesting, "/admin-inventory"),
-      ...queue("Reorder reviews", reorder, "/admin-inventory"),
-    ],
+    waiting: queue("Lots awaiting testing release", awaitingTesting, "/admin-inventory"),
   };
 }
 
-async function observeFulfillment(): Promise<WorkerObservationResult> {
-  const sql = getSql();
-  const [board, lastActivity] = await Promise.all([
-    collectFulfillmentBoard(),
-    scalarIso(sql`SELECT MAX(updated_at) AS at FROM fulfillment_workflow`).catch(
-      () => null
-    ),
+/** Bucket counts mirror `collectFulfillmentBoard` (eligible paid orders, workflow status, open reconciliation blockers). */
+async function observeFulfillment(sql: SqlClient): Promise<WorkerObservationResult> {
+  const [bucketRows, lastActivity] = await Promise.all([
+    select(sql`
+      WITH eligible AS (
+        SELECT o.order_id
+        FROM orders o
+        WHERE o.status = 'paid'
+          AND (o.tracking_number IS NULL OR trim(o.tracking_number) = '')
+          AND NOT EXISTS (
+            SELECT 1 FROM finance_transactions ft
+            WHERE ft.psl_order_id = o.order_id AND ft.reporting_excluded = true
+          )
+        ORDER BY o.paid_at ASC NULLS LAST, o.created_at ASC
+        LIMIT 150
+      ),
+      classified AS (
+        SELECT
+          CASE
+            WHEN EXISTS (
+              SELECT 1 FROM finance_reconciliation_warnings w
+              WHERE w.status = 'open' AND w.psl_order_id = e.order_id
+            ) AND COALESCE(wf.workflow_status, 'ready') <> 'packed' THEN 'hold'
+            WHEN wf.workflow_status = 'hold' THEN 'hold'
+            WHEN wf.workflow_status = 'packed' THEN 'packed'
+            ELSE 'ready'
+          END AS bucket
+        FROM eligible e
+        LEFT JOIN fulfillment_workflow wf ON wf.order_id = e.order_id
+      )
+      SELECT
+        COUNT(*) FILTER (WHERE bucket = 'ready')::int AS ready,
+        COUNT(*) FILTER (WHERE bucket = 'packed')::int AS packed,
+        COUNT(*) FILTER (WHERE bucket = 'hold')::int AS hold
+      FROM classified
+    `),
+    scalarIso(sql`SELECT MAX(updated_at) AS at FROM fulfillment_workflow`),
   ]);
-  const s = board.summary;
+  const b = bucketRows[0] ?? {};
+  const ready = Number(b.ready ?? 0);
+  const packed = Number(b.packed ?? 0);
+  const hold = Number(b.hold ?? 0);
   const btcp = getBtcpostagePublicConfig();
   return {
     observation: {
@@ -367,25 +422,22 @@ async function observeFulfillment(): Promise<WorkerObservationResult> {
       lastSuccessAt: null,
       lastActivityAt: lastActivity,
       staleAfterMinutes: null,
-      waitingCount: s.readyOrders + s.packedWaitingTracking + s.holds,
+      waitingCount: ready + packed + hold,
     },
     testMode: btcp.testMode,
     flags: [btcp.configured ? "BTCPostage configured" : "BTCPostage not configured"],
     waiting: [
-      ...queue("Ready to pack", s.readyOrders, "/admin-fulfillment"),
-      ...queue("Packed awaiting tracking", s.packedWaitingTracking, "/admin-fulfillment"),
+      ...queue("Ready to pack", ready, "/admin-fulfillment"),
+      ...queue("Packed awaiting tracking", packed, "/admin-fulfillment"),
     ],
-    blocked: queue("Orders on hold", s.holds, "/admin-fulfillment"),
+    blocked: queue("Orders on hold", hold, "/admin-fulfillment"),
   };
 }
 
-async function observeDiscord(): Promise<WorkerObservationResult> {
+async function observeDiscord(sql: SqlClient): Promise<WorkerObservationResult> {
   const status = getDiscordAdminStatusSafe();
-  const sql = getSql();
   const lastActivity = status.enabled
-    ? await scalarIso(sql`SELECT MAX(created_at) AS at FROM discord_interactions`).catch(
-        () => null
-      )
+    ? await scalarIso(sql`SELECT MAX(created_at) AS at FROM discord_interactions`)
     : null;
   return {
     observation: {
@@ -401,14 +453,9 @@ async function observeDiscord(): Promise<WorkerObservationResult> {
   };
 }
 
-async function observeAuthority(exceptions: OpsException[]): Promise<WorkerObservationResult> {
-  const sql = getSql();
+async function observeAuthority(sql: SqlClient): Promise<WorkerObservationResult> {
   const lastActivity = await scalarIso(
     sql`SELECT MAX(updated_at) AS at FROM authority_opportunities`
-  ).catch(() => null);
-  const waiting = countExceptions(
-    exceptions,
-    (e) => e.sourceType === "authority_brief_waiting"
   );
   return {
     observation: {
@@ -417,21 +464,23 @@ async function observeAuthority(exceptions: OpsException[]): Promise<WorkerObser
       lastSuccessAt: null,
       lastActivityAt: lastActivity,
       staleAfterMinutes: null,
-      waitingCount: waiting,
+      waitingCount: 0,
     },
-    waiting: queue("Approved briefs waiting >21d", waiting, "/admin-authority"),
   };
 }
 
-async function observeCustomerIntel(): Promise<WorkerObservationResult> {
-  const snap = await getLatestCustomerIntelSnapshot();
+async function observeCustomerIntel(sql: SqlClient): Promise<WorkerObservationResult> {
+  const generatedAt = await scalarIso(sql`
+    SELECT generated_at AS at FROM customer_intelligence_snapshots
+    ORDER BY period_end DESC LIMIT 1
+  `);
   return {
     observation: {
       enabled: true,
-      latestRun: snap
-        ? { startedAt: null, finishedAt: snap.generatedAt, outcome: "ok" }
+      latestRun: generatedAt
+        ? { startedAt: null, finishedAt: generatedAt, outcome: "ok" }
         : null,
-      lastSuccessAt: snap?.generatedAt ?? null,
+      lastSuccessAt: generatedAt,
       // Matches the readiness matrix (>10 days = attention).
       staleAfterMinutes: 10 * DAY_MINUTES,
       waitingCount: 0,
@@ -439,19 +488,24 @@ async function observeCustomerIntel(): Promise<WorkerObservationResult> {
   };
 }
 
-async function observeDecisionEngine(lukeDecisionCount: number): Promise<WorkerObservationResult> {
-  const sql = getSql();
-  const [latestRows, lastOk] = await Promise.all([
-    sql`
+async function observeDecisionEngine(sql: SqlClient): Promise<WorkerObservationResult> {
+  const [latestRows, lastOk, activeOwners] = await Promise.all([
+    select(sql`
       SELECT started_at, completed_at, status FROM decision_engine_runs
       ORDER BY id DESC LIMIT 1
-    `.then((rows) => rows as RunRow[]),
+    `),
     scalarIso(sql`
       SELECT completed_at AS at FROM decision_engine_runs
       WHERE status = 'ok' ORDER BY id DESC LIMIT 1
     `),
+    select(sql`
+      SELECT recommended_owner FROM decision_signals WHERE status = 'active'
+    `),
   ]);
   const latest = latestRows[0];
+  const lukeDecisions = activeOwners.filter((r) =>
+    isLukeOwnerAttention(String(r.recommended_owner ?? ""))
+  ).length;
   return {
     observation: {
       enabled: true,
@@ -459,32 +513,35 @@ async function observeDecisionEngine(lukeDecisionCount: number): Promise<WorkerO
         ? {
             startedAt: toIsoOrNull(latest.started_at),
             finishedAt: toIsoOrNull(latest.completed_at),
-            outcome: runStatusToOutcome(latest.status),
+            outcome: runStatusToOutcome(latest.status as string | null),
           }
         : null,
       lastSuccessAt: lastOk,
       // Matches the readiness matrix (>2 days = attention).
       staleAfterMinutes: 2 * DAY_MINUTES,
-      waitingCount: lukeDecisionCount,
+      waitingCount: lukeDecisions,
     },
-    waiting: queue("Decisions for Luke", lukeDecisionCount, "/admin-decisions"),
+    waiting: queue("Decisions for Luke", lukeDecisions, "/admin-decisions"),
   };
 }
 
-async function observeCeoBrief(): Promise<WorkerObservationResult> {
-  const latest = await getLatestCeoBrief();
-  const emailFailed = Boolean(latest?.emailSendLastError && !latest?.emailSentAt);
+async function observeCeoBrief(sql: SqlClient): Promise<WorkerObservationResult> {
+  const rows = await select(sql`
+    SELECT generated_at, email_sent_at, email_send_last_error
+    FROM ceo_weekly_briefs
+    ORDER BY period_end DESC, generated_at DESC
+    LIMIT 1
+  `);
+  const latest = rows[0];
+  const generatedAt = toIsoOrNull(latest?.generated_at);
+  const emailFailed = Boolean(latest?.email_send_last_error && !latest?.email_sent_at);
   return {
     observation: {
       enabled: true,
-      latestRun: latest
-        ? {
-            startedAt: null,
-            finishedAt: latest.generatedAt,
-            outcome: emailFailed ? "failed" : "ok",
-          }
+      latestRun: generatedAt
+        ? { startedAt: null, finishedAt: generatedAt, outcome: emailFailed ? "failed" : "ok" }
         : null,
-      lastSuccessAt: latest?.generatedAt ?? null,
+      lastSuccessAt: generatedAt,
       staleAfterMinutes: 14 * DAY_MINUTES,
       waitingCount: 0,
     },
@@ -492,16 +549,16 @@ async function observeCeoBrief(): Promise<WorkerObservationResult> {
   };
 }
 
-async function observeRetention(): Promise<WorkerObservationResult> {
+async function observeRetention(sql: SqlClient): Promise<WorkerObservationResult> {
   const readiness = getRetentionReadiness();
-  const sql = getSql();
-  const [latest, lastOk] = await Promise.all([
-    getLatestRetentionJobRun(),
+  const [latestRows, lastOk] = await Promise.all([
+    select(sql`SELECT finished_at, ok FROM retention_job_runs ORDER BY id DESC LIMIT 1`),
     scalarIso(sql`
       SELECT finished_at AS at FROM retention_job_runs
       WHERE ok = true ORDER BY id DESC LIMIT 1
     `),
   ]);
+  const latest = latestRows[0];
   return {
     observation: {
       enabled: readiness.autoSendEnabled,
@@ -510,7 +567,7 @@ async function observeRetention(): Promise<WorkerObservationResult> {
           ? readiness.reasons.slice(0, 2).join("; ")
           : null,
       latestRun: latest
-        ? { startedAt: null, finishedAt: latest.finishedAt, outcome: okFlag(latest.ok) }
+        ? { startedAt: null, finishedAt: toIsoOrNull(latest.finished_at), outcome: okFlag(latest.ok) }
         : null,
       lastSuccessAt: lastOk,
       staleAfterMinutes: 2 * DAY_MINUTES + 60,
@@ -521,31 +578,31 @@ async function observeRetention(): Promise<WorkerObservationResult> {
   };
 }
 
-async function observeDataSync(): Promise<WorkerObservationResult> {
-  const sql = getSql();
-  const paid = await getAllPaidProviderStatuses().catch(() => []);
-  const gscConfigured = Boolean(process.env.GOOGLE_SEARCH_CONSOLE_PROPERTY?.trim());
-  const configured = gscConfigured || paid.some((p) => p.state !== "not_configured");
-  const [latestRows, lastOk] = await Promise.all([
-    sql`
-      SELECT started_at, completed_at, status FROM external_metric_sync_runs
-      WHERE status <> 'not_configured'
-      ORDER BY id DESC LIMIT 1
-    `.then((rows) => rows as RunRow[]),
+async function observeDataSync(sql: SqlClient): Promise<WorkerObservationResult> {
+  const [latestByProvider, lastOk] = await Promise.all([
+    select(sql`
+      SELECT DISTINCT ON (provider) provider, status, started_at, completed_at, id
+      FROM external_metric_sync_runs
+      ORDER BY provider, id DESC
+    `),
     scalarIso(sql`
       SELECT completed_at AS at FROM external_metric_sync_runs
       WHERE status = 'ok' ORDER BY id DESC LIMIT 1
     `),
   ]);
-  const latest = latestRows[0];
+  const gscConfigured = Boolean(process.env.GOOGLE_SEARCH_CONSOLE_PROPERTY?.trim());
+  const active = latestByProvider
+    .filter((r) => r.status !== "not_configured")
+    .sort((a, b) => Number(b.id) - Number(a.id));
+  const latest = active[0];
   return {
     observation: {
-      enabled: configured,
+      enabled: gscConfigured || active.length > 0,
       latestRun: latest
         ? {
             startedAt: toIsoOrNull(latest.started_at),
             finishedAt: toIsoOrNull(latest.completed_at),
-            outcome: runStatusToOutcome(latest.status),
+            outcome: runStatusToOutcome(latest.status as string | null),
           }
         : null,
       lastSuccessAt: lastOk,
@@ -554,20 +611,23 @@ async function observeDataSync(): Promise<WorkerObservationResult> {
     },
     flags: [
       gscConfigured ? "Search Console configured" : "Search Console not configured",
-      ...paid.map((p) => `${p.provider}: ${p.state.replace("_", " ")}`),
+      ...latestByProvider.map(
+        (r) => `${String(r.provider)}: last run ${String(r.status).replace("_", " ")}`
+      ),
     ],
   };
 }
 
 export function buildWorkerCard(
   worker: MissionControlWorker,
-  WorkerObservationResult: WorkerObservationResult | null,
-  now: Date
+  partial: WorkerObservationResult | null,
+  now: Date,
+  observationError?: string | null
 ): WorkerCard {
   const def = DEFINITIONS[worker];
   const next = nextRunForWorker(worker, now);
-  const observation: WorkerObservation = WorkerObservationResult
-    ? { ...WorkerObservationResult.observation, coverage: def.coverage, now }
+  const observation: WorkerObservation = partial
+    ? { ...partial.observation, coverage: def.coverage, now }
     : {
         enabled: true,
         coverage: def.coverage,
@@ -576,6 +636,7 @@ export function buildWorkerCard(
         staleAfterMinutes: null,
         waitingCount: 0,
         observationFailed: true,
+        observationError: observationError ?? null,
         now,
       };
   const { status, detail } = deriveWorkerStatus(observation);
@@ -592,46 +653,39 @@ export function buildWorkerCard(
     lastActivityAt: observation.lastActivityAt ?? null,
     nextRunAt: status === "disabled" ? null : (next?.at ?? null),
     schedule: next ? `${next.job.schedule} UTC` : null,
-    testMode: WorkerObservationResult?.testMode ?? false,
-    flags: WorkerObservationResult?.flags ?? [],
-    waiting: WorkerObservationResult?.waiting ?? [],
-    blocked: WorkerObservationResult?.blocked ?? [],
+    testMode: partial?.testMode ?? false,
+    flags: partial?.flags ?? [],
+    waiting: partial?.waiting ?? [],
+    blocked: partial?.blocked ?? [],
     href: def.href,
   };
 }
 
-export async function collectWorkerCards(input: {
-  exceptions: OpsException[];
-  lukeDecisionCount: number;
-  now?: Date;
-}): Promise<WorkerCard[]> {
-  const now = input.now ?? new Date();
-  const { exceptions } = input;
-  const observers: Array<[MissionControlWorker, () => Promise<WorkerObservationResult>]> = [
-    ["support", () => observeSupport(exceptions)],
-    ["finance", () => observeFinance(exceptions)],
-    ["inventory", () => observeInventory(exceptions)],
-    ["fulfillment", () => observeFulfillment()],
-    ["discord", () => observeDiscord()],
-    ["authority", () => observeAuthority(exceptions)],
-    ["customer_intelligence", () => observeCustomerIntel()],
-    ["decision_engine", () => observeDecisionEngine(input.lukeDecisionCount)],
-    ["ceo_brief", () => observeCeoBrief()],
-    ["retention", () => observeRetention()],
-    ["data_sync", () => observeDataSync()],
+export async function collectWorkerCards(input?: { now?: Date }): Promise<WorkerCard[]> {
+  const now = input?.now ?? new Date();
+  const sql = getSql();
+  const observers: Array<[MissionControlWorker, (s: SqlClient) => Promise<WorkerObservationResult>]> = [
+    ["support", observeSupport],
+    ["finance", observeFinance],
+    ["inventory", observeInventory],
+    ["fulfillment", observeFulfillment],
+    ["discord", observeDiscord],
+    ["authority", observeAuthority],
+    ["customer_intelligence", observeCustomerIntel],
+    ["decision_engine", observeDecisionEngine],
+    ["ceo_brief", observeCeoBrief],
+    ["retention", observeRetention],
+    ["data_sync", observeDataSync],
   ];
-  const results = await Promise.all(
+  return Promise.all(
     observers.map(async ([worker, observe]) => {
       try {
-        return buildWorkerCard(worker, await observe(), now);
+        return buildWorkerCard(worker, await observe(sql), now);
       } catch (error) {
-        console.error(
-          `[mission-control] worker ${worker} observation failed:`,
-          error instanceof Error ? error.message : error
-        );
-        return buildWorkerCard(worker, null, now);
+        const detail = describeSourceError(error);
+        console.error(`[mission-control] worker ${worker} observation failed:`, detail);
+        return buildWorkerCard(worker, null, now, detail);
       }
     })
   );
-  return results;
 }

@@ -13,3 +13,10 @@ export function getSql(): NeonQueryFunction<false, false> {
   sqlClient = neon(url);
   return sqlClient;
 }
+
+/** Test-only: substitute the client so offline tests can observe every statement. */
+export function __setSqlClientForTests(
+  client: NeonQueryFunction<false, false> | null
+): void {
+  sqlClient = client;
+}

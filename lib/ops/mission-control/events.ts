@@ -1,6 +1,6 @@
 import { getSql } from "@/lib/db/sql";
 
-import { ensureOpsSchema } from "../schema";
+import { getMissionControlWriteMode } from "./config";
 import {
   ACTIVITY_OUTCOMES,
   MISSION_CONTROL_WORKERS,
@@ -94,18 +94,19 @@ function mapEventRow(row: Record<string, unknown>): ActivityEvent {
 
 /**
  * Inserts events; duplicates (same source_event_key) are ignored.
- * Returns the number of newly inserted rows. Throws on DB errors so the
- * projector can surface coverage issues — use `recordActivityEventSafe`
- * from business code paths.
+ * Returns the number of newly inserted rows. Does nothing unless Mission
+ * Control writes are enabled server-side; never creates tables. Throws on DB
+ * errors so the projector can surface coverage issues — use
+ * `recordActivityEventSafe` from business code paths.
  */
 export async function insertActivityEvents(
   inputs: ActivityEventInput[]
 ): Promise<number> {
+  if (!getMissionControlWriteMode().enabled) return 0;
   const events = inputs
     .map(normalizeActivityEvent)
     .filter((e): e is ActivityEventInput => e !== null);
   if (events.length === 0) return 0;
-  await ensureOpsSchema();
   const sql = getSql();
   const unique = [
     ...new Map(events.map((e) => [e.sourceEventKey, e] as const)).values(),
@@ -162,7 +163,6 @@ export async function recordActivityEventSafe(
 export async function listRecentActivityEvents(
   limit = 100
 ): Promise<ActivityEvent[]> {
-  await ensureOpsSchema();
   const sql = getSql();
   const safe = Math.min(Math.max(Math.floor(limit), 1), ACTIVITY_PAGE_MAX);
   const rows = (await sql`
@@ -178,7 +178,6 @@ export async function listActivityEventsAfter(
   cursor: number,
   limit = ACTIVITY_PAGE_MAX
 ): Promise<ActivityEvent[]> {
-  await ensureOpsSchema();
   const sql = getSql();
   const safe = Math.min(Math.max(Math.floor(limit), 1), ACTIVITY_PAGE_MAX);
   const rows = (await sql`

@@ -18,10 +18,19 @@ const MAX_EVENTS = 500;
 
 type ApiPayload = {
   serverTime: string;
+  initialized: boolean;
+  migrationRequired: string | null;
+  missingTables: string[];
+  writeMode: { enabled: boolean; reason: string };
   cursor: number;
   events: ActivityEvent[];
   snapshot: MissionControlSnapshot | null;
 };
+
+type ServerState = Pick<
+  ApiPayload,
+  "initialized" | "migrationRequired" | "missingTables" | "writeMode"
+>;
 
 type Connection =
   | { state: "live" }
@@ -76,6 +85,7 @@ function workerLabel(snapshot: MissionControlSnapshot | null, worker: string): s
 export function MissionControl() {
   const [events, setEvents] = useState<Map<number, ActivityEvent>>(new Map());
   const [snapshot, setSnapshot] = useState<MissionControlSnapshot | null>(null);
+  const [serverState, setServerState] = useState<ServerState | null>(null);
   const [connection, setConnection] = useState<Connection>({ state: "live" });
   const [lastOkAt, setLastOkAt] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -136,6 +146,12 @@ export function MissionControl() {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = (await res.json()) as ApiPayload;
         if (cancelled) return;
+        setServerState({
+          initialized: data.initialized,
+          migrationRequired: data.migrationRequired,
+          missingTables: data.missingTables,
+          writeMode: data.writeMode,
+        });
         mergeEvents(data.events);
         cursorRef.current = data.cursor;
         if (data.snapshot) {
@@ -231,6 +247,24 @@ export function MissionControl() {
         <p className="text-sm text-ash">Loading…</p>
       )}
 
+      {serverState && !serverState.initialized && (
+        <section className="premium-card border-l-4 border-amber-500 px-4 py-3 text-sm">
+          <p className="font-medium text-ink">Mission Control not initialized</p>
+          <p className="mt-1 text-ash">{serverState.migrationRequired}</p>
+          <p className="mt-1 text-xs text-ash">
+            Missing: {serverState.missingTables.join(", ")}. Nothing is created
+            automatically. Worker status below is read directly from existing records.
+          </p>
+        </section>
+      )}
+
+      {serverState && !serverState.writeMode.enabled && (
+        <p className="text-xs text-ash">
+          Read-only: {serverState.writeMode.reason}. No activity backfill runs; the
+          feed shows only events already recorded.
+        </p>
+      )}
+
       {snapshot && <PipelineSection snapshot={snapshot} />}
       {snapshot && <IncidentsSection snapshot={snapshot} />}
       {snapshot && <WorkersSection workers={snapshot.workers} />}
@@ -269,7 +303,11 @@ export function MissionControl() {
           completed-run summaries only; intermediate steps are not invented.
         </p>
         {loaded && feed.length === 0 ? (
-          <p className="mt-3 text-sm text-ash">No activity recorded yet.</p>
+          <p className="mt-3 text-sm text-ash">
+            {serverState && !serverState.initialized
+              ? "No activity table in this database yet."
+              : "No activity recorded yet."}
+          </p>
         ) : (
           <ul className="mt-3 divide-y divide-zinc-200 premium-card">
             {feed.map((e) => (
@@ -429,6 +467,19 @@ function PipelineSection({ snapshot }: { snapshot: MissionControlSnapshot }) {
 }
 
 function IncidentsSection({ snapshot }: { snapshot: MissionControlSnapshot }) {
+  if (!snapshot.incidents) {
+    return (
+      <section>
+        <h3 className="font-display text-lg font-bold text-ink">Incidents</h3>
+        <p className="mt-1 text-sm text-ash">
+          {snapshot.incidentsNote}{" "}
+          <a href="/admin-ops" className="underline">
+            Open Overview
+          </a>
+        </p>
+      </section>
+    );
+  }
   const open = snapshot.incidents.filter((i) => !i.acknowledged);
   const acknowledged = snapshot.incidents.filter((i) => i.acknowledged);
   return (
@@ -549,14 +600,20 @@ function ConnectionsSection({ snapshot }: { snapshot: MissionControlSnapshot }) 
         <h3 className="font-display text-sm font-bold uppercase tracking-wide text-ash">
           System connections
         </h3>
-        <ul className="mt-2 space-y-1 text-sm text-ink">
-          {snapshot.connections.map((c) => (
-            <li key={c.area}>
-              {c.area}: <span className="font-medium">{c.status}</span>
-              {c.detail && <span className="text-xs text-ash"> · {c.detail}</span>}
-            </li>
-          ))}
-        </ul>
+        {snapshot.connections ? (
+          <ul className="mt-2 space-y-1 text-sm text-ink">
+            {snapshot.connections.map((c) => (
+              <li key={c.area}>
+                {c.area}: <span className="font-medium">{c.status}</span>
+                {c.detail && <span className="text-xs text-ash"> · {c.detail}</span>}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-sm text-ash">
+            Not loaded in read-only mode (shown on the Overview tab).
+          </p>
+        )}
       </div>
       <div>
         <h3 className="font-display text-sm font-bold uppercase tracking-wide text-ash">

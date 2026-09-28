@@ -7,7 +7,7 @@
  */
 import { getSql } from "@/lib/db/sql";
 
-import { ensureOpsSchema } from "../schema";
+import { getMissionControlWriteMode } from "./config";
 import { insertActivityEvents, toIsoOrNull } from "./events";
 import type {
   ActivityEventInput,
@@ -775,7 +775,7 @@ export function describeSourceError(error: unknown): string {
 export async function claimActivitySync(
   minIntervalSeconds = ACTIVITY_SYNC_MIN_INTERVAL_SECONDS
 ): Promise<boolean> {
-  await ensureOpsSchema();
+  if (!getMissionControlWriteMode().enabled) return false;
   const sql = getSql();
   const rows = (await sql`
     INSERT INTO ops_activity_sync_state (source, last_attempt_at)
@@ -814,17 +814,27 @@ async function recordSourceState(
 
 export type ActivitySyncResult = {
   ran: boolean;
+  disabled: boolean;
+  reason: string | null;
   inserted: number;
   sources: Array<{ source: string; inserted: number; error: string | null }>;
 };
 
-/** Read-only against sources; each source is isolated so one failure never blocks others. */
+/**
+ * Read-only against sources; each source is isolated so one failure never
+ * blocks others. Refuses to run (no queries at all) unless writes are enabled
+ * server-side — `force` only skips the throttle, never the gate.
+ */
 export async function syncActivityFromSources(options?: {
   force?: boolean;
   sources?: ActivitySource[];
 }): Promise<ActivitySyncResult> {
+  const mode = getMissionControlWriteMode();
+  if (!mode.enabled) {
+    return { ran: false, disabled: true, reason: mode.reason, inserted: 0, sources: [] };
+  }
   if (!options?.force && !(await claimActivitySync())) {
-    return { ran: false, inserted: 0, sources: [] };
+    return { ran: false, disabled: false, reason: "Throttled", inserted: 0, sources: [] };
   }
   const sql = getSql();
   const results = await Promise.all(
@@ -847,13 +857,15 @@ export async function syncActivityFromSources(options?: {
   );
   return {
     ran: true,
+    disabled: false,
+    reason: null,
     inserted: results.reduce((s, r) => s + r.inserted, 0),
     sources: results,
   };
 }
 
+/** Read-only; callers must confirm the table exists first. */
 export async function listActivitySyncStates(): Promise<ActivitySyncState[]> {
-  await ensureOpsSchema();
   const sql = getSql();
   const rows = (await sql`
     SELECT * FROM ops_activity_sync_state
