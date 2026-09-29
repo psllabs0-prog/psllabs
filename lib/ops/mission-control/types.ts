@@ -25,7 +25,7 @@ export type MissionControlWorker = (typeof MISSION_CONTROL_WORKERS)[number];
  * business workers so an integration can never write as finance, support,
  * etc. (see `normalizeActivityEvent`).
  */
-export const MISSION_CONTROL_INTEGRATIONS = ["n8n"] as const;
+export const MISSION_CONTROL_INTEGRATIONS = ["n8n", "x_publishing"] as const;
 
 export type MissionControlIntegration = (typeof MISSION_CONTROL_INTEGRATIONS)[number];
 

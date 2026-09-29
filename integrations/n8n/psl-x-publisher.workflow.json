@@ -1,0 +1,673 @@
+{
+  "name": "PSL X publisher - approved queue (manual)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "pinData": {},
+  "nodes": [
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000001",
+      "name": "Setup notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-260, -320],
+      "parameters": {
+        "width": 640,
+        "height": 300,
+        "content": "## PSL X publisher (approved queue) - MANUAL ONLY\nSee integrations/n8n/X_PUBLISHER_README.md in the PSL repo.\n1. Config > pslBaseUrl: PSL HTTPS origin, no path.\n2. Header Auth credential **PSL X Queue** on the 5 PSL HTTP nodes.\n3. Generic OAuth2 credential **PSL X Publishing** on the 3 X HTTP nodes.\n4. Keep inactive. Do not add a Schedule/Cron/Webhook trigger yet.\n\nOne post per run, only if PSL issues a one-time dispatch permit. Create Post never retries.\nOutcomes after Create Post: 'X rejected the post (confirmed)' = not posted; 'Outcome unknown' = the post may exist; 'Created on X, lookup not confirmed' = X returned an ID, verification pending; 'Published and verified'. After 'Outcome unknown' or 'lookup not confirmed', DO NOT re-run to retry posting - review in /admin-social."
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000002",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-260, 0],
+      "parameters": {}
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000003",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-60, 0],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c0f1a2b3-0000-4000-8000-000000000001",
+              "name": "pslBaseUrl",
+              "value": "https://REPLACE-WITH-PSL-BASE-URL",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000004",
+      "name": "Config valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [140, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "d1a0b2c3-0000-4000-8000-000000000001",
+              "leftValue": "={{ /^https:[/][/][A-Za-z0-9.-]+$/.test($json.pslBaseUrl) && !$json.pslBaseUrl.includes('REPLACE') }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000005",
+      "name": "Stop: invalid config",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [340, 200],
+      "parameters": {
+        "errorMessage": "Config.pslBaseUrl must be the PSL HTTPS origin with no path or trailing slash. No request was made."
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000006",
+      "name": "Claim work",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [340, 0],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl }}/api/integrations/n8n/x-publishing/claim",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ mode: 'live', trigger: 'manual', executionId: String($execution.id).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64) || 'manual' }) }}",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000007",
+      "name": "Stop: claim failed",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [540, 240],
+      "parameters": {
+        "errorMessage": "=Claim failed ({{ $json.error && $json.error.message ? $json.error.message : 'no response' }}). No X request was made. If an item was claimed, its 5-minute lease expires and it returns to the queue."
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000008",
+      "name": "Publish work?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [540, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "d1a0b2c3-0000-4000-8000-000000000002",
+              "leftValue": "={{ !!$json.work && $json.work.kind === 'publish' && $json.work.mode === 'live' && typeof $json.work.attemptId === 'string' && typeof $json.work.token === 'string' && typeof $json.work.expectedAccountId === 'string' }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000009",
+      "name": "Lookup work?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [740, 240],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "d1a0b2c3-0000-4000-8000-000000000003",
+              "leftValue": "={{ !!$json.work && $json.work.kind === 'lookup' && $json.work.mode === 'live' && typeof $json.work.xPostId === 'string' && /^[1-9][0-9]{0,18}$/.test($json.work.xPostId) }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000010",
+      "name": "Nothing due (no X calls)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [940, 400],
+      "parameters": {}
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000011",
+      "name": "Get authenticated X account",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [740, -120],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.x.com/2/users/me",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "response": { "response": { "fullResponse": true, "neverError": true, "responseFormat": "json" } },
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000012",
+      "name": "Report account check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [940, -120],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl }}/api/integrations/n8n/x-publishing/attempts/{{ $('Claim work').first().json.work.attemptId }}/identity",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ token: $('Claim work').first().json.work.token, httpStatus: typeof $json.statusCode === 'number' ? $json.statusCode : null, accountId: ($json.body && $json.body.data && typeof $json.body.data.id === 'string') ? $json.body.data.id : null }) }}",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "response": { "response": { "neverError": true } },
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000013",
+      "name": "Stop: account check not recorded",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [1140, 80],
+      "parameters": {
+        "errorMessage": "The account check could not be recorded with PSL. Nothing was posted."
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000014",
+      "name": "Account confirmed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1140, -120],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "d1a0b2c3-0000-4000-8000-000000000004",
+              "leftValue": "={{ $json.proceed === true }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000015",
+      "name": "Stop: account check failed",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [1340, 80],
+      "parameters": {
+        "errorMessage": "=The authenticated X account was not confirmed as the locked destination. Nothing was posted. {{ $json.reason || $json.error || '' }}"
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000016",
+      "name": "Request dispatch permit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, -120],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl }}/api/integrations/n8n/x-publishing/attempts/{{ $('Claim work').first().json.work.attemptId }}/dispatch",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ token: $('Claim work').first().json.work.token }) }}",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "response": { "response": { "neverError": true } },
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000017",
+      "name": "Stop: permit not received",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [1540, 120],
+      "parameters": {
+        "errorMessage": "=No dispatch permit response was received, so nothing was sent by this run. If PSL did issue a permit, the attempt becomes uncertain after the dispatch deadline. Do not re-run to retry; review attempt {{ $('Claim work').first().json.work.attemptId }} in /admin-social."
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000018",
+      "name": "Permit issued?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1540, -120],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "d1a0b2c3-0000-4000-8000-000000000005",
+              "leftValue": "={{ $json.permit === 'issued' && $json.mode === 'live' && $json.attemptId === $('Claim work').first().json.work.attemptId && typeof $json.text === 'string' && $json.text.length > 0 }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000019",
+      "name": "Stop: dispatch denied",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [1740, 120],
+      "parameters": {
+        "errorMessage": "=Dispatch not permitted ({{ $json.code || $json.permit || 'no permit' }}): {{ $json.reason || $json.message || $json.error || '' }} Nothing was posted by this run."
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000020",
+      "name": "Create Post on X",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1740, -120],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.x.com/2/tweets",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $('Request dispatch permit').first().json.text }) }}",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "response": { "response": { "fullResponse": true, "neverError": true, "responseFormat": "json" } },
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000030",
+      "name": "Create response evidence",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1940, -120],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c0f1a2b3-0000-4000-8000-000000000005",
+              "name": "evidence",
+              "value": "={{ { transportError: typeof $json.statusCode !== 'number', httpStatus: typeof $json.statusCode === 'number' ? $json.statusCode : null, postId: ($json.body && $json.body.data && typeof $json.body.data.id === 'string') ? $json.body.data.id : null, errorTitle: ($json.body && typeof $json.body.title === 'string') ? $json.body.title : (($json.body && typeof $json.body.detail === 'string') ? $json.body.detail : null), rateLimitReset: ($json.headers && $json.headers['x-rate-limit-reset']) ? String($json.headers['x-rate-limit-reset']) : null } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000021",
+      "name": "Report create result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2140, -120],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl }}/api/integrations/n8n/x-publishing/attempts/{{ $('Claim work').first().json.work.attemptId }}/result",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify(Object.assign({ token: $('Claim work').first().json.work.token }, $json.evidence)) }}",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000022",
+      "name": "Stop: outcome unknown (review required)",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [2540, 280],
+      "parameters": {
+        "errorMessage": "=Create Post outcome UNKNOWN: the post may or may not exist on X. Do NOT re-run to retry posting. {{ $json.state ? 'PSL recorded the attempt as ' + $json.state + ($json.code ? ' (' + $json.code + ')' : '') + ($json.review ? ', flagged for owner review' : '') + '. ' + (typeof $json.error === 'string' ? $json.error : ($json.message || '')) : 'Confirmation not received: PSL did not confirm the create response (' + (($json.error && $json.error.message) || (typeof $json.error === 'string' ? $json.error : 'no response')) + '). If PSL did not record it, /admin-social shows this attempt as outcome unknown once the dispatch deadline passes.' }} Evidence from X: HTTP {{ $('Create response evidence').first().json.evidence.httpStatus === null ? 'none (timeout or network error)' : $('Create response evidence').first().json.evidence.httpStatus }}, post ID {{ $('Create response evidence').first().json.evidence.postId || 'none returned' }}. Attempt {{ $('Claim work').first().json.work.attemptId }}, queue item {{ $('Claim work').first().json.work.queueId }}. Review in /admin-social."
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000023",
+      "name": "Verify now?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2340, -120],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "d1a0b2c3-0000-4000-8000-000000000006",
+              "leftValue": "={{ $json.review !== true && ($json.next === 'lookup' || $json.state === 'created') && typeof $json.xPostId === 'string' && /^[1-9][0-9]{0,18}$/.test($json.xPostId) }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000031",
+      "name": "Rejected by X?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2340, 120],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "d1a0b2c3-0000-4000-8000-000000000007",
+              "leftValue": "={{ $json.state === 'rejected' && $json.retry === false && $json.review !== true }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000024",
+      "name": "Stop: X rejected the post (confirmed)",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [2540, 80],
+      "parameters": {
+        "errorMessage": "=X rejected the post (confirmed response; not posted): {{ $json.code || 'rejected' }}. {{ $json.message || '' }} PSL does not retry automatically.{{ $json.rateLimitResetAt ? ' X rate limit resets at ' + $json.rateLimitResetAt + '.' : '' }} X HTTP {{ $('Create response evidence').first().json.evidence.httpStatus }}. Attempt {{ $('Claim work').first().json.work.attemptId }}; edit and re-approve in /admin-social to try again."
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000025",
+      "name": "Lookup target",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2540, -120],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c0f1a2b3-0000-4000-8000-000000000002",
+              "name": "attemptId",
+              "value": "={{ $json.work ? $json.work.attemptId : $('Claim work').first().json.work.attemptId }}",
+              "type": "string"
+            },
+            {
+              "id": "c0f1a2b3-0000-4000-8000-000000000003",
+              "name": "token",
+              "value": "={{ $json.work ? $json.work.token : $('Claim work').first().json.work.token }}",
+              "type": "string"
+            },
+            {
+              "id": "c0f1a2b3-0000-4000-8000-000000000004",
+              "name": "xPostId",
+              "value": "={{ $json.work ? $json.work.xPostId : $json.xPostId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000026",
+      "name": "Look up post on X",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2740, -120],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.x.com/2/tweets/{{ /^[1-9][0-9]{0,18}$/.test($json.xPostId) ? $json.xPostId : 'invalid-id' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendQuery": true,
+        "specifyQuery": "keypair",
+        "queryParameters": {
+          "parameters": [{ "name": "tweet.fields", "value": "author_id,created_at,entities,text" }]
+        },
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "response": { "response": { "fullResponse": true, "neverError": true, "responseFormat": "json" } },
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000027",
+      "name": "Report lookup evidence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2940, -120],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl }}/api/integrations/n8n/x-publishing/attempts/{{ $('Lookup target').first().json.attemptId }}/lookup",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ token: $('Lookup target').first().json.token, transportError: typeof $json.statusCode !== 'number', httpStatus: typeof $json.statusCode === 'number' ? $json.statusCode : null, data: ($json.body && $json.body.data) ? $json.body.data : null }) }}",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000032",
+      "name": "Verified?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3140, -120],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "d1a0b2c3-0000-4000-8000-000000000008",
+              "leftValue": "={{ $json.state === 'published' }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000028",
+      "name": "Stop: created on X (ID recorded), lookup not confirmed",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [3340, 120],
+      "parameters": {
+        "errorMessage": "=X post ID {{ $('Lookup target').first().json.xPostId }} is recorded in PSL, but read-only lookup has not confirmed it ({{ $json.code || (($json.error && $json.error.message) || (typeof $json.error === 'string' ? $json.error : 'lookup evidence not acknowledged by PSL')) }}{{ $json.state ? '; PSL state ' + $json.state : '' }}). This is NOT a failed post: do NOT post it again. PSL retries the lookup read-only on a later run or flags it for owner review. Attempt {{ $('Lookup target').first().json.attemptId }}. Check https://x.com/i/web/status/{{ $('Lookup target').first().json.xPostId }} and review in /admin-social."
+      }
+    },
+    {
+      "id": "7a1e0b52-3c4d-4e5f-8a01-000000000029",
+      "name": "Published and verified",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [3340, -120],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Config", "type": "main", "index": 0 }]] },
+    "Config": { "main": [[{ "node": "Config valid?", "type": "main", "index": 0 }]] },
+    "Config valid?": {
+      "main": [
+        [{ "node": "Claim work", "type": "main", "index": 0 }],
+        [{ "node": "Stop: invalid config", "type": "main", "index": 0 }]
+      ]
+    },
+    "Claim work": {
+      "main": [
+        [{ "node": "Publish work?", "type": "main", "index": 0 }],
+        [{ "node": "Stop: claim failed", "type": "main", "index": 0 }]
+      ]
+    },
+    "Publish work?": {
+      "main": [
+        [{ "node": "Get authenticated X account", "type": "main", "index": 0 }],
+        [{ "node": "Lookup work?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Lookup work?": {
+      "main": [
+        [{ "node": "Lookup target", "type": "main", "index": 0 }],
+        [{ "node": "Nothing due (no X calls)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get authenticated X account": {
+      "main": [
+        [{ "node": "Report account check", "type": "main", "index": 0 }],
+        [{ "node": "Report account check", "type": "main", "index": 0 }]
+      ]
+    },
+    "Report account check": {
+      "main": [
+        [{ "node": "Account confirmed?", "type": "main", "index": 0 }],
+        [{ "node": "Stop: account check not recorded", "type": "main", "index": 0 }]
+      ]
+    },
+    "Account confirmed?": {
+      "main": [
+        [{ "node": "Request dispatch permit", "type": "main", "index": 0 }],
+        [{ "node": "Stop: account check failed", "type": "main", "index": 0 }]
+      ]
+    },
+    "Request dispatch permit": {
+      "main": [
+        [{ "node": "Permit issued?", "type": "main", "index": 0 }],
+        [{ "node": "Stop: permit not received", "type": "main", "index": 0 }]
+      ]
+    },
+    "Permit issued?": {
+      "main": [
+        [{ "node": "Create Post on X", "type": "main", "index": 0 }],
+        [{ "node": "Stop: dispatch denied", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Post on X": {
+      "main": [
+        [{ "node": "Create response evidence", "type": "main", "index": 0 }],
+        [{ "node": "Create response evidence", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create response evidence": { "main": [[{ "node": "Report create result", "type": "main", "index": 0 }]] },
+    "Report create result": {
+      "main": [
+        [{ "node": "Verify now?", "type": "main", "index": 0 }],
+        [{ "node": "Stop: outcome unknown (review required)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Verify now?": {
+      "main": [
+        [{ "node": "Lookup target", "type": "main", "index": 0 }],
+        [{ "node": "Rejected by X?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Rejected by X?": {
+      "main": [
+        [{ "node": "Stop: X rejected the post (confirmed)", "type": "main", "index": 0 }],
+        [{ "node": "Stop: outcome unknown (review required)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Lookup target": { "main": [[{ "node": "Look up post on X", "type": "main", "index": 0 }]] },
+    "Look up post on X": {
+      "main": [
+        [{ "node": "Report lookup evidence", "type": "main", "index": 0 }],
+        [{ "node": "Report lookup evidence", "type": "main", "index": 0 }]
+      ]
+    },
+    "Report lookup evidence": {
+      "main": [
+        [{ "node": "Verified?", "type": "main", "index": 0 }],
+        [{ "node": "Stop: created on X (ID recorded), lookup not confirmed", "type": "main", "index": 0 }]
+      ]
+    },
+    "Verified?": {
+      "main": [
+        [{ "node": "Published and verified", "type": "main", "index": 0 }],
+        [{ "node": "Stop: created on X (ID recorded), lookup not confirmed", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}

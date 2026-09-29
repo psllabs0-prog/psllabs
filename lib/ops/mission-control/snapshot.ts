@@ -2,6 +2,7 @@ import {
   collectSystemReadinessMatrix,
   type SystemReadinessRow,
 } from "@/lib/decision-engine/readiness";
+import { readXPublishingPanel, type XPublishingPanel } from "@/lib/x-publishing/summary";
 
 import { collectOpsExceptions } from "../exceptions";
 import { sortOpsExceptions, type OpsException } from "../types";
@@ -57,6 +58,8 @@ export type MissionControlSnapshot = {
     /** Null when the activity tables are missing or could not be read. */
     runs: N8nRunView[] | null;
   };
+  /** Null when the X queue could not be read. */
+  xPublishing: XPublishingPanel | null;
 };
 
 export const INCIDENTS_READ_ONLY_NOTE =
@@ -133,7 +136,7 @@ export async function collectMissionControlSnapshot(input: {
   const coverageErrors: string[] = [];
 
   const collectorsAllowed = input.writeMode.enabled;
-  const [workers, exceptions, connections, coverage, n8nRuns] = await Promise.all([
+  const [workers, exceptions, connections, coverage, n8nRuns, xPublishing] = await Promise.all([
     collectWorkerCards({ now }),
     collectorsAllowed
       ? collectOpsExceptions().catch(() => {
@@ -159,11 +162,35 @@ export async function collectMissionControlSnapshot(input: {
           return null;
         })
       : Promise.resolve(null),
+    readXPublishingPanel(now).catch(() => {
+      coverageErrors.push("X publishing queue could not be read");
+      return null;
+    }),
   ]);
+
+  const pipeline = buildPipeline(workers, now);
+  if (xPublishing?.accountMismatch) {
+    pipeline.blocked.push({
+      worker: "x_publishing",
+      label: "X publishing paused: account mismatch",
+      count: null,
+      detail: xPublishing.control?.reason ?? null,
+      href: "/admin-social",
+    });
+  }
+  if (xPublishing && xPublishing.attentionTotal > 0) {
+    pipeline.blocked.push({
+      worker: "x_publishing",
+      label: "X posts needing owner review",
+      count: xPublishing.attentionTotal,
+      detail: null,
+      href: "/admin-social",
+    });
+  }
 
   return {
     generatedAt: now.toISOString(),
-    pipeline: buildPipeline(workers, now),
+    pipeline,
     workers,
     incidents: exceptions ? sortOpsExceptions(exceptions) : null,
     connections,
@@ -176,5 +203,6 @@ export async function collectMissionControlSnapshot(input: {
       completionMeaning: N8N_COMPLETION_MEANING,
       runs: n8nRuns,
     },
+    xPublishing,
   };
 }
