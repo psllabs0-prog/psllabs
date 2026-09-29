@@ -1,6 +1,7 @@
 import { getSql } from "@/lib/db/sql";
 
 import { ensureCustomerIntelligenceSchema } from "./schema";
+import { fetchLatestLegitimateCustomerIntelSnapshot } from "./snapshot-validity";
 import type {
   CiConfidence,
   CiRecommendationType,
@@ -192,28 +193,13 @@ export async function getLatestCustomerIntelSnapshot(): Promise<{
   snapshot: Record<string, unknown>;
 } | null> {
   await ensureCustomerIntelligenceSchema();
-  const sql = getSql();
-  const rows = (await sql`
-    SELECT period_start, period_end, generated_at, snapshot_json
-    FROM customer_intelligence_snapshots
-    ORDER BY period_end DESC
-    LIMIT 1
-  `) as Array<{
-    period_start: string | Date;
-    period_end: string | Date;
-    generated_at: string | Date;
-    snapshot_json: Record<string, unknown>;
-  }>;
-  if (!rows[0]) return null;
-  const r = rows[0];
+  const latest = await fetchLatestLegitimateCustomerIntelSnapshot(getSql());
+  if (!latest) return null;
   return {
-    periodStart: String(r.period_start).slice(0, 10),
-    periodEnd: String(r.period_end).slice(0, 10),
-    generatedAt:
-      r.generated_at instanceof Date
-        ? r.generated_at.toISOString()
-        : String(r.generated_at),
-    snapshot: r.snapshot_json ?? {},
+    periodStart: latest.periodStart,
+    periodEnd: latest.periodEnd,
+    generatedAt: latest.generatedAt,
+    snapshot: latest.snapshot,
   };
 }
 

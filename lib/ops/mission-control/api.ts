@@ -17,6 +17,8 @@ export const MIGRATION_REQUIRED_MESSAGE =
 
 export type MissionControlResponseBody = {
   serverTime: string;
+  /** Deployment identity so a preview can be matched to its commit. */
+  build: { commit: string | null; environment: string | null };
   initialized: boolean;
   migrationRequired: string | null;
   missingTables: string[];
@@ -82,6 +84,10 @@ export async function handleMissionControlGet(input: {
     status: 200,
     body: {
       serverTime: (input.now ?? new Date()).toISOString(),
+      build: {
+        commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || null,
+        environment: process.env.VERCEL_ENV || null,
+      },
       initialized: schema.initialized,
       migrationRequired: schema.initialized ? null : MIGRATION_REQUIRED_MESSAGE,
       missingTables: schema.missing,

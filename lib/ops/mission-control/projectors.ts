@@ -6,6 +6,10 @@
  * tables are only read — business schemas are never created or altered here.
  */
 import { getSql } from "@/lib/db/sql";
+import {
+  customerIntelSnapshotExclusion,
+  type CustomerIntelSnapshotRecord,
+} from "@/lib/customer-intelligence/snapshot-validity";
 
 import { getMissionControlWriteMode } from "./config";
 import { insertActivityEvents, toIsoOrNull } from "./events";
@@ -347,10 +351,21 @@ export function mapCeoBrief(row: Row): ActivityEventInput[] {
   return out;
 }
 
+/** Row selected with `snapshot_json->'test'` / `->'reporting_excluded'` flag columns. */
+export function customerIntelSnapshotRecord(row: Row): CustomerIntelSnapshotRecord {
+  return {
+    periodStart: row.period_start,
+    periodEnd: row.period_end,
+    generatedAt: row.generated_at,
+    snapshot: { test: row.test_flag, reporting_excluded: row.excluded_flag },
+  };
+}
+
 export function mapCustomerIntelSnapshot(row: Row): ActivityEventInput[] {
   const id = str(row.id);
   const generatedAt = toIsoOrNull(row.generated_at);
   if (!id || !generatedAt) return [];
+  const exclusion = customerIntelSnapshotExclusion(customerIntelSnapshotRecord(row));
   return [
     {
       sourceEventKey: `customer_intelligence_snapshots:${id}:generated`,
@@ -364,6 +379,7 @@ export function mapCustomerIntelSnapshot(row: Row): ActivityEventInput[] {
       summary: `Customer intelligence snapshot generated (${dateOnly(row.period_start) ?? "?"} → ${dateOnly(row.period_end) ?? "?"})`,
       sourceRef: `customer_intelligence_snapshots#${id}`,
       sourceHref: "/admin-customer-intelligence",
+      excluded: exclusion !== null,
     },
   ];
 }
@@ -689,7 +705,12 @@ export const ACTIVITY_SOURCES: ActivitySource[] = [
   {
     name: "customer_intelligence_snapshots",
     fetch: async (sql) =>
-      (await sql`SELECT id, period_start, period_end, generated_at FROM customer_intelligence_snapshots ORDER BY id DESC LIMIT ${L}`) as Row[],
+      (await sql`
+        SELECT id, period_start, period_end, generated_at,
+          snapshot_json->'test' AS test_flag,
+          snapshot_json->'reporting_excluded' AS excluded_flag
+        FROM customer_intelligence_snapshots ORDER BY id DESC LIMIT ${L}
+      `) as Row[],
     map: mapCustomerIntelSnapshot,
   },
   {

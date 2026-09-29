@@ -5,6 +5,7 @@
  */
 import { getSql } from "@/lib/db/sql";
 import { getBtcpostagePublicConfig } from "@/lib/btcpostage/config";
+import { fetchLatestLegitimateCustomerIntelSnapshot } from "@/lib/customer-intelligence/snapshot-validity";
 import { isLukeOwnerAttention } from "@/lib/decision-engine/owner-count";
 import { getDiscordAdminStatusSafe } from "@/lib/discord/config";
 import {
@@ -470,10 +471,8 @@ async function observeAuthority(sql: SqlClient): Promise<WorkerObservationResult
 }
 
 async function observeCustomerIntel(sql: SqlClient): Promise<WorkerObservationResult> {
-  const generatedAt = await scalarIso(sql`
-    SELECT generated_at AS at FROM customer_intelligence_snapshots
-    ORDER BY period_end DESC LIMIT 1
-  `);
+  const latest = await fetchLatestLegitimateCustomerIntelSnapshot(sql);
+  const generatedAt = latest?.generatedAt ?? null;
   return {
     observation: {
       enabled: true,

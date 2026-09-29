@@ -38,6 +38,7 @@ type Call = { text: string; values: unknown[] };
 function createFakeSql(opts: { tablesExist: boolean }) {
   const calls: Call[] = [];
   const keys = new Set<string>();
+  const excluded = new Map<string, boolean>();
   const respond = (text: string, values: unknown[]): unknown[] => {
     if (/to_regclass/i.test(text)) {
       return [
@@ -52,13 +53,19 @@ function createFakeSql(opts: { tablesExist: boolean }) {
     }
     if (/^INSERT INTO ops_activity_events/i.test(text)) {
       const batch = values[0] as string[];
-      const inserted: Array<{ id: number }> = [];
-      for (const key of batch) {
-        if (keys.has(key)) continue;
-        keys.add(key);
-        inserted.push({ id: keys.size });
-      }
-      return inserted;
+      const flags = values[12] as boolean[];
+      const out: Array<{ inserted: boolean }> = [];
+      batch.forEach((key, i) => {
+        if (!keys.has(key)) {
+          keys.add(key);
+          excluded.set(key, flags[i]);
+          out.push({ inserted: true });
+        } else if (excluded.get(key) !== flags[i]) {
+          excluded.set(key, flags[i]);
+          out.push({ inserted: false });
+        }
+      });
+      return out;
     }
     if (/^INSERT INTO ops_activity_sync_state/i.test(text)) {
       return [{ source: "__claim" }];
@@ -78,6 +85,7 @@ function createFakeSql(opts: { tablesExist: boolean }) {
     sql: fn as unknown as NeonQueryFunction<false, false>,
     calls,
     keys,
+    excluded,
     ddl: () => calls.filter((c) => DDL_RE.test(c.text)),
     writes: () => calls.filter((c) => WRITE_RE.test(c.text)),
   };
@@ -253,7 +261,11 @@ async function testEnabledSyncDeduplicates() {
   const first = await syncActivityFromSources({ force: true, sources: [source] });
   assert(first.ran && first.inserted === 2, `first sync inserts 2, got ${first.inserted}`);
   const insert = fake.calls.find((c) => /^INSERT INTO ops_activity_events/i.test(c.text));
-  assert(insert && /ON CONFLICT \(source_event_key\) DO NOTHING/i.test(insert.text), "conflict-safe insert");
+  assert(
+    insert &&
+      /ON CONFLICT \(source_event_key\) DO UPDATE SET excluded = EXCLUDED\.excluded WHERE ops_activity_events\.excluded IS DISTINCT FROM EXCLUDED\.excluded/i.test(insert.text),
+    "conflict-safe insert only carries the excluded flag"
+  );
   assert((insert.values[0] as string[]).length === 2, "in-batch duplicates collapsed");
 
   const second = await syncActivityFromSources({ force: true, sources: [source] });
