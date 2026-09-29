@@ -1,0 +1,450 @@
+{
+  "name": "PSL X publisher - DRY RUN (no X nodes, test items only)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "pinData": {},
+  "nodes": [
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000001",
+      "name": "Setup notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-260, -320],
+      "parameters": {
+        "width": 640,
+        "height": 280,
+        "content": "## PSL X publisher - DRY RUN\nContains NO X nodes and NO X credential. X responses are simulated by Set nodes.\nClaims only TEST items (mode dry_run), which PSL serves only outside Vercel with X_PUBLISHING_DRY_RUN_ENABLED=true.\n1. Config > pslBaseUrl: the isolated PSL instance (HTTPS origin, no path).\n2. Header Auth credential for that isolated instance on the 5 PSL HTTP nodes (never the Production PSL X Queue credential).\nSee integrations/n8n/X_PUBLISHER_README.md."
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000002",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-260, 0],
+      "parameters": {}
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000003",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-60, 0],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e0f1a2b3-0000-4000-8000-000000000001",
+              "name": "pslBaseUrl",
+              "value": "https://REPLACE-WITH-ISOLATED-PSL-BASE-URL",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000004",
+      "name": "Config valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [140, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "f1a0b2c3-0000-4000-8000-000000000001",
+              "leftValue": "={{ /^https:[/][/][A-Za-z0-9.-]+$/.test($json.pslBaseUrl) && !$json.pslBaseUrl.includes('REPLACE') }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000005",
+      "name": "Stop: invalid config",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [340, 200],
+      "parameters": { "errorMessage": "Config.pslBaseUrl must be an HTTPS origin with no path. No request was made." }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000006",
+      "name": "Claim work",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [340, 0],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl }}/api/integrations/n8n/x-publishing/claim",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ mode: 'dry_run', trigger: 'manual', executionId: String($execution.id).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64) || 'manual' }) }}",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000007",
+      "name": "Stop: claim failed",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [540, 240],
+      "parameters": { "errorMessage": "=Dry-run claim failed ({{ $json.error && $json.error.message ? $json.error.message : 'no response' }})." }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000008",
+      "name": "Publish work?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [540, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "f1a0b2c3-0000-4000-8000-000000000002",
+              "leftValue": "={{ !!$json.work && $json.work.kind === 'publish' && $json.work.mode === 'dry_run' && typeof $json.work.token === 'string' && typeof $json.work.expectedAccountId === 'string' }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000009",
+      "name": "Nothing to simulate",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [740, 240],
+      "parameters": {}
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000010",
+      "name": "Simulated X account (no X call)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [740, -120],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "e0f1a2b3-0000-4000-8000-000000000002", "name": "statusCode", "value": 200, "type": "number" },
+            {
+              "id": "e0f1a2b3-0000-4000-8000-000000000003",
+              "name": "body",
+              "value": "={{ { data: { id: $('Claim work').first().json.work.expectedAccountId } } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000011",
+      "name": "Report account check",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [940, -120],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl }}/api/integrations/n8n/x-publishing/attempts/{{ $('Claim work').first().json.work.attemptId }}/identity",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ token: $('Claim work').first().json.work.token, httpStatus: typeof $json.statusCode === 'number' ? $json.statusCode : null, accountId: ($json.body && $json.body.data && typeof $json.body.data.id === 'string') ? $json.body.data.id : null }) }}",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "response": { "response": { "neverError": true } },
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000012",
+      "name": "Account confirmed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1140, -120],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "f1a0b2c3-0000-4000-8000-000000000003",
+              "leftValue": "={{ $json.proceed === true }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000013",
+      "name": "Request dispatch permit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, -120],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl }}/api/integrations/n8n/x-publishing/attempts/{{ $('Claim work').first().json.work.attemptId }}/dispatch",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ token: $('Claim work').first().json.work.token }) }}",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "response": { "response": { "neverError": true } },
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000014",
+      "name": "Permit issued?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1540, -120],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "f1a0b2c3-0000-4000-8000-000000000004",
+              "leftValue": "={{ $json.permit === 'issued' && $json.mode === 'dry_run' && $json.attemptId === $('Claim work').first().json.work.attemptId && typeof $json.text === 'string' }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000015",
+      "name": "Stop: not permitted or not recorded",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [1740, 200],
+      "parameters": { "errorMessage": "=Dry run stopped: {{ $json.code || $json.reason || $json.error || 'step not confirmed' }}" }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000016",
+      "name": "Simulated Create Post (no X call)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1740, -120],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "e0f1a2b3-0000-4000-8000-000000000004", "name": "statusCode", "value": 201, "type": "number" },
+            {
+              "id": "e0f1a2b3-0000-4000-8000-000000000005",
+              "name": "body",
+              "value": "={{ { data: { id: '7' + String(Date.now()).slice(-12) + String(Math.floor(Math.random() * 10000)).padStart(4, '0'), text: $('Request dispatch permit').first().json.text } } }}",
+              "type": "object"
+            },
+            { "id": "e0f1a2b3-0000-4000-8000-000000000006", "name": "headers", "value": "={{ {} }}", "type": "object" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000017",
+      "name": "Report create result",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1940, -120],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl }}/api/integrations/n8n/x-publishing/attempts/{{ $('Claim work').first().json.work.attemptId }}/result",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ token: $('Claim work').first().json.work.token, transportError: typeof $json.statusCode !== 'number', httpStatus: typeof $json.statusCode === 'number' ? $json.statusCode : null, postId: ($json.body && $json.body.data && typeof $json.body.data.id === 'string') ? $json.body.data.id : null, errorTitle: null, rateLimitReset: null }) }}",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000018",
+      "name": "Verify now?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2140, -120],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "f1a0b2c3-0000-4000-8000-000000000005",
+              "leftValue": "={{ $json.next === 'lookup' && typeof $json.xPostId === 'string' && /^[1-9][0-9]{0,18}$/.test($json.xPostId) }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000019",
+      "name": "Simulated lookup (no X call)",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2340, -120],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "e0f1a2b3-0000-4000-8000-000000000007", "name": "statusCode", "value": 200, "type": "number" },
+            {
+              "id": "e0f1a2b3-0000-4000-8000-000000000008",
+              "name": "body",
+              "value": "={{ { data: { id: $json.xPostId, author_id: $('Claim work').first().json.work.expectedAccountId, text: $('Request dispatch permit').first().json.text, created_at: new Date().toISOString(), entities: {} } } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000020",
+      "name": "Report lookup evidence",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2540, -120],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl }}/api/integrations/n8n/x-publishing/attempts/{{ $('Claim work').first().json.work.attemptId }}/lookup",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ token: $('Claim work').first().json.work.token, transportError: typeof $json.statusCode !== 'number', httpStatus: typeof $json.statusCode === 'number' ? $json.statusCode : null, data: ($json.body && $json.body.data) ? $json.body.data : null }) }}",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000021",
+      "name": "Done (simulated)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [2740, -120],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Config", "type": "main", "index": 0 }]] },
+    "Config": { "main": [[{ "node": "Config valid?", "type": "main", "index": 0 }]] },
+    "Config valid?": {
+      "main": [
+        [{ "node": "Claim work", "type": "main", "index": 0 }],
+        [{ "node": "Stop: invalid config", "type": "main", "index": 0 }]
+      ]
+    },
+    "Claim work": {
+      "main": [
+        [{ "node": "Publish work?", "type": "main", "index": 0 }],
+        [{ "node": "Stop: claim failed", "type": "main", "index": 0 }]
+      ]
+    },
+    "Publish work?": {
+      "main": [
+        [{ "node": "Simulated X account (no X call)", "type": "main", "index": 0 }],
+        [{ "node": "Nothing to simulate", "type": "main", "index": 0 }]
+      ]
+    },
+    "Simulated X account (no X call)": { "main": [[{ "node": "Report account check", "type": "main", "index": 0 }]] },
+    "Report account check": {
+      "main": [
+        [{ "node": "Account confirmed?", "type": "main", "index": 0 }],
+        [{ "node": "Stop: not permitted or not recorded", "type": "main", "index": 0 }]
+      ]
+    },
+    "Account confirmed?": {
+      "main": [
+        [{ "node": "Request dispatch permit", "type": "main", "index": 0 }],
+        [{ "node": "Stop: not permitted or not recorded", "type": "main", "index": 0 }]
+      ]
+    },
+    "Request dispatch permit": {
+      "main": [
+        [{ "node": "Permit issued?", "type": "main", "index": 0 }],
+        [{ "node": "Stop: not permitted or not recorded", "type": "main", "index": 0 }]
+      ]
+    },
+    "Permit issued?": {
+      "main": [
+        [{ "node": "Simulated Create Post (no X call)", "type": "main", "index": 0 }],
+        [{ "node": "Stop: not permitted or not recorded", "type": "main", "index": 0 }]
+      ]
+    },
+    "Simulated Create Post (no X call)": { "main": [[{ "node": "Report create result", "type": "main", "index": 0 }]] },
+    "Report create result": {
+      "main": [
+        [{ "node": "Verify now?", "type": "main", "index": 0 }],
+        [{ "node": "Stop: not permitted or not recorded", "type": "main", "index": 0 }]
+      ]
+    },
+    "Verify now?": {
+      "main": [
+        [{ "node": "Simulated lookup (no X call)", "type": "main", "index": 0 }],
+        [{ "node": "Stop: not permitted or not recorded", "type": "main", "index": 0 }]
+      ]
+    },
+    "Simulated lookup (no X call)": { "main": [[{ "node": "Report lookup evidence", "type": "main", "index": 0 }]] },
+    "Report lookup evidence": {
+      "main": [
+        [{ "node": "Done (simulated)", "type": "main", "index": 0 }],
+        [{ "node": "Stop: not permitted or not recorded", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}

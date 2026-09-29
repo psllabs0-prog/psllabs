@@ -46,6 +46,9 @@ export function AdminOpsTabs({ initialTab }: { initialTab: AdminOpsTab }) {
             {t.label}
           </button>
         ))}
+        <a href="/admin-social" className="ml-auto pb-2 text-ash hover:text-ink">
+          X post queue
+        </a>
       </nav>
       {tab === "overview" ? (
         <div className="mx-auto max-w-3xl">

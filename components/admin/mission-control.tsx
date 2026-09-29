@@ -81,9 +81,11 @@ function ago(ms: number): string {
 }
 
 const N8N_ACTOR_LABEL = "n8n connection test (TEST)";
+const X_ACTOR_LABEL = "X publisher";
 
 function workerLabel(snapshot: MissionControlSnapshot | null, worker: string): string {
   if (worker === "n8n") return N8N_ACTOR_LABEL;
+  if (worker === "x_publishing") return X_ACTOR_LABEL;
   return snapshot?.workers.find((w) => w.worker === worker)?.label ?? worker;
 }
 
@@ -300,6 +302,7 @@ export function MissionControl() {
                   </option>
                 ))}
                 <option value="n8n">{N8N_ACTOR_LABEL}</option>
+                <option value="x_publishing">{X_ACTOR_LABEL}</option>
               </select>
             </label>
             <label className="flex items-center gap-1">
@@ -363,8 +366,78 @@ export function MissionControl() {
       </section>
 
       {snapshot && <ConnectionsSection snapshot={snapshot} />}
+      {snapshot && <XPublishingSection x={snapshot.xPublishing ?? null} />}
       {snapshot?.n8n && <N8nSection n8n={snapshot.n8n} />}
     </div>
+  );
+}
+
+function XPublishingSection({ x }: { x: MissionControlSnapshot["xPublishing"] }) {
+  return (
+    <section>
+      <div className="flex flex-wrap items-baseline gap-3">
+        <h3 className="font-display text-sm font-bold uppercase tracking-wide text-ash">X publisher</h3>
+        <a href="/admin-social" className="text-xs text-ink underline">
+          Open queue
+        </a>
+      </div>
+      {x === null ? (
+        <p className="mt-2 text-sm text-ash">Not available (queue could not be read).</p>
+      ) : (
+        <>
+          <p className="mt-1 text-xs text-ash">
+            @{x.handle} (account ID {x.accountId}) ·{" "}
+            {x.live.enabled ? "Live publishing enabled" : `Live publishing off — ${x.live.reason}`}
+            {x.control ? ` · ${x.control.paused ? `Paused: ${x.control.reason ?? "—"}` : "Not paused"}` : ""}
+          </p>
+          {x.accountMismatch && (
+            <p className="mt-2 rounded bg-red-100 px-2 py-1 text-sm text-red-800">
+              Account mismatch — publishing paused. {x.control?.reason}
+            </p>
+          )}
+          {!x.initialized ? (
+            <p className="mt-2 text-sm text-ash">{x.note}</p>
+          ) : (
+            <>
+              <p className="mt-2 text-xs text-ash">
+                {Object.entries(x.counts ?? {})
+                  .map(([state, n]) => `${state.replace(/_/g, " ")}: ${n}`)
+                  .join(" · ") || "No queue items."}
+                {x.note ? ` ${x.note}` : ""}
+              </p>
+              {x.attention.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {x.attention.map((a) => (
+                    <li key={a.queueId} className="rounded bg-orange-100 px-2 py-1 text-sm text-orange-900">
+                      {a.label} · queue {a.queueId}
+                      {a.xPostId ? ` · X post ${a.xPostId}` : ""}
+                      {a.note ? ` — ${a.note}` : ""}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {x.recent.length > 0 && (
+                <ul className="mt-2 divide-y divide-zinc-200 premium-card">
+                  {x.recent.map((r) => (
+                    <li key={r.queueId} className="px-4 py-2 text-sm">
+                      <span className="font-medium text-ink">{r.label}</span>
+                      <span className="ml-2 text-xs text-ash">
+                        scheduled {fmt(r.scheduledFor)} · updated {fmt(r.updatedAt)}
+                      </span>
+                      {r.xUrl && (
+                        <a href={r.xUrl} className="ml-2 text-xs underline" rel="noreferrer" target="_blank">
+                          X post {r.xPostId}
+                        </a>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </>
+      )}
+    </section>
   );
 }
 
