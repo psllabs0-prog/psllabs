@@ -80,9 +80,20 @@ function ago(ms: number): string {
   return m < 60 ? `${m}m ago` : `${Math.round(m / 60)}h ago`;
 }
 
+const N8N_ACTOR_LABEL = "n8n connection test (TEST)";
+
 function workerLabel(snapshot: MissionControlSnapshot | null, worker: string): string {
+  if (worker === "n8n") return N8N_ACTOR_LABEL;
   return snapshot?.workers.find((w) => w.worker === worker)?.label ?? worker;
 }
+
+const N8N_STATE_STYLE: Record<string, string> = {
+  registered: "bg-zinc-100 text-zinc-700",
+  running: "bg-blue-100 text-blue-800",
+  completed: "bg-emerald-50 text-emerald-800",
+  failed: "bg-red-100 text-red-800",
+  outcome_unknown: "bg-orange-100 text-orange-900",
+};
 
 export function MissionControl() {
   const [events, setEvents] = useState<Map<number, ActivityEvent>>(new Map());
@@ -288,6 +299,7 @@ export function MissionControl() {
                     {w.label}
                   </option>
                 ))}
+                <option value="n8n">{N8N_ACTOR_LABEL}</option>
               </select>
             </label>
             <label className="flex items-center gap-1">
@@ -351,7 +363,59 @@ export function MissionControl() {
       </section>
 
       {snapshot && <ConnectionsSection snapshot={snapshot} />}
+      {snapshot?.n8n && <N8nSection n8n={snapshot.n8n} />}
     </div>
+  );
+}
+
+function N8nSection({ n8n }: { n8n: MissionControlSnapshot["n8n"] }) {
+  return (
+    <section>
+      <div className="flex flex-wrap items-baseline gap-3">
+        <h3 className="font-display text-sm font-bold uppercase tracking-wide text-ash">
+          n8n connection tests
+        </h3>
+        <span className="rounded bg-zinc-100 px-1 text-xs text-zinc-600">TEST / EXCLUDED</span>
+        <span className="text-xs text-ash">
+          {n8n.mode.enabled ? "Integration enabled" : `Integration disabled — ${n8n.mode.reason}`}
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-ash">
+        Connectivity checks only — not business activity or customer demand. Statuses are
+        workflow-reported. {n8n.completionMeaning} Runs without a terminal report after{" "}
+        {n8n.timeoutMinutes} minutes show outcome unknown.
+      </p>
+      {n8n.runs === null ? (
+        <p className="mt-2 text-sm text-ash">Not available (activity table missing or unreadable).</p>
+      ) : n8n.runs.length === 0 ? (
+        <p className="mt-2 text-sm text-ash">No connection tests recorded.</p>
+      ) : (
+        <ul className="mt-2 divide-y divide-zinc-200 premium-card">
+          {n8n.runs.map((r) => (
+            <li key={r.runId} className="px-4 py-2 text-sm">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <time className="font-mono text-xs text-ash" dateTime={r.registeredAt}>
+                  {fmt(r.registeredAt)}
+                </time>
+                <span className={`rounded px-2 py-0.5 text-xs ${N8N_STATE_STYLE[r.state] ?? ""}`}>
+                  {r.state.replace("_", " ")}
+                </span>
+                <span className="font-mono text-xs text-ash">{r.runId}</span>
+              </div>
+              <p className="mt-0.5 text-xs text-ash">
+                Summary served {fmt(r.statusServedAt)}
+                {r.systemsServed !== null ? ` (${r.systemsServed} systems)` : ""} · finished{" "}
+                {fmt(r.finishedAt)}
+                {r.failureReason ? ` · reason: ${r.failureReason.replace(/_/g, " ")}` : ""}
+                {r.state === "registered" || r.state === "running"
+                  ? ` · times out ${fmt(r.timeoutAt)}`
+                  : ""}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

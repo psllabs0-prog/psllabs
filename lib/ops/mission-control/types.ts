@@ -20,6 +20,17 @@ export const MISSION_CONTROL_WORKERS = [
 
 export type MissionControlWorker = (typeof MISSION_CONTROL_WORKERS)[number];
 
+/**
+ * External automation that reports into the feed. Kept apart from the
+ * business workers so an integration can never write as finance, support,
+ * etc. (see `normalizeActivityEvent`).
+ */
+export const MISSION_CONTROL_INTEGRATIONS = ["n8n"] as const;
+
+export type MissionControlIntegration = (typeof MISSION_CONTROL_INTEGRATIONS)[number];
+
+export type MissionControlActor = MissionControlWorker | MissionControlIntegration;
+
 export const ACTIVITY_OUTCOMES = [
   "started",
   "submitted",
@@ -44,7 +55,7 @@ export type ActivityEventInput = {
   correlationId?: string | null;
   parentTaskId?: string | null;
   sourceSystem: string;
-  worker: MissionControlWorker;
+  worker: MissionControlActor;
   eventType: string;
   outcome: ActivityOutcome;
   observation: ActivityObservation;

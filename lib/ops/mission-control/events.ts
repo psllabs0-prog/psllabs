@@ -3,6 +3,7 @@ import { getSql } from "@/lib/db/sql";
 import { getMissionControlWriteMode } from "./config";
 import {
   ACTIVITY_OUTCOMES,
+  MISSION_CONTROL_INTEGRATIONS,
   MISSION_CONTROL_WORKERS,
   type ActivityEvent,
   type ActivityEventInput,
@@ -37,13 +38,31 @@ export function toIsoOrNull(value: unknown): string | null {
   return Number.isFinite(t) ? d.toISOString() : null;
 }
 
+/**
+ * Integration events live in their own `<integration>:` key namespace with a
+ * matching worker and source system; business workers may not use it. This
+ * keeps an integration from writing (or colliding with) projector events.
+ */
+function isActorKeyConsistent(
+  worker: string,
+  sourceSystem: string,
+  key: string
+): boolean {
+  const integration = MISSION_CONTROL_INTEGRATIONS.find((i) =>
+    key.startsWith(`${i}:`)
+  );
+  if (integration) return worker === integration && sourceSystem === integration;
+  if ((MISSION_CONTROL_INTEGRATIONS as readonly string[]).includes(worker)) return false;
+  return (MISSION_CONTROL_WORKERS as readonly string[]).includes(worker);
+}
+
 /** Validates the event contract; returns null for anything that cannot be stored honestly. */
 export function normalizeActivityEvent(
   input: ActivityEventInput
 ): ActivityEventInput | null {
   const key = input.sourceEventKey?.trim();
   if (!key || key.length > 300) return null;
-  if (!MISSION_CONTROL_WORKERS.includes(input.worker)) return null;
+  if (!isActorKeyConsistent(input.worker, input.sourceSystem, key)) return null;
   if (!ACTIVITY_OUTCOMES.includes(input.outcome)) return null;
   const occurredAt = toIsoOrNull(input.occurredAt);
   if (!occurredAt) return null;
@@ -59,7 +78,7 @@ export function normalizeActivityEvent(
   };
 }
 
-function mapEventRow(row: Record<string, unknown>): ActivityEvent {
+export function mapEventRow(row: Record<string, unknown>): ActivityEvent {
   const versions =
     typeof row.versions_json === "string"
       ? (JSON.parse(row.versions_json) as Record<string, string>)
