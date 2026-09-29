@@ -6,6 +6,13 @@ import {
 import { collectOpsExceptions } from "../exceptions";
 import { sortOpsExceptions, type OpsException } from "../types";
 import type { MissionControlWriteMode } from "./config";
+import { getN8nIntegrationMode, type N8nIntegrationMode } from "./n8n/config";
+import {
+  listRecentN8nRuns,
+  N8N_COMPLETION_MEANING,
+  N8N_CONNECTION_TEST_TIMEOUT_MS,
+  type N8nRunView,
+} from "./n8n/runs";
 import { listActivitySyncStates } from "./projectors";
 import { upcomingScheduledRuns } from "./schedule";
 import type { MissionControlSchemaState } from "./schema";
@@ -43,6 +50,13 @@ export type MissionControlSnapshot = {
   incidentsNote: string | null;
   coverage: ActivitySyncState[];
   coverageErrors: string[];
+  n8n: {
+    mode: N8nIntegrationMode;
+    timeoutMinutes: number;
+    completionMeaning: string;
+    /** Null when the activity tables are missing or could not be read. */
+    runs: N8nRunView[] | null;
+  };
 };
 
 export const INCIDENTS_READ_ONLY_NOTE =
@@ -119,7 +133,7 @@ export async function collectMissionControlSnapshot(input: {
   const coverageErrors: string[] = [];
 
   const collectorsAllowed = input.writeMode.enabled;
-  const [workers, exceptions, connections, coverage] = await Promise.all([
+  const [workers, exceptions, connections, coverage, n8nRuns] = await Promise.all([
     collectWorkerCards({ now }),
     collectorsAllowed
       ? collectOpsExceptions().catch(() => {
@@ -139,6 +153,12 @@ export async function collectMissionControlSnapshot(input: {
           return [] as ActivitySyncState[];
         })
       : Promise.resolve([] as ActivitySyncState[]),
+    input.schema.initialized
+      ? listRecentN8nRuns(now).catch(() => {
+          coverageErrors.push("n8n connection tests could not be read");
+          return null;
+        })
+      : Promise.resolve(null),
   ]);
 
   return {
@@ -150,5 +170,11 @@ export async function collectMissionControlSnapshot(input: {
     incidentsNote: collectorsAllowed ? null : INCIDENTS_READ_ONLY_NOTE,
     coverage,
     coverageErrors,
+    n8n: {
+      mode: getN8nIntegrationMode(),
+      timeoutMinutes: N8N_CONNECTION_TEST_TIMEOUT_MS / 60000,
+      completionMeaning: N8N_COMPLETION_MEANING,
+      runs: n8nRuns,
+    },
   };
 }

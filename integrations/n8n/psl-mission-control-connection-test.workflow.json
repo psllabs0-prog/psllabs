@@ -1,0 +1,326 @@
+{
+  "name": "PSL Mission Control - n8n connection test (TEST)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "pinData": {},
+  "nodes": [
+    {
+      "id": "6d0c2f55-9a51-4a0e-9b0e-1f7f3c1a0001",
+      "name": "Setup notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-200, -260],
+      "parameters": {
+        "width": 560,
+        "height": 260,
+        "content": "## PSL Mission Control connection test (TEST)\nSee integrations/n8n/README.md in the PSL repo.\n1. Edit **Config** > pslBaseUrl (https only, no trailing path).\n2. Select the Header Auth credential **PSL Mission Control n8n** on ALL 7 HTTP Request nodes, including the three \"Report failed\" error-branch nodes.\n3. Run with **Execute workflow**. Manual only: do not add a schedule.\n\nConnectivity test only. Results are TEST / EXCLUDED and never business activity. If a step says confirmation was not received, check Mission Control before re-running."
+      }
+    },
+    {
+      "id": "6d0c2f55-9a51-4a0e-9b0e-1f7f3c1a0002",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-200, 0],
+      "parameters": {}
+    },
+    {
+      "id": "6d0c2f55-9a51-4a0e-9b0e-1f7f3c1a0003",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [0, 0],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b1f0c6de-0000-4000-8000-000000000001",
+              "name": "pslBaseUrl",
+              "value": "https://REPLACE-WITH-PSL-BASE-URL",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "6d0c2f55-9a51-4a0e-9b0e-1f7f3c1a0004",
+      "name": "Register run",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl.replace(/\\/+$/, '') }}/api/integrations/n8n/mission-control/runs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ requestId: 'wf-' + $workflow.id + '-exec-' + $execution.id, workflow: 'psl-mission-control-connection-test', n8nExecutionId: String($execution.id) }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "6d0c2f55-9a51-4a0e-9b0e-1f7f3c1a0005",
+      "name": "Registration failed",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [440, 200],
+      "parameters": {
+        "errorMessage": "=Registration could not be confirmed. A run may already exist. Check Mission Control (n8n connection tests) for request ID wf-{{ $workflow.id }}-exec-{{ $execution.id }} / n8n execution {{ $execution.id }} before running again. Also check the base URL, the credential, and that the integration is enabled."
+      }
+    },
+    {
+      "id": "6d0c2f55-9a51-4a0e-9b0e-1f7f3c1a0006",
+      "name": "Report started",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl.replace(/\\/+$/, '') }}/api/integrations/n8n/mission-control/runs/{{ $('Register run').first().json.runId }}/events",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phase: 'started' }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "6d0c2f55-9a51-4a0e-9b0e-1f7f3c1a0007",
+      "name": "Get status summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl.replace(/\\/+$/, '') }}/api/integrations/n8n/mission-control/runs/{{ $('Register run').first().json.runId }}/status",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": false,
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "6d0c2f55-9a51-4a0e-9b0e-1f7f3c1a0008",
+      "name": "Summary looks valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [880, 0],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c3a1d9f2-0000-4000-8000-000000000001",
+              "leftValue": "={{ Array.isArray($json.systems) && $json.systems.length > 0 && $json.runId === $('Register run').first().json.runId }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "6d0c2f55-9a51-4a0e-9b0e-1f7f3c1a0009",
+      "name": "Report completed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, -100],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl.replace(/\\/+$/, '') }}/api/integrations/n8n/mission-control/runs/{{ $('Register run').first().json.runId }}/events",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phase: 'completed', systemsReceived: $('Get status summary').first().json.systems.length }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "6d0c2f55-9a51-4a0e-9b0e-1f7f3c1a0010",
+      "name": "Report failed: unexpected response",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 100],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl.replace(/\\/+$/, '') }}/api/integrations/n8n/mission-control/runs/{{ $('Register run').first().json.runId }}/events",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phase: 'failed', reason: 'unexpected_response' }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "6d0c2f55-9a51-4a0e-9b0e-1f7f3c1a0011",
+      "name": "Report failed: status request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 260],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl.replace(/\\/+$/, '') }}/api/integrations/n8n/mission-control/runs/{{ $('Register run').first().json.runId }}/events",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phase: 'failed', reason: 'status_request_failed' }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "6d0c2f55-9a51-4a0e-9b0e-1f7f3c1a0012",
+      "name": "Report failed: workflow error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 260],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl.replace(/\\/+$/, '') }}/api/integrations/n8n/mission-control/runs/{{ $('Register run').first().json.runId }}/events",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ phase: 'failed', reason: 'workflow_error' }) }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "6d0c2f55-9a51-4a0e-9b0e-1f7f3c1a0013",
+      "name": "Connection test failed",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [1320, 180],
+      "parameters": {
+        "errorMessage": "Connection test failed. The failure was reported to Mission Control (TEST / EXCLUDED)."
+      }
+    },
+    {
+      "id": "6d0c2f55-9a51-4a0e-9b0e-1f7f3c1a0014",
+      "name": "Result not reported",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [1320, 380],
+      "parameters": {
+        "errorMessage": "=Result confirmation was not received for run {{ $('Register run').first().json.runId }} (request ID wf-{{ $workflow.id }}-exec-{{ $execution.id }}). Check Mission Control before restarting; the result may already be recorded. If Mission Control has no result for this run, it will show outcome unknown once the 10-minute timeout passes."
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{ "node": "Config", "type": "main", "index": 0 }]]
+    },
+    "Config": {
+      "main": [[{ "node": "Register run", "type": "main", "index": 0 }]]
+    },
+    "Register run": {
+      "main": [
+        [{ "node": "Report started", "type": "main", "index": 0 }],
+        [{ "node": "Registration failed", "type": "main", "index": 0 }]
+      ]
+    },
+    "Report started": {
+      "main": [
+        [{ "node": "Get status summary", "type": "main", "index": 0 }],
+        [{ "node": "Report failed: workflow error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get status summary": {
+      "main": [
+        [{ "node": "Summary looks valid?", "type": "main", "index": 0 }],
+        [{ "node": "Report failed: status request", "type": "main", "index": 0 }]
+      ]
+    },
+    "Summary looks valid?": {
+      "main": [
+        [{ "node": "Report completed", "type": "main", "index": 0 }],
+        [{ "node": "Report failed: unexpected response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Report completed": {
+      "main": [
+        [],
+        [{ "node": "Result not reported", "type": "main", "index": 0 }]
+      ]
+    },
+    "Report failed: unexpected response": {
+      "main": [
+        [{ "node": "Connection test failed", "type": "main", "index": 0 }],
+        [{ "node": "Result not reported", "type": "main", "index": 0 }]
+      ]
+    },
+    "Report failed: status request": {
+      "main": [
+        [{ "node": "Connection test failed", "type": "main", "index": 0 }],
+        [{ "node": "Result not reported", "type": "main", "index": 0 }]
+      ]
+    },
+    "Report failed: workflow error": {
+      "main": [
+        [{ "node": "Connection test failed", "type": "main", "index": 0 }],
+        [{ "node": "Result not reported", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}
