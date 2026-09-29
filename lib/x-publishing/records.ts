@@ -3,6 +3,7 @@ import { toIsoOrNull } from "@/lib/ops/mission-control/events";
 
 import { X_LIMITS, type XAttemptState, type XDisplayState, type XPostStatus } from "./constants";
 import { checkPostText, X_CONTENT_POLICY_VERSION, type XContentCheck } from "./content";
+import { recordXEvent, X_EVENT_TYPES } from "./events";
 import { approvalHash, previewHash } from "./hash";
 import { phoenixDay } from "./time";
 
@@ -48,6 +49,14 @@ export type XPostRecord = {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  /** Present only when read joined with the active attempt (see POST_WITH_ACTIVE_ATTEMPT reads). */
+  activeAttempt?: ActiveAttemptReceipt | null;
+};
+
+export type ActiveAttemptReceipt = {
+  state: XAttemptState;
+  dispatchDeadline: string | null;
+  resultReceivedAt: string | null;
 };
 
 export type XAttemptRecord = {
@@ -135,6 +144,18 @@ export function mapPost(r: Row): XPostRecord {
     createdBy: String(r.created_by),
     createdAt: toIsoOrNull(r.created_at) ?? "",
     updatedAt: toIsoOrNull(r.updated_at) ?? "",
+    ...("active_attempt_state" in r
+      ? {
+          activeAttempt:
+            r.active_attempt_state === null || r.active_attempt_state === undefined
+              ? null
+              : {
+                  state: String(r.active_attempt_state) as XAttemptState,
+                  dispatchDeadline: toIsoOrNull(r.active_dispatch_deadline),
+                  resultReceivedAt: toIsoOrNull(r.active_result_received_at),
+                },
+        }
+      : {}),
   };
 }
 
@@ -295,19 +316,97 @@ export function recomputeApprovalHash(post: XPostRecord): string | null {
   });
 }
 
-export function displayState(post: XPostRecord, now: Date): XDisplayState {
-  switch (post.status) {
+/**
+ * A permit was issued, the dispatch deadline has passed, and no create
+ * receipt was recorded: the post may exist. Derived from the attempt's own
+ * deadline and receipts so it is visible without any write; attempts with a
+ * recorded result are never affected, however old.
+ */
+export function isDispatchOverdue(a: ActiveAttemptReceipt | null | undefined, now: Date): boolean {
+  return (
+    !!a &&
+    a.state === "dispatched" &&
+    a.resultReceivedAt === null &&
+    a.dispatchDeadline !== null &&
+    Date.parse(a.dispatchDeadline) <= now.getTime()
+  );
+}
+
+/**
+ * Single mapping used both per row and for SQL-grouped counts, which compute
+ * approvalExpired / dispatchOverdue with the same predicates in SQL.
+ */
+export function displayStateOf(input: { status: XPostStatus; approvalExpired: boolean; dispatchOverdue: boolean }): XDisplayState {
+  switch (input.status) {
     case "draft":
       return "draft";
     case "approved":
-      return post.expiresAt && Date.parse(post.expiresAt) <= now.getTime() ? "expired" : "scheduled";
+      return input.approvalExpired ? "expired" : "scheduled";
     case "claimed":
       return "preparing";
     case "dispatched":
+      return input.dispatchOverdue ? "uncertain" : "awaiting_confirmation";
     case "created":
-      return "awaiting_confirmation";
+      return "created_unconfirmed";
     default:
-      return post.status;
+      return input.status;
+  }
+}
+
+export function displayState(post: XPostRecord, now: Date): XDisplayState {
+  return displayStateOf({
+    status: post.status,
+    approvalExpired: post.status === "approved" && !!post.expiresAt && Date.parse(post.expiresAt) <= now.getTime(),
+    dispatchOverdue: isDispatchOverdue(post.activeAttempt, now),
+  });
+}
+
+/** Unresolved = needs the owner: uncertain, flagged for review, or dispatched past its deadline without a receipt. */
+export function isUnresolved(post: XPostRecord, now: Date): boolean {
+  return post.status === "uncertain" || post.reviewRequired || displayState(post, now) === "uncertain";
+}
+
+export const OVERDUE_DISPATCH_MESSAGE =
+  "No create result was reported before the dispatch deadline; the post may exist. Owner review required — nothing is retried.";
+
+/**
+ * The stored transition matching isDispatchOverdue: dispatched attempts past
+ * their deadline with no receipt become uncertain (never re-permitted). Used
+ * by the claim sweep and, scoped to one attempt, by guarded owner
+ * reconciliation actions so they need no new workflow run.
+ */
+export function overdueDispatchStatement(sql: Sql, input: { isTest: boolean; now: string; attemptId: string | null }) {
+  return sql`
+    WITH unk AS (
+      UPDATE x_publishing_attempts
+      SET state = 'uncertain', error_code = 'dispatch_deadline_passed',
+          error_message = ${OVERDUE_DISPATCH_MESSAGE}, updated_at = ${input.now}::timestamptz
+      WHERE is_test = ${input.isTest} AND state = 'dispatched' AND result_received_at IS NULL
+        AND dispatch_deadline <= ${input.now}::timestamptz
+        AND (${input.attemptId}::uuid IS NULL OR id = ${input.attemptId}::uuid)
+      RETURNING id, post_id
+    )
+    UPDATE x_publishing_posts p
+    SET status = 'uncertain', last_error_code = 'dispatch_deadline_passed',
+        last_error_message = ${OVERDUE_DISPATCH_MESSAGE}, updated_at = ${input.now}::timestamptz
+    FROM unk
+    WHERE p.id = unk.post_id AND p.status = 'dispatched'
+    RETURNING p.id, p.revision, unk.id AS attempt_id
+  `;
+}
+
+export async function emitOverdueUncertain(rows: Row[], isTest: boolean, now: Date): Promise<void> {
+  for (const r of rows) {
+    await recordXEvent({
+      type: X_EVENT_TYPES.uncertain,
+      outcome: "outcome_unknown",
+      summary: "X create result not reported before the dispatch deadline — owner review required, no retry",
+      queueId: String(r.id),
+      revision: Number(r.revision),
+      attemptId: String(r.attempt_id),
+      isTest,
+      now,
+    });
   }
 }
 

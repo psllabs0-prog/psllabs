@@ -33,7 +33,8 @@ import {
   setReconcileCandidate,
   setXPaused,
 } from "../lib/x-publishing/admin-store";
-import { X_ACCOUNT_ID, X_LIMITS, X_PROVENANCE } from "../lib/x-publishing/constants";
+import { handleXAdminGet } from "../lib/x-publishing/admin-api";
+import { X_ACCOUNT_HANDLE, X_ACCOUNT_ID, X_DISPLAY_LABELS, X_LIMITS, X_PROVENANCE } from "../lib/x-publishing/constants";
 import { checkPostText } from "../lib/x-publishing/content";
 import {
   __resetXMachineRateLimiterForTests,
@@ -703,6 +704,177 @@ async function main() {
       const panel = await readXPublishingPanel(at(`${d}T09:05`));
       assert(panel?.recent.some((x) => x.queueId === p.id) && !panel.recent.some((x) => x.queueId === t.id), "Mission Control panel shows live items only");
       log("S15 live partition: ok");
+    }
+
+    type View = { id: string; status: string; displayState: string; attempts: Array<{ id: string; state: string; effectiveState: string; dispatchOverdue: boolean }> };
+    type Sections = Record<"review" | "open" | "history", { total: number; offset: number; limit: number; posts: View[] }>;
+    const adminRead = async (env: Env, now: Date, query = "") => {
+      const r = await handleXAdminGet({ env, now, query: new URLSearchParams(query) });
+      assert(r.status === 200 && r.body.initialized === true, `admin GET ok (${JSON.stringify(r.body).slice(0, 200)})`);
+      return { totalPosts: r.body.totalPosts as number, counts: r.body.counts as Record<string, number>, sections: r.body.sections as Sections };
+    };
+    const allViews = (s: Sections) => [...s.review.posts, ...s.open.posts, ...s.history.posts];
+    const tableState = async () =>
+      JSON.stringify(
+        await sql`
+          SELECT
+            (SELECT json_agg(json_build_object('id', id, 'status', status, 'revision', revision, 'review', review_required,
+               'updated', updated_at, 'err', last_error_code, 'active', active_attempt_id) ORDER BY id) FROM x_publishing_posts) AS posts,
+            (SELECT json_agg(json_build_object('id', id, 'state', state, 'review', review_required, 'updated', updated_at,
+               'candidate', reconcile_candidate_id, 'permit', permit_issued_at, 'result', result_received_at) ORDER BY id) FROM x_publishing_attempts) AS attempts,
+            (SELECT COUNT(*)::int FROM ops_activity_events WHERE source_system = 'x_publishing') AS events,
+            (SELECT json_agg(json_build_object('paused', paused, 'updated', updated_at)) FROM x_publishing_control) AS control
+        `
+      );
+
+    // ---------- S17: overdue dispatch visible from dashboard reads alone (live) ----------
+    {
+      const d = "2031-04-16";
+      const p = await draft(textFor("s17 live overdue"), null, false);
+      assert((await approve(p, "next_manual_run", at(`${d}T09:00`), { isTest: false })).status === 200, "s17 live item approved");
+      const w = await claimPublish(at(`${d}T09:01`), "s17", { mode: "live" });
+      assert((await identity(w, at(`${d}T09:01`), X_ACCOUNT_ID, 200, liveEnv)).body.proceed === true, "s17 account confirmed");
+      assert((await dispatch(w, at(`${d}T09:02`), liveEnv)).body.permit === "issued", "s17 permit issued; the create result is deliberately never reported");
+
+      const within = at(`${d}T09:04`);
+      const inTime = await readXPublishingPanel(within);
+      assert(!inTime.attention.some((a) => a.queueId === p.id) && (inTime.counts?.awaiting_confirmation ?? 0) >= 1, "within the deadline: awaiting confirmation, not review");
+
+      const past = at(`${d}T09:30`);
+      const before = await tableState();
+      const panel = await readXPublishingPanel(past);
+      const live = await adminRead(liveEnv, past);
+      const test = await adminRead(dryEnv, past);
+      assert((await tableState()) === before, "dashboard reads wrote nothing (posts, attempts, events, control unchanged)");
+      assert((await getAttempt(w.attemptId))?.state === "dispatched" && (await getPost(p.id))?.status === "dispatched", "stored state still dispatched: visibility is derived, not written");
+
+      const att = panel.attention.find((a) => a.queueId === p.id);
+      assert(att?.label === X_DISPLAY_LABELS.uncertain && panel.attentionTotal >= 1 && (panel.counts?.uncertain ?? 0) >= 1, "Mission Control shows outcome unknown / review required without a claim");
+      assert(!panel.recent.some((r) => r.queueId === p.id && r.displayState === "awaiting_confirmation"), "Mission Control never shows the overdue item as awaiting confirmation");
+      const view = live.sections.review.posts.find((v) => v.id === p.id);
+      const av = view?.attempts.find((a) => a.id === w.attemptId);
+      assert(view?.displayState === "uncertain" && av?.state === "dispatched" && av.dispatchOverdue && av.effectiveState === "uncertain", "/admin-social lists it under review as outcome unknown (from the attempt's own deadline)");
+      assert(!allViews(test.sections).some((v) => v.id === p.id), "TEST view does not include the live item");
+
+      const published = ((await sql`
+        SELECT a.id, a.post_id FROM x_publishing_attempts a
+        WHERE a.state = 'published' AND a.is_test = false AND a.dispatch_deadline < ${past.toISOString()}::timestamptz LIMIT 1
+      `) as Array<{ id: string; post_id: string }>)[0];
+      assert(published, "an older confirmed live publication exists");
+      const pv = allViews(live.sections).find((v) => v.id === published.post_id);
+      assert(pv?.displayState === "published" && !live.sections.review.posts.some((v) => v.id === published.post_id), "an old confirmed result is not downgraded by its age");
+      assert((await setReconcileCandidate({ attemptId: published.id, candidatePostId: postIdFor(), isTest: false, actor: TAG, now: past })).status === 409, "a confirmed result cannot be reconciled");
+      assert((await resolveNotCreated({ attemptId: published.id, confirm: true, isTest: false, actor: TAG, now: past })).status === 409, "a confirmed result cannot be resolved as not created");
+      assert((await getAttempt(published.id))?.state === "published", "confirmed result unchanged");
+
+      const again = await dispatch(w, past, liveEnv);
+      assert(again.body.permit !== "issued" && typeof again.body.text !== "string", "no second permit or text for the overdue attempt");
+
+      const id = postIdFor();
+      const rec = await setReconcileCandidate({ attemptId: w.attemptId, candidatePostId: id, isTest: false, actor: TAG, now: past });
+      assert(rec.status === 200, `owner reconciliation accepted without a new claim (${JSON.stringify(rec.body)})`);
+      const ra = await getAttempt(w.attemptId);
+      assert(ra?.state === "uncertain" && ra.reconcileCandidateId === id && (await getPost(p.id))?.status === "uncertain", "owner action recorded the uncertain state and the candidate atomically");
+      const lc = (await claim(addMinutes(past, 1), { mode: "live" })).body.work as Work;
+      assert(lc?.kind === "lookup" && lc.purpose === "reconcile" && lc.xPostId === id, "the only follow-up work is a read-only reconcile lookup (no Create Post)");
+      assert((await lookup(lc, addMinutes(past, 1), xPost(id, p.text), 200, false, liveEnv)).body.state === "published", "reconciled candidate confirmed");
+      log("S17 overdue visible from reads, reads write nothing, reconcile without a claim: ok");
+    }
+
+    // ---------- S18: late receipts and resolve-not-created on overdue attempts (TEST) ----------
+    {
+      const overdueAttempt = async (d: string, label: string) => {
+        const p = await approvedManual(label, at(`${d}T09:00`));
+        const w = await claimPublish(at(`${d}T09:01`), label);
+        await identity(w, at(`${d}T09:01`));
+        assert((await dispatch(w, at(`${d}T09:01`))).body.permit === "issued", `${label}: permit issued, result omitted`);
+        const r = await adminRead(dryEnv, at(`${d}T09:30`));
+        assert(r.sections.review.posts.some((v) => v.id === p.id && v.displayState === "uncertain"), `${label}: review-required after the deadline without a claim`);
+        return { p, w };
+      };
+
+      const c = await overdueAttempt("2031-04-18", "s18 late receipt");
+      const idC = postIdFor();
+      const late = await result(c.w, at("2031-04-18T09:40"), { httpStatus: 201, postId: idC });
+      assert(late.body.state === "created" && late.body.xPostId === idC, "late confirmed receipt on a still-dispatched overdue attempt resolves it");
+      const cr = await adminRead(dryEnv, at("2031-04-18T09:41"));
+      assert(!cr.sections.review.posts.some((v) => v.id === c.p.id) && allViews(cr.sections).some((v) => v.id === c.p.id && v.displayState === "created_unconfirmed"), "no longer outcome unknown after the late receipt");
+      assert((await lookup(c.w, at("2031-04-18T09:41"), xPost(idC, c.p.text))).body.state === "published", "late receipt verified");
+
+      const dd = await overdueAttempt("2031-04-19", "s18 owner then late receipt");
+      const idD = postIdFor();
+      assert((await setReconcileCandidate({ attemptId: dd.w.attemptId, candidatePostId: idD, isTest: true, actor: TAG, now: at("2031-04-19T09:30") })).status === 200, "owner reconcile on an overdue TEST attempt without a claim");
+      const lateD = await result(dd.w, at("2031-04-19T09:35"), { httpStatus: 201, postId: idD });
+      assert(lateD.body.state === "created" && lateD.body.xPostId === idD, "late confirmed receipt after the owner transition still resolves");
+      assert((await lookup(dd.w, at("2031-04-19T09:36"), xPost(idD, dd.p.text))).body.state === "published", "resolved attempt verified");
+      assert((await result(dd.w, at("2031-04-19T09:40"), { httpStatus: null, transportError: true })).status === 409, "a later non-confirmation cannot downgrade the confirmed result");
+      assert((await getAttempt(dd.w.attemptId))?.state === "published", "confirmed result kept");
+
+      const b = await overdueAttempt("2031-04-20", "s18 resolve not created");
+      assert((await resolveNotCreated({ attemptId: b.w.attemptId, confirm: true, isTest: true, actor: TAG, now: at("2031-04-20T09:30") })).status === 200, "owner resolves an overdue attempt as not created without a claim");
+      assert((await getAttempt(b.w.attemptId))?.state === "not_created" && (await getPost(b.p.id))?.status === "cancelled", "attempt not_created, post cancelled");
+      assert((await claim(at("2031-04-20T09:31"))).body.work === null, "nothing is re-dispatched");
+      log("S18 late receipts / owner actions on overdue attempts: ok");
+    }
+
+    // ---------- S19: unresolved items are never hidden behind newer records ----------
+    {
+      const d = "2031-04-22";
+      const old = await draft(textFor("s19 old unresolved"), null, false);
+      assert((await approve(old, "next_manual_run", at(`${d}T09:00`), { isTest: false })).status === 200, "s19 live item approved");
+      const w = await claimPublish(at(`${d}T09:01`), "s19", { mode: "live" });
+      await identity(w, at(`${d}T09:01`), X_ACCOUNT_ID, 200, liveEnv);
+      await dispatch(w, at(`${d}T09:01`), liveEnv);
+      assert((await result(w, at(`${d}T09:02`), { httpStatus: null, transportError: true }, liveEnv)).body.state === "uncertain", "old live item is unresolved (timeout)");
+
+      const now = at("2031-07-01T09:00");
+      const basePanel = await readXPublishingPanel(now);
+      const baseLive = await adminRead(liveEnv, now);
+      const baseTest = await adminRead(dryEnv, now);
+      assert(basePanel.attention.some((a) => a.queueId === old.id), "old unresolved item listed before the bulk insert");
+
+      const newer = at("2031-06-01T09:00").toISOString();
+      await sql`
+        INSERT INTO x_publishing_posts (id, status, revision, text, text_hash, account_id, account_handle, is_test, schedule_kind, created_by, created_at, updated_at)
+        SELECT gen_random_uuid(), CASE WHEN g <= 120 THEN 'draft' ELSE 'cancelled' END, 1,
+               'bulk ' || ${TAG} || ' ' || g, md5('bulk ' || ${TAG} || ' ' || g), ${X_ACCOUNT_ID}, ${X_ACCOUNT_HANDLE}, false,
+               'next_manual_run', ${TAG}, ${newer}::timestamptz + make_interval(mins => g), ${newer}::timestamptz + make_interval(mins => g)
+        FROM generate_series(1, 160) AS g
+      `;
+      await sql`
+        INSERT INTO x_publishing_posts (id, status, revision, text, text_hash, account_id, account_handle, is_test, schedule_kind,
+          scheduled_for, expires_at, scheduled_day, approval_hash, approved_revision, review_required, created_by, created_at, updated_at)
+        SELECT gen_random_uuid(), 'uncertain', 1, 'bulk review ' || ${TAG} || ' ' || g || ' ' || t,
+               md5('bulk review ' || ${TAG} || ' ' || g || ' ' || t), ${X_ACCOUNT_ID}, ${X_ACCOUNT_HANDLE}, t,
+               'next_manual_run', ${newer}::timestamptz, ${newer}::timestamptz + interval '15 minutes', '2031-06-01', md5('bulk'), 1, true,
+               ${TAG}, ${newer}::timestamptz + make_interval(mins => 200 + g), ${newer}::timestamptz + make_interval(mins => 200 + g)
+        FROM generate_series(1, 60) AS g, (VALUES (false), (true)) AS v(t)
+        WHERE t = false OR g <= 30
+      `;
+
+      const panel = await readXPublishingPanel(now);
+      assert(panel.totalPosts === basePanel.totalPosts + 220, `Mission Control total is exact (${panel.totalPosts})`);
+      assert(panel.attentionTotal === basePanel.attentionTotal + 60, `Mission Control unresolved count is exact and excludes TEST (${panel.attentionTotal})`);
+      assert(panel.attention.length === Math.min(panel.attentionTotal, 20) && panel.attention[0]?.queueId === old.id, "the oldest unresolved item stays listed first behind 220 newer records");
+      assert(!panel.recent.some((r) => r.queueId === old.id), "the recent-history window is separate from the unresolved list");
+
+      const live = await adminRead(liveEnv, now);
+      assert(live.totalPosts === baseLive.totalPosts + 220 && live.sections.review.total === baseLive.sections.review.total + 60, "/admin-social live totals exact");
+      assert(live.sections.open.total === baseLive.sections.open.total + 120 && live.sections.history.total === baseLive.sections.history.total + 40, "/admin-social open/history totals exact");
+      assert(live.sections.review.posts.length === 50 && live.sections.review.posts[0].id === old.id, "old unresolved item on the first review page");
+      const seen = new Set(live.sections.review.posts.map((v) => v.id));
+      for (let offset = 50; offset < live.sections.review.total; offset += 50) {
+        const page = await adminRead(liveEnv, now, `reviewOffset=${offset}`);
+        assert(page.sections.review.offset === offset && page.sections.review.total === live.sections.review.total, "later review page reports the same exact total");
+        page.sections.review.posts.forEach((v) => seen.add(v.id));
+      }
+      assert(seen.size === live.sections.review.total, `every unresolved live item reachable by paging (${seen.size})`);
+      assert(Object.values(live.counts).reduce((a, n) => a + n, 0) === live.totalPosts, "state counts sum to the exact total");
+
+      const test = await adminRead(dryEnv, now);
+      assert(test.sections.review.total === baseTest.sections.review.total + 30 && test.totalPosts === baseTest.totalPosts + 30, "TEST partition counted separately");
+      assert(!allViews(test.sections).some((v) => v.id === old.id), "TEST view excludes live items");
+      log(`S19 unresolved never hidden: ok (live total ${live.totalPosts}, live review ${live.sections.review.total}, test review ${test.sections.review.total})`);
     }
 
     // ---------- S16: nothing due ----------

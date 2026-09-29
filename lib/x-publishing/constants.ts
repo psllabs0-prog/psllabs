@@ -70,6 +70,7 @@ export type XDisplayState =
   | "scheduled"
   | "preparing"
   | "awaiting_confirmation"
+  | "created_unconfirmed"
   | "published"
   | "rejected"
   | "expired"
@@ -80,12 +81,13 @@ export const X_DISPLAY_LABELS: Record<XDisplayState, string> = {
   draft: "Draft (not approved)",
   scheduled: "Scheduled (approved)",
   preparing: "Preparing (claimed, not yet sent)",
-  awaiting_confirmation: "Dispatched — awaiting confirmation",
+  awaiting_confirmation: "Dispatch permitted — awaiting X's response (within deadline)",
+  created_unconfirmed: "Created on X (post ID recorded) — lookup not yet confirmed",
   published: "Published (lookup confirmed)",
-  rejected: "Rejected by X (not posted)",
+  rejected: "Rejected by X (confirmed, not posted)",
   expired: "Expired (not posted)",
   cancelled: "Cancelled",
-  uncertain: "Uncertain — owner review required",
+  uncertain: "Outcome unknown — owner review required",
 };
 
 export const X_PROVENANCE = "X API response observed by the configured n8n workflow";

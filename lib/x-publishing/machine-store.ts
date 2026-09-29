@@ -8,9 +8,11 @@ import { checkPostText, X_CONTENT_POLICY_VERSION } from "./content";
 import { recordXEvent, X_EVENT_TYPES, type XEventInput } from "./events";
 import { canonicalJson, randomToken, sha256Hex, tokenHash } from "./hash";
 import {
+  emitOverdueUncertain,
   getAttempt,
   getPost,
   lockedTransaction,
+  overdueDispatchStatement,
   recomputeApprovalHash,
   sqlState,
   type XAttemptRecord,
@@ -122,21 +124,7 @@ export async function claimXWork(input: ClaimInput): Promise<XResult> {
       WHERE p.id = rel.post_id AND p.status = 'claimed' AND p.active_attempt_id = rel.id
       RETURNING p.id
     `,
-    sql`
-      WITH unk AS (
-        UPDATE x_publishing_attempts
-        SET state = 'uncertain', error_code = 'dispatch_deadline_passed',
-            error_message = 'No create result was reported before the dispatch deadline; the post may exist',
-            updated_at = ${now}::timestamptz
-        WHERE is_test = ${isTest} AND state = 'dispatched' AND dispatch_deadline <= ${now}::timestamptz
-        RETURNING id, post_id
-      )
-      UPDATE x_publishing_posts p
-      SET status = 'uncertain', updated_at = ${now}::timestamptz
-      FROM unk
-      WHERE p.id = unk.post_id AND p.status = 'dispatched'
-      RETURNING p.id, p.revision, unk.id AS attempt_id
-    `,
+    overdueDispatchStatement(sql, { isTest, now, attemptId: null }),
     sql`
       WITH cand AS (
         SELECT p.id, p.revision, p.approval_hash, p.text, p.account_id, p.is_test,
@@ -207,19 +195,8 @@ export async function claimXWork(input: ClaimInput): Promise<XResult> {
         now: input.now,
       })
     ),
-    ...unknown.map(
-      (r): XEventInput => ({
-        type: X_EVENT_TYPES.uncertain,
-        outcome: "outcome_unknown",
-        summary: "X create result not reported before the dispatch deadline — owner review required, no retry",
-        queueId: String(r.id),
-        revision: Number(r.revision),
-        attemptId: String(r.attempt_id),
-        isTest,
-        now: input.now,
-      })
-    ),
   ]);
+  await emitOverdueUncertain(unknown, isTest, input.now);
 
   const c = claimed[0];
   if (c) {

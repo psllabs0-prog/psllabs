@@ -2,8 +2,13 @@ import { getSql } from "@/lib/db/sql";
 
 import { getXPublishingConfig, type XGate } from "./config";
 import { X_ACCOUNT_HANDLE, X_ACCOUNT_ID, X_DISPLAY_LABELS, xPostUrl, type XDisplayState } from "./constants";
+import { foldTally, readOnlySnapshot, recentQuery, sectionPageQuery, tallyQuery } from "./reads";
 import { displayState, getControl, mapPost, type XControl } from "./records";
 import { getXPublishingSchemaState } from "./schema";
+
+/** Attention rows listed in Mission Control; the total is always exact and links to /admin-social for the rest. */
+export const X_PANEL_ATTENTION_LIMIT = 20;
+export const X_PANEL_RECENT_LIMIT = 5;
 
 export type XPublishingPanel = {
   accountId: string;
@@ -14,7 +19,12 @@ export type XPublishingPanel = {
   missing: string[];
   control: XControl | null;
   accountMismatch: boolean;
+  /** Exact counts over all live items (not a window). */
   counts: Partial<Record<XDisplayState, number>> | null;
+  totalPosts: number;
+  /** Exact number of unresolved live items (uncertain, review required, or dispatched past deadline without a result). */
+  attentionTotal: number;
+  /** Oldest unresolved first, at most X_PANEL_ATTENTION_LIMIT; see attentionTotal. */
   attention: Array<{ queueId: string; label: string; xPostId: string | null; note: string | null }>;
   recent: Array<{
     queueId: string;
@@ -42,6 +52,8 @@ export async function readXPublishingPanel(now: Date): Promise<XPublishingPanel>
     control: null,
     accountMismatch: false,
     counts: null,
+    totalPosts: 0,
+    attentionTotal: 0,
     attention: [],
     recent: [],
     note: null,
@@ -51,50 +63,45 @@ export async function readXPublishingPanel(now: Date): Promise<XPublishingPanel>
     return { ...base, missing: schema.missing, note: "X queue tables not initialized (explicit migration required)." };
   }
   const sql = getSql();
-  const rows = (await sql`
-    SELECT * FROM x_publishing_posts
-    WHERE is_test = false
-    ORDER BY updated_at DESC
-    LIMIT 100
-  `) as Record<string, unknown>[];
-  const posts = rows.map(mapPost);
+  const at = now.toISOString();
+  const [tallyRows, attentionRows, recentRows] = await readOnlySnapshot(sql, [
+    tallyQuery(sql, false, at),
+    sectionPageQuery(sql, false, at, "review", X_PANEL_ATTENTION_LIMIT, 0),
+    recentQuery(sql, false, at, X_PANEL_RECENT_LIMIT),
+  ]);
+  const tally = foldTally(tallyRows);
   const control = await getControl();
-  const counts: Partial<Record<XDisplayState, number>> = {};
-  for (const p of posts) {
-    const s = displayState(p, now);
-    counts[s] = (counts[s] ?? 0) + 1;
-  }
   const accountMismatch = control.paused && control.updatedBy === "x-publisher";
   return {
     ...base,
     initialized: true,
     control,
     accountMismatch,
-    counts,
-    attention: posts
-      .filter((p) => p.status === "uncertain" || p.reviewRequired)
-      .map((p) => ({
+    counts: tally.counts,
+    totalPosts: tally.total,
+    attentionTotal: tally.sections.review,
+    attention: attentionRows.map(mapPost).map((p) => {
+      const s = displayState(p, now);
+      return {
         queueId: p.id,
-        label: p.status === "uncertain" ? X_DISPLAY_LABELS.uncertain : "Review required",
+        label: s === "uncertain" ? X_DISPLAY_LABELS.uncertain : `Review required — ${X_DISPLAY_LABELS[s]}`,
         xPostId: p.xPostId,
-        note: p.lastErrorMessage,
-      })),
-    recent: posts
-      .filter((p) => p.status !== "draft")
-      .slice(0, 5)
-      .map((p) => {
-        const s = displayState(p, now);
-        return {
-          queueId: p.id,
-          displayState: s,
-          label: X_DISPLAY_LABELS[s],
-          scheduledFor: p.scheduledFor,
-          xPostId: p.xPostId,
-          xUrl: p.xPostId ? xPostUrl(p.xPostId) : null,
-          verifiedAt: p.verifiedAt,
-          updatedAt: p.updatedAt,
-        };
-      }),
-    note: posts.length === 0 ? "Queue empty — nothing scheduled (not a failure)." : null,
+        note: p.lastErrorMessage ?? (s === "uncertain" ? "Dispatched past its deadline with no recorded result." : null),
+      };
+    }),
+    recent: recentRows.map(mapPost).map((p) => {
+      const s = displayState(p, now);
+      return {
+        queueId: p.id,
+        displayState: s,
+        label: X_DISPLAY_LABELS[s],
+        scheduledFor: p.scheduledFor,
+        xPostId: p.xPostId,
+        xUrl: p.xPostId ? xPostUrl(p.xPostId) : null,
+        verifiedAt: p.verifiedAt,
+        updatedAt: p.updatedAt,
+      };
+    }),
+    note: tally.total === 0 ? "Queue empty — nothing scheduled (not a failure)." : null,
   };
 }

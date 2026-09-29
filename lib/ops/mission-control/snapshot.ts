@@ -178,11 +178,11 @@ export async function collectMissionControlSnapshot(input: {
       href: "/admin-social",
     });
   }
-  if (xPublishing && xPublishing.attention.length > 0) {
+  if (xPublishing && xPublishing.attentionTotal > 0) {
     pipeline.blocked.push({
       worker: "x_publishing",
       label: "X posts needing owner review",
-      count: xPublishing.attention.length,
+      count: xPublishing.attentionTotal,
       detail: null,
       href: "/admin-social",
     });

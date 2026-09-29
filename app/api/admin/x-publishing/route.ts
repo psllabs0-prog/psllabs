@@ -8,11 +8,11 @@ export const dynamic = "force-dynamic";
 
 const NO_STORE = { "Cache-Control": "no-store" };
 
-export async function GET() {
+export async function GET(request: Request) {
   const authError = await requireAdminAuth();
   if (authError) return authError;
   try {
-    const { status, body } = await handleXAdminGet();
+    const { status, body } = await handleXAdminGet({ query: new URL(request.url).searchParams });
     return NextResponse.json(body, { status, headers: NO_STORE });
   } catch (error) {
     console.error("[admin/x-publishing] GET", error instanceof Error ? error.message : error);

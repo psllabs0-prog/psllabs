@@ -403,8 +403,15 @@ function XPublishingSection({ x }: { x: MissionControlSnapshot["xPublishing"] })
                 {Object.entries(x.counts ?? {})
                   .map(([state, n]) => `${state.replace(/_/g, " ")}: ${n}`)
                   .join(" · ") || "No queue items."}
+                {x.totalPosts > 0 ? ` (exact, ${x.totalPosts} live items)` : ""}
                 {x.note ? ` ${x.note}` : ""}
               </p>
+              {x.attentionTotal > 0 && (
+                <p className="mt-2 text-sm font-medium text-orange-900">
+                  {x.attentionTotal} X {x.attentionTotal === 1 ? "post needs" : "posts need"} owner review
+                  {x.attentionTotal > x.attention.length ? ` — oldest ${x.attention.length} shown; open the queue for all` : ""}
+                </p>
+              )}
               {x.attention.length > 0 && (
                 <ul className="mt-2 space-y-1">
                   {x.attention.map((a) => (

@@ -7,8 +7,10 @@ import { checkPostText, normalizeDraftText, X_CONTENT_POLICY_VERSION } from "./c
 import { recordXEvent, X_EVENT_TYPES } from "./events";
 import { approvalHash, textHash } from "./hash";
 import {
+  emitOverdueUncertain,
   getPost,
   lockedTransaction,
+  overdueDispatchStatement,
   mapAttempt,
   mapPost,
   previewHashFor,
@@ -361,7 +363,8 @@ export async function setReconcileCandidate(input: {
 }): Promise<XResult> {
   if (!X_POST_ID_RE.test(input.candidatePostId)) return fail(400, "Post ID must be digits only.");
   const now = input.now.toISOString();
-  const [rows] = await lockedTransaction((sql) => [
+  const [overdue, rows] = await lockedTransaction((sql) => [
+    overdueDispatchStatement(sql, { isTest: input.isTest, now, attemptId: input.attemptId }),
     sql`
       UPDATE x_publishing_attempts SET
         reconcile_candidate_id = ${input.candidatePostId}, next_lookup_at = ${now}::timestamptz,
@@ -376,8 +379,12 @@ export async function setReconcileCandidate(input: {
       RETURNING *
     `,
   ]);
+  await emitOverdueUncertain(overdue, input.isTest, input.now);
   if (!rows[0]) {
-    return fail(409, "Only an uncertain attempt can be reconciled, with a post ID not already linked to another attempt.");
+    return fail(
+      409,
+      "Only an uncertain attempt (including one dispatched past its deadline without a result) can be reconciled, with a post ID not already linked to another attempt."
+    );
   }
   return { status: 200, body: { attempt: mapAttempt(rows[0]) } };
 }
@@ -416,7 +423,8 @@ export async function resolveNotCreated(input: {
     return fail(400, `Confirm that you checked @${X_ACCOUNT_HANDLE} on X and this post does not exist.`);
   }
   const now = input.now.toISOString();
-  const [rows] = await lockedTransaction((sql) => [
+  const [overdue, rows] = await lockedTransaction((sql) => [
+    overdueDispatchStatement(sql, { isTest: input.isTest, now, attemptId: input.attemptId }),
     sql`
       WITH a AS (
         UPDATE x_publishing_attempts x SET
@@ -440,8 +448,12 @@ export async function resolveNotCreated(input: {
       RETURNING p.*
     `,
   ]);
+  await emitOverdueUncertain(overdue, input.isTest, input.now);
   if (!rows[0]) {
-    return fail(409, "Only an uncertain attempt without any X post ID can be resolved as not created.");
+    return fail(
+      409,
+      "Only an uncertain attempt (including one dispatched past its deadline without a result) without any X post ID can be resolved as not created."
+    );
   }
   const post = mapPost(rows[0]);
   await recordXEvent({

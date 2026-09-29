@@ -89,7 +89,7 @@ Do not reuse `PSL Mission Control n8n` (B1) here, and do not use
 3. Bind credentials node by node (table below). A PSL node without
    `PSL X Queue` fails with 401 and stops the run before any X call.
 
-### Nodes (29 total: 8 HTTP Request, 6 IF, 9 Stop and Error, 2 Set, 2 No-Op, 1 Manual Trigger, 1 Sticky Note)
+### Nodes (32 total: 8 HTTP Request, 8 IF, 9 Stop and Error, 3 Set, 2 No-Op, 1 Manual Trigger, 1 Sticky Note)
 
 | # | Node | Type | Credential | Notes |
 |---|---|---|---|---|
@@ -112,16 +112,28 @@ Do not reuse `PSL Mission Control n8n` (B1) here, and do not use
 | 17 | Stop: permit not received | Stop and Error | — | Do not re-run to retry |
 | 18 | Permit issued? | IF | — | `permit === 'issued'`, same attempt, text present |
 | 19 | Stop: dispatch denied | Stop and Error | — | Paused / not due / expired / cap / edited |
-| 20 | **Create Post on X** | HTTP POST `https://api.x.com/2/tweets` | **PSL X Publishing** | Body `{ text }` only. **Retry On Fail OFF**. Timeout → error branch → reported as uncertain |
-| 21 | Report create result | HTTP POST `/attempts/{id}/result` | **PSL X Queue** | Retries (idempotent) |
-| 22 | Stop: result not recorded | Stop and Error | — | Do not re-run; becomes uncertain after deadline |
-| 23 | Verify now? | IF | — | Created with a digits-only post ID |
-| 24 | Stop: not published | Stop and Error | — | Rejected or uncertain; no retry |
-| 25 | Lookup target | Set | — | Attempt, token, post ID for the lookup |
-| 26 | Look up post on X | HTTP GET `https://api.x.com/2/tweets/{id}?tweet.fields=author_id,created_at,entities,text` | **PSL X Publishing** | Read-only; no redirects |
-| 27 | Report lookup evidence | HTTP POST `/attempts/{id}/lookup` | **PSL X Queue** | Retries (idempotent) |
-| 28 | Stop: lookup not recorded | Stop and Error | — | ID retained; read-only retry later |
-| 29 | Done | No-Op | — | |
+| 20 | **Create Post on X** | HTTP POST `https://api.x.com/2/tweets` | **PSL X Publishing** | Body `{ text }` only. **Retry On Fail OFF**. Timeout → error branch → evidence without an HTTP status |
+| 21 | Create response evidence | Set | — | Keeps X's HTTP status, post ID, error title, and rate-limit reset for the report and every later message |
+| 22 | Report create result | HTTP POST `/attempts/{id}/result` | **PSL X Queue** | Retries (idempotent). If PSL still does not confirm → outcome unknown |
+| 23 | Verify now? | IF | — | PSL recorded *created* with a digits-only post ID |
+| 24 | Rejected by X? | IF | — | PSL recorded a **confirmed** X rejection (`rejected`, no retry, not flagged) |
+| 25 | Stop: X rejected the post (confirmed) | Stop and Error | — | X answered with a rejection; not posted. No automatic retry |
+| 26 | Stop: outcome unknown (review required) | Stop and Error | — | Timeout, missing ID, flagged receipt, or PSL did not acknowledge the report. **The post may exist.** Message includes X's HTTP status, any post ID, and the attempt ID. Do not re-run |
+| 27 | Lookup target | Set | — | Attempt, token, post ID for the lookup |
+| 28 | Look up post on X | HTTP GET `https://api.x.com/2/tweets/{id}?tweet.fields=author_id,created_at,entities,text` | **PSL X Publishing** | Read-only; no redirects |
+| 29 | Report lookup evidence | HTTP POST `/attempts/{id}/lookup` | **PSL X Queue** | Retries (idempotent). If PSL does not confirm → lookup not confirmed |
+| 30 | Verified? | IF | — | PSL recorded `published` (lookup confirmed) |
+| 31 | Stop: created on X (ID recorded), lookup not confirmed | Stop and Error | — | Not a failed post. ID retained and shown; read-only retry later or owner review. Never posts again |
+| 32 | Published and verified | No-Op | — | |
+
+### What each ending means
+
+| Ending | Meaning | Owner action |
+|---|---|---|
+| Stop: X rejected the post (confirmed) | X returned a rejection (400/401/403/404/422/429) and PSL recorded it | Fix, edit, and re-approve if wanted |
+| Stop: outcome unknown (review required) | Confirmation not received, or X's answer was not conclusive. The post may or may not exist | **Do not re-run.** Check @PSLLabspurity, then reconcile in `/admin-social` |
+| Stop: created on X (ID recorded), lookup not confirmed | X returned a post ID; read-only verification has not confirmed it yet | Nothing, or open the ID on X. PSL retries the lookup read-only |
+| Published and verified | Lookup confirmed ID, author, and text | None |
 
 There are no LLM/AI nodes and no Code nodes. X URLs are fixed literals on
 `api.x.com`; the only dynamic part is the digits-only post ID in the lookup.
@@ -156,12 +168,26 @@ There are no LLM/AI nodes and no Code nodes. X URLs are fixed literals on
   workflow".
 - Machine access **cannot** create, edit, or approve drafts, unpause, change
   settings, or clear uncertainty.
+- **Overdue dispatch without another run.** Once an attempt's dispatch
+  deadline passes with no result recorded, `/admin-social` and Mission
+  Control show it as **Outcome unknown — owner review required** on the next
+  page load, derived from that attempt's deadline and receipts. Page loads
+  are read-only and never issue a permit or retry. The owner's reconcile and
+  "resolve as not created" actions accept such an attempt directly (they
+  record the uncertain state first in the same transaction). A candidate post
+  ID still needs a later run so n8n can do the read-only lookup; "resolve as
+  not created" needs no run. A late confirmed receipt still resolves the
+  attempt, and a confirmed result is never downgraded because it is old.
+- **Counts are exact.** Mission Control and `/admin-social` count every live
+  item in the database (TEST items separately). Unresolved items are listed
+  oldest first in their own section and are never pushed out by newer drafts
+  or history; long lists are paged and show "Showing a–b of total".
 
 ## 6. Dry run / isolated acceptance (no reachable X write)
 
-`psl-x-publisher-dry-run.workflow.json` (21 nodes: 5 HTTP Request, all to
+`psl-x-publisher-dry-run.workflow.json` (27 nodes: 5 HTTP Request, all to
 PSL; **0 X nodes; no OAuth2 credential**) replaces the three X calls with
-Set nodes. It claims with `mode: dry_run`, which PSL serves only for TEST
+Set nodes and ends with the same four outcomes as the live workflow. It claims with `mode: dry_run`, which PSL serves only for TEST
 items, only outside Vercel, and only with `X_PUBLISHING_DRY_RUN_ENABLED=true`.
 Use it only against an isolated PSL instance with its own token and its own
 disposable database. Queued (later) lookups are not simulated.
@@ -179,12 +205,14 @@ disabled: `npm run test:x-publishing-db` (see `scripts/test-x-publishing-db.ts`)
 3. Save a short draft, review it, tick the confirmations, and choose
    **Approve for next manual run** (valid 15 minutes).
 4. In n8n click **Execute workflow** once. Expected path: Claim → account
-   check → permit → Create Post → result → lookup → Done.
+   check → permit → Create Post → result → lookup → Published and verified.
 5. Check `/admin-social` (published, X link, lookup confirmed) and Mission
    Control (X publisher panel and `x_publishing` events).
-6. If any step says a result was not recorded or the post is uncertain,
-   **do not re-run**. Check @PSLLabspurity on X, then either queue a
-   read-only lookup of the post ID or resolve as not created.
+6. If the run ends at **outcome unknown**, **do not re-run**. Check
+   @PSLLabspurity on X, then either reconcile with the post ID you found (a
+   later run does the read-only lookup) or resolve as not created. If it ends
+   at **created on X, lookup not confirmed**, the post ID is recorded; do not
+   post again.
 
 ## 8. Future schedule (not enabled)
 

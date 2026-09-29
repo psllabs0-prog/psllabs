@@ -22,9 +22,11 @@ import {
 } from "./constants";
 import { checkPostText, X_CONTENT_POLICY_VERSION, type XContentCheck } from "./content";
 import { readJsonObject, UUID_RE } from "./http";
+import { foldTally, readOnlySnapshot, sectionPageQuery, tallyQuery, X_SECTIONS, type XSection } from "./reads";
 import {
   displayState,
   getControl,
+  isDispatchOverdue,
   mapAttempt,
   mapPost,
   previewHashFor,
@@ -46,7 +48,19 @@ export const X_MIGRATION_REQUIRED =
 
 type Env = Record<string, string | undefined>;
 
-export type XAttemptView = Omit<XAttemptRecord, "claimTokenHash" | "lookupTokenHash" | "approvalHash" | "payloadText">;
+export type XAttemptView = Omit<XAttemptRecord, "claimTokenHash" | "lookupTokenHash" | "approvalHash" | "payloadText"> & {
+  /** Dispatched past its deadline with no recorded result (derived at read time; stored state may still be "dispatched"). */
+  dispatchOverdue: boolean;
+  /** "uncertain" when dispatchOverdue, otherwise the stored state. */
+  effectiveState: XAttemptRecord["state"];
+};
+
+/** Bounded pages; totals in `sections[*].total` are always exact. */
+export const X_ADMIN_PAGE_SIZE: Record<XSection, number> = { review: 50, open: 50, history: 25 };
+export const X_ADMIN_MAX_OFFSET = 1_000_000;
+const ATTEMPTS_PER_POST = 10;
+
+export type XSectionView = { total: number; offset: number; limit: number; posts: XPostView[] };
 
 export type XPostView = XPostRecord & {
   displayState: ReturnType<typeof displayState>;
@@ -61,13 +75,27 @@ export type XPostView = XPostRecord & {
   attempts: XAttemptView[];
 };
 
-function attemptView(a: XAttemptRecord): XAttemptView {
+function attemptView(a: XAttemptRecord, now: Date): XAttemptView {
   const view: Partial<XAttemptRecord> = { ...a };
   delete view.claimTokenHash;
   delete view.lookupTokenHash;
   delete view.approvalHash;
   delete view.payloadText;
-  return view as XAttemptView;
+  const dispatchOverdue = isDispatchOverdue(a, now);
+  return { ...(view as Omit<XAttemptView, "dispatchOverdue" | "effectiveState">), dispatchOverdue, effectiveState: dispatchOverdue ? "uncertain" : a.state };
+}
+
+function offsetParam(query: URLSearchParams | undefined, key: string): number {
+  const n = Number(query?.get(key) ?? 0);
+  return Number.isInteger(n) && n >= 0 ? Math.min(n, X_ADMIN_MAX_OFFSET) : 0;
+}
+
+function emptySections(): Record<XSection, XSectionView> {
+  return {
+    review: { total: 0, offset: 0, limit: X_ADMIN_PAGE_SIZE.review, posts: [] },
+    open: { total: 0, offset: 0, limit: X_ADMIN_PAGE_SIZE.open, posts: [] },
+    history: { total: 0, offset: 0, limit: X_ADMIN_PAGE_SIZE.history, posts: [] },
+  };
 }
 
 export function buildPostView(post: XPostRecord, attempts: XAttemptRecord[], now: Date): XPostView {
@@ -90,12 +118,18 @@ export function buildPostView(post: XPostRecord, attempts: XAttemptRecord[], now
           }
         : null,
     xUrl: post.xPostId ? xPostUrl(post.xPostId) : null,
-    attempts: attempts.filter((a) => a.postId === post.id).map(attemptView),
+    attempts: attempts.filter((a) => a.postId === post.id).map((a) => attemptView(a, now)),
   };
 }
 
-/** Read-only. Never creates schema; missing tables are reported, not fixed. */
-export async function handleXAdminGet(options: { env?: Env; now?: Date } = {}): Promise<XResult> {
+/**
+ * Read-only. Never creates schema; missing tables are reported, not fixed.
+ * Queue reads run in a READ ONLY transaction. Unresolved items form their own
+ * section (oldest first) with an exact total, independent of how many newer
+ * drafts or completed posts exist; each section pages via ?reviewOffset=,
+ * ?openOffset=, ?historyOffset=.
+ */
+export async function handleXAdminGet(options: { env?: Env; now?: Date; query?: URLSearchParams } = {}): Promise<XResult> {
   const env = options.env ?? process.env;
   const now = options.now ?? new Date();
   const config = getXPublishingConfig(env);
@@ -120,32 +154,50 @@ export async function handleXAdminGet(options: { env?: Env; now?: Date } = {}): 
     schema = await getXPublishingSchemaState();
   } catch (error) {
     console.error("[x-publishing] schema probe failed:", error instanceof Error ? error.message : error);
-    return { status: 200, body: { ...base, initialized: false, missing: [], migrationRequired: "Database unavailable.", posts: [], control: null } };
+    return { status: 200, body: { ...base, initialized: false, missing: [], migrationRequired: "Database unavailable.", ...emptyRead() } };
   }
   if (!schema.initialized) {
-    return { status: 200, body: { ...base, initialized: false, missing: schema.missing, migrationRequired: X_MIGRATION_REQUIRED, posts: [], control: null } };
+    return { status: 200, body: { ...base, initialized: false, missing: schema.missing, migrationRequired: X_MIGRATION_REQUIRED, ...emptyRead() } };
   }
   const isTest = config.admin.mode === "test";
+  const offsets: Record<XSection, number> = {
+    review: offsetParam(options.query, "reviewOffset"),
+    open: offsetParam(options.query, "openOffset"),
+    history: offsetParam(options.query, "historyOffset"),
+  };
   try {
     const sql = getSql();
-    const postRows = (await sql`
-      SELECT * FROM x_publishing_posts
-      WHERE is_test = ${isTest}
-      ORDER BY CASE WHEN status IN ('draft','approved','claimed','dispatched','created','uncertain') THEN 0 ELSE 1 END,
-               updated_at DESC
-      LIMIT 50
-    `) as Record<string, unknown>[];
-    const posts = postRows.map(mapPost);
-    const attemptRows = posts.length
+    const at = now.toISOString();
+    const [tallyRows, ...pages] = await readOnlySnapshot(sql, [
+      tallyQuery(sql, isTest, at),
+      ...X_SECTIONS.map((s) => sectionPageQuery(sql, isTest, at, s, X_ADMIN_PAGE_SIZE[s], offsets[s])),
+    ]);
+    const tally = foldTally(tallyRows);
+    const pagePosts = pages.map((rows) => rows.map(mapPost));
+    const ids = pagePosts.flat().map((p) => p.id);
+    const attemptRows = ids.length
       ? ((await sql`
-          SELECT * FROM x_publishing_attempts
-          WHERE post_id = ANY(${posts.map((p) => p.id)}::uuid[])
-          ORDER BY claimed_at DESC
-          LIMIT 300
+          SELECT * FROM (
+            SELECT a.*, row_number() OVER (PARTITION BY a.post_id ORDER BY a.claimed_at DESC) AS rn
+            FROM x_publishing_attempts a
+            WHERE a.post_id = ANY(${ids}::uuid[])
+          ) t
+          WHERE t.rn <= ${ATTEMPTS_PER_POST} OR t.review_required
+            OR t.state IN ('claimed','identity_ok','dispatched','created','uncertain')
+          ORDER BY t.claimed_at DESC
         `) as Record<string, unknown>[])
       : [];
     const attempts = attemptRows.map(mapAttempt);
     const control = await getControl();
+    const sections = emptySections();
+    X_SECTIONS.forEach((s, i) => {
+      sections[s] = {
+        total: tally.sections[s],
+        offset: offsets[s],
+        limit: X_ADMIN_PAGE_SIZE[s],
+        posts: pagePosts[i].map((p) => buildPostView(p, attempts, now)),
+      };
+    });
     return {
       status: 200,
       body: {
@@ -155,15 +207,21 @@ export async function handleXAdminGet(options: { env?: Env; now?: Date } = {}): 
         migrationRequired: null,
         isTest,
         control,
-        posts: posts.map((p) => buildPostView(p, attempts, now)),
+        counts: tally.counts,
+        totalPosts: tally.total,
+        sections,
       },
     };
   } catch (error) {
     if (sqlState(error) === "42P01") {
-      return { status: 200, body: { ...base, initialized: false, missing: [], migrationRequired: X_MIGRATION_REQUIRED, posts: [], control: null } };
+      return { status: 200, body: { ...base, initialized: false, missing: [], migrationRequired: X_MIGRATION_REQUIRED, ...emptyRead() } };
     }
     throw error;
   }
+}
+
+function emptyRead() {
+  return { control: null, counts: {}, totalPosts: 0, sections: emptySections() };
 }
 
 /**

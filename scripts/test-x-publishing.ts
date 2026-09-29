@@ -15,7 +15,7 @@ import type { NeonQueryFunction } from "@neondatabase/serverless";
 
 import { __setSqlClientForTests } from "../lib/db/sql";
 import { normalizeActivityEvent } from "../lib/ops/mission-control/events";
-import { checkAdminCsrf, handleXAdminGet, handleXAdminPost, X_ADMIN_ACTION_HEADER } from "../lib/x-publishing/admin-api";
+import { checkAdminCsrf, handleXAdminGet, handleXAdminPost, X_ADMIN_ACTION_HEADER, X_ADMIN_MAX_OFFSET, X_ADMIN_PAGE_SIZE } from "../lib/x-publishing/admin-api";
 import { scheduleProblem } from "../lib/x-publishing/admin-store";
 import { getXPublishingConfig, verifyXPublisherAuthorization } from "../lib/x-publishing/config";
 import { X_ACCOUNT_ID, X_API, X_LIMITS } from "../lib/x-publishing/constants";
@@ -34,6 +34,8 @@ import {
 } from "../lib/x-publishing/handlers";
 import { approvalHash, canonicalJson, previewHash, textHash } from "../lib/x-publishing/hash";
 import { formatPhoenix, isSlotAligned, parsePhoenixLocal, phoenixDay } from "../lib/x-publishing/time";
+import { displayState, displayStateOf, isDispatchOverdue, isUnresolved, type XPostRecord } from "../lib/x-publishing/records";
+import { readXPublishingPanel } from "../lib/x-publishing/summary";
 import { classifyCreateResult, expandXText, verifyLookup } from "../lib/x-publishing/verify";
 
 let passed = 0;
@@ -58,17 +60,27 @@ function createFakeSql(opts: FakeOpts) {
     }
     return [];
   };
-  const fn = ((strings: TemplateStringsArray) => {
-    const text = strings.join("$?").replace(/\s+/g, " ").trim();
+  const pending = (raw: string) => {
+    const text = raw.replace(/\s+/g, " ").trim();
     return {
       text,
       then: (res: (v: unknown) => unknown, rej: (e: unknown) => unknown) =>
         Promise.resolve().then(() => run(text)).then(res, rej),
     };
-  }) as unknown as NeonQueryFunction<false, false> & { transaction: unknown };
-  (fn as unknown as { transaction: (q: Array<{ text: string }>) => Promise<unknown[]> }).transaction = async (q) =>
-    q.map((x) => run(x.text));
-  return { sql: fn as NeonQueryFunction<false, false>, calls };
+  };
+  const transactions: Array<{ readOnly?: boolean; isolationLevel?: string }> = [];
+  const fn = ((strings: TemplateStringsArray) => pending(strings.join("$?"))) as unknown as NeonQueryFunction<false, false> & {
+    transaction: unknown;
+    query: unknown;
+  };
+  (fn as unknown as { query: (text: string) => unknown }).query = (text) => pending(text);
+  (fn as unknown as {
+    transaction: (q: Array<{ text: string }>, o?: { readOnly?: boolean; isolationLevel?: string }) => Promise<unknown[]>;
+  }).transaction = async (q, o) => {
+    transactions.push(o ?? {});
+    return q.map((x) => run(x.text));
+  };
+  return { sql: fn as NeonQueryFunction<false, false>, calls, transactions };
 }
 
 const baseEnv = {
@@ -347,10 +359,33 @@ async function testAdmin() {
 
   __setSqlClientForTests(fake.sql);
   fake.calls.length = 0;
-  const empty = await handleXAdminGet({ env: liveEnv, now: NOW });
-  assert(empty.status === 200 && Array.isArray(empty.body.posts) && (empty.body.posts as unknown[]).length === 0, "empty queue reads fine");
+  fake.transactions.length = 0;
+  const empty = await handleXAdminGet({ env: liveEnv, now: NOW, query: new URLSearchParams("reviewOffset=-5&openOffset=abc&historyOffset=99999999999") });
+  type SectionBody = { total: number; offset: number; limit: number; posts: unknown[] };
+  const sections = empty.body.sections as Record<"review" | "open" | "history", SectionBody>;
+  assert(
+    empty.status === 200 && empty.body.totalPosts === 0 && !("posts" in empty.body) &&
+      (["review", "open", "history"] as const).every((s) => sections[s].total === 0 && sections[s].posts.length === 0),
+    "empty queue reads fine (exact totals, per-section pages)"
+  );
+  assert(sections.review.offset === 0 && sections.open.offset === 0 && sections.history.offset === X_ADMIN_MAX_OFFSET, "invalid offsets fall back to 0; huge offsets are capped");
+  assert(sections.review.limit === X_ADMIN_PAGE_SIZE.review && sections.history.limit === X_ADMIN_PAGE_SIZE.history, "section pages are bounded");
   assert((empty.body.account as { id: string }).id === X_ACCOUNT_ID, "GET exposes the account ID as a string");
   assert(fake.calls.every((c) => !/\b(CREATE|ALTER|INSERT|UPDATE|DELETE)\b/i.test(c)), "GET is read-only");
+  assert(
+    fake.transactions.length === 1 && fake.transactions[0].readOnly === true && fake.transactions[0].isolationLevel === "RepeatableRead",
+    "GET counts and pages come from one READ ONLY snapshot"
+  );
+  const tallySql = fake.calls.find((c) => /GROUP BY/i.test(c)) ?? "";
+  assert(!/\bLIMIT\b/i.test(tallySql) && /is_test = \$1/.test(tallySql), "counts are not limited and stay within one TEST/live partition");
+
+  fake.calls.length = 0;
+  fake.transactions.length = 0;
+  const panel = await readXPublishingPanel(NOW);
+  assert(panel.initialized && panel.totalPosts === 0 && panel.attentionTotal === 0, "Mission Control panel reads exact totals");
+  assert(fake.calls.every((c) => !/\b(CREATE|ALTER|INSERT|UPDATE|DELETE)\b/i.test(c)), "Mission Control panel read is read-only");
+  assert(fake.transactions.length === 1 && fake.transactions[0].readOnly === true, "panel uses one READ ONLY snapshot");
+  assert(fake.calls.some((c) => /is_test = \$1/.test(c)), "panel queries are partitioned by is_test");
   __setSqlClientForTests(null);
 }
 
@@ -383,6 +418,74 @@ async function testEvents() {
   if (prev === undefined) delete process.env.MISSION_CONTROL_SYNC_ENABLED;
   else process.env.MISSION_CONTROL_SYNC_ENABLED = prev;
   __setSqlClientForTests(null);
+}
+
+function testDerivedStates() {
+  const deadline = new Date(NOW.getTime() - 60_000).toISOString();
+  const future = new Date(NOW.getTime() + 60_000).toISOString();
+  const overdue = { state: "dispatched" as const, dispatchDeadline: deadline, resultReceivedAt: null };
+  assert(isDispatchOverdue(overdue, NOW), "dispatched past deadline without a receipt is overdue");
+  assert(!isDispatchOverdue({ ...overdue, dispatchDeadline: future }, NOW), "within the deadline is not overdue");
+  assert(!isDispatchOverdue({ ...overdue, resultReceivedAt: deadline }, NOW), "a recorded receipt is never overdue");
+  for (const state of ["created", "published", "rejected", "uncertain"] as const) {
+    assert(!isDispatchOverdue({ ...overdue, state }, NOW), `an old ${state} attempt is not overdue (never downgraded)`);
+  }
+  assert(!isDispatchOverdue(null, NOW) && !isDispatchOverdue({ ...overdue, dispatchDeadline: null }, NOW), "no attempt or no deadline is not overdue");
+
+  assert(displayStateOf({ status: "dispatched", approvalExpired: false, dispatchOverdue: true }) === "uncertain", "overdue dispatch displays as outcome unknown");
+  assert(displayStateOf({ status: "dispatched", approvalExpired: false, dispatchOverdue: false }) === "awaiting_confirmation", "in-deadline dispatch awaits confirmation");
+  assert(displayStateOf({ status: "created", approvalExpired: false, dispatchOverdue: false }) === "created_unconfirmed", "created displays as created, lookup not confirmed");
+  assert(displayStateOf({ status: "published", approvalExpired: false, dispatchOverdue: true }) === "published", "published stays published");
+  assert(displayStateOf({ status: "rejected", approvalExpired: false, dispatchOverdue: true }) === "rejected", "confirmed rejection stays rejected");
+
+  const post = (status: XPostRecord["status"], activeAttempt: XPostRecord["activeAttempt"], reviewRequired = false) =>
+    ({ status, activeAttempt, reviewRequired, expiresAt: null }) as unknown as XPostRecord;
+  assert(displayState(post("dispatched", overdue), NOW) === "uncertain" && isUnresolved(post("dispatched", overdue), NOW), "overdue post is unresolved from its own attempt receipts");
+  assert(!isUnresolved(post("dispatched", { ...overdue, dispatchDeadline: future }), NOW), "in-deadline dispatch is not yet unresolved");
+  assert(!isUnresolved(post("published", { ...overdue, state: "published", resultReceivedAt: deadline }), NOW), "old published result is not unresolved");
+  assert(isUnresolved(post("created", null, true), NOW), "review-required item is unresolved");
+}
+
+function testWorkflowWording() {
+  const readme = readFileSync(join(process.cwd(), "integrations/n8n/X_PUBLISHER_README.md"), "utf8");
+  const files = ["psl-x-publisher.workflow.json", "psl-x-publisher-dry-run.workflow.json"];
+  const misleading = [/result was NOT recorded/i, /\bNot published\b/i, /result not recorded/i, /lookup not recorded/i];
+  for (const [label, text] of [...files.map((f) => [f, loadWorkflow(f).raw] as const), ["README", readme] as const]) {
+    for (const re of misleading) assert(!re.test(text), `${label}: no misleading wording ${re}`);
+  }
+  for (const f of files) {
+    const { wf } = loadWorkflow(f);
+    const names = wf.nodes.map((n) => n.name);
+    for (const ending of ["Stop: X rejected the post (confirmed)", "Stop: outcome unknown (review required)", "Stop: created on X (ID recorded), lookup not confirmed"]) {
+      assert(names.includes(ending), `${f}: has ending "${ending}"`);
+    }
+    assert(names.some((n) => n.startsWith("Published and verified")), `${f}: has "Published and verified" ending`);
+    const msg = (name: string) => String(wf.nodes.find((n) => n.name === name)?.parameters.errorMessage ?? "");
+    const unknown = msg("Stop: outcome unknown (review required)");
+    assert(/may or may not exist|UNKNOWN/.test(unknown) && /Do NOT re-run/i.test(unknown), `${f}: outcome unknown says the post may exist and not to re-run`);
+    assert(unknown.includes("evidence.httpStatus") && unknown.includes("evidence.postId") && unknown.includes("work.attemptId"), `${f}: outcome unknown keeps HTTP status, post ID, and attempt ID`);
+    assert(/Confirmation not received/.test(unknown), `${f}: missing confirmation is worded as not received, not as failure`);
+    assert(/not posted/i.test(msg("Stop: X rejected the post (confirmed)")), `${f}: only the confirmed rejection says not posted`);
+    const lookupStop = msg("Stop: created on X (ID recorded), lookup not confirmed");
+    assert(/xPostId/.test(lookupStop) && /attemptId/.test(lookupStop) && /not a failed post/i.test(lookupStop), `${f}: lookup-not-confirmed keeps IDs and is not a failure`);
+    const rejectedIf = String(JSON.stringify(wf.nodes.find((n) => n.name === "Rejected by X?")?.parameters));
+    assert(rejectedIf.includes("state === 'rejected'") && rejectedIf.includes("retry === false") && rejectedIf.includes("review !== true"), `${f}: rejection branch requires a confirmed, unflagged rejection`);
+    const outputs = (name: string) => (wf.connections[name]?.main ?? []).map((o) => o.map((t) => t.node));
+    const report = outputs("Report create result");
+    assert(report[0]?.[0] === "Verify now?" && report[1]?.[0] === "Stop: outcome unknown (review required)", `${f}: an unconfirmed create report ends at outcome unknown`);
+    assert(outputs("Rejected by X?")[1]?.[0] === "Stop: outcome unknown (review required)", `${f}: anything other than a confirmed rejection ends at outcome unknown`);
+    const lookupReport = outputs("Report lookup evidence");
+    assert(lookupReport[0]?.[0] === "Verified?" && lookupReport[1]?.[0] === "Stop: created on X (ID recorded), lookup not confirmed", `${f}: an unconfirmed lookup report keeps the created-with-ID wording`);
+    assert(outputs("Verified?")[1]?.[0] === "Stop: created on X (ID recorded), lookup not confirmed", `${f}: an unverified lookup keeps the created-with-ID wording`);
+    for (const name of ["Report create result", "Report lookup evidence"]) {
+      const node = wf.nodes.find((n) => n.name === name) as N8nNode & { maxTries?: number };
+      assert(node.retryOnFail === true && node.onError === "continueErrorOutput", `${f}: ${name} keeps its idempotent retries`);
+    }
+    const create = wf.nodes.find((n) => n.name === "Create Post on X" || n.name === "Simulated Create Post (no X call)")!.name;
+    const after = reachableFrom(wf, create);
+    assert(!after.has(create) && ![...after].some((n) => /Create Post/.test(n)), `${f}: no path from the create outcome back to a Create Post`);
+    assert(predecessors(wf, "Create response evidence").every((p) => p.from === create), `${f}: evidence node follows only the create step`);
+  }
 }
 
 type N8nNode = { name: string; type: string; parameters: Record<string, unknown>; retryOnFail?: boolean; credentials?: unknown; onError?: string };
@@ -513,7 +616,9 @@ async function main() {
   await testMachineGates();
   await testAdmin();
   await testEvents();
+  testDerivedStates();
   testWorkflows();
+  testWorkflowWording();
   assert(X_LIMITS.createDispatchesPerPhoenixDay === 1 && X_LIMITS.postsPerWorkflowRun === 1 && X_LIMITS.slotMinutes === 30 && X_LIMITS.expiryMinutesAfterScheduled === 60, "documented defaults");
   console.log(`[x-publishing] ${passed} offline (mocked) assertions passed.`);
 }

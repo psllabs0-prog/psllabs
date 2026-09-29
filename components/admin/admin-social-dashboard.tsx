@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import type { XPostView } from "@/lib/x-publishing/admin-api";
+import type { XPostView, XSectionView } from "@/lib/x-publishing/admin-api";
 import type { XGate, XAdminMode } from "@/lib/x-publishing/config";
 import type { XDisplayState } from "@/lib/x-publishing/constants";
 import { checkPostText, normalizeDraftText } from "@/lib/x-publishing/content";
+import type { XSection } from "@/lib/x-publishing/reads";
 
 type Payload = {
   now: string;
@@ -30,14 +31,20 @@ type Payload = {
   migrationRequired: string | null;
   isTest?: boolean;
   control: { paused: boolean; reason: string | null; updatedAt: string | null; updatedBy: string | null } | null;
-  posts: XPostView[];
+  counts: Partial<Record<XDisplayState, number>>;
+  totalPosts: number;
+  sections: Record<XSection, XSectionView>;
 };
+
+type Offsets = Record<XSection, number>;
+const NO_OFFSETS: Offsets = { review: 0, open: 0, history: 0 };
 
 const STATE_STYLE: Record<XDisplayState, string> = {
   draft: "bg-zinc-100 text-zinc-700",
   scheduled: "bg-indigo-100 text-indigo-800",
   preparing: "bg-blue-100 text-blue-800",
   awaiting_confirmation: "bg-amber-100 text-amber-900",
+  created_unconfirmed: "bg-amber-100 text-amber-900",
   published: "bg-emerald-50 text-emerald-800",
   rejected: "bg-red-100 text-red-800",
   expired: "bg-zinc-200 text-zinc-700",
@@ -69,9 +76,14 @@ async function postAction(body: Record<string, unknown>): Promise<{ ok: boolean;
 type Draft = { id: string | null; revision: number | null; text: string; refs: string; date: string; slot: string };
 const EMPTY: Draft = { id: null, revision: null, text: "", refs: "", date: "", slot: "09:00" };
 
-async function fetchQueue(): Promise<{ data: Payload } | { error: string }> {
+async function fetchQueue(offsets: Offsets): Promise<{ data: Payload } | { error: string }> {
   try {
-    const res = await fetch("/api/admin/x-publishing", { cache: "no-store" });
+    const qs = new URLSearchParams({
+      reviewOffset: String(offsets.review),
+      openOffset: String(offsets.open),
+      historyOffset: String(offsets.history),
+    });
+    const res = await fetch(`/api/admin/x-publishing?${qs}`, { cache: "no-store" });
     if (!res.ok) return { error: res.status === 401 ? "Signed out — reload" : `HTTP ${res.status}` };
     return { data: (await res.json()) as Payload };
   } catch (e) {
@@ -85,6 +97,7 @@ export function AdminSocialDashboard() {
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [busy, setBusy] = useState(false);
+  const [offsets, setOffsets] = useState<Offsets>(NO_OFFSETS);
 
   const apply = useCallback((r: { data: Payload } | { error: string }) => {
     if ("data" in r) {
@@ -95,17 +108,17 @@ export function AdminSocialDashboard() {
     }
   }, []);
 
-  const load = useCallback(async () => apply(await fetchQueue()), [apply]);
+  const load = useCallback(async () => apply(await fetchQueue(offsets)), [apply, offsets]);
 
   useEffect(() => {
     let active = true;
-    void fetchQueue().then((r) => {
+    void fetchQueue(offsets).then((r) => {
       if (active) apply(r);
     });
     return () => {
       active = false;
     };
-  }, [apply]);
+  }, [apply, offsets]);
 
   const run = async (body: Record<string, unknown>, success: string) => {
     setBusy(true);
@@ -126,11 +139,7 @@ export function AdminSocialDashboard() {
   if (!data) return <p className="text-sm text-ash">Loading…</p>;
 
   const readOnly = data.config.admin.mode === "disabled" || !data.initialized;
-  const attention = data.posts.filter((p) => p.displayState === "uncertain" || p.reviewRequired);
-  const active = data.posts.filter(
-    (p) => !attention.includes(p) && ["draft", "scheduled", "preparing", "awaiting_confirmation"].includes(p.displayState)
-  );
-  const history = data.posts.filter((p) => !attention.includes(p) && !active.includes(p));
+  const page = (section: XSection) => (offset: number) => setOffsets({ ...offsets, [section]: offset });
 
   const saveDraft = async () => {
     const ok = await run(
@@ -269,12 +278,20 @@ export function AdminSocialDashboard() {
         </section>
       )}
 
-      {attention.length > 0 && (
-        <PostGroup title="Needs owner review" posts={attention} data={data} busy={busy} readOnly={readOnly} run={run} onEdit={setDraft} />
+      {data.initialized && (
+        <p className="text-xs text-ash">
+          All {data.isTest ? "TEST" : "live"} items (exact, {data.totalPosts}):{" "}
+          {Object.entries(data.counts)
+            .map(([state, n]) => `${state.replace(/_/g, " ")} ${n}`)
+            .join(" · ") || "none"}
+        </p>
       )}
-      <PostGroup title="Drafts and scheduled" posts={active} data={data} busy={busy} readOnly={readOnly} run={run} onEdit={setDraft} empty="Nothing drafted or scheduled." />
-      {history.length > 0 && (
-        <PostGroup title="History" posts={history} data={data} busy={busy} readOnly={readOnly} run={run} onEdit={setDraft} />
+      {data.sections.review.total > 0 && (
+        <PostGroup title="Needs owner review" section={data.sections.review} onPage={page("review")} data={data} busy={busy} readOnly={readOnly} run={run} onEdit={setDraft} />
+      )}
+      <PostGroup title="Drafts, scheduled, and in flight" section={data.sections.open} onPage={page("open")} data={data} busy={busy} readOnly={readOnly} run={run} onEdit={setDraft} empty="Nothing drafted or scheduled." />
+      {data.sections.history.total > 0 && (
+        <PostGroup title="History" section={data.sections.history} onPage={page("history")} data={data} busy={busy} readOnly={readOnly} run={run} onEdit={setDraft} />
       )}
     </div>
   );
@@ -299,23 +316,45 @@ function IssueList({ check }: { check: { errors: Array<{ code: string; message: 
   );
 }
 
-type GroupProps = {
-  title: string;
-  posts: XPostView[];
+type CardProps = {
   data: Payload;
   busy: boolean;
   readOnly: boolean;
   run: (body: Record<string, unknown>, success: string) => Promise<boolean>;
   onEdit: (d: Draft) => void;
+};
+
+type GroupProps = CardProps & {
+  title: string;
+  section: XSectionView;
+  onPage: (offset: number) => void;
   empty?: string;
 };
 
-function PostGroup({ title, posts, empty, ...rest }: GroupProps) {
+function PostGroup({ title, section, onPage, empty, ...rest }: GroupProps) {
+  const { total, offset, limit, posts } = section;
+  const from = posts.length ? offset + 1 : 0;
+  const to = offset + posts.length;
   return (
     <section>
-      <h2 className="font-display text-lg font-bold text-ink">{title}</h2>
+      <div className="flex flex-wrap items-baseline gap-3">
+        <h2 className="font-display text-lg font-bold text-ink">
+          {title} ({total})
+        </h2>
+        {total > limit || offset > 0 ? (
+          <span className="text-xs text-ash">
+            Showing {from}–{to} of {total}
+            <button type="button" className="ml-2 underline disabled:opacity-40" disabled={offset === 0} onClick={() => onPage(Math.max(0, offset - limit))}>
+              Previous
+            </button>
+            <button type="button" className="ml-2 underline disabled:opacity-40" disabled={to >= total} onClick={() => onPage(offset + limit)}>
+              Next
+            </button>
+          </span>
+        ) : null}
+      </div>
       {posts.length === 0 ? (
-        <p className="mt-2 text-sm text-ash">{empty}</p>
+        <p className="mt-2 text-sm text-ash">{total > 0 ? "No items on this page." : empty}</p>
       ) : (
         <ul className="mt-2 space-y-4">
           {posts.map((p) => (
@@ -327,7 +366,7 @@ function PostGroup({ title, posts, empty, ...rest }: GroupProps) {
   );
 }
 
-function PostCard({ post, data, busy, readOnly, run, onEdit }: Omit<GroupProps, "title" | "posts" | "empty"> & { post: XPostView }) {
+function PostCard({ post, data, busy, readOnly, run, onEdit }: CardProps & { post: XPostView }) {
   const [acks, setAcks] = useState<string[]>([]);
   const [confirmScheduled, setConfirmScheduled] = useState(false);
   const [confirmManual, setConfirmManual] = useState(false);
@@ -477,9 +516,15 @@ function PostCard({ post, data, busy, readOnly, run, onEdit }: Omit<GroupProps, 
         </div>
       )}
 
-      {!readOnly && active && active.state === "uncertain" && (
+      {active && active.dispatchOverdue && (
+        <p className="mt-2 text-xs text-orange-900">
+          Dispatch deadline {fmt(active.dispatchDeadline)} passed with no result recorded from X. The outcome is unknown; no second
+          permit is issued and nothing is retried. A late confirmed result from the workflow still resolves this automatically.
+        </p>
+      )}
+      {!readOnly && active && active.effectiveState === "uncertain" && (
         <div className="mt-3 space-y-2 rounded border border-orange-200 bg-orange-50 p-3 text-xs">
-          <p className="font-bold text-orange-900">Uncertain: the post may or may not exist. Nothing will be retried automatically.</p>
+          <p className="font-bold text-orange-900">Outcome unknown: the post may or may not exist. Nothing will be retried automatically.</p>
           <p className="text-orange-900">
             Check @{post.accountHandle} on X. If you find the post, paste its ID for a read-only lookup. If it does not exist, record that below.
           </p>

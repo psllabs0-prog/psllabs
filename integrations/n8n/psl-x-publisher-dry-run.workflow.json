@@ -252,11 +252,11 @@
     },
     {
       "id": "8b2f1c63-4d5e-4f60-9b02-000000000015",
-      "name": "Stop: not permitted or not recorded",
+      "name": "Stop: not permitted (nothing simulated)",
       "type": "n8n-nodes-base.stopAndError",
       "typeVersion": 1,
       "position": [1740, 200],
-      "parameters": { "errorMessage": "=Dry run stopped: {{ $json.code || $json.reason || $json.error || 'step not confirmed' }}" }
+      "parameters": { "errorMessage": "=Dry run stopped before the simulated Create Post: {{ $json.code || $json.reason || ($json.error && $json.error.message) || (typeof $json.error === 'string' ? $json.error : 'step not confirmed') }}" }
     },
     {
       "id": "8b2f1c63-4d5e-4f60-9b02-000000000016",
@@ -281,11 +281,31 @@
       }
     },
     {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000022",
+      "name": "Create response evidence",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1940, -120],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e0f1a2b3-0000-4000-8000-000000000009",
+              "name": "evidence",
+              "value": "={{ { transportError: typeof $json.statusCode !== 'number', httpStatus: typeof $json.statusCode === 'number' ? $json.statusCode : null, postId: ($json.body && $json.body.data && typeof $json.body.data.id === 'string') ? $json.body.data.id : null, errorTitle: null, rateLimitReset: null } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
       "id": "8b2f1c63-4d5e-4f60-9b02-000000000017",
       "name": "Report create result",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1940, -120],
+      "position": [2140, -120],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 3000,
@@ -297,7 +317,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ token: $('Claim work').first().json.work.token, transportError: typeof $json.statusCode !== 'number', httpStatus: typeof $json.statusCode === 'number' ? $json.statusCode : null, postId: ($json.body && $json.body.data && typeof $json.body.data.id === 'string') ? $json.body.data.id : null, errorTitle: null, rateLimitReset: null }) }}",
+        "jsonBody": "={{ JSON.stringify(Object.assign({ token: $('Claim work').first().json.work.token }, $json.evidence)) }}",
         "options": {
           "redirect": { "redirect": { "followRedirects": false } },
           "timeout": 15000
@@ -305,18 +325,28 @@
       }
     },
     {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000025",
+      "name": "Stop: outcome unknown (review required)",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [2540, 280],
+      "parameters": {
+        "errorMessage": "=Simulated Create Post outcome UNKNOWN (test item). Do NOT re-run to retry. {{ $json.state ? 'PSL recorded the attempt as ' + $json.state + ($json.code ? ' (' + $json.code + ')' : '') + ($json.review ? ', flagged for owner review' : '') + '. ' + (typeof $json.error === 'string' ? $json.error : ($json.message || '')) : 'Confirmation not received: PSL did not confirm the simulated create response (' + (($json.error && $json.error.message) || (typeof $json.error === 'string' ? $json.error : 'no response')) + '). If PSL did not record it, /admin-social shows this attempt as outcome unknown once the dispatch deadline passes.' }} Simulated evidence: HTTP {{ $('Create response evidence').first().json.evidence.httpStatus === null ? 'none' : $('Create response evidence').first().json.evidence.httpStatus }}, post ID {{ $('Create response evidence').first().json.evidence.postId || 'none returned' }}. Attempt {{ $('Claim work').first().json.work.attemptId }}, queue item {{ $('Claim work').first().json.work.queueId }}."
+      }
+    },
+    {
       "id": "8b2f1c63-4d5e-4f60-9b02-000000000018",
       "name": "Verify now?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2140, -120],
+      "position": [2340, -120],
       "parameters": {
         "conditions": {
           "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
           "conditions": [
             {
               "id": "f1a0b2c3-0000-4000-8000-000000000005",
-              "leftValue": "={{ $json.next === 'lookup' && typeof $json.xPostId === 'string' && /^[1-9][0-9]{0,18}$/.test($json.xPostId) }}",
+              "leftValue": "={{ $json.review !== true && ($json.next === 'lookup' || $json.state === 'created') && typeof $json.xPostId === 'string' && /^[1-9][0-9]{0,18}$/.test($json.xPostId) }}",
               "rightValue": true,
               "operator": { "type": "boolean", "operation": "true", "singleValue": true }
             }
@@ -327,11 +357,43 @@
       }
     },
     {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000023",
+      "name": "Rejected by X?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2340, 120],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "f1a0b2c3-0000-4000-8000-000000000006",
+              "leftValue": "={{ $json.state === 'rejected' && $json.retry === false && $json.review !== true }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000024",
+      "name": "Stop: X rejected the post (confirmed)",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [2540, 80],
+      "parameters": {
+        "errorMessage": "=Simulated X rejection recorded by PSL (test item; not posted): {{ $json.code || 'rejected' }}. {{ $json.message || '' }} Attempt {{ $('Claim work').first().json.work.attemptId }}."
+      }
+    },
+    {
       "id": "8b2f1c63-4d5e-4f60-9b02-000000000019",
       "name": "Simulated lookup (no X call)",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [2340, -120],
+      "position": [2540, -120],
       "parameters": {
         "assignments": {
           "assignments": [
@@ -352,7 +414,7 @@
       "name": "Report lookup evidence",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2540, -120],
+      "position": [2740, -120],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 3000,
@@ -372,11 +434,43 @@
       }
     },
     {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000026",
+      "name": "Verified?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2940, -120],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "f1a0b2c3-0000-4000-8000-000000000007",
+              "leftValue": "={{ $json.state === 'published' }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b02-000000000027",
+      "name": "Stop: created on X (ID recorded), lookup not confirmed",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [3140, 120],
+      "parameters": {
+        "errorMessage": "=Simulated post ID {{ $('Report create result').first().json.xPostId }} is recorded in PSL, but the simulated lookup was not confirmed ({{ $json.code || (($json.error && $json.error.message) || (typeof $json.error === 'string' ? $json.error : 'lookup evidence not acknowledged by PSL')) }}{{ $json.state ? '; PSL state ' + $json.state : '' }}). Not a failed post; do not re-run to retry. Attempt {{ $('Claim work').first().json.work.attemptId }}."
+      }
+    },
+    {
       "id": "8b2f1c63-4d5e-4f60-9b02-000000000021",
-      "name": "Done (simulated)",
+      "name": "Published and verified (simulated)",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [2740, -120],
+      "position": [3140, -120],
       "parameters": {}
     }
   ],
@@ -405,45 +499,58 @@
     "Report account check": {
       "main": [
         [{ "node": "Account confirmed?", "type": "main", "index": 0 }],
-        [{ "node": "Stop: not permitted or not recorded", "type": "main", "index": 0 }]
+        [{ "node": "Stop: not permitted (nothing simulated)", "type": "main", "index": 0 }]
       ]
     },
     "Account confirmed?": {
       "main": [
         [{ "node": "Request dispatch permit", "type": "main", "index": 0 }],
-        [{ "node": "Stop: not permitted or not recorded", "type": "main", "index": 0 }]
+        [{ "node": "Stop: not permitted (nothing simulated)", "type": "main", "index": 0 }]
       ]
     },
     "Request dispatch permit": {
       "main": [
         [{ "node": "Permit issued?", "type": "main", "index": 0 }],
-        [{ "node": "Stop: not permitted or not recorded", "type": "main", "index": 0 }]
+        [{ "node": "Stop: not permitted (nothing simulated)", "type": "main", "index": 0 }]
       ]
     },
     "Permit issued?": {
       "main": [
         [{ "node": "Simulated Create Post (no X call)", "type": "main", "index": 0 }],
-        [{ "node": "Stop: not permitted or not recorded", "type": "main", "index": 0 }]
+        [{ "node": "Stop: not permitted (nothing simulated)", "type": "main", "index": 0 }]
       ]
     },
-    "Simulated Create Post (no X call)": { "main": [[{ "node": "Report create result", "type": "main", "index": 0 }]] },
+    "Simulated Create Post (no X call)": { "main": [[{ "node": "Create response evidence", "type": "main", "index": 0 }]] },
+    "Create response evidence": { "main": [[{ "node": "Report create result", "type": "main", "index": 0 }]] },
     "Report create result": {
       "main": [
         [{ "node": "Verify now?", "type": "main", "index": 0 }],
-        [{ "node": "Stop: not permitted or not recorded", "type": "main", "index": 0 }]
+        [{ "node": "Stop: outcome unknown (review required)", "type": "main", "index": 0 }]
       ]
     },
     "Verify now?": {
       "main": [
         [{ "node": "Simulated lookup (no X call)", "type": "main", "index": 0 }],
-        [{ "node": "Stop: not permitted or not recorded", "type": "main", "index": 0 }]
+        [{ "node": "Rejected by X?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Rejected by X?": {
+      "main": [
+        [{ "node": "Stop: X rejected the post (confirmed)", "type": "main", "index": 0 }],
+        [{ "node": "Stop: outcome unknown (review required)", "type": "main", "index": 0 }]
       ]
     },
     "Simulated lookup (no X call)": { "main": [[{ "node": "Report lookup evidence", "type": "main", "index": 0 }]] },
     "Report lookup evidence": {
       "main": [
-        [{ "node": "Done (simulated)", "type": "main", "index": 0 }],
-        [{ "node": "Stop: not permitted or not recorded", "type": "main", "index": 0 }]
+        [{ "node": "Verified?", "type": "main", "index": 0 }],
+        [{ "node": "Stop: created on X (ID recorded), lookup not confirmed", "type": "main", "index": 0 }]
+      ]
+    },
+    "Verified?": {
+      "main": [
+        [{ "node": "Published and verified (simulated)", "type": "main", "index": 0 }],
+        [{ "node": "Stop: created on X (ID recorded), lookup not confirmed", "type": "main", "index": 0 }]
       ]
     }
   }
