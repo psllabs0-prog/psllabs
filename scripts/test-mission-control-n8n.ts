@@ -30,6 +30,7 @@ import {
 import {
   N8N_CONNECTION_TEST_TIMEOUT_MS,
   N8N_REGISTRATION_LIMIT,
+  N8N_REGISTRATION_MAX_ATTEMPTS,
   N8N_REGISTRATION_WINDOW_MS,
 } from "../lib/ops/mission-control/n8n/runs";
 import { N8N_MAX_BODY_BYTES, N8N_WORKFLOW_ID } from "../lib/ops/mission-control/n8n/validate";
@@ -54,13 +55,30 @@ type Call = { text: string; values: unknown[] };
 let clock = T0;
 const now = () => new Date(clock);
 
-function createFakeSql(opts: { tablesExist: boolean }) {
+const tick = () => new Promise<void>((r) => setImmediate(r));
+
+/**
+ * Recording fake. Transactions are simulated adversarially: statements of
+ * concurrent transactions interleave (each yields to the event loop), a
+ * transaction's inserts stay invisible to others until it commits (READ
+ * COMMITTED), and `pg_advisory_xact_lock` is a mutex released only after
+ * commit. `ignoreAdvisoryLock` is the negative control. This is a simulation,
+ * not proof of Postgres behaviour; see test-mission-control-n8n-db.ts.
+ */
+function createFakeSql(opts: { tablesExist: boolean; ignoreAdvisoryLock?: boolean }) {
   const calls: Call[] = [];
   const rows: Row[] = [];
+  const transactions: Array<{ texts: string[]; options: unknown }> = [];
   let nextId = 1;
+  let nextTx = 1;
   let raceNextInsert: Row | null = null;
+  let lockHeld: Promise<void> | null = null;
+  let failNext: { count: number; code: string } = { count: 0, code: "40001" };
 
-  const respond = (text: string, values: unknown[]): unknown[] => {
+  const visible = (r: Row, tx: number | null) => r.pending_tx === undefined || r.pending_tx === tx;
+  const committed = (tx: number | null) => rows.filter((r) => visible(r, tx));
+
+  const respond = (text: string, values: unknown[], tx: number | null): unknown[] => {
     if (/to_regclass/i.test(text)) {
       return [
         {
@@ -72,11 +90,48 @@ function createFakeSql(opts: { tablesExist: boolean }) {
     if (!opts.tablesExist && /\bops_activity_(events|sync_state)\b/.test(text)) {
       throw new Error('relation "ops_activity_events" does not exist');
     }
-    if (/^INSERT INTO ops_activity_events .* VALUES .*DO NOTHING RETURNING \*$/i.test(text)) {
+    if (/^SET LOCAL lock_timeout/.test(text) || /pg_advisory_xact_lock/.test(text)) return [];
+    if (/^INSERT INTO ops_activity_events .* SELECT .* WHERE \( SELECT COUNT\(\*\) FROM ops_activity_events/.test(text)) {
+      assert(tx !== null, "quota insert must run inside a transaction");
       if (raceNextInsert) {
         rows.push({ ...raceNextInsert, id: nextId++ });
         raceNextInsert = null;
       }
+      const key = values[0] as string;
+      if (rows.some((r) => r.source_event_key === key)) return [];
+      const since = Date.parse(values[12] as string);
+      const used = committed(tx).filter(
+        (r) =>
+          r.source_system === "n8n" &&
+          r.event_type === values[11] &&
+          (r.received_at as Date).getTime() > since
+      ).length;
+      if (used >= Number(values[13])) return [];
+      const row: Row = {
+        id: nextId++,
+        source_event_key: key,
+        correlation_id: values[1],
+        parent_task_id: null,
+        source_system: values[2],
+        worker: values[3],
+        event_type: values[4],
+        outcome: values[5],
+        observation: values[6],
+        occurred_at: new Date(values[7] as string),
+        summary: values[8],
+        source_ref: values[9],
+        source_href: null,
+        excluded: true,
+        versions_json: JSON.parse(values[10] as string),
+        received_at: new Date(clock),
+        estimated_cost_usd: null,
+        provider_cost_usd: null,
+        pending_tx: tx,
+      };
+      rows.push(row);
+      return [row];
+    }
+    if (/^INSERT INTO ops_activity_events .* VALUES .*DO NOTHING RETURNING \*$/i.test(text)) {
       const key = values[0] as string;
       if (rows.some((r) => r.source_event_key === key)) return [];
       const row: Row = {
@@ -103,29 +158,16 @@ function createFakeSql(opts: { tablesExist: boolean }) {
       return [row];
     }
     if (/WHERE source_event_key = \$\? AND source_system = 'n8n'/.test(text)) {
-      return rows.filter((r) => r.source_event_key === values[0] && r.source_system === "n8n");
+      return committed(tx).filter((r) => r.source_event_key === values[0] && r.source_system === "n8n");
     }
     if (/WHERE source_system = 'n8n' AND correlation_id = \$\?/.test(text)) {
-      return rows.filter((r) => r.source_system === "n8n" && r.correlation_id === values[0]);
-    }
-    if (/SELECT COUNT\(\*\)::int AS n FROM ops_activity_events/.test(text)) {
-      const since = Date.parse(values[1] as string);
-      return [
-        {
-          n: rows.filter(
-            (r) =>
-              r.source_system === "n8n" &&
-              r.event_type === values[0] &&
-              (r.received_at as Date).getTime() > since
-          ).length,
-        },
-      ];
+      return committed(tx).filter((r) => r.source_system === "n8n" && r.correlation_id === values[0]);
     }
     if (/FROM ops_activity_events WHERE source_system = 'n8n' ORDER BY id DESC/.test(text)) {
-      return rows.filter((r) => r.source_system === "n8n").sort((a, b) => Number(b.id) - Number(a.id));
+      return committed(tx).filter((r) => r.source_system === "n8n").sort((a, b) => Number(b.id) - Number(a.id));
     }
     if (/SELECT \* FROM ops_activity_events ORDER BY id DESC/.test(text)) {
-      return [...rows].sort((a, b) => Number(b.id) - Number(a.id));
+      return committed(tx).sort((a, b) => Number(b.id) - Number(a.id));
     }
     // Worker observers: one stale source and one unreadable source.
     if (/DISTINCT ON \(provider\)/.test(text)) {
@@ -140,21 +182,71 @@ function createFakeSql(opts: { tablesExist: boolean }) {
     return [];
   };
 
-  const fn = (strings: TemplateStringsArray, ...values: unknown[]) => {
-    const text = strings.join("$?").replace(/\s+/g, " ").trim();
+  const exec = (text: string, values: unknown[], tx: number | null) => {
     calls.push({ text, values });
+    return respond(text, values, tx);
+  };
+
+  type LazyQuery = PromiseLike<unknown[]> & { text: string; values: unknown[] };
+  const fn = (strings: TemplateStringsArray, ...values: unknown[]): LazyQuery => {
+    const text = strings.join("$?").replace(/\s+/g, " ").trim();
+    return {
+      text,
+      values,
+      then(onFulfilled, onRejected) {
+        return new Promise<unknown[]>((resolve) => resolve(exec(text, values, null))).then(
+          onFulfilled,
+          onRejected
+        );
+      },
+    };
+  };
+  (fn as unknown as { transaction: unknown }).transaction = async (
+    queries: LazyQuery[],
+    options: unknown
+  ) => {
+    transactions.push({ texts: queries.map((q) => q.text), options });
+    if (failNext.count > 0) {
+      failNext.count--;
+      throw Object.assign(new Error("simulated contention"), { code: failNext.code });
+    }
+    const tx = nextTx++;
+    let release: (() => void) | null = null;
     try {
-      return Promise.resolve(respond(text, values));
+      const results: unknown[][] = [];
+      for (const q of queries) {
+        await tick();
+        if (/pg_advisory_xact_lock/.test(q.text) && !opts.ignoreAdvisoryLock) {
+          while (lockHeld) await lockHeld;
+          lockHeld = new Promise<void>((r) => {
+            release = () => {
+              lockHeld = null;
+              r();
+            };
+          });
+        }
+        results.push(exec(q.text, q.values, tx));
+      }
+      await tick();
+      for (const r of rows) if (r.pending_tx === tx) delete r.pending_tx;
+      return results;
     } catch (error) {
-      return Promise.reject(error);
+      for (let i = rows.length - 1; i >= 0; i--) if (rows[i].pending_tx === tx) rows.splice(i, 1);
+      throw error;
+    } finally {
+      (release as (() => void) | null)?.();
     }
   };
   return {
     sql: fn as unknown as NeonQueryFunction<false, false>,
     calls,
     rows,
+    transactions,
     raceNext(row: Row) {
       raceNextInsert = row;
+    },
+    failNextTransactions(count: number, code = "40001") {
+      failNext = { count, code };
     },
     ddl: () => calls.filter((c) => DDL_RE.test(c.text)),
     writes: () => calls.filter((c) => WRITE_RE.test(c.text)),
@@ -536,6 +628,96 @@ async function testRateLimits() {
   console.log("ok rate limits");
 }
 
+const registeredCount = (fake: ReturnType<typeof createFakeSql>) =>
+  fake.rows.filter((r) => r.event_type === "n8n_connection_test_registered").length;
+
+async function seedRegistrations(n: number, tag: string) {
+  for (let i = 0; i < n; i++) {
+    const r = await register(`${tag}-seed-${i}`, `${tag}${i}`);
+    assert(r.status === 201, `seed ${i} → 201, got ${r.status}`);
+  }
+}
+
+/** Simulated (mocked) concurrency — see the file header of createFakeSql. */
+async function testConcurrentRegistrationQuota() {
+  setEnv(ENABLED_ENV);
+
+  const fake = createFakeSql({ tablesExist: true });
+  reset(fake);
+  await seedRegistrations(N8N_REGISTRATION_LIMIT - 1, "cq1");
+  const pair = await Promise.all([register("cq1-new-a", "a1"), register("cq1-new-b", "b1")]);
+  const statuses = pair.map((p) => p.status).sort();
+  assert(statuses[0] === 201 && statuses[1] === 429, `two simultaneous → one 201 + one 429, got ${statuses}`);
+  assert(registeredCount(fake) === N8N_REGISTRATION_LIMIT, "at most one additional run");
+
+  const tx = fake.transactions.find((t) => t.texts.some((s) => /pg_advisory_xact_lock/.test(s)))!;
+  assert(/^SET LOCAL lock_timeout/.test(tx.texts[0]), "lock timeout set first");
+  assert(/pg_advisory_xact_lock/.test(tx.texts[1]), "advisory lock before the quota statement");
+  assert(/^INSERT INTO ops_activity_events .* WHERE \( SELECT COUNT/.test(tx.texts[2]), "count and insert in one statement after the lock");
+  assert((tx.options as { isolationLevel?: string }).isolationLevel === "ReadCommitted", "READ COMMITTED so the count sees prior commits");
+
+  const burst = createFakeSql({ tablesExist: true });
+  reset(burst);
+  await seedRegistrations(N8N_REGISTRATION_LIMIT - 1, "cq2");
+  const many = await Promise.all(
+    Array.from({ length: 8 }, (_, i) => register(`cq2-burst-${i}`, `burst${i}`))
+  );
+  assert(many.filter((m) => m.status === 201).length === 1, "8 simultaneous → exactly one created");
+  assert(registeredCount(burst) === N8N_REGISTRATION_LIMIT, "quota holds under burst");
+
+  const control = createFakeSql({ tablesExist: true, ignoreAdvisoryLock: true });
+  reset(control);
+  await seedRegistrations(N8N_REGISTRATION_LIMIT - 1, "cq3");
+  const unguarded = await Promise.all([register("cq3-new-a", "a3"), register("cq3-new-b", "b3")]);
+  assert(
+    unguarded.every((u) => u.status === 201) && registeredCount(control) === N8N_REGISTRATION_LIMIT + 1,
+    "negative control: without the lock the simulation does exceed the quota"
+  );
+
+  const same = createFakeSql({ tablesExist: true });
+  reset(same);
+  const dup = await Promise.all([register("cq4-same", "s1"), register("cq4-same", "s1")]);
+  const dupStatuses = dup.map((d) => d.status).sort();
+  assert(dupStatuses[0] === 200 && dupStatuses[1] === 201, `same requestId concurrently → 201 + replay 200, got ${dupStatuses}`);
+  assert(dup[0].body.runId === dup[1].body.runId && registeredCount(same) === 1, "one run for concurrent duplicates");
+  const clash = await Promise.all([register("cq4-clash", "c1"), register("cq4-clash", "c2")]);
+  assert(clash.map((c) => c.status).sort().join() === "201,409", "same requestId, different payload concurrently → 201 + 409");
+
+  const slots = createFakeSql({ tablesExist: true });
+  reset(slots);
+  await seedRegistrations(N8N_REGISTRATION_LIMIT - 1, "cq5");
+  const replays = await Promise.all([0, 1, 2].map((i) => register(`cq5-seed-${i}`, `cq5${i}`)));
+  assert(replays.every((r) => r.status === 200 && r.body.replayed === true), "retries replay");
+  assert((await register("cq5-final", "final")).status === 201, "retries did not consume the last slot");
+  assert((await register("cq5-over", "over")).status === 429, "then the quota is full");
+  console.log("ok registration quota holds under simulated concurrency (mocked)");
+}
+
+async function testContentionRetries() {
+  setEnv(ENABLED_ENV);
+  const fake = createFakeSql({ tablesExist: true });
+  reset(fake);
+  fake.failNextTransactions(N8N_REGISTRATION_MAX_ATTEMPTS - 1, "40001");
+  const ok = await register("cr-retry-ok", "r1");
+  assert(ok.status === 201, `retried serialization failures then succeeded, got ${ok.status}`);
+  assert(fake.transactions.length === N8N_REGISTRATION_MAX_ATTEMPTS, "bounded attempts used");
+
+  const busy = createFakeSql({ tablesExist: true });
+  reset(busy);
+  busy.failNextTransactions(N8N_REGISTRATION_MAX_ATTEMPTS, "55P03");
+  const exhausted = await register("cr-busy-1", "r2");
+  assert(exhausted.status === 503, `persistent lock timeouts → 503, got ${exhausted.status}`);
+  assert(busy.transactions.length === N8N_REGISTRATION_MAX_ATTEMPTS, "no unbounded retry");
+  assert(registeredCount(busy) === 0, "nothing stored after exhausted retries");
+
+  const hard = createFakeSql({ tablesExist: true });
+  reset(hard);
+  hard.failNextTransactions(1, "XX000");
+  const failed = await register("cr-hard-1", "r3");
+  assert(failed.status === 500 && hard.transactions.length === 1, "non-contention errors are not retried");
+  console.log("ok bounded contention retries");
+}
+
 async function testExclusionAndNoSideEffects() {
   const fake = createFakeSql({ tablesExist: true });
   reset(fake);
@@ -573,7 +755,7 @@ async function testExclusionAndNoSideEffects() {
     assert(!/@/.test(String(r.summary)), "no addresses in summaries");
   }
   const reads = fake.calls.filter((c) => !WRITE_RE.test(c.text)).map((c) => c.text);
-  const nonSelect = reads.filter((t) => !/^(SELECT|WITH)\b/i.test(t));
+  const nonSelect = reads.filter((t) => !/^(SELECT|WITH)\b|^SET LOCAL lock_timeout\b/i.test(t));
   assert(nonSelect.length === 0, `every other statement is a read: ${nonSelect.map((t) => t.slice(0, 60)).join(" | ")}`);
 
   const events = fake.rows.map((r, i) => ({
@@ -647,7 +829,23 @@ function testWorkflowFile() {
   assert(types.filter((t) => /trigger/i.test(t)).length === 1 && types.includes("n8n-nodes-base.manualTrigger"), "manual trigger only");
   assert(!types.some((t) => /schedule|cron|webhook|interval/i.test(t)), "no automatic scheduling or webhooks");
   const http = wf.nodes.filter((n) => n.type === "n8n-nodes-base.httpRequest");
-  assert(http.length >= 4, "HTTP request nodes present");
+  assert(http.length === 7, `seven HTTP Request nodes (README and notes depend on it), got ${http.length}`);
+
+  const messages = wf.nodes
+    .filter((n) => n.type === "n8n-nodes-base.stopAndError")
+    .map((n) => String(n.parameters.errorMessage));
+  assert(!messages.some((m) => /no run was recorded/i.test(m)), "no false 'no run was recorded' claim");
+  const registration = messages.find((m) => /Registration could not be confirmed/.test(m));
+  assert(registration && /may already exist/.test(registration) && /\$execution\.id/.test(registration), "registration message is uncertain and cites the request/execution ID");
+  const unreported = messages.find((m) => /Result confirmation was not received/.test(m));
+  assert(unreported && /may already be recorded/.test(unreported) && /If Mission Control has no result/.test(unreported), "unreported result does not guarantee outcome unknown");
+
+  const readme = readFileSync(join(process.cwd(), "integrations", "n8n", "README.md"), "utf8");
+  for (const n of http) assert(readme.includes(n.name), `README lists HTTP node "${n.name}"`);
+  assert(/seven/i.test(readme) && /error[- ]branch/i.test(readme), "README says all seven nodes incl. error branches");
+  assert(!/Get-Random/.test(readme) && /RandomNumberGenerator|randomBytes/.test(readme), "README uses a CSPRNG");
+  const tokenLike = /[A-Za-z0-9+/=_]{40,}/;
+  assert(!tokenLike.test(readme) && !tokenLike.test(raw), "no token-like strings in README or workflow");
   for (const n of http) {
     const p = n.parameters;
     assert(p.authentication === "genericCredentialType" && p.genericAuthType === "httpHeaderAuth", `${n.name} uses header-auth credential`);
@@ -669,6 +867,8 @@ async function main() {
     await testLifecycleIdempotencyAndOrdering();
     await testTimeout();
     await testRateLimits();
+    await testConcurrentRegistrationQuota();
+    await testContentionRetries();
     await testExclusionAndNoSideEffects();
     await testSnapshotReadOnly();
     console.log("\nAll n8n bridge tests passed.");

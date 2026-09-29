@@ -14,9 +14,9 @@
       "typeVersion": 1,
       "position": [-200, -260],
       "parameters": {
-        "width": 520,
-        "height": 220,
-        "content": "## PSL Mission Control connection test (TEST)\n1. Edit **Config** > pslBaseUrl (https only, no trailing path).\n2. On every HTTP node pick the Header Auth credential **PSL Mission Control n8n** (Name: Authorization, Value: Bearer <token>).\n3. Run with **Execute workflow**. Manual only: do not add a schedule.\n\nConnectivity test only. Results are TEST / EXCLUDED and never business activity."
+        "width": 560,
+        "height": 260,
+        "content": "## PSL Mission Control connection test (TEST)\nSee integrations/n8n/README.md in the PSL repo.\n1. Edit **Config** > pslBaseUrl (https only, no trailing path).\n2. Select the Header Auth credential **PSL Mission Control n8n** on ALL 7 HTTP Request nodes, including the three \"Report failed\" error-branch nodes.\n3. Run with **Execute workflow**. Manual only: do not add a schedule.\n\nConnectivity test only. Results are TEST / EXCLUDED and never business activity. If a step says confirmation was not received, check Mission Control before re-running."
       }
     },
     {
@@ -77,7 +77,7 @@
       "typeVersion": 1,
       "position": [440, 200],
       "parameters": {
-        "errorMessage": "Could not register a connection-test run (check base URL, credential, and that the integration is enabled). No run was recorded."
+        "errorMessage": "=Registration could not be confirmed. A run may already exist. Check Mission Control (n8n connection tests) for request ID wf-{{ $workflow.id }}-exec-{{ $execution.id }} / n8n execution {{ $execution.id }} before running again. Also check the base URL, the credential, and that the integration is enabled."
       }
     },
     {
@@ -263,7 +263,7 @@
       "typeVersion": 1,
       "position": [1320, 380],
       "parameters": {
-        "errorMessage": "Could not report the result to Mission Control. The run will show 'outcome unknown' after the 10-minute timeout."
+        "errorMessage": "=Result confirmation was not received for run {{ $('Register run').first().json.runId }} (request ID wf-{{ $workflow.id }}-exec-{{ $execution.id }}). Check Mission Control before restarting; the result may already be recorded. If Mission Control has no result for this run, it will show outcome unknown once the 10-minute timeout passes."
       }
     }
   ],

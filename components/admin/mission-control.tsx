@@ -402,6 +402,9 @@ function N8nSection({ n8n }: { n8n: MissionControlSnapshot["n8n"] }) {
                 </span>
                 <span className="font-mono text-xs text-ash">{r.runId}</span>
               </div>
+              <p className="mt-0.5 font-mono text-xs text-ash">
+                request {r.requestId ?? "—"} · n8n execution {r.n8nExecutionId ?? "—"}
+              </p>
               <p className="mt-0.5 text-xs text-ash">
                 Summary served {fmt(r.statusServedAt)}
                 {r.systemsServed !== null ? ` (${r.systemsServed} systems)` : ""} · finished{" "}

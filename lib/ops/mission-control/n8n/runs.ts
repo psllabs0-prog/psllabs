@@ -47,11 +47,14 @@ export type N8nRunView = {
   systemsServed: number | null;
   systemsReported: number | null;
   failureReason: string | null;
+  requestId: string | null;
   n8nExecutionId: string | null;
 };
 
+const REGISTRATION_KEY_PREFIX = "n8n:connection_test:request:";
+
 export const registrationKey = (requestId: string) =>
-  `n8n:connection_test:request:${requestId}`;
+  `${REGISTRATION_KEY_PREFIX}${requestId}`;
 const runKey = (runId: string, step: "status_served" | "started" | "terminal") =>
   `n8n:connection_test:run:${runId}:${step}`;
 
@@ -109,6 +112,9 @@ export function deriveN8nRunView(events: ActivityEvent[], now: Date): N8nRunView
     systemsServed: num(served?.versions.systemCount),
     systemsReported: num(terminal?.versions.systemsReceived),
     failureReason: terminal?.versions.failureReason ?? null,
+    requestId: registered.sourceEventKey.startsWith(REGISTRATION_KEY_PREFIX)
+      ? registered.sourceEventKey.slice(REGISTRATION_KEY_PREFIX.length)
+      : null,
     n8nExecutionId: registered.versions.n8nExecutionId || null,
   };
 }
@@ -117,9 +123,7 @@ export function deriveN8nRunView(events: ActivityEvent[], now: Date): N8nRunView
  * Inserts once by stable key; an existing row is returned untouched (never
  * updated), so retries cannot duplicate or rewrite history.
  */
-async function insertOnce(
-  input: ActivityEventInput
-): Promise<{ inserted: boolean; event: ActivityEvent }> {
+function prepareN8nEvent(input: ActivityEventInput): ActivityEventInput {
   if (!getN8nIntegrationMode().enabled) {
     throw new Error("n8n integration writes are disabled");
   }
@@ -127,6 +131,13 @@ async function insertOnce(
   if (!e || e.worker !== "n8n" || !e.excluded) {
     throw new Error("Refusing to store an invalid n8n event");
   }
+  return e;
+}
+
+async function insertOnce(
+  input: ActivityEventInput
+): Promise<{ inserted: boolean; event: ActivityEvent }> {
+  const e = prepareN8nEvent(input);
   const sql = getSql();
   const inserted = (await sql`
     INSERT INTO ops_activity_events (
@@ -210,25 +221,8 @@ export async function registerN8nRun(
   const prior = await findByKey(key);
   if (prior) return replay(prior);
 
-  const sql = getSql();
-  const since = new Date(now.getTime() - N8N_REGISTRATION_WINDOW_MS).toISOString();
-  const [{ n }] = (await sql`
-    SELECT COUNT(*)::int AS n FROM ops_activity_events
-    WHERE source_system = 'n8n'
-      AND event_type = ${N8N_EVENT_TYPES.registered}
-      AND received_at > ${since}::timestamptz
-  `) as Array<{ n: number }>;
-  if (Number(n) >= N8N_REGISTRATION_LIMIT) {
-    return {
-      status: 429,
-      body: {
-        error: `At most ${N8N_REGISTRATION_LIMIT} connection tests per ${N8N_REGISTRATION_WINDOW_MS / 60000} minutes.`,
-      },
-    };
-  }
-
   const runId = `n8n_${crypto.randomUUID()}`;
-  const result = await insertOnce({
+  const event = prepareN8nEvent({
     ...baseEvent(runId, now),
     sourceEventKey: key,
     eventType: N8N_EVENT_TYPES.registered,
@@ -242,9 +236,91 @@ export async function registerN8nRun(
       n8nExecutionId: request.n8nExecutionId ?? "",
     },
   });
-  if (!result.inserted) return replay(result.event);
-  const view = deriveN8nRunView([result.event], now)!;
-  return { status: 201, body: runBody(view, { replayed: false, next: runPaths(runId) }) };
+
+  let row: Record<string, unknown> | null;
+  try {
+    row = await insertRegistrationWithinQuota(event, now);
+  } catch (error) {
+    if (isRetryableContention(error)) {
+      return { status: 503, body: { error: "Registration is busy; retry with the same requestId." } };
+    }
+    throw error;
+  }
+  if (row) {
+    const view = deriveN8nRunView([mapEventRow(row)], now)!;
+    return { status: 201, body: runBody(view, { replayed: false, next: runPaths(runId) }) };
+  }
+  // Nothing inserted: either a concurrent request with the same requestId won
+  // (answer as a replay) or the quota is full.
+  const existing = await findByKey(key);
+  if (existing) return replay(existing);
+  return {
+    status: 429,
+    body: {
+      error: `At most ${N8N_REGISTRATION_LIMIT} connection tests per ${N8N_REGISTRATION_WINDOW_MS / 60000} minutes.`,
+    },
+  };
+}
+
+const RETRYABLE_SQLSTATES = new Set(["40001", "40P01", "55P03"]);
+export const N8N_REGISTRATION_MAX_ATTEMPTS = 3;
+
+function isRetryableContention(error: unknown): boolean {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === "string" && RETRYABLE_SQLSTATES.has(code);
+}
+
+/**
+ * Quota check and insert run in one READ COMMITTED transaction behind a
+ * transaction-scoped advisory lock, so registrations are serialized across
+ * serverless instances: the count statement takes its snapshot only after the
+ * lock is granted and therefore sees every previously committed registration.
+ * Returns the inserted row, or null when the key already exists or the quota
+ * is full. Serialization/deadlock/lock-timeout errors are retried a bounded
+ * number of times, then rethrown.
+ */
+async function insertRegistrationWithinQuota(
+  e: ActivityEventInput,
+  now: Date
+): Promise<Record<string, unknown> | null> {
+  const sql = getSql();
+  const since = new Date(now.getTime() - N8N_REGISTRATION_WINDOW_MS).toISOString();
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const results = (await sql.transaction(
+        [
+          sql`SET LOCAL lock_timeout = '5s'`,
+          sql`SELECT pg_advisory_xact_lock(hashtext('psl:mission-control:n8n-registration'))`,
+          sql`
+            INSERT INTO ops_activity_events (
+              source_event_key, correlation_id, parent_task_id, source_system,
+              worker, event_type, outcome, observation, occurred_at, summary,
+              source_ref, source_href, excluded, versions_json
+            )
+            SELECT
+              ${e.sourceEventKey}::text, ${e.correlationId ?? null}::text, NULL, ${e.sourceSystem}::text,
+              ${e.worker}::text, ${e.eventType}::text, ${e.outcome}::text, ${e.observation}::text,
+              ${e.occurredAt}::timestamptz, ${e.summary}::text, ${e.sourceRef ?? null}::text, NULL,
+              true, ${JSON.stringify(e.versions ?? {})}::jsonb
+            WHERE (
+              SELECT COUNT(*) FROM ops_activity_events
+              WHERE source_system = 'n8n'
+                AND event_type = ${N8N_EVENT_TYPES.registered}
+                AND received_at > ${since}::timestamptz
+            ) < ${N8N_REGISTRATION_LIMIT}
+            ON CONFLICT (source_event_key) DO NOTHING
+            RETURNING *
+          `,
+        ],
+        { isolationLevel: "ReadCommitted" }
+      )) as unknown[][];
+      const rows = (results[2] ?? []) as Record<string, unknown>[];
+      return rows[0] ?? null;
+    } catch (error) {
+      if (!isRetryableContention(error) || attempt >= N8N_REGISTRATION_MAX_ATTEMPTS) throw error;
+      await new Promise((r) => setTimeout(r, 50 * 2 ** attempt + Math.floor(Math.random() * 50)));
+    }
+  }
 }
 
 export type N8nStatusSystem = {
