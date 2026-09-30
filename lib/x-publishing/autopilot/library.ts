@@ -72,11 +72,12 @@ export const X_AUTOPILOT_LIBRARY: readonly XAutopilotTemplate[] = [
   {
     id: "doc-04-where-reports-are-linked",
     text:
-      "Where PSL reports are linked: the product page under Testing & Quality, the COA / Batch Lookup page, and the Testing section when a report is available.",
+      "When a PSL laboratory report is published for a lot, it is linked from the product page's Testing & Quality section and from the Batch Reports page (COA / Batch Lookup).",
     sourceIds: [COA],
-    excerpt: { sourceId: COA, quote: "The Testing section when a report is available" },
+    excerpt: { sourceId: COA, quote: "open the product page for your material or go to COA / Batch Lookup" },
     purpose: "Where on the PSL site are laboratory reports linked?",
-    context: "Keeps 'when a report is available'; does not imply every item has one.",
+    context:
+      "Conditional on a report being published; does not imply every lot has one. Names only the two places the site links reports from: the product page's Testing & Quality section and /coa (labelled Batch Reports in navigation, COA / Batch Lookup on product pages).",
     acceptedWarnings: [],
   },
   {
@@ -156,23 +157,24 @@ export const X_AUTOPILOT_LIBRARY: readonly XAutopilotTemplate[] = [
     acceptedWarnings: [],
   },
   {
-    id: "doc-12-confirm-batch-and-task",
+    id: "doc-12-match-label-to-report",
     text:
-      "Before relying on a report, confirm that the batch and the task number printed on it match the label on your vial. A mismatch means it documents a different sample.",
-    sourceIds: [THIRD],
-    excerpt: { sourceId: THIRD, quote: "Open the linked report and confirm the batch and task number match your label." },
-    purpose: "How does a reader confirm a report belongs to their vial?",
-    context: "Preserves that a report documents one identified sample.",
+      "Match the lot or batch on your label to the corresponding laboratory report. If the identifiers do not match, or the connection is unclear, ask PSL support to check before relying on the report.",
+    sourceIds: [COA],
+    excerpt: { sourceId: COA, quote: "Match your label identifier to a published report." },
+    purpose: "How does a reader connect a report to their vial?",
+    context:
+      "Does not assume every label carries a laboratory task number, and does not claim a mismatch proves a different sample; unclear or mismatched cases go to PSL support.",
     acceptedWarnings: [],
   },
   {
     id: "doc-13-search-by-task-number",
     text:
-      "When lookup is available, a report can be searched by task number or batch name. Search tools only help you find the document; reading the original is still the step that counts.",
+      "On PSL's Batch Reports page, published reports can be searched by task number or batch name. The search only helps you find the document; reading the original report is still the step that counts.",
     sourceIds: [THIRD],
     excerpt: { sourceId: THIRD, quote: "Search by task number or batch name when lookup is available." },
     purpose: "How can a reader search for a report?",
-    context: "Keeps 'when lookup is available'.",
+    context: "Matches the /coa lookup, which searches published reports only, by task number or batch name. Makes no claim that every lot has a report.",
     acceptedWarnings: [],
   },
   {

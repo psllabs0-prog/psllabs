@@ -92,6 +92,11 @@ function testLibrary() {
   assert(max < X_AUTOPILOT_POLICY.nearDuplicateThreshold, `no two templates are near-duplicates (max ${max.toFixed(2)})`);
   assert(review.eligibleCount === review.templates.length, "every proposed template is eligible for review");
   assert(currentLibraryReview() === review, "library review is computed once (pure)");
+  assert(
+    review.templates.every((t) => !/\ba mismatch (means|proves)\b/i.test(t.text) && !/task number printed on it match the label/i.test(t.text)),
+    "no template assumes a task number on every label or treats a mismatch as proof of a different sample"
+  );
+  assert(review.templates.every((t) => (t.text.match(/https:\/\/\S+/g) ?? []).every((u) => /^https:\/\/www\.psllabs\.org\/science\//.test(u))), "template links point only to cited source pages");
 }
 
 const baseT = X_AUTOPILOT_LIBRARY[0];
