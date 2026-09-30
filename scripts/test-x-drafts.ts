@@ -24,10 +24,18 @@ import { batchSigningKey, getXDraftConfig, verifyXDraftAuthorization } from "../
 import { X_DRAFT_AI_LABEL, X_DRAFT_ASSISTANT_ACTOR, X_DRAFT_LIMITS } from "../lib/x-drafts/constants";
 import { __resetXDraftRateLimitersForTests, handleXDraftRequest, type XDraftAction } from "../lib/x-drafts/handlers";
 import {
+  buildOpenAIRequestBody,
+  decideOpenAIAttempt,
+  X_DRAFT_OPENAI_ENDPOINT,
+  X_DRAFT_OPENAI_MAX_COMPLETION_TOKENS,
+  X_DRAFT_OPENAI_MODEL,
+} from "../lib/x-drafts/openai";
+import {
   buildUserPrompt,
   draftItemId,
   signBatchToken,
   verifyBatchToken,
+  X_DRAFT_OUTPUT_SCHEMA,
   X_DRAFT_PACKET_VERSION,
   X_DRAFT_SOURCES,
   X_DRAFT_SYSTEM_PROMPT,
@@ -244,7 +252,7 @@ const good = {
   warnings: [],
 };
 
-function run(candidates: unknown[], existing: ExistingPost[] = [], stopReason: string | null = "end_turn", raw?: string) {
+function run(candidates: unknown[], existing: ExistingPost[] = [], stopReason: string | null = "stop", raw?: string) {
   return validateCandidates({
     modelOutput: raw ?? JSON.stringify({ candidates }),
     stopReason,
@@ -272,10 +280,10 @@ function testValidator() {
   assert(refs.some((r) => r.startsWith("Purpose: ")) && refs.some((r) => r.startsWith(`Excerpt [${COA}]`)) && refs.some((r) => r.includes("https://www.psllabs.org/science/how-to-read-a-coa")), "refs carry purpose, excerpt, and source URL");
   assert(refs.some((r) => /not a factual or legal review/.test(r)), "refs disclaim factual/legal review");
 
-  assert(run([], [], "end_turn", "```json\n" + JSON.stringify({ candidates: [good] }) + "\n```").verdicts[0].blockReasons.length === 0, "code fences tolerated");
-  assert(/no JSON object/.test(run([], [], "end_turn", "Sure! Here are some posts.").parseError ?? ""), "prose-only output is a parse error");
-  assert(/truncated/.test(run([], [], "max_tokens", '{"candidates":[{"text":"A COA').parseError ?? ""), "truncated output reported as truncated");
-  assert(run([], [], "end_turn", '{"candidates":[]}').verdicts.length === 0, "empty batch is fine");
+  assert(run([], [], "stop", "```json\n" + JSON.stringify({ candidates: [good] }) + "\n```").verdicts[0].blockReasons.length === 0, "code fences tolerated");
+  assert(/no JSON object/.test(run([], [], "stop", "Sure! Here are some posts.").parseError ?? ""), "prose-only output is a parse error");
+  assert(/truncated/.test(run([], [], "length", '{"candidates":[{"text":"A COA').parseError ?? ""), "truncated output reported as truncated");
+  assert(run([], [], "stop", '{"candidates":[]}').verdicts.length === 0, "empty batch is fine");
 
   assert(/unrecognized_source/.test(reasons({ sourceIds: [COA, "science:made-up"] })), "fabricated source ID blocked");
   assert(/guidance_not_evidence/.test(reasons({ sourceIds: ["guidance:claims-rules"], excerpt: { sourceId: "guidance:claims-rules", quote: "Do not overstate lab methods or results beyond the published report." } })), "guidance cannot be cited");
@@ -394,6 +402,7 @@ async function testHandler() {
   const prompt = packet.body.prompt as { system: string; user: string };
   assert(prompt.system === X_DRAFT_SYSTEM_PROMPT && prompt.user.includes("Existing queue post"), "packet carries the fixed prompt and recent queue text");
   assert(packet.body.packetVersion === X_DRAFT_PACKET_VERSION && packet.body.maxCandidates === 5, "packet version and candidate cap reported");
+  assert(JSON.stringify(packet.body.outputSchema) === JSON.stringify(X_DRAFT_OUTPUT_SCHEMA), "packet carries the strict output schema");
   assert(writes(fake.calls).length === 0, "packet issuance writes nothing");
 
   const key = batchSigningKey(localEnv)!;
@@ -402,8 +411,8 @@ async function testHandler() {
   const body = (over: Record<string, unknown> = {}) => ({
     batchToken: token(),
     executionId: "e2",
-    model: "claude-test-model",
-    stopReason: "end_turn",
+    model: "gpt-4o-mini-2024-07-18",
+    stopReason: "stop",
     usage: { inputTokens: 5000, outputTokens: 600 },
     modelOutput: JSON.stringify({ candidates: [good, { ...good, text: "Buy now! Results apply only to the tested sample." }] }),
     ...over,
@@ -417,6 +426,10 @@ async function testHandler() {
   assert((await call(req("batch", body({ batchToken: token({ isTest: false }) })), "batch")).status === 409, "partition mismatch → 409");
   assert((await call(req("batch", body({ approve: true })), "batch")).status === 400, "no approve/schedule fields accepted");
   assert((await call(req("batch", body({ modelOutput: "x".repeat(X_DRAFT_LIMITS.maxModelOutputChars + 1) })), "batch")).status === 413, "oversized model output refused");
+  for (const stopReason of ["refusal", "length", "content_filter", "tool_calls", null]) {
+    const r = await call(req("batch", body({ stopReason })), "batch");
+    assert(r.status === 422 && /Nothing was saved/.test(String(r.body.error)), `stopReason ${stopReason}: refused with 422, nothing saved`);
+  }
   assert(writes(fake.calls).length === 0, "refused submissions write nothing");
 
   fake = createFakeSql();
@@ -492,29 +505,60 @@ function testWorkflow() {
   assert(!/"credentials"\s*:/.test(raw), "no credential blocks or IDs");
   assert(!/Bearer\s+[A-Za-z0-9]/.test(raw) && !/sk-ant-|api[_-]?key"\s*:\s*"|client_?secret|access_?token|refresh_?token/i.test(raw), "no secrets");
   assert(!raw.includes(X_ACCOUNT_ID) && !/\d{15,}/.test(raw), "no account IDs");
+  assert(!/sk-[A-Za-z0-9_-]{10,}|Bearer sk-/.test(raw), "no OpenAI key material");
   assert(!wf.nodes.some((n) => /langchain|openAi|anthropic|lmChat|agent|\.code$|function/i.test(n.type)), "no AI-agent or code nodes (model called over plain HTTP)");
   assert(!raw.includes("api.x.com") && !raw.includes("oAuth2Api") && !raw.includes("/x-publishing/"), "no X API, OAuth2, or publisher endpoints");
+  assert(
+    !/anthropic|claude|x-api-key|max_tokens|stop_reason|input_tokens|output_tokens|\/v1\/messages/i.test(raw),
+    "no Anthropic endpoint, headers, request fields, or response mappings remain"
+  );
 
   const http = wf.nodes.filter((n) => n.type === "n8n-nodes-base.httpRequest");
-  assert(http.length === 3, "3 HTTP nodes");
+  assert(http.length === 4, "4 HTTP nodes");
   for (const n of http) {
     const redirect = (n.parameters.options as { redirect?: { redirect?: { followRedirects?: boolean } } })?.redirect?.redirect;
     assert(redirect?.followRedirects === false && n.parameters.genericAuthType === "httpHeaderAuth", `${n.name}: Header Auth, no redirects`);
+    assert(!n.parameters.sendHeaders && !n.parameters.headerParameters, `${n.name}: no extra headers (auth comes only from the bound credential)`);
   }
   const psl = http.filter((n) => String(n.parameters.url).startsWith("={{ $('Config').first().json.pslBaseUrl }}/api/integrations/n8n/x-drafts/"));
   assert(psl.length === 2, "2 PSL nodes, both on the x-drafts route family");
-  const model = http.find((n) => n.parameters.url === "https://api.anthropic.com/v1/messages")!;
-  assert(model && model.retryOnFail === true && model.maxTries === 2, "model: fixed provider URL, at most 2 attempts");
-  assert(String(model.parameters.jsonBody).includes("max_tokens: $('Config').first().json.maxTokens"), "model: max_tokens from Config");
+  const models = http.filter((n) => n.parameters.url === X_DRAFT_OPENAI_ENDPOINT);
+  assert(
+    models.length === 2 && JSON.stringify(models.map((n) => n.name)) === JSON.stringify([MODEL_1, MODEL_2]) && psl.length + models.length === http.length,
+    "exactly 2 model-call nodes on the fixed OpenAI endpoint; every HTTP node is either PSL or the model"
+  );
+  for (const n of models) {
+    const response = (n.parameters.options as { response?: { response?: Record<string, unknown> } })?.response?.response;
+    assert(n.retryOnFail === false && n.maxTries === undefined, `${n.name}: no built-in n8n retry (retries are routed explicitly)`);
+    assert(response?.fullResponse === true && response?.neverError === true && n.onError === "continueErrorOutput", `${n.name}: returns status and body for routing`);
+  }
+  assert(models[0].parameters.jsonBody === models[1].parameters.jsonBody, "attempt 2 sends exactly the attempt-1 request");
   assert(wf.nodes.find((n) => n.name === "Request source packet")?.retryOnFail === false, "packet request not retried");
+  const config = JSON.stringify(wf.nodes.find((n) => n.name === "Config")?.parameters);
+  assert(config.includes('"name":"modelId","value":"gpt-4o-mini"') && config.includes('"name":"maxCompletionTokens","value":2000'), "Config preconfigures gpt-4o-mini and max_completion_tokens 2000");
+  assert(!/REPLACE-WITH-[A-Z-]*MODEL/.test(raw), "no model placeholder");
   const cfgValid = JSON.stringify(wf.nodes.find((n) => n.name === "Config valid?")?.parameters);
-  assert(cfgValid.includes("$json.maxTokens <= 4000") && cfgValid.includes("!$json.modelId.includes('REPLACE')"), "Config valid? bounds maxTokens and requires a model ID");
+  assert(cfgValid.includes("$json.maxCompletionTokens <= 4000") && cfgValid.includes("!$json.modelId.includes('REPLACE')"), "Config valid? bounds max_completion_tokens and requires a model ID");
   const submit = String(wf.nodes.find((n) => n.name === "Submit candidates")?.parameters.jsonBody);
-  assert(submit.includes("batchToken") && submit.includes("slice(0, 20000)") && !/approve|schedule|publish/i.test(submit), "submission carries the batch token and bounded output only");
+  assert(submit.includes("batchToken") && !/approve|schedule|publish/i.test(submit), "submission carries the batch token and model output only");
 
-  const pre = (name: string) => Object.entries(wf.connections).flatMap(([from, c]) => c.main.flatMap((t, i) => t.filter((x) => x.node === name).map(() => ({ from, i }))));
-  const modelPre = pre("Generate candidates (model)");
-  assert(modelPre.length === 1 && modelPre[0].from === "Packet issued?" && modelPre[0].i === 0, "model called only after PSL issues a packet");
+  const edges = Object.entries(wf.connections).flatMap(([from, c]) => c.main.flatMap((t, i) => t.map((x) => `${from}[${i}]->${x.node}`)));
+  const into = (name: string) => edges.filter((e) => e.endsWith(`->${name}`)).sort();
+  assert(JSON.stringify(into(MODEL_1)) === JSON.stringify(["Packet issued?[0]->" + MODEL_1]), "attempt 1 runs only after PSL issues a packet");
+  assert(JSON.stringify(into(MODEL_2)) === JSON.stringify(["Wait before retry[0]->" + MODEL_2]), "attempt 2 runs only after the wait");
+  assert(JSON.stringify(into("Wait before retry")) === JSON.stringify(["Retry model call?[0]->Wait before retry"]), "the wait runs only when the retry check says transient");
+  assert(
+    JSON.stringify(into("Retry model call?")) === JSON.stringify([`${MODEL_1}[0]->Retry model call?`, `${MODEL_1}[1]->Retry model call?`]),
+    "every attempt-1 outcome (HTTP response or transport error) goes through the retry check"
+  );
+  assert(
+    edges.includes(`${MODEL_2}[1]->Stop: model call failed`) && edges.includes(`${MODEL_2}[0]->Model response OK?`) && edges.includes("Retry model call?[1]->Model response OK?"),
+    "attempt-2 failures stop; non-retryable attempt-1 responses go straight to the response check"
+  );
+  assert(
+    JSON.stringify(into("Submit candidates")) === JSON.stringify(["Model output usable?[0]->Submit candidates"]),
+    "only usable model output is submitted"
+  );
   const reach = (start: string) => {
     const seen = new Set<string>();
     const stack = [...(wf.connections[start]?.main.flat().map((t) => t.node) ?? [])];
@@ -527,30 +571,226 @@ function testWorkflow() {
     }
     return seen;
   };
-  assert(!reach("Generate candidates (model)").has("Generate candidates (model)") && !reach("Submit candidates").has("Generate candidates (model)"), "no loop back to the model (bounded calls)");
+  assert(
+    !reach(MODEL_2).has(MODEL_1) && !reach(MODEL_2).has(MODEL_2) && !reach(MODEL_1).has(MODEL_1) && !reach("Submit candidates").has(MODEL_1) && !reach("Submit candidates").has(MODEL_2),
+    "no loop back to either model call: at most 2 model HTTP attempts per execution"
+  );
 
   const readme = readFileSync(join(process.cwd(), "integrations/n8n/X_DRAFT_ASSISTANT_README.md"), "utf8");
-  const m = /### Nodes \((\d+) total: (\d+) HTTP Request, (\d+) IF, (\d+) Stop and Error, (\d+) Set, (\d+) No-Op, (\d+) Manual Trigger, (\d+) Sticky Note\)/.exec(readme);
+  const m = /### Nodes \((\d+) total: (\d+) HTTP Request, (\d+) IF, (\d+) Stop and Error, (\d+) Set, (\d+) Wait, (\d+) No-Op, (\d+) Manual Trigger, (\d+) Sticky Note\)/.exec(readme);
   assert(m, "README states node counts");
   const byType = (t: string) => wf.nodes.filter((n) => n.type === `n8n-nodes-base.${t}`).length;
-  const [total, h, ifs, stop, set, noop, manual, sticky] = m.slice(1).map(Number);
+  const [total, h, ifs, stop, set, wait, noop, manual, sticky] = m.slice(1).map(Number);
   assert(
-    wf.nodes.length === total && byType("httpRequest") === h && byType("if") === ifs && byType("stopAndError") === stop && byType("set") === set && byType("noOp") === noop && byType("manualTrigger") === manual && byType("stickyNote") === sticky,
+    wf.nodes.length === total && byType("httpRequest") === h && byType("if") === ifs && byType("stopAndError") === stop && byType("set") === set && byType("wait") === wait && byType("noOp") === noop && byType("manualTrigger") === manual && byType("stickyNote") === sticky,
     `README counts = JSON (${wf.nodes.length} nodes)`
   );
-  assert(readme.includes("PSL X Drafts") && readme.includes("PSL X Draft Model") && readme.includes("X_DRAFT_ASSISTANT_TOKEN"), "README names credentials and token");
+  assert(readme.includes("PSL X Drafts") && readme.includes(MODEL_CREDENTIAL) && readme.includes("X_DRAFT_ASSISTANT_TOKEN"), "README names credentials and token");
+  assert(readme.includes("`Authorization`") && readme.includes("Bearer <OpenAI project API key>"), "README: model credential is Header Auth Authorization: Bearer <OpenAI project API key>");
+  assert(!/anthropic|claude|x-api-key|max_tokens\b|stop_reason/i.test(readme), "README has no Anthropic setup, headers, or fields");
   for (const s of X_DRAFT_SOURCES) assert(readme.includes(s.id), `README lists source ${s.id}`);
   assert(/Source excerpt present/.test(readme) && /Heuristic checks passed/.test(readme) && /Owner review still required/.test(readme), "README separates excerpt present / heuristic checks / owner review");
 
   const notes = String(wf.nodes.find((n) => n.type === "n8n-nodes-base.stickyNote")?.parameters.content);
+  assert(notes.includes(MODEL_CREDENTIAL) && notes.includes("Bearer <OpenAI project API key>"), "sticky names the OpenAI credential");
   for (const [label, text] of [["README", readme], ["sticky note", notes]] as const) {
-    assert(/non-default/i.test(text) && /workspace/i.test(text) && /monthly/i.test(text), `${label}: dedicated non-default workspace with a monthly spend limit`);
-    assert(!/(spend|spending) limit (on|for) (the |a |your )?(dedicated )?key\b|key with a spend limit|key\/workspace/i.test(text), `${label}: no per-key spend-limit instruction`);
-    assert(/not (on individual API keys|offer a per-key)|no per-key limit/i.test(text), `${label}: states that spend limits are not per key`);
-    assert(/10.{0,20}(saved )?drafts?.{0,40}(not|is not).{0,20}(model )?spend/i.test(text.replace(/\*\*/g, "")), `${label}: distinguishes the saved-drafts cap from model spend`);
+    const flat = text.replace(/\*\*/g, "");
+    assert(/non-default OpenAI project/i.test(flat) && /monthly/i.test(flat) && /hard/i.test(flat) && /enforce/i.test(flat), `${label}: dedicated non-default OpenAI project with an enforced monthly hard limit`);
+    assert(/alerts? (only )?notif|alerts?[^.]{0,60}do not (stop|block)/i.test(flat), `${label}: spend alerts are distinguished from an enforced limit`);
+    assert(/not instantaneous/i.test(flat) && /slightly exceed/i.test(flat), `${label}: enforcement delay noted`);
+    assert(!/(spend|spending) limit (on|for) (the |a |your )?(dedicated )?key\b|key with a spend limit/i.test(flat), `${label}: no per-key spend-limit instruction`);
+    assert(/10.{0,20}(saved )?drafts?.{0,40}(not|is not).{0,20}(model )?spend/i.test(flat), `${label}: distinguishes the saved-drafts cap from model spend`);
   }
+  assert(/not on individual API keys|no per-key/i.test(readme), "README: spend limits are project/organization level, not per key");
   assert(/Do not add a Schedule trigger/i.test(notes) && /manual-only/i.test(notes), "sticky: manual-only pilot");
   assert(!/Schedule Trigger \(for example weekly\)/.test(readme) && /Manual-only pilot/.test(readme), "README: no scheduling suggestion for the pilot");
+
+  const live = readFileSync(join(process.cwd(), "scripts/test-x-drafts-live-model.ts"), "utf8");
+  assert(!/anthropic|claude|x-api-key|max_tokens\b|stop_reason/i.test(live) && live.includes("decideOpenAIAttempt"), "live-model test uses the OpenAI contract only");
+}
+
+// ---------------------------------------------------------------- OpenAI provider responses
+
+const MODEL_1 = "Model call (attempt 1)";
+const MODEL_2 = "Model call (attempt 2)";
+const MODEL_CREDENTIAL = "PSL X Draft Model — OpenAI";
+const RETURNED_MODEL = "gpt-4o-mini-2024-07-18";
+
+/** Evaluates an n8n `={{ … }}` expression or `=text {{ … }} text` template against fixed node outputs. */
+function n8nEval(expr: string, item: unknown, nodes: Record<string, unknown>): unknown {
+  const $ = (name: string) => ({ first: () => ({ json: nodes[name] }) });
+  const exec = (code: string) => new Function("$json", "$", "$execution", `return (${code});`)(item, $, { id: "4242" });
+  const whole = /^=\{\{([\s\S]*)\}\}$/.exec(expr);
+  if (whole) return exec(whole[1]);
+  return expr.replace(/^=/, "").replace(/\{\{([\s\S]*?)\}\}/g, (_, code: string) => String(exec(code)));
+}
+
+type Schema = { type?: string; enum?: string[]; properties?: Record<string, Schema>; required?: string[]; additionalProperties?: boolean; items?: Schema };
+
+function strictShape(s: Schema, path: string): string[] {
+  const problems: string[] = [];
+  if (s.type === "object") {
+    const keys = Object.keys(s.properties ?? {}).sort();
+    if (s.additionalProperties !== false) problems.push(`${path}: additionalProperties must be false`);
+    if (JSON.stringify([...(s.required ?? [])].sort()) !== JSON.stringify(keys)) problems.push(`${path}: every property must be required`);
+    for (const k of keys) problems.push(...strictShape(s.properties![k], `${path}.${k}`));
+  }
+  if (s.type === "array" && s.items) problems.push(...strictShape(s.items, `${path}[]`));
+  return problems;
+}
+
+function conforms(s: Schema, v: unknown): boolean {
+  if (s.type === "object") {
+    if (!v || typeof v !== "object" || Array.isArray(v)) return false;
+    const o = v as Record<string, unknown>;
+    const keys = Object.keys(s.properties ?? {});
+    return Object.keys(o).every((k) => keys.includes(k)) && (s.required ?? []).every((k) => k in o) && keys.every((k) => !(k in o) || conforms(s.properties![k], o[k]));
+  }
+  if (s.type === "array") return Array.isArray(v) && v.every((x) => conforms(s.items!, x));
+  if (s.type === "string") return typeof v === "string" && (!s.enum || s.enum.includes(v));
+  return false;
+}
+
+async function testOpenAIResponses() {
+  const schema = X_DRAFT_OUTPUT_SCHEMA.schema as Schema;
+  assert(X_DRAFT_OUTPUT_SCHEMA.strict === true && X_DRAFT_OUTPUT_SCHEMA.name === "psl_x_draft_candidates", "output schema is strict and named");
+  assert(strictShape(schema, "$").length === 0, `schema satisfies strict mode (${strictShape(schema, "$").join("; ")})`);
+  const ids = schema.properties!.candidates.items!.properties!.sourceIds.items!.enum!;
+  const evidenceIds = X_DRAFT_SOURCES.filter((s) => s.kind === "evidence").map((s) => s.id);
+  assert(JSON.stringify(ids) === JSON.stringify(evidenceIds) && !ids.some((id) => id.startsWith("guidance:") || id.startsWith("guide:")), "schema allows only evidence source IDs");
+  assert(JSON.stringify(schema.properties!.candidates.items!.properties!.excerpt.properties!.sourceId.enum) === JSON.stringify(evidenceIds), "excerpt sourceId limited to evidence IDs");
+  assert(conforms(schema, { candidates: [good] }) && conforms(schema, { candidates: [] }), "the existing candidates contract conforms to the schema");
+  assert(!conforms(schema, { candidates: [{ ...good, sourceIds: ["guidance:claims-rules"] }] }) && !conforms(schema, { candidates: [{ ...good, extra: 1 }] }), "schema rejects guidance IDs and extra fields");
+
+  const raw = readFileSync(join(process.cwd(), "integrations/n8n/psl-x-draft-assistant.workflow.json"), "utf8");
+  const wf = JSON.parse(raw) as N8nWorkflow;
+  const node = (name: string) => wf.nodes.find((n) => n.name === name)!;
+  const cond = (name: string) => String((node(name).parameters.conditions as { conditions: Array<{ leftValue: string }> }).conditions[0].leftValue);
+
+  __resetXDraftRateLimitersForTests();
+  let fake = createFakeSql();
+  __setSqlClientForTests(fake.sql);
+  const packet = (await call(req("packet", { executionId: "e1" }), "packet")).body;
+  const nodes = {
+    Config: { pslBaseUrl: "https://psl.test", modelId: X_DRAFT_OPENAI_MODEL, maxCompletionTokens: X_DRAFT_OPENAI_MAX_COMPLETION_TOKENS },
+    "Request source packet": packet,
+  };
+  assert(n8nEval(cond("Packet issued?"), packet, nodes) === true, "Packet issued? accepts a packet with the strict schema");
+  assert(n8nEval(cond("Packet issued?"), { ...packet, outputSchema: { ...X_DRAFT_OUTPUT_SCHEMA, strict: false } }, nodes) === false, "Packet issued? refuses a non-strict schema");
+  assert(n8nEval(cond("Config valid?"), { ...nodes.Config, pslBaseUrl: "https://psllabs.org" }, nodes) === true, "Config valid? accepts the preconfigured model and token limit");
+
+  const request = JSON.parse(String(n8nEval(String(node(MODEL_1).parameters.jsonBody), {}, nodes))) as Record<string, unknown>;
+  const expected = buildOpenAIRequestBody({
+    model: X_DRAFT_OPENAI_MODEL,
+    maxCompletionTokens: X_DRAFT_OPENAI_MAX_COMPLETION_TOKENS,
+    prompt: packet.prompt as { system: string; user: string },
+    outputSchema: X_DRAFT_OUTPUT_SCHEMA,
+  });
+  assert(JSON.stringify(request) === JSON.stringify(expected), "workflow request body equals the OpenAI contract module");
+  assert(
+    request.model === "gpt-4o-mini" && request.stream === false && request.store === false && request.n === 1 && request.max_completion_tokens === 2000,
+    "request: gpt-4o-mini, stream false, store false, one completion, max_completion_tokens 2000"
+  );
+  const rf = request.response_format as { type: string; json_schema: { strict: boolean; name: string } };
+  assert(rf.type === "json_schema" && rf.json_schema.strict === true && rf.json_schema.name === "psl_x_draft_candidates", "request: strict Structured Outputs");
+  const msgs = request.messages as Array<{ role: string; content: string }>;
+  assert(msgs.length === 2 && msgs[0].role === "system" && msgs[0].content === X_DRAFT_SYSTEM_PROMPT && msgs[1].role === "user", "request: system and user messages from the packet");
+  assert(!("max_tokens" in request) && !("system" in request) && !("tools" in request), "request: no Anthropic-style or tool fields");
+
+  const content = JSON.stringify({ candidates: [good] });
+  const completion = (over: { content?: unknown; refusal?: unknown; finish?: string; model?: string; choices?: unknown[] } = {}) => ({
+    id: "chatcmpl-fixture",
+    object: "chat.completion",
+    model: over.model ?? RETURNED_MODEL,
+    choices: over.choices ?? [
+      { index: 0, message: { role: "assistant", content: "content" in over ? over.content : content, refusal: over.refusal ?? null }, finish_reason: over.finish ?? "stop" },
+    ],
+    usage: { prompt_tokens: 2912, completion_tokens: 418, total_tokens: 3330 },
+  });
+  const err = (code: string | null, type: string) => ({ error: { message: "fixture", type, param: null, code } });
+  const fixtures: Array<{ label: string; item: Record<string, unknown>; expect: "submit" | "retry" | "stop"; message?: RegExp }> = [
+    { label: "complete completion", item: { statusCode: 200, body: completion(), headers: {} }, expect: "submit" },
+    { label: "refusal", item: { statusCode: 200, body: completion({ content: null, refusal: "I can't help with that." }) }, expect: "stop", message: /the model refused/ },
+    { label: "truncated (finish_reason length)", item: { statusCode: 200, body: completion({ content: '{"candidates":[{"text":"A COA', finish: "length" }) }, expect: "stop", message: /truncated/ },
+    { label: "content filter", item: { statusCode: 200, body: completion({ finish: "content_filter" }) }, expect: "stop", message: /content filter/ },
+    { label: "tool_calls ending", item: { statusCode: 200, body: completion({ finish: "tool_calls" }) }, expect: "stop", message: /finish_reason tool_calls/ },
+    { label: "empty content", item: { statusCode: 200, body: completion({ content: "  " }) }, expect: "stop" },
+    { label: "two choices", item: { statusCode: 200, body: completion({ choices: [completion().choices[0], completion().choices[0]] }) }, expect: "stop", message: /exactly one choice/ },
+    { label: "substituted model", item: { statusCode: 200, body: completion({ model: "gpt-4o-2024-08-06" }) }, expect: "stop", message: /unexpected model/ },
+    { label: "401 invalid key", item: { statusCode: 401, body: err("invalid_api_key", "invalid_request_error") }, expect: "stop", message: /HTTP 401: invalid_api_key/ },
+    { label: "403 region", item: { statusCode: 403, body: err("unsupported_country_region_territory", "request_forbidden") }, expect: "stop", message: /HTTP 403/ },
+    { label: "400 bad request", item: { statusCode: 400, body: err(null, "invalid_request_error") }, expect: "stop", message: /HTTP 400/ },
+    { label: "429 credit exhausted", item: { statusCode: 429, body: err("credit_balance_exhausted", "insufficient_quota") }, expect: "stop", message: /credit_balance_exhausted/ },
+    { label: "429 insufficient quota", item: { statusCode: 429, body: err("insufficient_quota", "insufficient_quota") }, expect: "stop", message: /insufficient_quota/ },
+    { label: "429 project spend limit", item: { statusCode: 429, body: err("project_spend_limit_exceeded", "insufficient_quota") }, expect: "stop", message: /project_spend_limit_exceeded/ },
+    { label: "429 organization spend limit", item: { statusCode: 429, body: err("organization_spend_limit_exceeded", "insufficient_quota") }, expect: "stop", message: /organization_spend_limit_exceeded/ },
+    { label: "429 organization usage limit", item: { statusCode: 429, body: err("organization_usage_limit_exceeded", "insufficient_quota") }, expect: "stop" },
+    { label: "429 unknown code", item: { statusCode: 429, body: err("something_new", "other") }, expect: "stop" },
+    { label: "429 request rate limit", item: { statusCode: 429, body: err("rate_limit_exceeded", "requests"), headers: { "retry-after": "20" } }, expect: "retry" },
+    { label: "429 token rate limit (no code)", item: { statusCode: 429, body: err(null, "tokens") }, expect: "retry" },
+    { label: "500", item: { statusCode: 500, body: err(null, "server_error") }, expect: "retry" },
+    { label: "503 overloaded", item: { statusCode: 503, body: err(null, "server_error") }, expect: "retry" },
+    { label: "408 timeout", item: { statusCode: 408, body: {} }, expect: "retry" },
+    { label: "transport error (timeout)", item: { error: { message: "timeout of 120000ms exceeded" } }, expect: "retry" },
+  ];
+
+  for (const f of fixtures) {
+    const attempt = "statusCode" in f.item ? { statusCode: f.item.statusCode as number, body: f.item.body } : { transportError: String((f.item.error as { message: string }).message) };
+    const ts = decideOpenAIAttempt(attempt, X_DRAFT_OPENAI_MODEL);
+    const retry = n8nEval(cond("Retry model call?"), f.item, nodes) === true;
+    let route: "submit" | "retry" | "stop" = "retry";
+    let stopNode: string | null = null;
+    if (!retry) {
+      if (n8nEval(cond("Model response OK?"), f.item, nodes) !== true) {
+        route = "stop";
+        stopNode = "Stop: model call failed";
+      } else if (n8nEval(cond("Model output usable?"), f.item, nodes) !== true) {
+        route = "stop";
+        stopNode = "Stop: model output not usable";
+      } else {
+        route = "submit";
+      }
+    }
+    assert(ts.action === f.expect && route === f.expect, `${f.label}: ${f.expect} (module ${ts.action}, workflow ${route})`);
+    if (retry) {
+      const failedMsg = String(n8nEval(String(node("Stop: model call failed").parameters.errorMessage), f.item, nodes));
+      assert(/nothing was saved/.test(failedMsg), `${f.label}: a failed retry reports that nothing was saved`);
+    }
+    if (stopNode) {
+      const msg = String(n8nEval(String(node(stopNode).parameters.errorMessage), f.item, nodes));
+      assert(/nothing was saved/.test(msg) && (!f.message || f.message.test(msg)), `${f.label}: stop message explains the reason (${msg.slice(0, 120)})`);
+    }
+    if (route === "submit" && ts.action === "submit") {
+      const sub = JSON.parse(String(n8nEval(String(node("Submit candidates").parameters.jsonBody), f.item, nodes))) as Record<string, unknown>;
+      assert(
+        sub.batchToken === packet.batchToken && sub.executionId === "4242" && JSON.stringify({ model: sub.model, stopReason: sub.stopReason, usage: sub.usage, modelOutput: sub.modelOutput }) === JSON.stringify(ts.submission),
+        `${f.label}: workflow submission equals the normalized contract`
+      );
+      assert(sub.model === RETURNED_MODEL && sub.stopReason === "stop" && JSON.stringify(sub.usage) === JSON.stringify({ inputTokens: 2912, outputTokens: 418 }), `${f.label}: returned model, finish_reason, and prompt/completion tokens mapped`);
+      fake = createFakeSql();
+      __setSqlClientForTests(fake.sql);
+      const saved = await call(req("batch", sub), "batch");
+      assert(saved.status === 200 && (saved.body.counts as Record<string, number>).saved === 1, `${f.label}: PSL saves the candidate as a draft`);
+      assert(writes(fake.calls).length === 1 && /'draft', 1,/.test(writes(fake.calls)[0].text), `${f.label}: saved as an unapproved, unscheduled draft`);
+    }
+  }
+
+  const waitAmount = String(node("Wait before retry").parameters.amount);
+  assert(n8nEval(waitAmount, { headers: { "retry-after": "20" } }, nodes) === 20 && n8nEval(waitAmount, { headers: { "retry-after": "300" } }, nodes) === 30, "wait honours Retry-After, capped at 30 s");
+  assert(n8nEval(waitAmount, { error: { message: "timeout" } }, nodes) === 10 && n8nEval(waitAmount, { headers: { "retry-after": "1" } }, nodes) === 5, "wait defaults to 10 s, at least 5 s");
+
+  for (const [label, body] of [
+    ["refusal", completion({ content: null, refusal: "No." })],
+    ["truncated", completion({ content: content, finish: "length" })],
+    ["content filter", completion({ finish: "content_filter" })],
+  ] as const) {
+    const forced = JSON.parse(String(n8nEval(String(node("Submit candidates").parameters.jsonBody), { statusCode: 200, body }, nodes))) as Record<string, unknown>;
+    fake = createFakeSql();
+    __setSqlClientForTests(fake.sql);
+    const r = await call(req("batch", forced), "batch");
+    assert((r.status === 422 || r.status === 400) && writes(fake.calls).length === 0, `${label}: even if submitted, PSL saves nothing (HTTP ${r.status})`);
+  }
+  __setSqlClientForTests(null);
 }
 
 async function main() {
@@ -560,6 +800,7 @@ async function main() {
   testValidator();
   await testHandler();
   testWorkflow();
+  await testOpenAIResponses();
   console.log(`[x-drafts] ${passed} offline (mocked) assertions passed. No database, no model, no network.`);
 }
 

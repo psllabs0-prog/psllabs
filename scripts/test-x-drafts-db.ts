@@ -116,7 +116,7 @@ async function packet(now: Date, env: Env = testEnv) {
 }
 
 const submit = (batchToken: string, candidates: unknown[], now: Date, env: Env = testEnv) =>
-  call("batch", { batchToken, executionId: `b${++seq}`, model: "fixture-model", stopReason: "end_turn", usage: null, modelOutput: JSON.stringify({ candidates }) }, now, env);
+  call("batch", { batchToken, executionId: `b${++seq}`, model: "fixture-model", stopReason: "stop", usage: null, modelOutput: JSON.stringify({ candidates }) }, now, env);
 
 const counts = (b: Body) => b.counts as { candidates: number; saved: number; alreadySaved: number; blocked: number };
 

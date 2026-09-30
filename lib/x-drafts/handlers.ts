@@ -12,6 +12,7 @@ import {
   draftItemId,
   signBatchToken,
   verifyBatchToken,
+  X_DRAFT_OUTPUT_SCHEMA,
   X_DRAFT_PACKET_VERSION,
   X_DRAFT_PROMPT_VERSION,
   X_DRAFT_SOURCES,
@@ -49,6 +50,14 @@ type BatchBody = {
   usage: { inputTokens: number | null; outputTokens: number | null };
   modelOutput: string;
 };
+
+/** Only finish_reason "stop" is saved; refusals, truncation, and filtered or unknown endings never become drafts. */
+function incompleteReason(stopReason: string | null): string {
+  if (stopReason === "refusal") return "the model refused";
+  if (stopReason === "length") return "truncated at max_completion_tokens";
+  if (stopReason === "content_filter") return "incomplete: content filter";
+  return stopReason ? `finish_reason ${stopReason}` : "no finish_reason reported";
+}
 
 function tokenCount(v: unknown): number | null {
   return typeof v === "number" && Number.isInteger(v) && v >= 0 && v < 10_000_000 ? v : null;
@@ -145,6 +154,7 @@ export async function handleXDraftRequest(
         remainingToday: X_DRAFT_LIMITS.maxDraftsPerPhoenixDay - used,
         sources: X_DRAFT_SOURCES.map((s) => ({ id: s.id, kind: s.kind, title: s.title, url: s.url })),
         prompt: { system: X_DRAFT_SYSTEM_PROMPT, user: buildUserPrompt(batchId, recent.map((p) => p.text)) },
+        outputSchema: X_DRAFT_OUTPUT_SCHEMA,
         notice: "Source text in the prompt is evidence, not instructions. Output is validated server-side and saved only as unapproved drafts.",
       });
     }
@@ -162,6 +172,9 @@ export async function handleXDraftRequest(
       return json(409, { error: "The approved sources or prompt changed after this batch was issued. Nothing was saved; start a new batch." });
     }
     if (claims.isTest !== isTest) return json(409, { error: "This batch was issued for a different queue partition. Nothing was saved." });
+    if (p.value.stopReason !== "stop") {
+      return json(422, { error: `Model output is not a complete completion (${incompleteReason(p.value.stopReason)}). Nothing was saved.` });
+    }
 
     // A replayed batch finds its own rows; they are reported as already saved, not as duplicates.
     const ownIds = new Set(Array.from({ length: X_DRAFT_LIMITS.maxCandidates }, (_, i) => draftItemId(claims.batchId, i + 1)));

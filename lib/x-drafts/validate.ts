@@ -63,7 +63,7 @@ export function validateCandidates(input: Input): ValidationResult {
 }
 
 function parseOutput(output: string, stopReason: string | null): { ok: true; candidates: unknown[] } | { ok: false; error: string } {
-  const truncated = stopReason === "max_tokens" ? " The model stopped at its token limit, so the output is probably truncated." : "";
+  const truncated = stopReason === "length" ? " The model stopped at max_completion_tokens, so the output is probably truncated." : "";
   const trimmed = output.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
   const start = trimmed.indexOf("{");
   const end = trimmed.lastIndexOf("}");

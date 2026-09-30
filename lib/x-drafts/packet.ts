@@ -8,7 +8,7 @@ import { X_DRAFT_LIMITS } from "./constants";
 import { X_DRAFT_SOURCE_SNAPSHOT } from "./source-snapshot";
 import { X_DRAFT_OMISSION_MARKER, type XDraftSource } from "./sources";
 
-export const X_DRAFT_PROMPT_VERSION = "x-draft-assistant/prompt@2";
+export const X_DRAFT_PROMPT_VERSION = "x-draft-assistant/prompt@3";
 
 const N = X_DRAFT_LIMITS.maxCandidates;
 
@@ -47,6 +47,46 @@ export function sourceById(id: string): XDraftSource | undefined {
   return X_DRAFT_SOURCES.find((s) => s.id === id);
 }
 
+const EVIDENCE_IDS = X_DRAFT_SOURCES.filter((s) => s.kind === "evidence").map((s) => s.id);
+
+/**
+ * Strict Structured Outputs schema for the candidates contract in the system
+ * prompt. Strict mode requires every property to be listed as required and
+ * no additional properties. Source IDs are limited to evidence sources; the
+ * validator still enforces every rule on whatever is submitted.
+ */
+export const X_DRAFT_OUTPUT_SCHEMA = {
+  name: "psl_x_draft_candidates",
+  strict: true,
+  schema: {
+    type: "object",
+    additionalProperties: false,
+    required: ["candidates"],
+    properties: {
+      candidates: {
+        type: "array",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["text", "sourceIds", "excerpt", "purpose", "warnings"],
+          properties: {
+            text: { type: "string" },
+            sourceIds: { type: "array", items: { type: "string", enum: EVIDENCE_IDS } },
+            excerpt: {
+              type: "object",
+              additionalProperties: false,
+              required: ["sourceId", "quote"],
+              properties: { sourceId: { type: "string", enum: EVIDENCE_IDS }, quote: { type: "string" } },
+            },
+            purpose: { type: "string" },
+            warnings: { type: "array", items: { type: "string" } },
+          },
+        },
+      },
+    },
+  },
+};
+
 /**
  * Binds a batch to the exact evidence, prompt, and content-policy version it
  * was generated from. Any change invalidates batches issued before it.
@@ -57,6 +97,7 @@ export const X_DRAFT_PACKET_VERSION = sha256Hex(
     prompt: X_DRAFT_PROMPT_VERSION,
     system: X_DRAFT_SYSTEM_PROMPT,
     policy: X_CONTENT_POLICY_VERSION,
+    outputSchema: X_DRAFT_OUTPUT_SCHEMA,
     sources: X_DRAFT_SOURCES.map((s) => ({ id: s.id, kind: s.kind, title: s.title, url: s.url, origin: s.origin, text: s.text })),
   })
 );

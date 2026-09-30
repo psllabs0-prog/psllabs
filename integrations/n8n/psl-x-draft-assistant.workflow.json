@@ -12,11 +12,11 @@
       "name": "Setup notes",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [-260, -360],
+      "position": [-260, -420],
       "parameters": {
-        "width": 700,
-        "height": 320,
-        "content": "## PSL X draft assistant - MANUAL ONLY, DRAFTS ONLY\nSee integrations/n8n/X_DRAFT_ASSISTANT_README.md in the PSL repo.\n1. Config > pslBaseUrl (PSL HTTPS origin, no path), modelId (current Anthropic model ID), maxTokens (256-4000).\n2. Header Auth credential **PSL X Drafts** (Authorization: Bearer <X_DRAFT_ASSISTANT_TOKEN>) on the 2 PSL HTTP nodes. Never the X publisher token.\n3. Header Auth credential **PSL X Draft Model** (x-api-key: key created inside a dedicated, non-default Anthropic workspace, scoped to that workspace only) on the model node only. The spending cap is the monthly spend limit on that WORKSPACE in the Claude Console; Anthropic does not offer a per-key spend limit.\n4. Keep inactive and manual-only for this pilot. Do not add a Schedule trigger.\n\nPSL's 10-drafts-per-day cap limits SAVED drafts, not model spend. One packet, at most 2 model calls (1 retry), one submission. PSL validates the output and saves passing candidates as UNAPPROVED drafts in /admin-social. This workflow cannot approve, schedule, or publish. No X credentials belong here."
+        "width": 760,
+        "height": 380,
+        "content": "## PSL X draft assistant - MANUAL ONLY, DRAFTS ONLY\nSee integrations/n8n/X_DRAFT_ASSISTANT_README.md in the PSL repo.\n1. Config > pslBaseUrl (PSL HTTPS origin, no path). modelId is preconfigured as gpt-4o-mini; maxCompletionTokens 2000 (256-4000).\n2. Header Auth credential **PSL X Drafts** (Authorization: Bearer <X_DRAFT_ASSISTANT_TOKEN>) on the 2 PSL HTTP nodes only. Never the X publisher token.\n3. Header Auth credential **PSL X Draft Model — OpenAI** (Authorization: Bearer <OpenAI project API key>) on the 2 model-call nodes only (attempt 1 and the transient-failure retry).\n4. Use a key from a dedicated, non-default OpenAI project with an ENFORCED monthly hard spend limit. Spend alerts only notify; they do not stop requests. Enforcement is not instantaneous, so spend can slightly exceed the limit.\n5. Keep inactive and manual-only for this pilot. Do not add a Schedule trigger.\n\nPSL's 10-drafts-per-day cap limits SAVED drafts, not model spend. One packet, at most 2 model HTTP attempts (the second only after a timeout, connection error, 408, 5xx, or request/token rate limit; never after authentication, credit, quota, or spend-limit errors), one submission. Refused, truncated, or incomplete output is never submitted. PSL validates the output and saves passing candidates as UNAPPROVED drafts in /admin-social. This workflow cannot approve, schedule, or publish. No X credentials belong here."
       }
     },
     {
@@ -45,12 +45,12 @@
             {
               "id": "c1f2a3b4-0000-4000-8000-000000000002",
               "name": "modelId",
-              "value": "REPLACE-WITH-ANTHROPIC-MODEL-ID",
+              "value": "gpt-4o-mini",
               "type": "string"
             },
             {
               "id": "c1f2a3b4-0000-4000-8000-000000000003",
-              "name": "maxTokens",
+              "name": "maxCompletionTokens",
               "value": 2000,
               "type": "number"
             }
@@ -71,7 +71,7 @@
           "conditions": [
             {
               "id": "d2a1b3c4-0000-4000-8000-000000000001",
-              "leftValue": "={{ /^https:[/][/][A-Za-z0-9.-]+$/.test($json.pslBaseUrl) && !$json.pslBaseUrl.includes('REPLACE') && /^[A-Za-z0-9._:-]{3,100}$/.test($json.modelId) && !$json.modelId.includes('REPLACE') && Number.isInteger($json.maxTokens) && $json.maxTokens >= 256 && $json.maxTokens <= 4000 }}",
+              "leftValue": "={{ /^https:[/][/][A-Za-z0-9.-]+$/.test($json.pslBaseUrl) && !$json.pslBaseUrl.includes('REPLACE') && /^[A-Za-z0-9._:-]{3,100}$/.test($json.modelId) && !$json.modelId.includes('REPLACE') && Number.isInteger($json.maxCompletionTokens) && $json.maxCompletionTokens >= 256 && $json.maxCompletionTokens <= 4000 }}",
               "rightValue": true,
               "operator": { "type": "boolean", "operation": "true", "singleValue": true }
             }
@@ -88,7 +88,7 @@
       "typeVersion": 1,
       "position": [340, 200],
       "parameters": {
-        "errorMessage": "Config is invalid: pslBaseUrl must be the PSL HTTPS origin (no path), modelId a real model ID, and maxTokens an integer from 256 to 4000. No request was made."
+        "errorMessage": "Config is invalid: pslBaseUrl must be the PSL HTTPS origin (no path), modelId a model ID (gpt-4o-mini), and maxCompletionTokens an integer from 256 to 4000. No request was made."
       }
     },
     {
@@ -135,7 +135,7 @@
           "conditions": [
             {
               "id": "d2a1b3c4-0000-4000-8000-000000000002",
-              "leftValue": "={{ typeof $json.batchToken === 'string' && !!$json.prompt && typeof $json.prompt.system === 'string' && typeof $json.prompt.user === 'string' && $json.maxCandidates === 5 }}",
+              "leftValue": "={{ typeof $json.batchToken === 'string' && !!$json.prompt && typeof $json.prompt.system === 'string' && typeof $json.prompt.user === 'string' && $json.maxCandidates === 5 && !!$json.outputSchema && $json.outputSchema.strict === true && $json.outputSchema.name === 'psl_x_draft_candidates' && !!$json.outputSchema.schema && $json.outputSchema.schema.type === 'object' }}",
               "rightValue": true,
               "operator": { "type": "boolean", "operation": "true", "singleValue": true }
             }
@@ -147,45 +147,30 @@
     },
     {
       "id": "8b2f1c63-4d5e-4f60-9b12-000000000009",
-      "name": "Generate candidates (model)",
+      "name": "Model call (attempt 1)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [740, 0],
-      "retryOnFail": true,
-      "maxTries": 2,
-      "waitBetweenTries": 5000,
+      "retryOnFail": false,
       "onError": "continueErrorOutput",
       "parameters": {
         "method": "POST",
-        "url": "https://api.anthropic.com/v1/messages",
+        "url": "https://api.openai.com/v1/chat/completions",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [{ "name": "anthropic-version", "value": "2023-06-01" }]
-        },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ model: $('Config').first().json.modelId, max_tokens: $('Config').first().json.maxTokens, temperature: 0.3, system: $json.prompt.system, messages: [{ role: 'user', content: $json.prompt.user }] }) }}",
+        "jsonBody": "={{ JSON.stringify({ model: $('Config').first().json.modelId, messages: [{ role: 'system', content: $('Request source packet').first().json.prompt.system }, { role: 'user', content: $('Request source packet').first().json.prompt.user }], max_completion_tokens: $('Config').first().json.maxCompletionTokens, n: 1, stream: false, store: false, temperature: 0.3, response_format: { type: 'json_schema', json_schema: $('Request source packet').first().json.outputSchema } }) }}",
         "options": {
           "redirect": { "redirect": { "followRedirects": false } },
+          "response": { "response": { "fullResponse": true, "neverError": true, "responseFormat": "json" } },
           "timeout": 120000
         }
       }
     },
     {
       "id": "8b2f1c63-4d5e-4f60-9b12-000000000010",
-      "name": "Stop: model call failed",
-      "type": "n8n-nodes-base.stopAndError",
-      "typeVersion": 1,
-      "position": [940, 240],
-      "parameters": {
-        "errorMessage": "=The model call failed after at most 2 attempts ({{ $json.error && $json.error.message ? $json.error.message : 'no response' }}). Nothing was saved. Check the provider console for usage before re-running."
-      }
-    },
-    {
-      "id": "8b2f1c63-4d5e-4f60-9b12-000000000011",
-      "name": "Model output received?",
+      "name": "Retry model call?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
       "position": [940, 0],
@@ -194,8 +179,8 @@
           "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
           "conditions": [
             {
-              "id": "d2a1b3c4-0000-4000-8000-000000000003",
-              "leftValue": "={{ Array.isArray($json.content) && $json.content.some(c => c && c.type === 'text' && typeof c.text === 'string' && c.text.trim().length > 0) }}",
+              "id": "d2a1b3c4-0000-4000-8000-000000000005",
+              "leftValue": "={{ !Number.isInteger($json.statusCode) || [408, 500, 502, 503, 504].includes($json.statusCode) || ($json.statusCode === 429 && !!$json.body && !!$json.body.error && $json.body.error.type !== 'insufficient_quota' && ($json.body.error.code === 'rate_limit_exceeded' || (!$json.body.error.code && ['requests', 'tokens'].includes($json.body.error.type)))) }}",
               "rightValue": true,
               "operator": { "type": "boolean", "operation": "true", "singleValue": true }
             }
@@ -206,21 +191,109 @@
       }
     },
     {
-      "id": "8b2f1c63-4d5e-4f60-9b12-000000000012",
-      "name": "Stop: no usable model output",
-      "type": "n8n-nodes-base.stopAndError",
-      "typeVersion": 1,
-      "position": [1140, 240],
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000011",
+      "name": "Wait before retry",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [1140, -160],
       "parameters": {
-        "errorMessage": "=The model returned no text (stop reason: {{ $json.stop_reason || 'unknown' }}). Nothing was saved."
+        "amount": "={{ Math.min(30, Math.max(5, Number($json.headers && $json.headers['retry-after']) || 10)) }}",
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000012",
+      "name": "Model call (attempt 2)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, -160],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $('Config').first().json.modelId, messages: [{ role: 'system', content: $('Request source packet').first().json.prompt.system }, { role: 'user', content: $('Request source packet').first().json.prompt.user }], max_completion_tokens: $('Config').first().json.maxCompletionTokens, n: 1, stream: false, store: false, temperature: 0.3, response_format: { type: 'json_schema', json_schema: $('Request source packet').first().json.outputSchema } }) }}",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "response": { "response": { "fullResponse": true, "neverError": true, "responseFormat": "json" } },
+          "timeout": 120000
+        }
       }
     },
     {
       "id": "8b2f1c63-4d5e-4f60-9b12-000000000013",
+      "name": "Model response OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1540, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "d2a1b3c4-0000-4000-8000-000000000006",
+              "leftValue": "={{ $json.statusCode === 200 && !!$json.body && typeof $json.body === 'object' }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000014",
+      "name": "Stop: model call failed",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [1740, 240],
+      "parameters": {
+        "errorMessage": "=The model call failed and nothing was saved ({{ Number.isInteger($json.statusCode) ? 'HTTP ' + $json.statusCode + ($json.body && $json.body.error ? ': ' + ($json.body.error.code || $json.body.error.type || 'error') : '') : ($json.error && $json.error.message ? $json.error.message : 'no response') }}). Authentication, credit, quota, spending-limit, and request errors are never retried; a transient failure gets exactly one retry. Check OpenAI project usage before re-running."
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000015",
+      "name": "Model output usable?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1740, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "d2a1b3c4-0000-4000-8000-000000000003",
+              "leftValue": "={{ Array.isArray($json.body.choices) && $json.body.choices.length === 1 && !!$json.body.choices[0].message && !$json.body.choices[0].message.refusal && $json.body.choices[0].finish_reason === 'stop' && typeof $json.body.model === 'string' && $json.body.model.startsWith($('Config').first().json.modelId) && typeof $json.body.choices[0].message.content === 'string' && $json.body.choices[0].message.content.trim().length > 0 && $json.body.choices[0].message.content.length <= 20000 }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000016",
+      "name": "Stop: model output not usable",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [1940, 240],
+      "parameters": {
+        "errorMessage": "=The model response was not submitted and nothing was saved ({{ !Array.isArray($json.body.choices) || $json.body.choices.length !== 1 || !$json.body.choices[0].message ? 'expected exactly one choice' : $json.body.choices[0].message.refusal ? 'the model refused: ' + String($json.body.choices[0].message.refusal).slice(0, 200) : $json.body.choices[0].finish_reason === 'length' ? 'output truncated at max_completion_tokens' : $json.body.choices[0].finish_reason === 'content_filter' ? 'output incomplete (content filter)' : $json.body.choices[0].finish_reason !== 'stop' ? 'finish_reason ' + $json.body.choices[0].finish_reason : 'unexpected model or empty content' }})."
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000017",
       "name": "Submit candidates",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1140, 0],
+      "position": [1940, 0],
       "retryOnFail": true,
       "maxTries": 3,
       "waitBetweenTries": 5000,
@@ -232,7 +305,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ batchToken: $('Request source packet').first().json.batchToken, executionId: String($execution.id).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64) || 'manual', model: typeof $json.model === 'string' ? $json.model : $('Config').first().json.modelId, stopReason: typeof $json.stop_reason === 'string' ? $json.stop_reason : null, usage: { inputTokens: $json.usage && Number.isInteger($json.usage.input_tokens) ? $json.usage.input_tokens : null, outputTokens: $json.usage && Number.isInteger($json.usage.output_tokens) ? $json.usage.output_tokens : null }, modelOutput: $json.content.filter(c => c && c.type === 'text').map(c => c.text).join('\\n').slice(0, 20000) }) }}",
+        "jsonBody": "={{ JSON.stringify({ batchToken: $('Request source packet').first().json.batchToken, executionId: String($execution.id).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64) || 'manual', model: $json.body.model, stopReason: $json.body.choices[0].message.refusal ? 'refusal' : $json.body.choices[0].finish_reason, usage: { inputTokens: $json.body.usage && Number.isInteger($json.body.usage.prompt_tokens) ? $json.body.usage.prompt_tokens : null, outputTokens: $json.body.usage && Number.isInteger($json.body.usage.completion_tokens) ? $json.body.usage.completion_tokens : null }, modelOutput: $json.body.choices[0].message.content }) }}",
         "options": {
           "redirect": { "redirect": { "followRedirects": false } },
           "timeout": 30000
@@ -240,21 +313,21 @@
       }
     },
     {
-      "id": "8b2f1c63-4d5e-4f60-9b12-000000000014",
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000018",
       "name": "Stop: submission not confirmed",
       "type": "n8n-nodes-base.stopAndError",
       "typeVersion": 1,
-      "position": [1340, 240],
+      "position": [2140, 240],
       "parameters": {
         "errorMessage": "=PSL did not confirm the submission ({{ $json.error && $json.error.message ? $json.error.message : 'no response' }}). Some drafts may or may not have been saved: check /admin-social. Re-running starts a new batch and a new model call; exact duplicates are still blocked."
       }
     },
     {
-      "id": "8b2f1c63-4d5e-4f60-9b12-000000000015",
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000019",
       "name": "Any drafts saved?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1340, 0],
+      "position": [2140, 0],
       "parameters": {
         "conditions": {
           "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
@@ -272,19 +345,19 @@
       }
     },
     {
-      "id": "8b2f1c63-4d5e-4f60-9b12-000000000016",
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000020",
       "name": "Drafts saved - review in /admin-social",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [1540, -100],
+      "position": [2340, -100],
       "parameters": {}
     },
     {
-      "id": "8b2f1c63-4d5e-4f60-9b12-000000000017",
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000021",
       "name": "Nothing saved - see blocked reasons",
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
-      "position": [1540, 100],
+      "position": [2340, 100],
       "parameters": {}
     }
   ],
@@ -305,20 +378,39 @@
     },
     "Packet issued?": {
       "main": [
-        [{ "node": "Generate candidates (model)", "type": "main", "index": 0 }],
+        [{ "node": "Model call (attempt 1)", "type": "main", "index": 0 }],
         [{ "node": "Stop: no source packet", "type": "main", "index": 0 }]
       ]
     },
-    "Generate candidates (model)": {
+    "Model call (attempt 1)": {
       "main": [
-        [{ "node": "Model output received?", "type": "main", "index": 0 }],
+        [{ "node": "Retry model call?", "type": "main", "index": 0 }],
+        [{ "node": "Retry model call?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Retry model call?": {
+      "main": [
+        [{ "node": "Wait before retry", "type": "main", "index": 0 }],
+        [{ "node": "Model response OK?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Wait before retry": { "main": [[{ "node": "Model call (attempt 2)", "type": "main", "index": 0 }]] },
+    "Model call (attempt 2)": {
+      "main": [
+        [{ "node": "Model response OK?", "type": "main", "index": 0 }],
         [{ "node": "Stop: model call failed", "type": "main", "index": 0 }]
       ]
     },
-    "Model output received?": {
+    "Model response OK?": {
+      "main": [
+        [{ "node": "Model output usable?", "type": "main", "index": 0 }],
+        [{ "node": "Stop: model call failed", "type": "main", "index": 0 }]
+      ]
+    },
+    "Model output usable?": {
       "main": [
         [{ "node": "Submit candidates", "type": "main", "index": 0 }],
-        [{ "node": "Stop: no usable model output", "type": "main", "index": 0 }]
+        [{ "node": "Stop: model output not usable", "type": "main", "index": 0 }]
       ]
     },
     "Submit candidates": {

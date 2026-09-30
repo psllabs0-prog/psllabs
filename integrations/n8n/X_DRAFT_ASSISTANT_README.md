@@ -25,13 +25,20 @@ recorded, and none of them is verification or approval:
 The run is triggered manually. There are no agents, loops, or rewrites:
 
 1. **Request source packet.** n8n → `POST /api/integrations/n8n/x-drafts/packet`.
-   PSL returns the fixed prompt and a signed `batchToken`.
-2. **Generate candidates.** n8n → Anthropic Messages API. This is one call,
-   with at most one retry on a transport or HTTP error.
-3. **Submit candidates.** n8n → `POST /api/integrations/n8n/x-drafts/batches`.
+   PSL returns the fixed prompt, the strict output schema, and a signed
+   `batchToken`.
+2. **Generate candidates.** n8n → OpenAI Chat Completions
+   (`POST https://api.openai.com/v1/chat/completions`, model `gpt-4o-mini`).
+   This is one call. A second call is made only after a transient failure
+   (see "Model retries").
+3. **Check the response.** Only a single complete completion
+   (`finish_reason: "stop"`, no refusal, non-empty content, returned model
+   matching `gpt-4o-mini`) continues. Refused, truncated, or otherwise
+   incomplete output stops the run, and nothing is submitted.
+4. **Submit candidates.** n8n → `POST /api/integrations/n8n/x-drafts/batches`.
    PSL validates the output and inserts the passing candidates as new drafts.
    The response reports what was saved or blocked.
-4. **Review.** The owner reviews in `/admin-social`: edit, approve, or cancel,
+5. **Review.** The owner reviews in `/admin-social`: edit, approve, or cancel,
    exactly like any other draft.
 
 Nothing in this workflow approves, schedules, or publishes. Approved posts
@@ -48,8 +55,8 @@ until the owner approves them.
 | Cannot | Edit, approve, schedule, claim, cancel, pause or resume, publish, reconcile, or resolve anything. It cannot update or delete any row, touch `x_publishing_attempts` or `x_publishing_control`, or run arbitrary SQL. No request field can ask for those |
 | Environment | Production writes live-partition drafts. Local or non-Vercel runs write **TEST** drafts, which never reach X. Preview deployments are refused, with no override. Queries, cookies, and plain HTTP (on Vercel) are refused. Rate limit: 6 requests per minute per endpoint |
 
-The n8n side holds only two credentials: the PSL draft token and the model
-API key. It has no admin password, no database access, no X OAuth
+The n8n side holds only two credentials: the PSL draft token and the OpenAI
+project API key. It has no admin password, no database access, no X OAuth
 credential, no B1 token, and no `X_PUBLISHER_TOKEN`.
 
 ## Approved sources (allowlist)
@@ -127,6 +134,7 @@ owner. Every saved draft still needs owner review.
 
 | Result | Checks |
 |---|---|
+| **Refused whole batch** (HTTP 422, nothing stored) | Any submission whose `stopReason` is not `stop`: a refusal, truncation (`length`), `content_filter`, any other finish reason, or none. The workflow never submits these; PSL refuses them anyway |
 | **Blocked** (never stored) | Malformed or unparsable output. More than 5 candidates (the extras). A source ID that is not on the list, including the removed `guide:*` IDs. Citing guidance as evidence. No evidence source. An excerpt that is missing, too short or long, not from a cited source, crosses an omission (`[…]`), or is not verbatim in that source (markdown and whitespace are ignored). No purpose. A product or compound name that the cited evidence does not contain. Any `checkPostText` error: human use, dosing, treat/cure, weight loss, drug comparison, "you will…", length, mentions, link rules, and so on. A number not present in the cited evidence, including years and dates. A link that is not a cited source's page. Engagement bait. Testimonials or claims about customer behaviour. Sales or discount language. "We/PSL test…" and "our lab" claims. Credentials, accreditations, or test methods (ISO, GMP, PhD, scientists, NMR, endotoxin, …) that the cited evidence does not contain. An exact duplicate of any queue post in the same partition (any status, including published or cancelled) or of another item in the batch. The daily cap |
 | **Saved with review warnings** | `checkPostText` warnings (the same per-warning acknowledgement is still required at approval). Near-duplicates (word overlap ≥ 60 % with a recent queue post or another item). Any number. Named products or compounds (only if the cited evidence names them). Named laboratories. Hashtags. The model's own warnings |
 
@@ -166,54 +174,125 @@ No migration is needed. Drafts use the existing `x_publishing_posts` table.
 | Credential | Type | Used by |
 |---|---|---|
 | `PSL X Drafts` | Header Auth. Name `Authorization`, Value `Bearer <X_DRAFT_ASSISTANT_TOKEN>` | Request source packet, Submit candidates |
-| `PSL X Draft Model` | Header Auth. Name `x-api-key`, Value = an API key created in the dedicated draft-assistant workspace (see below) | Generate candidates (model) only |
+| `PSL X Draft Model — OpenAI` | Header Auth. Name `Authorization`, Value `Bearer <OpenAI project API key>` | Model call (attempt 1), Model call (attempt 2) only |
 
+- The two model-call nodes are the same request. The second runs only after
+  a transient failure of the first. No other node may use the OpenAI
+  credential, and the OpenAI key must never be attached to the PSL nodes.
+- The exported JSON contains no credentials or credential IDs. Bind them after
+  import.
 - Never attach `PSL X Queue`, `PSL X Publishing`, or `PSL Mission Control n8n`
   to this workflow.
-- Never attach these two credentials to the publisher.
+- Never attach these two credentials to the publisher. The scheduled X
+  publisher and its credentials are unchanged.
 
 ## Model / provider
 
-- **Provider:** Anthropic Messages API (`https://api.anthropic.com/v1/messages`,
-  header `anthropic-version: 2023-06-01`), called from a plain HTTP Request
-  node. There are no AI Agent, LangChain, or Code nodes, so there are no tools
-  and no recursion.
-- **Model:** set `Config.modelId` to a current Anthropic model ID from
-  Anthropic's model documentation. A mid-tier model is enough for short
-  posts. The file ships with a placeholder, and **Config valid?** stops the
-  run until it is replaced.
-- **Budget boundary (set up before the first run):**
-  1. In the Claude Console (Anthropic), create a **dedicated, non-default
-     workspace** used only by this workflow, for example
-     `psl-x-draft-assistant`. Do not use the Default Workspace: Anthropic does
-     not allow limits on it.
-  2. On that workspace's **Spend limits** tab, set a **monthly workspace
-     spend limit** (and, optionally, alert thresholds). This workspace limit
-     is the hard cost ceiling for the pilot. It cannot exceed the
-     organization's limit, and organization limits still apply.
-  3. Create the API key **inside that workspace**, so it is scoped to that
-     workspace only. Do not use an all-workspaces key or a key from any other
-     workspace.
-  - Anthropic sets spend limits on workspaces and the organization, **not on
-    individual API keys**. Do not look for a per-key limit; the workspace
-    limit is what caps this key's spend.
-  - Rotate the key if n8n access changes.
-- The live-model test (below) uses the same request shape. It needs its own
-  key, preferably from the same limited workspace, in the local environment
-  only; never commit it.
+- **Provider:** OpenAI Chat Completions,
+  `POST https://api.openai.com/v1/chat/completions`, called from plain HTTP
+  Request nodes. There are no AI Agent, LangChain, OpenAI, or Code nodes, so
+  there are no tools and no recursion.
+- **Model:** `gpt-4o-mini`, preconfigured in `Config.modelId`. There is no
+  fallback model: if OpenAI reports a different model in the response, the
+  run stops and nothing is submitted.
+- **Request:**
+
+  | Field | Value |
+  |---|---|
+  | `model` | `Config.modelId` (`gpt-4o-mini`) |
+  | `messages` | `system` = the packet's system prompt; `user` = the packet's user prompt |
+  | `max_completion_tokens` | `Config.maxCompletionTokens` (2000; **Config valid?** allows 256 to 4000) |
+  | `n` | `1` (one completion per request) |
+  | `stream` | `false` |
+  | `store` | `false` (the completion is not stored by OpenAI for later retrieval) |
+  | `temperature` | `0.3` |
+  | `response_format` | `{ "type": "json_schema", "json_schema": <packet outputSchema> }`, strict Structured Outputs |
+
+- **Output schema:** PSL issues it in the packet (`outputSchema`, defined in
+  `lib/x-drafts/packet.ts`). It is the existing candidates contract in strict
+  mode: every field is required, no additional properties are allowed, and
+  `sourceIds` / `excerpt.sourceId` may only be the evidence source IDs.
+  **Packet issued?** refuses a packet without a strict schema. The schema is
+  part of the packet version, so changing it invalidates older batches. PSL
+  still validates everything that is submitted; the schema does not replace
+  those checks.
+- **Response handling** (in the workflow; the same rules are in
+  `lib/x-drafts/openai.ts` and compared in tests):
+
+  | OpenAI field | Use |
+  |---|---|
+  | `choices` | Exactly one choice is required |
+  | `choices[0].message.refusal` | If present: run stops, nothing submitted |
+  | `choices[0].finish_reason` | Must be `stop`. `length` (truncated), `content_filter`, or anything else: run stops, nothing submitted |
+  | `choices[0].message.content` | Becomes `modelOutput` (must be non-empty, at most 20,000 characters) |
+  | `model` | Becomes `model`; must start with `Config.modelId` |
+  | `usage.prompt_tokens`, `usage.completion_tokens` | Become `usage.inputTokens`, `usage.outputTokens` |
+
+  PSL additionally refuses (HTTP 422) any submission whose `stopReason` is not
+  `stop`, so a refused or incomplete completion cannot become a draft even if
+  it were submitted.
+
+### Model retries
+
+At most **two model HTTP attempts** per execution. n8n's built-in retry is
+off on both model nodes. The second attempt is a separate node reached only
+through **Retry model call?**, and nothing leads back to either model node.
+
+| Attempt-1 outcome | Retried once? |
+|---|---|
+| Timeout, connection failure, or an unreadable response body | Yes |
+| HTTP 408, 500, 502, 503, 504 | Yes |
+| HTTP 429 `rate_limit_exceeded` (request or token rate limit) | Yes, after the `Retry-After` delay (5–30 s; default 10 s) |
+| HTTP 429 `insufficient_quota`, `credit_balance_exhausted`, `project_spend_limit_exceeded`, `organization_spend_limit_exceeded`, `organization_usage_limit_exceeded`, or any other 429 | **No** |
+| HTTP 401 (authentication), 403, 400, 404, or other 4xx | **No** |
+| HTTP 200 (including refusals and truncation) | **No** |
+
+If attempt 2 fails for any reason, the run stops with nothing saved.
+
+A timed-out request may still have been processed and billed by OpenAI. The
+retry can therefore cost a second call. The two-attempt maximum bounds this.
+
+### OpenAI project spending controls (set up before the first run)
+
+1. **Dedicated project.** In the OpenAI platform, create a dedicated,
+   non-default OpenAI project used only by this workflow, for example
+   `psl-x-draft-assistant`. Do not use the Default project.
+2. **Project API key.** Create the key in that project (project settings →
+   API keys), and use it only in the `PSL X Draft Model — OpenAI` credential.
+   If the key you already created belongs to another project, create a new one
+   here instead. Restricting the key's permissions to the model endpoints is
+   optional hardening.
+3. **Model allowlist (optional).** In the project's Limits, allow only
+   `gpt-4o-mini`.
+4. **Enforced monthly hard limit.** In the project's Limits, set a
+   **monthly spend limit** and turn on **Enforce a hard limit**. Once tracked
+   spend reaches it, OpenAI rejects the project's requests with HTTP 429
+   `project_spend_limit_exceeded`. The workflow does not retry that error. The
+   organization's own limits still apply.
+5. **Alerts are not a limit.** Spend alerts (notification thresholds) only
+   notify: requests continue after an alert fires. A monthly spend limit that
+   is **not** enforced as a hard limit is also just an alert. Only the
+   enforced hard limit stops traffic.
+6. **Enforcement delay.** Enforcement is not instantaneous. OpenAI can
+   process a small amount of extra usage while the limit propagates, so
+   recorded spend can slightly exceed the configured amount. Set the hard
+   limit with that margin in mind.
+
+Spend limits apply to the project and the organization, not on individual API
+keys. There is no per-key spend limit to configure.
 
 ## Cost controls
 
 | Control | Where | Limit |
 |---|---|---|
 | Trigger | n8n | Manual only; no schedule |
-| Model calls per run | n8n | 1, plus at most 1 retry on failure (`maxTries: 2`); no loop back to the model |
-| Output size | n8n Config → request | `max_tokens` = `Config.maxTokens` (default 2000); **Config valid?** refuses values above 4000 |
+| Model calls per run | n8n | 1, plus at most 1 retry, and only for transient failures; no loop back to either model node |
+| Output size | n8n Config → request | `max_completion_tokens` = `Config.maxCompletionTokens` (2000); **Config valid?** refuses values above 4000 |
 | Candidates | PSL | At most 5 considered per batch |
 | Drafts per day | PSL | 10 assistant drafts per Phoenix day per partition, counted under the queue lock. When reached, the **packet is refused**, so the model is not called |
 | Request rate | PSL | 6 per minute per endpoint |
 | Model output accepted | PSL | 20,000 characters |
-| Spend ceiling | Claude Console, dedicated workspace | The monthly **workspace** spend limit (there is no per-key limit) |
+| Spend ceiling | OpenAI, dedicated project | The project's **enforced** monthly hard limit (alerts alone do not stop requests) |
 
 **The 10-drafts cap is not a spending limit.**
 - PSL's cap counts drafts **saved** to the queue. PSL cannot see or limit
@@ -221,23 +300,25 @@ No migration is needed. Drafts use the existing `x_publishing_posts` table.
 - It stops model calls only indirectly: once 10 drafts are saved that day, the
   packet is refused and n8n never calls the model.
 - Below the cap, every run costs one or two model calls, even if every
-  candidate is blocked and nothing is saved.
+  candidate is blocked, refused, or truncated and nothing is saved.
 - Model spending is bounded only by the manual trigger, the two-attempt
-  maximum per run, `max_tokens`, the request rate limit, and the Anthropic
-  workspace's monthly spend limit.
+  maximum per run, `max_completion_tokens`, the request rate limit, and the
+  OpenAI project's enforced hard limit.
 
 **Estimating the cost of a run:**
 - **Input:** about 8,900 characters with an empty queue and about 13,200 with
-  15 full-length recent posts (system prompt plus user prompt). That is
-  roughly 2,300–3,500 input tokens. This is an estimate; the provider reports
-  actual usage, and the submission records `usage`.
+  15 full-length recent posts (system prompt plus user prompt). The strict
+  schema is sent too. That is roughly 2,300–3,500 prompt tokens. This is an
+  estimate; OpenAI reports actual usage, and the submission records it as
+  `usage`.
 - **Worst-case cost per run** is
-  `2 × (input_tokens × input_price + maxTokens × output_price)`, using the
-  model's current per-token prices from Anthropic's pricing page.
-- A normal run is one call, and output is usually well under `maxTokens`.
+  `2 × (prompt_tokens × input_price + max_completion_tokens × output_price)`,
+  using the current `gpt-4o-mini` prices from OpenAI's pricing page.
+- A normal run is one call, and output is usually well under
+  `max_completion_tokens`.
 
 Repeated manual runs below the draft cap are limited only by the rate limit
-and the workspace spend limit.
+and the project's enforced hard limit.
 
 ## Import and bind
 
@@ -245,32 +326,37 @@ and the workspace spend limit.
    It imports inactive. Do not add a Schedule trigger.
 2. **Config**:
    - `pslBaseUrl`: the Production HTTPS origin (no path).
-   - `modelId`: a current Anthropic model ID.
-   - `maxTokens`: an integer from 256 to 4000.
-3. Bind `PSL X Drafts` on the two PSL nodes and `PSL X Draft Model` on the
-   model node.
+   - `modelId`: preconfigured as `gpt-4o-mini`; leave it.
+   - `maxCompletionTokens`: preconfigured as 2000 (allowed: 256 to 4000).
+3. Bind `PSL X Drafts` on **Request source packet** and **Submit candidates**.
+   Bind `PSL X Draft Model — OpenAI` on **Model call (attempt 1)** and
+   **Model call (attempt 2)** only.
 
-### Nodes (17 total: 3 HTTP Request, 4 IF, 5 Stop and Error, 1 Set, 2 No-Op, 1 Manual Trigger, 1 Sticky Note)
+### Nodes (21 total: 4 HTTP Request, 6 IF, 5 Stop and Error, 1 Set, 1 Wait, 2 No-Op, 1 Manual Trigger, 1 Sticky Note)
 
 | # | Node | Type | Credential | Notes |
 |---|---|---|---|---|
 | 1 | Setup notes | Sticky Note | — | |
 | 2 | Manual Trigger | Manual Trigger | — | Only trigger |
-| 3 | Config | Set | — | `pslBaseUrl`, `modelId`, `maxTokens` |
-| 4 | Config valid? | IF | — | HTTPS origin, real model ID, 256 ≤ maxTokens ≤ 4000 |
+| 3 | Config | Set | — | `pslBaseUrl`, `modelId` = `gpt-4o-mini`, `maxCompletionTokens` = 2000 |
+| 4 | Config valid? | IF | — | HTTPS origin, model ID set, 256 ≤ maxCompletionTokens ≤ 4000 |
 | 5 | Stop: invalid config | Stop and Error | — | No request made |
 | 6 | Request source packet | HTTP POST `/x-drafts/packet` | **PSL X Drafts** | No retry; no redirects |
 | 7 | Stop: no source packet | Stop and Error | — | Disabled, unauthorized, capped, or unexpected response. No model call |
-| 8 | Packet issued? | IF | — | Token and prompt present, cap = 5 |
-| 9 | Generate candidates (model) | HTTP POST `https://api.anthropic.com/v1/messages` | **PSL X Draft Model** | `maxTries: 2`, 120 s timeout, no redirects |
-| 10 | Stop: model call failed | Stop and Error | — | Nothing saved |
-| 11 | Model output received? | IF | — | At least one text block |
-| 12 | Stop: no usable model output | Stop and Error | — | Nothing saved |
-| 13 | Submit candidates | HTTP POST `/x-drafts/batches` | **PSL X Drafts** | Retries allowed (idempotent per batch) |
-| 14 | Stop: submission not confirmed | Stop and Error | — | Some drafts may exist; check `/admin-social` |
-| 15 | Any drafts saved? | IF | — | `saved + alreadySaved > 0` |
-| 16 | Drafts saved - review in /admin-social | No-Op | — | Output shows saved, blocked, and reasons |
-| 17 | Nothing saved - see blocked reasons | No-Op | — | |
+| 8 | Packet issued? | IF | — | Token, prompt, and strict output schema present, cap = 5 |
+| 9 | Model call (attempt 1) | HTTP POST `https://api.openai.com/v1/chat/completions` | **PSL X Draft Model — OpenAI** | No built-in retry; returns status and body; 120 s timeout; no redirects |
+| 10 | Retry model call? | IF | — | True only for transient failures (see "Model retries") |
+| 11 | Wait before retry | Wait | — | `Retry-After`, bounded to 5–30 s (default 10 s) |
+| 12 | Model call (attempt 2) | HTTP POST `https://api.openai.com/v1/chat/completions` | **PSL X Draft Model — OpenAI** | Same request; no further retry |
+| 13 | Model response OK? | IF | — | HTTP 200 with a JSON body |
+| 14 | Stop: model call failed | Stop and Error | — | Shows HTTP status and OpenAI error code. Nothing saved |
+| 15 | Model output usable? | IF | — | One choice, no refusal, `finish_reason` = `stop`, returned model matches, content present and ≤ 20,000 characters |
+| 16 | Stop: model output not usable | Stop and Error | — | Refused, truncated, filtered, or unexpected. Nothing submitted or saved |
+| 17 | Submit candidates | HTTP POST `/x-drafts/batches` | **PSL X Drafts** | Retries allowed (idempotent per batch) |
+| 18 | Stop: submission not confirmed | Stop and Error | — | Some drafts may exist; check `/admin-social` |
+| 19 | Any drafts saved? | IF | — | `saved + alreadySaved > 0` |
+| 20 | Drafts saved - review in /admin-social | No-Op | — | Output shows saved, blocked, and reasons |
+| 21 | Nothing saved - see blocked reasons | No-Op | — | |
 
 ## Retry safety
 
@@ -288,8 +374,10 @@ and the workspace spend limit.
 ## First batch (owner, after reviewing this change)
 
 1. Review the source passages in `lib/x-drafts/source-snapshot.ts`.
-2. Create the dedicated Anthropic workspace, set its monthly spend limit, and
-   create the workspace-scoped key (see "Model / provider").
+2. Make sure your OpenAI key belongs to a dedicated, non-default project whose
+   monthly spend limit is **enforced as a hard limit** (see "OpenAI project
+   spending controls"). Paste the key only into the n8n credential, never into
+   chat, the repository, or Vercel.
 3. Set the two Vercel variables (Production), redeploy, and create the two
    n8n credentials.
 4. Import, set Config, bind credentials, and click **Execute workflow**
@@ -306,15 +394,15 @@ schedule is out of scope and would need its own reviewed change.
 
 | Command | Kind | What it proves |
 |---|---|---|
-| `npm run test:x-drafts` | **Mocked.** Recording fake SQL, no database, no model, no network | Snapshot matches the allowlisted files. Source hygiene. Token separation and config gates. Batch-token signing. Prompt framing and injection resistance. Every validator rule. Handler gate order. The only write is one draft `INSERT … ON CONFLICT (id) DO NOTHING` under the queue lock, with no attempts, control, or approval access. Counts-only event. Static workflow checks and README counts |
+| `npm run test:x-drafts` | **Mocked.** Recording fake SQL, no database, no model, no network | Snapshot matches the allowlisted files. Source hygiene. Token separation and config gates. Batch-token signing. Prompt framing and injection resistance. Every validator rule. Handler gate order, including 422 for any `stopReason` other than `stop`. The only write is one draft `INSERT … ON CONFLICT (id) DO NOTHING` under the queue lock, with no attempts, control, or approval access. Counts-only event. Strict output schema. **OpenAI provider responses:** the workflow's own n8n expressions are evaluated against OpenAI fixtures (complete, refusal, truncated, content filter, other endings, wrong model, 401/403/400, every quota and spend-limit 429, rate-limit 429, 408/5xx, transport errors). Their routing and submission must match `lib/x-drafts/openai.ts`, and a complete completion is carried end-to-end into an unapproved draft. Static workflow checks (only the OpenAI endpoint and fields, two model nodes, no loop) and README counts |
 | `npm run test:x-drafts-db` | **Real database.** Disposable Neon DB only (`X_DRAFTS_DB_TEST=1`, `N8N_TEST_DATABASE_URL`); model output is a fixture | Drafts inserted as unapproved TEST rows. Replay creates nothing. A conflicting item is not overwritten. Exact duplicate blocked and near-duplicate flagged. An approved post is untouched and its text cannot be re-proposed. Daily cap in SQL, and the packet is refused at the cap. Live and TEST partitions are separate. `/admin-social` lists the drafts. Events deduplicated. No attempts. Control untouched. Cleanup verified. Refuses application databases and databases with business tables; network guarded |
-| `npm run test:x-drafts-live-model` | **Live model.** Opt-in (`X_DRAFTS_LIVE_MODEL_TEST=1`, `X_DRAFTS_LIVE_MODEL_ID`, `ANTHROPIC_API_KEY`); **spends credit** | Sends the real prompt once, validates the reply, and prints what would be saved or blocked. The database client throws, so nothing is written. **Not run as part of this change** |
+| `npm run test:x-drafts-live-model` | **Live model.** Opt-in (`X_DRAFTS_LIVE_MODEL_TEST=1`, `OPENAI_API_KEY` from the dedicated project, local environment only); **spends OpenAI credit** | Sends the real prompt and strict schema to `gpt-4o-mini` once (no retry), applies the same response rules as the workflow, validates the reply, and prints what would be saved or blocked. The database client throws, so nothing is written. **Not run as part of this change** |
 
 ## Turning it off
 
 - Unset `X_DRAFT_ASSISTANT_ENABLED`: both endpoints return 503.
 - Or unset `X_DRAFT_ASSISTANT_TOKEN`.
-- Or revoke the provider key.
+- Or revoke the OpenAI project API key.
 
 Existing drafts stay in `/admin-social` until the owner edits or cancels them.
 

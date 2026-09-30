@@ -1,34 +1,39 @@
 /**
- * LIVE-MODEL check for the X draft assistant. Opt-in only; it spends provider
+ * LIVE-MODEL check for the X draft assistant. Opt-in only; it spends OpenAI
  * credit (one request, no retry) and writes nothing anywhere:
  *
- *   X_DRAFTS_LIVE_MODEL_TEST=1 X_DRAFTS_LIVE_MODEL_ID=<model id> ANTHROPIC_API_KEY=<dedicated key> npm run test:x-drafts-live-model
+ *   X_DRAFTS_LIVE_MODEL_TEST=1 OPENAI_API_KEY=<key from the dedicated project> npm run test:x-drafts-live-model
  *
- * Sends the exact packet prompt the endpoint issues (with an empty recent
- * queue) to the Anthropic Messages API, then runs the server validator on the
- * reply and prints counts, block reasons, and token usage. The database client
- * is replaced with one that throws, so no database can be read or written.
- * The API key is read from the environment and never printed.
+ * Sends the exact packet prompt and strict output schema the endpoint issues
+ * (with an empty recent queue) to OpenAI Chat Completions using gpt-4o-mini,
+ * applies the same response decision the workflow uses, then runs the server
+ * validator on the reply and prints counts, block reasons, and token usage.
+ * The database client is replaced with one that throws, so no database can be
+ * read or written. The API key is read from the environment and never printed.
  */
 import crypto from "node:crypto";
 
 import type { NeonQueryFunction } from "@neondatabase/serverless";
 
 import { __setSqlClientForTests } from "../lib/db/sql";
-import { X_DRAFT_LIMITS } from "../lib/x-drafts/constants";
-import { buildUserPrompt, X_DRAFT_PACKET_VERSION, X_DRAFT_SOURCES, X_DRAFT_SYSTEM_PROMPT } from "../lib/x-drafts/packet";
+import {
+  buildOpenAIRequestBody,
+  decideOpenAIAttempt,
+  X_DRAFT_OPENAI_ENDPOINT,
+  X_DRAFT_OPENAI_MAX_COMPLETION_TOKENS,
+  X_DRAFT_OPENAI_MODEL,
+  type OpenAIAttempt,
+} from "../lib/x-drafts/openai";
+import { buildUserPrompt, X_DRAFT_OUTPUT_SCHEMA, X_DRAFT_PACKET_VERSION, X_DRAFT_SOURCES, X_DRAFT_SYSTEM_PROMPT } from "../lib/x-drafts/packet";
 import { validateCandidates } from "../lib/x-drafts/validate";
-
-const MAX_TOKENS = 2000;
 
 async function main() {
   if (process.env.X_DRAFTS_LIVE_MODEL_TEST !== "1") {
-    console.log("[x-drafts-live] skipped: set X_DRAFTS_LIVE_MODEL_TEST=1, X_DRAFTS_LIVE_MODEL_ID, and ANTHROPIC_API_KEY (spends provider credit).");
+    console.log("[x-drafts-live] skipped: set X_DRAFTS_LIVE_MODEL_TEST=1 and OPENAI_API_KEY (spends OpenAI credit).");
     return;
   }
-  const key = process.env.ANTHROPIC_API_KEY?.trim();
-  const model = process.env.X_DRAFTS_LIVE_MODEL_ID?.trim();
-  if (!key || !model || !/^[A-Za-z0-9._:-]{3,100}$/.test(model)) throw new Error("ANTHROPIC_API_KEY and a valid X_DRAFTS_LIVE_MODEL_ID are required.");
+  const key = process.env.OPENAI_API_KEY?.trim();
+  if (!key) throw new Error("OPENAI_API_KEY is required.");
 
   const noDb = (() => {
     throw new Error("database access is not allowed in the live-model test");
@@ -36,39 +41,42 @@ async function main() {
   __setSqlClientForTests(noDb);
 
   const batchId = crypto.randomUUID();
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    redirect: "error",
-    headers: { "x-api-key": key, "anthropic-version": "2023-06-01", "content-type": "application/json" },
-    body: JSON.stringify({
-      model,
-      max_tokens: MAX_TOKENS,
-      temperature: 0.3,
-      system: X_DRAFT_SYSTEM_PROMPT,
-      messages: [{ role: "user", content: buildUserPrompt(batchId, []) }],
-    }),
-    signal: AbortSignal.timeout(120_000),
-  });
-  const body = (await res.json()) as {
-    model?: string;
-    stop_reason?: string;
-    usage?: { input_tokens?: number; output_tokens?: number };
-    content?: Array<{ type: string; text?: string }>;
-    error?: { type?: string; message?: string };
-  };
-  if (!res.ok) throw new Error(`provider returned HTTP ${res.status}: ${body.error?.type ?? "error"}`);
-  const output = (body.content ?? []).filter((c) => c.type === "text").map((c) => c.text ?? "").join("\n");
+  let attempt: OpenAIAttempt;
+  try {
+    const res = await fetch(X_DRAFT_OPENAI_ENDPOINT, {
+      method: "POST",
+      redirect: "error",
+      headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+      body: JSON.stringify(
+        buildOpenAIRequestBody({
+          model: X_DRAFT_OPENAI_MODEL,
+          maxCompletionTokens: X_DRAFT_OPENAI_MAX_COMPLETION_TOKENS,
+          prompt: { system: X_DRAFT_SYSTEM_PROMPT, user: buildUserPrompt(batchId, []) },
+          outputSchema: X_DRAFT_OUTPUT_SCHEMA,
+        })
+      ),
+      signal: AbortSignal.timeout(120_000),
+    });
+    attempt = { statusCode: res.status, body: await res.json() };
+  } catch (error) {
+    attempt = { transportError: error instanceof Error ? error.message : String(error) };
+  }
 
+  const decision = decideOpenAIAttempt(attempt, X_DRAFT_OPENAI_MODEL);
+  if (decision.action !== "submit") {
+    throw new Error(`nothing would be submitted (${decision.action}: ${decision.reason}); this test never retries`);
+  }
+  const s = decision.submission;
   const result = validateCandidates({
-    modelOutput: output.slice(0, X_DRAFT_LIMITS.maxModelOutputChars),
-    stopReason: body.stop_reason ?? null,
+    modelOutput: s.modelOutput,
+    stopReason: s.stopReason,
     sources: X_DRAFT_SOURCES,
     existing: [],
     batchId,
     packetVersion: X_DRAFT_PACKET_VERSION,
-    model: body.model ?? model,
+    model: s.model,
   });
-  console.log(`[x-drafts-live] model ${body.model ?? model}; stop ${body.stop_reason}; usage in=${body.usage?.input_tokens} out=${body.usage?.output_tokens}`);
+  console.log(`[x-drafts-live] model ${s.model}; finish_reason ${s.stopReason}; usage prompt=${s.usage.inputTokens} completion=${s.usage.outputTokens}`);
   if (result.parseError) console.log(`[x-drafts-live] parse error: ${result.parseError}`);
   for (const v of result.verdicts) {
     const state = v.blockReasons.length === 0 ? "WOULD SAVE (draft)" : "BLOCKED";
@@ -79,7 +87,7 @@ async function main() {
   const ok = result.verdicts.filter((v) => v.blockReasons.length === 0).length;
   console.log(`\n[x-drafts-live] ${result.candidateCount} candidates: ${ok} would be saved as drafts, ${result.verdicts.length - ok} blocked. Nothing was written.`);
   __setSqlClientForTests(null);
-  if (result.parseError || result.candidateCount > X_DRAFT_LIMITS.maxCandidates) process.exit(1);
+  if (result.parseError || result.candidateCount > 5) process.exit(1);
 }
 
 main().catch((error) => {
