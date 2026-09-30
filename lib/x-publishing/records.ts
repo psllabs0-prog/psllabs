@@ -9,10 +9,8 @@ import { phoenixDay } from "./time";
 
 export type ScheduleKind = "scheduled" | "next_manual_run";
 
-export type ApprovalContext = {
+type ApprovalBase = {
   previewHash: string;
-  confirmPublic: true;
-  confirmManualRun: boolean;
   acknowledgedWarnings: string[];
   policyVersion: string;
   env: string;
@@ -20,6 +18,46 @@ export type ApprovalContext = {
   weightedLength: number;
   validityMinutes: number | null;
 };
+
+/** The owner reviewed and approved this exact revision (rows written before autopilot have no `authorization`). */
+export type OwnerApprovalContext = ApprovalBase & {
+  authorization?: "owner";
+  confirmPublic: true;
+  confirmManualRun: boolean;
+};
+
+/**
+ * Authorized by the owner's standing-policy authorization, not by an
+ * individual review of this post. `acknowledgedWarnings` is always empty:
+ * any accepted warning is documented against the reviewed template instead.
+ */
+export type StandingPolicyApprovalContext = ApprovalBase & {
+  authorization: "standing_policy";
+  standingPolicy: {
+    policyId: string;
+    policyVersion: string;
+    policyHash: string;
+    libraryId: string;
+    libraryVersion: string;
+    templateId: string;
+    templateHash: string;
+    sourceIds: string[];
+    sourceHashes: Array<{ id: string; hash: string }>;
+    acceptedWarnings: Array<{ code: string; justification: string }>;
+    authorizationId: string;
+    authorizationGrantedAt: string;
+    authorizationGrantedBy: string;
+    slotKey: string;
+    slotAt: string;
+    actor: string;
+  };
+};
+
+export type ApprovalContext = OwnerApprovalContext | StandingPolicyApprovalContext;
+
+export function isStandingPolicy(ctx: ApprovalContext | null | undefined): ctx is StandingPolicyApprovalContext {
+  return ctx?.authorization === "standing_policy";
+}
 
 export type XPostRecord = {
   id: string;

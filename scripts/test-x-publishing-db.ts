@@ -32,17 +32,21 @@ import {
   saveXDraft,
   setReconcileCandidate,
   setXPaused,
+  setXSchedule,
 } from "../lib/x-publishing/admin-store";
 import { handleXAdminGet } from "../lib/x-publishing/admin-api";
-import { X_ACCOUNT_HANDLE, X_ACCOUNT_ID, X_DISPLAY_LABELS, X_LIMITS, X_PROVENANCE } from "../lib/x-publishing/constants";
+import { currentLibraryReview } from "../lib/x-publishing/autopilot/eligibility";
+import { autopilotSlotKey, X_AUTOPILOT_POLICY_VERSION } from "../lib/x-publishing/autopilot/policy";
+import { authorizeAutopilot, disableAutopilot, readAutopilotView } from "../lib/x-publishing/autopilot/store";
+import { X_ACCOUNT_HANDLE, X_ACCOUNT_ID, X_AUTOPILOT_ACTOR, X_DISPLAY_LABELS, X_LIMITS, X_PROVENANCE } from "../lib/x-publishing/constants";
 import { checkPostText } from "../lib/x-publishing/content";
 import {
   __resetXMachineRateLimiterForTests,
   handleXMachineRequest,
   type XMachineAction,
 } from "../lib/x-publishing/handlers";
-import { tokenHash } from "../lib/x-publishing/hash";
-import { getAttempt, getControl, getPost, previewHashFor, type ScheduleKind, type XPostRecord } from "../lib/x-publishing/records";
+import { textHash, tokenHash } from "../lib/x-publishing/hash";
+import { getAttempt, getControl, getPost, isStandingPolicy, mapPost, previewHashFor, type ScheduleKind, type XPostRecord } from "../lib/x-publishing/records";
 import { ensureXPublishingSchema, getXPublishingSchemaState } from "../lib/x-publishing/schema";
 import { readXPublishingPanel } from "../lib/x-publishing/summary";
 import { addMinutes, parsePhoenixLocal } from "../lib/x-publishing/time";
@@ -245,18 +249,26 @@ async function main() {
       (await sql`
         SELECT (SELECT COUNT(*)::int FROM x_publishing_posts) AS posts,
                (SELECT COUNT(*)::int FROM x_publishing_attempts) AS attempts,
-               (SELECT COUNT(*)::int FROM ops_activity_events WHERE source_system = 'x_publishing') AS events
-      `) as Array<{ posts: number; attempts: number; events: number }>
+               (SELECT COUNT(*)::int FROM ops_activity_events WHERE source_system = 'x_publishing') AS events,
+               (SELECT COUNT(*)::int FROM x_publishing_autopilot_slots) AS slots,
+               (SELECT COUNT(*)::int FROM x_publishing_autopilot_authorizations) AS authorizations
+      `) as Array<{ posts: number; attempts: number; events: number; slots: number; authorizations: number }>
     )[0];
   const before = await counts();
-  assert(before.posts === 0 && before.attempts === 0 && before.events === 0, "isolated DB has no x_publishing rows before the run");
+  assert(
+    before.posts === 0 && before.attempts === 0 && before.events === 0 && before.slots === 0 && before.authorizations === 0,
+    "isolated DB has no x_publishing or autopilot rows before the run"
+  );
+  const creators = [TAG, X_AUTOPILOT_ACTOR, "x-draft-assistant"];
   const controlBefore = (await sql`SELECT paused, reason, updated_at, updated_by FROM x_publishing_control WHERE id = 1`) as Array<Record<string, unknown>>;
 
   const texts: string[] = [];
   const cleanup = async () => {
     await sql`DELETE FROM ops_activity_events WHERE source_system = 'x_publishing'`;
-    await sql`DELETE FROM x_publishing_attempts WHERE post_id IN (SELECT id FROM x_publishing_posts WHERE created_by = ${TAG})`;
-    await sql`DELETE FROM x_publishing_posts WHERE created_by = ${TAG}`;
+    await sql`DELETE FROM x_publishing_autopilot_slots`;
+    await sql`DELETE FROM x_publishing_autopilot_authorizations WHERE authorized_by = ${TAG}`;
+    await sql`DELETE FROM x_publishing_attempts WHERE post_id IN (SELECT id FROM x_publishing_posts WHERE created_by = ANY(${creators}))`;
+    await sql`DELETE FROM x_publishing_posts WHERE created_by = ANY(${creators})`;
     if (controlBefore[0]) {
       const c = controlBefore[0];
       await sql`
@@ -346,18 +358,63 @@ async function main() {
       assert((await lookup(w, at(`${d}T09:03`), xPost(id, p.text))).body.state === "published", "published");
     }
 
-    // ---------- S3: daily cap under concurrent permit requests (simulated raced claim) ----------
+    // ---------- S3: two per Phoenix day — two concurrent dispatches allowed, a third blocked ----------
     for (const [t, dn] of [6, 8, 10].entries()) {
       const dA = day(dn);
-      const dB = day(dn + 1);
-      const b = await draft(textFor(`s3t${t}b`), `${dB}T00:00`);
-      assert((await approve(b, "scheduled", at(`${dA}T22:00`))).status === 200, "B approved for 00:00 next day");
-      const a = await approvedManual(`s3t${t}a`, at(`${dA}T23:50`));
-      const now = at(`${dB}T00:01`);
-      const wA = await claimPublish(now, "s3 A");
+      const x = await draft(textFor(`s3t${t}x`), `${dA}T09:00`);
+      const y = await draft(textFor(`s3t${t}y`), `${dA}T09:00`);
+      assert((await approve(x, "scheduled", at(`${dA}T08:00`))).status === 200, "first item approved for the day");
+      assert((await approve(y, "scheduled", at(`${dA}T08:00`))).status === 200, "second item approved for the same day");
+      const z = await draft(textFor(`s3t${t}z`), `${dA}T10:00`);
+      const refused = await approve(z, "scheduled", at(`${dA}T08:01`));
+      const cap = refused.body.capacity as { day: string; used: number; items: Array<{ postId: string }> } | undefined;
+      assert(
+        refused.status === 409 && String(refused.body.error).includes(`Phoenix date ${dA}`) && /2 of 2 used \(2 reserved, 0 dispatch permits issued\)/.test(String(refused.body.error)),
+        `third reservation refused naming the Phoenix date and usage (${JSON.stringify(refused.body.error)})`
+      );
+      assert(cap?.day === dA && cap.items.map((i) => i.postId).sort().join() === [x.id, y.id].sort().join(), "capacity detail lists the blocking queue items");
+      const claims = await Promise.all(Array.from({ length: 6 }, () => claim(at(`${dA}T09:01`), { trigger: "schedule" })));
+      const works = claims.map((c) => c.body.work as Work | null).filter((w): w is Work => w?.kind === "publish");
+      assert(works.length === 2 && new Set(works.map((w) => w.queueId)).size === 2, `six concurrent claims → exactly the two items (${works.length})`);
+      for (const w of works) assert((await identity(w, at(`${dA}T09:01`))).body.proceed === true, "identity ok");
+      const permits = await Promise.all(works.map((w) => dispatch(w, at(`${dA}T09:02`))));
+      assert(permits.every((p) => p.body.permit === "issued"), "two concurrent permit requests on the same day are both issued");
+      for (const [i, w] of works.entries()) {
+        const id = postIdFor();
+        await result(w, at(`${dA}T09:03`), { httpStatus: 201, postId: id });
+        await lookup(w, at(`${dA}T09:03`), xPost(id, String(permits[i].body.text)));
+      }
+      const late = await draft(textFor(`s3t${t}late`), null);
+      const third = await approve(late, "next_manual_run", at(`${dA}T11:00`));
+      assert(third.status === 409 && /0 reserved, 2 dispatch permits issued/.test(String(third.body.error)), "a third same-day approval is refused after two dispatches");
+    }
+
+    // ---------- S3b: permit-time cap under concurrent requests (forced over-reservation) ----------
+    for (const [t, dn] of [7, 9, 11].entries()) {
+      const dA = day(dn);
+      const a = await draft(textFor(`s3b${t}a`), `${dA}T09:00`);
+      const b = await draft(textFor(`s3b${t}b`), `${dA}T09:30`);
+      assert((await approve(a, "scheduled", at(`${dA}T08:00`))).status === 200, "A approved");
+      assert((await approve(b, "scheduled", at(`${dA}T08:00`))).status === 200, "B approved");
+      const filler = await draft(textFor(`s3b${t}filler`), null);
+      await sql`
+        INSERT INTO x_publishing_attempts (
+          id, post_id, approved_revision, approval_hash, payload_text, account_id, is_test, mode, trigger, execution_id,
+          claim_token_hash, state, claimed_at, lease_expires_at, permit_issued_at, permit_day, dispatch_deadline,
+          result_received_at, result_http_status, error_code, updated_at
+        ) VALUES (
+          ${crypto.randomUUID()}::uuid, ${filler.id}::uuid, 1, 'forced', ${filler.text}, ${X_ACCOUNT_ID}, true, 'dry_run', 'manual', 'forced',
+          ${tokenHash(crypto.randomBytes(32).toString("base64url"))}, 'rejected', ${at(`${dA}T08:30`).toISOString()}::timestamptz,
+          ${at(`${dA}T08:35`).toISOString()}::timestamptz, ${at(`${dA}T08:30`).toISOString()}::timestamptz, ${dA},
+          ${at(`${dA}T08:35`).toISOString()}::timestamptz, ${at(`${dA}T08:31`).toISOString()}::timestamptz, 400, 'forced_rejection',
+          ${at(`${dA}T08:31`).toISOString()}::timestamptz
+        )
+      `;
+      const now = at(`${dA}T09:31`);
+      const wA = await claimPublish(now, "s3b A");
       assert(wA.queueId === a.id, "earliest due item claimed first");
       const blocked = await claim(now);
-      assert(blocked.body.work === null, "claim-time cap: a second concurrent claim is refused while A is in flight");
+      assert(blocked.body.work === null, "claim-time cap: one permit used + A in flight leaves no room for another claim");
       assert((await identity(wA, now)).body.proceed === true, "A identity");
       const bRow = await getPost(b.id);
       const tokB = crypto.randomBytes(32).toString("base64url");
@@ -379,7 +436,7 @@ async function main() {
       const [rA, rB] = await Promise.all([dispatch(wA, addMinutes(now, 1)), dispatch(wB, addMinutes(now, 1))]);
       const issued = [rA, rB].filter((r) => r.body.permit === "issued").length;
       const denied = [rA, rB].find((r) => r.body.permit !== "issued");
-      log(`S3 trial ${t + 1}: two due items, simultaneous permit requests → issued ${issued}, other: ${denied?.body.code}`);
+      log(`S3b trial ${t + 1}: one permit already used, two due items, simultaneous permit requests → issued ${issued}, other: ${denied?.body.code}`);
       assert(issued === 1 && denied?.body.code === "daily_cap", "daily cap holds under concurrent permit requests");
       const winner = rA.body.permit === "issued" ? wA : wB;
       const id = postIdFor();
@@ -548,7 +605,11 @@ async function main() {
       assert(rj.body.state === "rejected" && rj.body.retry === false, "429 → rejected, no retry");
       assert((await getPost(p.id))?.status === "rejected", "post rejected");
       const same = await draft(textFor("s9 same day"), null);
-      assert((await approve(same, "next_manual_run", at(`${d}T09:05`))).status === 409, "the day's dispatch was used; same-day approval refused");
+      assert((await approve(same, "next_manual_run", at(`${d}T09:05`))).status === 200, "the rejected dispatch used one of the day's two; a second same-day approval is allowed");
+      const third = await draft(textFor("s9 third"), null);
+      const thirdR = await approve(third, "next_manual_run", at(`${d}T09:06`));
+      assert(thirdR.status === 409 && /1 reserved, 1 dispatch permit issued/.test(String(thirdR.body.error)), `rejected dispatch stays consumed; a third is refused (${JSON.stringify(thirdR.body.error)})`);
+      await cancelXPost({ id: same.id, isTest: true, actor: TAG, now: at(`${d}T09:07`) });
       const blocked = await approvedManual("s9 limited", at(`${day(29)}T10:00`));
       assert((await claim(at(`${day(29)}T10:01`))).body.work === null, "X rate-limit reset time blocks claims");
       await cancelXPost({ id: blocked.id, isTest: true, actor: TAG, now: at(`${day(29)}T10:02`) });
@@ -704,6 +765,335 @@ async function main() {
       const panel = await readXPublishingPanel(at(`${d}T09:05`));
       assert(panel?.recent.some((x) => x.queueId === p.id) && !panel.recent.some((x) => x.queueId === t.id), "Mission Control panel shows live items only");
       log("S15 live partition: ok");
+    }
+
+    // ---------- S20: saved date on an existing item; approval uses that date ----------
+    {
+      const d = "2031-05-04";
+      const created = at("2031-05-02T12:00");
+      const p = await draft(textFor("s20"), null);
+      assert(p.scheduledFor === null, "s20: new draft has no saved time");
+      assert((await approve(p, "scheduled", created)).status === 422, "no saved time: scheduled approval refused (never silently next manual run)");
+      const s = await setXSchedule({ id: p.id, expectedRevision: p.revision, scheduledForLocal: `${d}T14:00`, isTest: true, actor: TAG, now: created });
+      const sp = s.body.post as XPostRecord;
+      assert(
+        s.status === 200 && sp.id === p.id && sp.revision === p.revision + 1 && sp.text === p.text && sp.scheduledFor === at(`${d}T14:00`).toISOString(),
+        `saved date persisted on the existing item, same text, new revision (${JSON.stringify(s.body).slice(0, 200)})`
+      );
+      assert((await approve(p, "scheduled", created)).status === 409, "the pre-edit revision cannot approve");
+      const ok = await approve(sp, "scheduled", created);
+      const op = ok.body.post as XPostRecord;
+      assert(
+        ok.status === 200 && op.scheduleKind === "scheduled" && op.scheduledFor === at(`${d}T14:00`).toISOString() && op.scheduledDay === d && op.expiresAt === at(`${d}T15:00`).toISOString(),
+        "approved for the saved future date and its window, not the next manual run"
+      );
+      assert((await claim(addMinutes(created, 1))).body.work === null, "a manual run today does not publish the future-dated item");
+      const moved = await setXSchedule({ id: op.id, expectedRevision: op.revision, scheduledForLocal: "2031-05-05T15:00", isTest: true, actor: TAG, now: created });
+      const mp = moved.body.post as XPostRecord;
+      assert(
+        moved.status === 200 && mp.status === "draft" && mp.approvalHash === null && mp.approvalContext === null && mp.revision === op.revision + 1 && mp.scheduledFor === at("2031-05-05T15:00").toISOString(),
+        "changing an approved item's saved date returns it to draft and invalidates the approval"
+      );
+      assert((await approve(mp, "scheduled", created, { previewHash: previewHashFor(op, "scheduled", checkPostText(op.text)) })).status === 409, "the old date's preview cannot approve the new date");
+      assert((await approve(mp, "scheduled", created)).status === 200, "re-approved for the newly saved date");
+      assert((await claim(at(`${d}T14:01`), { trigger: "schedule" })).body.work === null, "nothing at the old date");
+      const w = await claimPublish(at("2031-05-05T15:01"), "s20", { trigger: "schedule" });
+      assert(w.queueId === p.id, "published from the newly saved slot");
+      await publishAll(w, at("2031-05-05T15:01"), "s20");
+      assert((await setXSchedule({ id: p.id, expectedRevision: 1, scheduledForLocal: `${d}T14:00`, isTest: true, actor: TAG, now: created })).status === 409, "stale revision refused");
+      const late = await draft(textFor("s20 midnight"), null);
+      const lr = await approve(late, "next_manual_run", at("2031-05-06T23:50"));
+      assert(lr.status === 422 && /Phoenix midnight/.test(String(lr.body.error)), "a manual-run approval cannot spill into the next Phoenix day");
+      log("S20 saved-date scheduling: ok");
+    }
+
+    // ---------- S21–S27: standing-policy documentation autopilot (TEST partition) ----------
+    const review = currentLibraryReview();
+    const confirmations = { reviewedLibrary: true, noIndividualReview: true, sharedDailyCap: true };
+    const apAuthorize = (now: Date, o: { libraryVersion?: string; confirmations?: Record<string, boolean> } = {}) =>
+      authorizeAutopilot({
+        isTest: true,
+        environment: "test",
+        actor: TAG,
+        now,
+        policyVersion: X_AUTOPILOT_POLICY_VERSION,
+        libraryVersion: o.libraryVersion ?? review.version,
+        confirmations: o.confirmations ?? confirmations,
+      });
+    const apDisable = (now: Date) => disableAutopilot({ isTest: true, actor: TAG, reason: "test", now });
+    const schedClaim = (now: Date) => claim(now, { trigger: "schedule" });
+    const apOutcome = (c: { body: Body }) => (c.body.autopilot ?? {}) as { outcome?: string; reason?: string; templateId?: string; postId?: string };
+    const apPosts = async () =>
+      ((await sql`SELECT * FROM x_publishing_posts WHERE is_test = true AND created_by = ${X_AUTOPILOT_ACTOR} ORDER BY created_at, id`) as Array<Record<string, unknown>>).map(mapPost);
+    const slotRow = async (dayStr: string, w: string) =>
+      ((await sql`SELECT * FROM x_publishing_autopilot_slots WHERE is_test = true AND slot_key = ${autopilotSlotKey(dayStr, w)}`) as Array<Record<string, unknown>>);
+    const templateOf = (p: XPostRecord) => (isStandingPolicy(p.approvalContext) ? p.approvalContext.standingPolicy.templateId : null);
+
+    // S21: default OFF; authorization is explicit and validated
+    const A1 = "2031-05-10";
+    {
+      assert((await getXPublishingSchemaState()).autopilotReady, "autopilot tables present");
+      const c = await schedClaim(at(`${A1}T09:00`));
+      assert(c.body.work === null && apOutcome(c).outcome === "none" && apOutcome(c).reason === "autopilot_off", "default OFF: nothing authorized");
+      const [{ n: slotsOff }] = (await sql`SELECT COUNT(*)::int AS n FROM x_publishing_autopilot_slots`) as Array<{ n: number }>;
+      assert(slotsOff === 0 && (await apPosts()).length === 0, "off: no slot rows, no automatic posts");
+      assert((await apAuthorize(at(`${A1}T08:00`), { confirmations: { reviewedLibrary: true } })).status === 400, "every confirmation is required");
+      assert((await apAuthorize(at(`${A1}T08:00`), { libraryVersion: "0".repeat(64) })).status === 409, "a stale library version cannot be authorized");
+      const ok = await apAuthorize(at(`${A1}T08:00`));
+      assert(ok.status === 200 && ok.body.templates === review.eligibleCount, `authorized ${review.eligibleCount} templates`);
+      const [auth] = (await sql`SELECT * FROM x_publishing_autopilot_authorizations WHERE is_test = true AND revoked_at IS NULL`) as Array<Record<string, unknown>>;
+      const hashes = auth.template_hashes as Record<string, string>;
+      assert(
+        auth.policy_version === X_AUTOPILOT_POLICY_VERSION && auth.library_version === review.version && auth.authorized_by === TAG &&
+          auth.account_id === X_ACCOUNT_ID && Object.keys(hashes).length === review.eligibleCount && hashes[review.templates[0].id] === review.templates[0].hash &&
+          /not individually reviewed/.test(String(auth.statement)),
+        "authorization records policy/library versions, per-template hashes, account, actor, and the standing-policy statement"
+      );
+      log("S21 default off / authorization: ok");
+    }
+
+    // S22: one post per slot under concurrent checks; standing-policy record; two per day
+    {
+      const claims = await Promise.all(Array.from({ length: 5 }, () => schedClaim(at(`${A1}T09:00`))));
+      const works = claims.map((c) => c.body.work as Work | null).filter((w): w is Work => w?.kind === "publish");
+      const posts = await apPosts();
+      assert(works.length === 1 && posts.length === 1 && works[0].queueId === posts[0].id, `five concurrent scheduled checks → one post, one publish work (${works.length}, ${posts.length})`);
+      const p = posts[0];
+      const ctx = p.approvalContext;
+      assert(isStandingPolicy(ctx), "approval is recorded as standing-policy authorization");
+      const sp = ctx.standingPolicy;
+      assert(
+        p.approvedBy === X_AUTOPILOT_ACTOR && p.createdBy === X_AUTOPILOT_ACTOR && ctx.acknowledgedWarnings.length === 0 && !("confirmPublic" in ctx),
+        "automated actor; no owner confirmation or warning acknowledgement fabricated"
+      );
+      assert(
+        sp.templateId === review.templates[0].id && sp.templateHash === review.templates[0].hash && p.text === review.templates[0].text &&
+          sp.libraryVersion === review.version && sp.policyVersion === X_AUTOPILOT_POLICY_VERSION && sp.slotKey === autopilotSlotKey(A1, "09:00") &&
+          sp.sourceHashes.length === review.templates[0].sources.length && sp.authorizationGrantedBy === TAG,
+        "record: policy, library, template hash, source hashes, selected text, slot"
+      );
+      assert(p.scheduledFor === at(`${A1}T09:00`).toISOString() && p.expiresAt === at(`${A1}T10:00`).toISOString() && p.scheduledDay === A1, "slot time and the existing 60-minute window");
+      await publishAll(works[0], at(`${A1}T09:01`), "s22 morning");
+      const again = await schedClaim(at(`${A1}T09:30`));
+      assert(apOutcome(again).outcome === "already_authorized" && again.body.work === null && (await apPosts()).length === 1, "a repeated check of the same slot creates nothing");
+      const [slot] = await slotRow(A1, "09:00");
+      assert(slot.outcome === "authorized" && slot.template_id === sp.templateId && slot.post_id === p.id, "slot outcome recorded once");
+      const ev = (await sql`SELECT summary FROM ops_activity_events WHERE event_type = 'x_autopilot_post_authorized'`) as Array<{ summary: string }>;
+      assert(ev.length === 1 && /not individually reviewed/.test(ev[0].summary) && !ev[0].summary.includes(p.text), "Mission Control event says standing policy, no post text");
+
+      const w2 = await claimPublish(at(`${A1}T17:00`), "s22 evening", { trigger: "schedule" });
+      const evening = (await apPosts())[1];
+      assert(w2.queueId === evening.id && templateOf(evening) === review.templates[1].id, "evening slot uses the next template in order");
+      await publishAll(w2, at(`${A1}T17:01`), "s22 evening");
+      const extra = await draft(textFor("s22 manual"), `${A1}T20:00`);
+      const refused = await approve(extra, "scheduled", at(`${A1}T17:05`));
+      assert(refused.status === 409 && /0 reserved, 2 dispatch permits issued/.test(String(refused.body.error)), "manual approval shares the day's two dispatches");
+
+      const g = await handleXAdminGet({ env: dryEnv, now: at(`${A1}T17:30`) });
+      const v = g.body.autopilot as {
+        mode: string;
+        remaining: number;
+        counts: { authorized: number; verified: number };
+        nextSlots: Array<{ key: string; outcome: string | null; templateId: string | null; postStatus: string | null; expectedTemplateId: string | null }>;
+      };
+      assert(
+        v.mode === "on" && v.counts.authorized === 2 && v.counts.verified === 2 && v.remaining === review.eligibleCount - 2 &&
+          v.nextSlots[0].key === autopilotSlotKey(A1, "17:00") && v.nextSlots[0].outcome === "authorized" && v.nextSlots[0].templateId === review.templates[1].id &&
+          v.nextSlots[0].postStatus === "published" &&
+          v.nextSlots[1].key === autopilotSlotKey("2031-05-11", "09:00") && v.nextSlots[1].expectedTemplateId === review.templates[2].id,
+        `/admin-social shows mode, counts, remaining, next slots (${JSON.stringify({ mode: v.mode, counts: v.counts, remaining: v.remaining, next: v.nextSlots })})`
+      );
+      const panel = await readXPublishingPanel(at(`${A1}T17:30`));
+      assert(panel.autopilot?.available === true && panel.autopilot.mode === "off", "Mission Control (live partition) is unaffected by the TEST authorization");
+      log("S22 slot authorization / dedupe / two per day: ok");
+    }
+
+    // S23: manual and automatic share capacity; a skipped slot can still be decided within its window
+    {
+      const A2 = "2031-05-12";
+      const m1 = await draft(textFor("s23 m1"), `${A2}T11:00`);
+      const m2 = await draft(textFor("s23 m2"), `${A2}T12:00`);
+      assert((await approve(m1, "scheduled", at(`${A2}T08:00`))).status === 200 && (await approve(m2, "scheduled", at(`${A2}T08:00`))).status === 200, "two owner approvals fill the day");
+      const c = await schedClaim(at(`${A2}T09:00`));
+      assert(apOutcome(c).outcome === "skipped" && apOutcome(c).reason === "daily_cap" && c.body.work === null, "autopilot skips a full day");
+      const [skip] = await slotRow(A2, "09:00");
+      assert(skip.outcome === "skipped" && String(skip.detail).includes(A2), "skip recorded with the Phoenix date");
+      await cancelXPost({ id: m1.id, isTest: true, actor: TAG, now: at(`${A2}T09:10`) });
+      const w = await claimPublish(at(`${A2}T09:30`), "s23 auto", { trigger: "schedule" });
+      const rows = await slotRow(A2, "09:00");
+      assert(rows.length === 1 && rows[0].outcome === "authorized" && rows[0].post_id === w.queueId, "same slot key upgraded from skipped to authorized (one row)");
+      await publishAll(w, at(`${A2}T09:31`), "s23 auto");
+      const wm = await claimPublish(at(`${A2}T12:01`), "s23 m2", { trigger: "schedule" });
+      assert(wm.queueId === m2.id, "owner item still served");
+      await publishAll(wm, at(`${A2}T12:01`), "s23 m2");
+      const ev = await schedClaim(at(`${A2}T17:00`));
+      assert(apOutcome(ev).outcome === "skipped" && apOutcome(ev).reason === "daily_cap", "evening slot skipped: manual + automatic used the two");
+      log("S23 shared capacity: ok");
+    }
+
+    // S24: pause, disable, and authorization/library changes before dispatch block the attempt
+    {
+      const A3 = "2031-05-14";
+      await setXPaused({ paused: true, reason: "test", actor: TAG, isTest: true, now: at(`${A3}T08:59`) });
+      const paused = await schedClaim(at(`${A3}T09:00`));
+      assert(apOutcome(paused).reason === "paused" && paused.body.work === null, "Pause: no automatic authorization");
+      await setXPaused({ paused: false, reason: "", actor: TAG, isTest: true, now: at(`${A3}T09:10`) });
+      const w = await claimPublish(at(`${A3}T09:20`), "s24", { trigger: "schedule" });
+      const withdrawnTemplate = templateOf((await getPost(w.queueId))!);
+      assert((await identity(w, at(`${A3}T09:20`))).body.proceed === true, "s24 identity");
+      await setXPaused({ paused: true, reason: "test", actor: TAG, isTest: true, now: at(`${A3}T09:21`) });
+      const pd = await dispatch(w, at(`${A3}T09:21`));
+      assert(pd.body.code === "paused" && pd.body.permit === "denied", "global Pause still blocks the dispatch of an automatic post");
+      await setXPaused({ paused: false, reason: "", actor: TAG, isTest: true, now: at(`${A3}T09:22`) });
+      const off = await apDisable(at(`${A3}T09:22`));
+      const wp = await getPost(w.queueId);
+      assert(off.status === 200 && off.body.withdrawn === 1 && wp?.status === "cancelled" && wp.lastErrorCode === "autopilot_disabled", "turning autopilot off withdraws the pending automatic post");
+      assert((await schedClaim(at(`${A3}T09:23`))).body.work === null, "off: nothing claimed");
+      assert((await apDisable(at(`${A3}T09:24`))).status === 409, "already off");
+      assert((await apAuthorize(at(`${A3}T09:25`))).status === 200, "re-authorized");
+      const same = await schedClaim(at(`${A3}T09:40`));
+      assert(apOutcome(same).outcome === "already_authorized" && same.body.work === null, "a decided slot is never decided again");
+      const w2 = await claimPublish(at(`${A3}T17:00`), "s24 evening", { trigger: "schedule" });
+      assert(templateOf((await getPost(w2.queueId))!) === withdrawnTemplate, "a withdrawn (never sent) template stays available");
+      assert((await identity(w2, at(`${A3}T17:01`))).body.proceed === true, "s24 evening identity");
+      const off2 = await apDisable(at(`${A3}T17:02`));
+      assert(off2.body.withdrawn === 1 && (await getAttempt(w2.attemptId))?.state === "released", "disable while claimed releases the claim");
+      const d2 = await dispatch(w2, at(`${A3}T17:03`));
+      assert(d2.body.permit === "denied" && !(await getAttempt(w2.attemptId))?.permitIssuedAt, "no permit after disable");
+
+      const A4 = "2031-05-15";
+      assert((await apAuthorize(at(`${A4}T08:00`))).status === 200, "re-authorized");
+      const w3 = await claimPublish(at(`${A4}T09:00`), "s24 hash change", { trigger: "schedule" });
+      const t3 = templateOf((await getPost(w3.queueId))!)!;
+      await identity(w3, at(`${A4}T09:01`));
+      await sql`
+        UPDATE x_publishing_autopilot_authorizations
+        SET template_hashes = jsonb_set(template_hashes, ARRAY[${t3}]::text[], to_jsonb(${"0".repeat(64)}::text))
+        WHERE is_test = true AND revoked_at IS NULL
+      `;
+      const d3 = await dispatch(w3, at(`${A4}T09:02`));
+      const p3 = await getPost(w3.queueId);
+      assert(
+        d3.body.permit === "denied" && d3.body.code === "autopilot_authorization_invalid" && p3?.status === "cancelled" && p3.lastErrorCode === "autopilot_authorization_invalid",
+        `authorization no longer covering the template blocks dispatch (${JSON.stringify(d3.body)})`
+      );
+      assert(!(await getAttempt(w3.attemptId))?.permitIssuedAt, "no permit issued");
+
+      assert((await apAuthorize(at(`${A4}T16:00`))).status === 200, "re-authorized (supersedes the altered row)");
+      const w4 = await claimPublish(at(`${A4}T17:00`), "s24 library change", { trigger: "schedule" });
+      await identity(w4, at(`${A4}T17:01`));
+      await sql`
+        UPDATE x_publishing_posts
+        SET approval_context = jsonb_set(approval_context, '{standingPolicy,templateHash}', to_jsonb(${"0".repeat(64)}::text))
+        WHERE id = ${w4.queueId}::uuid
+      `;
+      const d4 = await dispatch(w4, at(`${A4}T17:02`));
+      const p4 = await getPost(w4.queueId);
+      assert(d4.body.code === "autopilot_authorization_invalid" && p4?.status === "cancelled", "a library/source change since authorization blocks dispatch (withdrawn, not returned to draft)");
+
+      const A5 = "2031-05-16";
+      const w5 = await claimPublish(at(`${A5}T09:00`), "s24 supersede", { trigger: "schedule" });
+      assert((await apAuthorize(at(`${A5}T09:05`))).status === 200, "a new authorization supersedes the old one");
+      assert((await getPost(w5.queueId))?.status === "cancelled" && (await getAttempt(w5.attemptId))?.state === "released", "pending post from the superseded authorization withdrawn");
+      const [{ n: active }] = (await sql`SELECT COUNT(*)::int AS n FROM x_publishing_autopilot_authorizations WHERE is_test = true AND revoked_at IS NULL`) as Array<{ n: number }>;
+      assert(active === 1, "exactly one active authorization");
+      log("S24 pause / disable / authorization and library changes: ok");
+    }
+
+    // S25: existing drafts and other items are never converted into automatic posts
+    {
+      const A6 = "2031-05-18";
+      const own = await draft(`Owner free-form draft ${TAG}: laboratory documentation notes.`, null);
+      const ai = await saveXDraft({ id: null, expectedRevision: null, text: `AI-assisted draft ${TAG}: reading an original laboratory report.`, sourceRefs: ["AI-assisted"], scheduledForLocal: `${A6}T09:00`, isTest: true, actor: "x-draft-assistant", now: new Date() });
+      assert(ai.status === 201, "assistant-style draft saved");
+      const snapshot = async () =>
+        JSON.stringify(await sql`SELECT id, status, revision, approved_by, approval_context FROM x_publishing_posts WHERE is_test = true AND created_by <> ${X_AUTOPILOT_ACTOR} ORDER BY id`);
+      const before = await snapshot();
+      const w = await claimPublish(at(`${A6}T09:00`), "s25", { trigger: "schedule" });
+      const auto = await getPost(w.queueId);
+      assert(auto?.createdBy === X_AUTOPILOT_ACTOR && review.templates.some((t) => t.text === auto.text), "the automatic post is library wording");
+      assert(w.queueId !== own.id && w.queueId !== (ai.body.post as XPostRecord).id, "drafts are not selected");
+      await publishAll(w, at(`${A6}T09:01`), "s25");
+      assert((await snapshot()) === before, "existing drafts, cancelled, expired, and resolved items unchanged (no bulk conversion)");
+      log("S25 no conversion of existing items: ok");
+    }
+
+    // S27: uncertain and late results never cause automatic reposting
+    {
+      const A9 = "2031-05-23";
+      const w = await claimPublish(at(`${A9}T09:00`), "s27", { trigger: "schedule" });
+      const t1 = templateOf((await getPost(w.queueId))!);
+      await identity(w, at(`${A9}T09:00`));
+      assert((await dispatch(w, at(`${A9}T09:01`))).body.permit === "issued", "s27 permit");
+      assert((await result(w, at(`${A9}T09:02`), { httpStatus: null, transportError: true })).body.state === "uncertain", "timeout → uncertain");
+      const ev = await schedClaim(at(`${A9}T17:00`));
+      assert(apOutcome(ev).reason === "unresolved_review" && ev.body.work === null, "autopilot waits while an item needs review");
+      await resolveNotCreated({ attemptId: w.attemptId, confirm: true, isTest: true, actor: TAG, now: at(`${A9}T18:00`) });
+      const A10 = "2031-05-24";
+      const w2 = await claimPublish(at(`${A10}T09:00`), "s27 next", { trigger: "schedule" });
+      const t2 = templateOf((await getPost(w2.queueId))!);
+      assert(t2 !== t1, "a template whose permit was issued is never reused, even if resolved as not created");
+      await identity(w2, at(`${A10}T09:00`));
+      assert((await dispatch(w2, at(`${A10}T09:01`))).body.permit === "issued", "s27 second permit (result withheld)");
+      const ev2 = await schedClaim(at(`${A10}T17:00`));
+      assert(apOutcome(ev2).reason === "unresolved_review" && ev2.body.work === null, "dispatch past its deadline without a result blocks new automatic authorization");
+      const id = postIdFor();
+      assert((await result(w2, at(`${A10}T17:10`), { httpStatus: 201, postId: id })).body.state === "created", "late success recorded");
+      assert((await lookup(w2, at(`${A10}T17:11`), xPost(id, (await getPost(w2.queueId))!.text))).body.state === "published", "late success verified");
+      const A11 = "2031-05-25";
+      const w3 = await claimPublish(at(`${A11}T09:00`), "s27 after", { trigger: "schedule" });
+      const t3 = templateOf((await getPost(w3.queueId))!);
+      assert(t3 !== t1 && t3 !== t2, "no automatic repost after a late result");
+      await publishAll(w3, at(`${A11}T09:01`), "s27 after");
+      const used = (await sql`
+        SELECT s.template_id FROM x_publishing_autopilot_slots s
+        WHERE s.is_test = true AND s.outcome = 'authorized'
+          AND EXISTS (SELECT 1 FROM x_publishing_attempts a WHERE a.post_id = s.post_id AND a.permit_issued_at IS NOT NULL)
+      `) as Array<{ template_id: string }>;
+      assert(new Set(used.map((u) => u.template_id)).size === used.length, "no template was dispatched twice");
+      log("S27 uncertain / late results never repost: ok");
+    }
+
+    // S26: near-duplicates are blocked; an exhausted library skips instead of filling the slot
+    {
+      const A7 = "2031-05-27";
+      const seed = async (text: string) => {
+        const now = at("2031-05-26T09:00");
+        await sql`
+          INSERT INTO x_publishing_posts (id, status, revision, text, text_hash, account_id, account_handle, is_test, schedule_kind,
+            scheduled_for, expires_at, scheduled_day, approval_hash, approved_revision, created_by, created_at, updated_at)
+          VALUES (${crypto.randomUUID()}::uuid, 'published', 1, ${text}, ${textHash(X_ACCOUNT_ID, text)}, ${X_ACCOUNT_ID}, ${X_ACCOUNT_HANDLE}, true,
+            'scheduled', ${now.toISOString()}::timestamptz, ${addMinutes(now, 60).toISOString()}::timestamptz, '2031-05-26', 'seed', 1, ${TAG},
+            ${now.toISOString()}::timestamptz, ${now.toISOString()}::timestamptz)
+        `;
+      };
+      const view = await readAutopilotView({ isTest: true, now: at(`${A7}T08:00`) });
+      const eligible = view.library.templates.filter((t) => t.status === "eligible");
+      assert(eligible.length >= 3, `enough templates remain (${eligible.length})`);
+      await seed(`${eligible[0].text.replace(/https:\/\/\S+/g, "").trim()} Always.`);
+      const w = await claimPublish(at(`${A7}T09:00`), "s26", { trigger: "schedule" });
+      assert(templateOf((await getPost(w.queueId))!) === eligible[1].id, "a near-duplicate of existing content is skipped; the next template is used");
+      await publishAll(w, at(`${A7}T09:01`), "s26");
+      const after = await readAutopilotView({ isTest: true, now: at(`${A7}T09:30`) });
+      assert(after.library.templates.find((t) => t.id === eligible[0].id)?.status === "near_duplicate", "view flags the near-duplicate");
+      for (const t of after.library.templates.filter((x) => x.status === "eligible")) await seed(t.text);
+      const ex = await schedClaim(at(`${A7}T17:00`));
+      const [row] = await slotRow(A7, "17:00");
+      assert(
+        apOutcome(ex).outcome === "skipped" && apOutcome(ex).reason === "library_exhausted" && ex.body.work === null && /Nothing is generated/.test(String(row.detail)),
+        "exhausted library: slot skipped and the shortfall reported, nothing generated"
+      );
+      const v = await readAutopilotView({ isTest: true, now: at(`${A7}T17:30`) });
+      assert(v.remaining === 0 && v.nextSlots.every((s) => s.expectedTemplateId === null), "view shows zero remaining");
+      log("S26 near-duplicates / exhaustion: ok");
+    }
+
+    {
+      assert((await apDisable(at("2031-05-28T08:00"))).status === 200, "autopilot turned off at the end");
+      const c = await schedClaim(at("2031-05-28T09:00"));
+      assert(apOutcome(c).reason === "autopilot_off" && c.body.work === null, "off again: nothing authorized");
+      const types = (await sql`SELECT DISTINCT event_type FROM ops_activity_events WHERE event_type LIKE 'x_autopilot_%'`) as Array<{ event_type: string }>;
+      assert(["x_autopilot_authorized", "x_autopilot_disabled", "x_autopilot_post_authorized", "x_autopilot_slot_skipped", "x_autopilot_post_withdrawn"].every((t) => types.some((r) => r.event_type === t)), "autopilot events recorded in Mission Control");
     }
 
     type View = { id: string; status: string; displayState: string; attempts: Array<{ id: string; state: string; effectiveState: string; dispatchOverdue: boolean }> };
@@ -906,10 +1296,10 @@ async function main() {
       const restored = controlBefore[0]
         ? ctl[0]?.paused === controlBefore[0].paused && ctl[0]?.updated_by === controlBefore[0].updated_by
         : ctl.length === 0;
-      if (after.posts !== 0 || after.attempts !== 0 || after.events !== 0 || !restored) {
+      if (after.posts !== 0 || after.attempts !== 0 || after.events !== 0 || after.slots !== 0 || after.authorizations !== 0 || !restored) {
         throw new Error(`cleanup incomplete: ${JSON.stringify(after)} control restored ${restored}`);
       }
-      log("cleanup verified: 0 posts, 0 attempts, 0 x_publishing events; control row restored");
+      log("cleanup verified: 0 posts, 0 attempts, 0 x_publishing events, 0 autopilot slots/authorizations; control row restored");
     } catch (e) {
       cleanupError = e;
     }

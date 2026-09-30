@@ -4,6 +4,8 @@ export const X_PUBLISHING_TABLES = [
   "x_publishing_posts",
   "x_publishing_attempts",
   "x_publishing_control",
+  "x_publishing_autopilot_authorizations",
+  "x_publishing_autopilot_slots",
 ] as const;
 
 /**
@@ -149,9 +151,89 @@ export async function ensureXPublishingSchema(): Promise<void> {
       updated_by TEXT NOT NULL
     )
   `;
+  await ensureXAutopilotSchema();
 }
 
-export type XPublishingSchemaState = { initialized: boolean; missing: string[] };
+/**
+ * Standing-policy autopilot (additive; no change to the tables above). An
+ * authorization row records the owner's one-time authorization of a specific
+ * policy and library version, with the hash of every template it covers.
+ * A slot row records the single outcome of each deterministic autopilot slot.
+ */
+async function ensureXAutopilotSchema(): Promise<void> {
+  const sql = getSql();
+  await sql`
+    CREATE TABLE IF NOT EXISTS x_publishing_autopilot_authorizations (
+      id UUID PRIMARY KEY,
+      is_test BOOLEAN NOT NULL,
+      policy_id TEXT NOT NULL,
+      policy_version TEXT NOT NULL,
+      policy_hash TEXT NOT NULL,
+      library_id TEXT NOT NULL,
+      library_version TEXT NOT NULL,
+      template_hashes JSONB NOT NULL,
+      source_hashes JSONB NOT NULL,
+      account_id TEXT NOT NULL CHECK (account_id ~ '^[1-9][0-9]{0,18}$'),
+      statement TEXT NOT NULL,
+      authorized_at TIMESTAMPTZ NOT NULL,
+      authorized_by TEXT NOT NULL,
+      authorized_env TEXT NOT NULL,
+      revoked_at TIMESTAMPTZ,
+      revoked_by TEXT,
+      revoke_reason TEXT,
+      CONSTRAINT x_publishing_autopilot_authorizations_revoked_complete CHECK (
+        revoked_at IS NULL OR (revoked_by IS NOT NULL AND revoke_reason IS NOT NULL)
+      )
+    )
+  `;
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS x_publishing_autopilot_authorizations_one_active_uq
+    ON x_publishing_autopilot_authorizations (is_test)
+    WHERE revoked_at IS NULL
+  `;
+  await sql`
+    CREATE TABLE IF NOT EXISTS x_publishing_autopilot_slots (
+      is_test BOOLEAN NOT NULL,
+      slot_key TEXT NOT NULL,
+      policy_id TEXT NOT NULL,
+      slot_at TIMESTAMPTZ NOT NULL,
+      phoenix_day TEXT NOT NULL,
+      outcome TEXT NOT NULL CHECK (outcome IN ('authorized','skipped')),
+      reason TEXT NOT NULL,
+      detail TEXT,
+      authorization_id UUID REFERENCES x_publishing_autopilot_authorizations(id),
+      template_id TEXT,
+      template_hash TEXT,
+      post_id UUID REFERENCES x_publishing_posts(id),
+      checks JSONB NOT NULL DEFAULT '{}'::jsonb,
+      first_checked_at TIMESTAMPTZ NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL,
+      PRIMARY KEY (is_test, slot_key),
+      CONSTRAINT x_publishing_autopilot_slots_authorized_complete CHECK (
+        outcome <> 'authorized'
+        OR (authorization_id IS NOT NULL AND template_id IS NOT NULL AND template_hash IS NOT NULL AND post_id IS NOT NULL)
+      )
+    )
+  `;
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS x_publishing_autopilot_slots_post_uq
+    ON x_publishing_autopilot_slots (post_id)
+    WHERE post_id IS NOT NULL
+  `;
+  await sql`
+    CREATE INDEX IF NOT EXISTS x_publishing_autopilot_slots_template_idx
+    ON x_publishing_autopilot_slots (is_test, template_id)
+    WHERE outcome = 'authorized'
+  `;
+}
+
+export type XPublishingSchemaState = {
+  initialized: boolean;
+  missing: string[];
+  /** Autopilot tables are optional: without them autopilot is unavailable and everything else works. */
+  autopilotReady: boolean;
+  autopilotMissing: string[];
+};
 
 /** Read-only catalog probe; never creates anything. */
 export async function getXPublishingSchemaState(): Promise<XPublishingSchemaState> {
@@ -160,12 +242,18 @@ export async function getXPublishingSchemaState(): Promise<XPublishingSchemaStat
     SELECT
       to_regclass('public.x_publishing_posts')::text AS x_posts,
       to_regclass('public.x_publishing_attempts')::text AS x_attempts,
-      to_regclass('public.x_publishing_control')::text AS x_control
+      to_regclass('public.x_publishing_control')::text AS x_control,
+      to_regclass('public.x_publishing_autopilot_authorizations')::text AS x_ap_auth,
+      to_regclass('public.x_publishing_autopilot_slots')::text AS x_ap_slots
   `) as Array<Record<string, string | null>>;
   const row = rows[0] ?? {};
   const missing: string[] = [];
   if (!row.x_posts) missing.push("x_publishing_posts");
   if (!row.x_attempts) missing.push("x_publishing_attempts");
   if (!row.x_control) missing.push("x_publishing_control");
-  return { initialized: missing.length === 0, missing };
+  const autopilotMissing: string[] = [];
+  if (!row.x_ap_auth) autopilotMissing.push("x_publishing_autopilot_authorizations");
+  if (!row.x_ap_slots) autopilotMissing.push("x_publishing_autopilot_slots");
+  const initialized = missing.length === 0;
+  return { initialized, missing, autopilotReady: initialized && autopilotMissing.length === 0, autopilotMissing };
 }

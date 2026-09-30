@@ -7,9 +7,16 @@ export const X_ACCOUNT_HANDLE = "PSLLabspurity";
 
 export const X_TIME_ZONE = "America/Phoenix";
 
-/** PSL operating limits (not X policy). Shown to the owner. */
+/** `created_by` / `approved_by` on posts authorized by the standing policy. Never the owner. */
+export const X_AUTOPILOT_ACTOR = "x-autopilot";
+
+/**
+ * PSL operating limits (not X policy). Shown to the owner. The daily cap is
+ * shared by manual approvals and the standing-policy autopilot; every check
+ * reads it through lib/x-publishing/capacity.ts.
+ */
 export const X_LIMITS = {
-  createDispatchesPerPhoenixDay: 1,
+  createDispatchesPerPhoenixDay: 2,
   postsPerWorkflowRun: 1,
   slotMinutes: 30,
   expiryMinutesAfterScheduled: 60,

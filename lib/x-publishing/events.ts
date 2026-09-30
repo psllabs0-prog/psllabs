@@ -16,6 +16,11 @@ export const X_EVENT_TYPES = {
   paused: "x_publishing_paused",
   resumed: "x_publishing_resumed",
   draftsProposed: "x_drafts_proposed",
+  autopilotAuthorized: "x_autopilot_authorized",
+  autopilotDisabled: "x_autopilot_disabled",
+  autopilotPostAuthorized: "x_autopilot_post_authorized",
+  autopilotSlotSkipped: "x_autopilot_slot_skipped",
+  autopilotPostWithdrawn: "x_autopilot_post_withdrawn",
 } as const;
 
 export type XEventType = (typeof X_EVENT_TYPES)[keyof typeof X_EVENT_TYPES];

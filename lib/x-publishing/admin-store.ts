@@ -16,10 +16,11 @@ import {
   previewHashFor,
   sqlState,
   validityMinutesFor,
-  type ApprovalContext,
+  type OwnerApprovalContext,
   type ScheduleKind,
   type XResult,
 } from "./records";
+import { capacityMessage, readDayCapacity, reservationCapacityOkSql } from "./capacity";
 import { addMinutes, isSlotAligned, parsePhoenixLocal, phoenixDay } from "./time";
 
 export const X_DRAFT_MAX_CHARS = 2000;
@@ -131,6 +132,37 @@ export async function saveXDraft(input: SaveDraftInput): Promise<XResult> {
   return explainNotEditable(input.id, input.isTest, input.expectedRevision);
 }
 
+/**
+ * Changes only the saved Phoenix date/time of one existing post, keeping its
+ * stored text and source references. Goes through the same revision-checked
+ * edit as saveXDraft, so any approval is invalidated and the post returns to
+ * draft; approving it again uses the newly saved slot.
+ */
+export async function setXSchedule(input: {
+  id: string;
+  expectedRevision: number;
+  scheduledForLocal: string | null;
+  isTest: boolean;
+  actor: string;
+  now: Date;
+}): Promise<XResult> {
+  const post = await getPost(input.id);
+  if (!post || post.isTest !== input.isTest) return fail(404, "Post not found.");
+  if (post.revision !== input.expectedRevision) {
+    return fail(409, `This post changed since you loaded it (now revision ${post.revision}). Reload and review again.`);
+  }
+  return saveXDraft({
+    id: post.id,
+    expectedRevision: input.expectedRevision,
+    text: post.text,
+    sourceRefs: post.sourceRefs,
+    scheduledForLocal: input.scheduledForLocal,
+    isTest: input.isTest,
+    actor: input.actor,
+    now: input.now,
+  });
+}
+
 async function explainNotEditable(id: string, isTest: boolean, revision: number | null): Promise<XResult> {
   const post = await getPost(id);
   if (!post || post.isTest !== isTest) return fail(404, "Post not found.");
@@ -192,10 +224,17 @@ export async function approveXPost(input: ApproveInput): Promise<XResult> {
   } else {
     scheduledFor = input.now.toISOString();
     expiresAt = addMinutes(input.now, X_LIMITS.nextManualRunValidityMinutes).toISOString();
+    if (phoenixDay(new Date(Date.parse(expiresAt) - 1)) !== phoenixDay(input.now)) {
+      return fail(
+        422,
+        `A next-manual-run approval must end before Phoenix midnight (it is valid ${X_LIMITS.nextManualRunValidityMinutes} minutes). Schedule a slot on the intended day instead.`
+      );
+    }
   }
   const approvedAt = input.now.toISOString();
   const day = phoenixDay(new Date(scheduledFor));
-  const context: ApprovalContext = {
+  const context: OwnerApprovalContext = {
+    authorization: "owner",
     previewHash: input.previewHash,
     confirmPublic: true,
     confirmManualRun: input.scheduleKind === "next_manual_run",
@@ -214,8 +253,6 @@ export async function approveXPost(input: ApproveInput): Promise<XResult> {
     approvedEnv: input.env,
     acknowledgedWarnings: acknowledged,
   });
-  const cap = X_LIMITS.createDispatchesPerPhoenixDay;
-
   let results: Record<string, unknown>[][];
   try {
     results = await lockedTransaction((sql) => [
@@ -236,16 +273,7 @@ export async function approveXPost(input: ApproveInput): Promise<XResult> {
           last_error_code = NULL, last_error_message = NULL, updated_at = ${approvedAt}::timestamptz
         WHERE id = ${input.id}::uuid AND is_test = ${input.isTest} AND status = 'draft'
           AND revision = ${input.expectedRevision} AND text = ${post.text} AND account_id = ${X_ACCOUNT_ID}
-          AND (
-            SELECT COUNT(*) FROM x_publishing_posts q
-            WHERE q.is_test = ${input.isTest} AND q.account_id = ${X_ACCOUNT_ID}
-              AND q.id <> ${input.id}::uuid AND q.scheduled_day = ${day}
-              AND q.status IN ('approved','claimed','dispatched','created','published','uncertain')
-          ) < ${cap}
-          AND (
-            SELECT COUNT(*) FROM x_publishing_attempts a
-            WHERE a.is_test = ${input.isTest} AND a.permit_day = ${day} AND a.permit_issued_at IS NOT NULL
-          ) < ${cap}
+          AND ${reservationCapacityOkSql(sql, { isTest: input.isTest, day, now: approvedAt, excludePostId: input.id })}
         RETURNING *
       `,
     ]);
@@ -272,10 +300,8 @@ export async function approveXPost(input: ApproveInput): Promise<XResult> {
     if (!latest || latest.status !== "draft" || latest.revision !== input.expectedRevision) {
       return fail(409, "This draft changed while approving. Reload and review again.");
     }
-    return fail(
-      409,
-      `Daily capacity reached: at most ${cap} X post per Phoenix calendar day (${day}). Choose another day — nothing was rescheduled.`
-    );
+    const capacity = await readDayCapacity({ isTest: input.isTest, day, now: input.now, excludePostId: input.id });
+    return fail(409, capacityMessage(capacity), { capacity });
   }
   const approved = mapPost(row);
   await recordXEvent({
