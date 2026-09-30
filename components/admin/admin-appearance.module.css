@@ -1,0 +1,210 @@
+/*
+ * Admin-only light work area. Every selector is beneath the local CSS-module
+ * root. Shared storefront header/footer, public pages and portal UI are not
+ * rethemed. No global html/body rules and no route-detection side effects.
+ *
+ * globals.css uses @theme inline, so semantic Tailwind utilities can contain
+ * literal dark-theme values. Override those utilities inside this scope as
+ * well as the variables used by premium-card and other shared styles.
+ */
+.root {
+  --admin-page: #f3f4f6;
+  --admin-surface: #ffffff;
+  --admin-text: #111827;
+  --admin-muted: #475569;
+  --admin-placeholder: #64748b;
+  --admin-border: #cbd5e1;
+  --admin-control-border: #64748b;
+  --admin-link: #1d4ed8;
+  --admin-disabled-bg: #e2e8f0;
+  --admin-error: #b91c1c;
+  --admin-warning: #92400e;
+  --admin-success: #166534;
+
+  --color-page: var(--admin-page);
+  --color-paper: var(--admin-surface);
+  --color-canvas: var(--admin-page);
+  --color-lab-white: var(--admin-surface);
+  --color-surface: var(--admin-surface);
+  --color-porcelain: var(--admin-surface);
+  --color-panel: var(--admin-surface);
+  --color-ink: var(--admin-text);
+  --color-near-black: var(--admin-text);
+  --color-graphite: var(--admin-muted);
+  --color-ash: var(--admin-muted);
+  --color-slate-muted: var(--admin-muted);
+  --color-stone: var(--admin-muted);
+  --color-brass: var(--admin-muted);
+  --color-linen: var(--admin-border);
+  --color-border-strong: var(--admin-control-border);
+  --color-border-default: var(--admin-border);
+  --color-border-focus: var(--admin-link);
+  --color-surface-elevated: var(--admin-surface);
+  --color-surface-section: var(--admin-page);
+  --color-accent: var(--admin-link);
+  --color-on-accent: #ffffff;
+  --color-interactive: var(--admin-link);
+  --color-interactive-hover: #1e40af;
+  --color-petrol: var(--admin-link);
+  --color-petrol-muted: var(--admin-link);
+  --color-primary-blue: var(--admin-link);
+  --color-signal: var(--admin-error);
+
+  min-height: 70vh;
+  background-color: var(--admin-page);
+  color: var(--admin-text);
+  color-scheme: light;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Main text and subdued instructions must stay readable on light surfaces. */
+.root :is([class~="text-ink"], [class~="text-near-black"]) {
+  color: var(--admin-text);
+}
+
+.root :is(
+  [class~="text-ash"], [class~="text-graphite"], [class~="text-slate-muted"],
+  [class~="text-stone"], [class~="text-brass"],
+  [class~="text-zinc-400"], [class~="text-zinc-500"],
+  [class~="text-slate-400"], [class~="text-slate-500"],
+  [class~="text-gray-400"], [class~="text-gray-500"],
+  [class~="text-ink/50"], [class~="text-ink/60"], [class~="text-ink/70"],
+  [class~="text-ink/80"]
+) {
+  color: var(--admin-muted);
+}
+
+.root :is([class~="text-accent"], [class~="text-petrol"], [class~="text-petrol-muted"], [class~="text-primary-blue"]) {
+  color: var(--admin-link);
+}
+
+.root [class~="hover:text-ink"]:hover {
+  color: var(--admin-text);
+}
+
+.root :is([class~="text-page"], [class~="text-paper"], [class~="text-on-accent"]) {
+  color: #ffffff;
+}
+
+.root :is([class~="bg-page"], [class~="bg-canvas"]) {
+  background-color: var(--admin-page);
+}
+
+.root :is([class~="bg-paper"], [class~="bg-lab-white"], [class~="bg-surface"], [class~="bg-porcelain"], [class~="bg-panel"]) {
+  background-color: var(--admin-surface);
+}
+
+.root :is([class~="bg-ink/5"], [class~="bg-ink/10"], [class~="bg-accent/5"], [class~="bg-accent/10"]) {
+  background-color: #eff6ff;
+}
+
+/* Inverse buttons keep white text. Never force all descendants to black. */
+.root :is([class~="bg-ink"], [class~="bg-near-black"]) {
+  background-color: var(--admin-text);
+  color: #ffffff;
+}
+
+.root :is([class~="bg-accent"], [class~="bg-petrol"], [class~="bg-primary-blue"]) {
+  background-color: var(--admin-link);
+  color: #ffffff;
+}
+
+.root :is([class~="border-linen"], [class~="border-ink/10"], [class~="border-ink/20"]) {
+  border-color: var(--admin-border);
+}
+
+.root :is([class~="border-ink"], [class~="border-border-strong"]) {
+  border-color: var(--admin-control-border);
+}
+
+.root :is([class~="border-accent"], [class~="ring-accent"]) {
+  border-color: var(--admin-link);
+  --tw-ring-color: var(--admin-link);
+}
+
+/* Preserve semantic states; darken only the low-contrast color variants. */
+.root :is([class~="text-red-400"], [class~="text-red-500"], [class~="text-red-600"], [class~="text-signal"]) {
+  color: var(--admin-error);
+}
+
+.root :is([class~="text-amber-400"], [class~="text-amber-500"], [class~="text-amber-600"], [class~="text-orange-500"], [class~="text-orange-600"], [class~="text-yellow-600"]) {
+  color: var(--admin-warning);
+}
+
+.root :is([class~="text-green-400"], [class~="text-green-500"], [class~="text-green-600"], [class~="text-emerald-400"], [class~="text-emerald-500"], [class~="text-emerald-600"]) {
+  color: var(--admin-success);
+}
+
+/* Slightly larger helper copy; do not change heading sizes or table logic. */
+.root [class~="text-xs"] {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* Keep long log/report text scrollable inside the card, not the whole page. */
+.root pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* Explicit foreground/background pairs for all native data-entry fields. */
+.root :is(
+  textarea, select, input
+):not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="hidden"], [type="file"], [type="button"], [type="submit"], [type="reset"]) {
+  background-color: var(--admin-surface);
+  color: var(--admin-text);
+  border-color: var(--admin-control-border);
+  caret-color: var(--admin-text);
+  font-size: 1rem;
+  line-height: 1.5;
+  min-height: 2.25rem;
+  color-scheme: light;
+}
+
+.root :is(input, textarea)::placeholder {
+  color: var(--admin-placeholder);
+  opacity: 1;
+}
+
+.root :is(option, optgroup) {
+  background-color: var(--admin-surface);
+  color: var(--admin-text);
+}
+
+.root :is(input[type="checkbox"], input[type="radio"]) {
+  accent-color: var(--admin-link);
+  color-scheme: light;
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.root :is(button, input[type="button"], input[type="submit"], input[type="reset"]) {
+  min-height: 2.25rem;
+}
+
+/* Keep disabled labels legible without changing disabled or pointer behavior. */
+.root :is(button, input, textarea, select):disabled {
+  background-color: var(--admin-disabled-bg);
+  color: var(--admin-muted);
+  border-color: #94a3b8;
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+.root :is(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--admin-link);
+  outline-offset: 3px;
+}
+
+.root ::selection {
+  background-color: #bfdbfe;
+  color: var(--admin-text);
+}
+
+@media (forced-colors: active) {
+  .root {
+    forced-color-adjust: auto;
+  }
+}
