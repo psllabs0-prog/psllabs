@@ -3,10 +3,15 @@ import path from "node:path";
 
 import matter from "gray-matter";
 
-import { ANALYTICAL_GUIDES } from "@/lib/content/guides-data";
 import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 
-import { X_DRAFT_SOURCE_ALLOWLIST, type XDraftSource, type XDraftSourceSpec } from "./sources";
+import {
+  X_DRAFT_OMISSION_MARKER,
+  X_DRAFT_SOURCE_ALLOWLIST,
+  type XDraftPassage,
+  type XDraftSource,
+  type XDraftSourceSpec,
+} from "./sources";
 
 /**
  * Reads the allowlisted sources from the working tree. Used only by the
@@ -28,27 +33,73 @@ function sections(markdown: string, headings: readonly string[], file: string): 
     .join("\n\n");
 }
 
-function build(spec: XDraftSourceSpec, root: string): XDraftSource {
+type SectionRange = { heading: string | null; headingStart: number; start: number; end: number };
+
+function sectionRanges(body: string): SectionRange[] {
+  const headings = [...body.matchAll(/^## (.+)$/gm)];
+  const ranges: SectionRange[] = [{ heading: null, headingStart: 0, start: 0, end: headings[0]?.index ?? body.length }];
+  headings.forEach((m, i) => {
+    ranges.push({
+      heading: m[1].trim(),
+      headingStart: m.index,
+      start: m.index + m[0].length,
+      end: headings[i + 1]?.index ?? body.length,
+    });
+  });
+  return ranges;
+}
+
+/** True when the skipped text contains more than whitespace and section headings. */
+function omits(gap: string): boolean {
+  return gap.replace(/^## .*$/gm, "").trim().length > 0;
+}
+
+/**
+ * Joins verbatim passages in document order. Section headings are kept for
+ * context and every stretch of omitted article text becomes the omission
+ * marker, so the snapshot never presents non-adjacent passages as continuous.
+ */
+function passages(markdown: string, selected: readonly XDraftPassage[], file: string): { title: string; text: string } {
+  const { data, content } = matter(markdown);
+  const title = String(data.title ?? "").trim();
+  if (!title) throw new Error(`${file}: title is required`);
+  if (selected.length === 0) throw new Error(`${file}: at least one passage is required`);
+  const body = content;
+  const ranges = sectionRanges(body);
+  const parts: string[] = [];
+  let cursor = 0;
+  let currentHeading: string | null = null;
+  for (const passage of selected) {
+    const text = passage.text;
+    if (!text.trim() || text !== text.trim()) throw new Error(`${file}: passages must be non-empty and trimmed`);
+    const label = passage.heading === null ? "the introduction" : `"## ${passage.heading}"`;
+    const range = ranges.find((r) => r.heading === passage.heading);
+    if (!range) throw new Error(`${file}: section ${label} not found`);
+    const at = body.indexOf(text, Math.max(cursor, range.start));
+    if (at < 0 || at + text.length > range.end) {
+      throw new Error(`${file}: passage not found verbatim in ${label} (after the previous passage): ${JSON.stringify(text.slice(0, 80))}`);
+    }
+    if (passage.heading !== currentHeading && passage.heading !== null) {
+      if (omits(body.slice(cursor, range.headingStart))) parts.push(X_DRAFT_OMISSION_MARKER);
+      parts.push(`## ${passage.heading}`);
+      if (omits(body.slice(range.start, at))) parts.push(X_DRAFT_OMISSION_MARKER);
+    } else if (omits(body.slice(cursor, at))) {
+      parts.push(X_DRAFT_OMISSION_MARKER);
+    }
+    parts.push(text);
+    cursor = at + text.length;
+    currentHeading = passage.heading;
+  }
+  if (omits(body.slice(cursor))) parts.push(X_DRAFT_OMISSION_MARKER);
+  return { title, text: parts.join("\n\n") };
+}
+
+export function buildXDraftSource(spec: XDraftSourceSpec, root = process.cwd()): XDraftSource {
   const s = spec.select;
   switch (s.type) {
-    case "mdx-article": {
-      const { data, content } = matter(read(root, s.file));
-      const title = String(data.title ?? "").trim();
-      const description = String(data.description ?? "").trim();
-      if (!title || !description) throw new Error(`${s.file}: title and description are required`);
-      return { id: spec.id, kind: spec.kind, title, url: spec.url, origin: s.file, text: `${title}\n\n${description}\n\n${content.trim()}` };
-    }
-    case "guide-meta": {
-      const guide = ANALYTICAL_GUIDES.find((g) => g.slug === s.slug);
-      if (!guide) throw new Error(`guide ${s.slug} not found in lib/content/guides-data.ts`);
-      return {
-        id: spec.id,
-        kind: spec.kind,
-        title: guide.title,
-        url: spec.url,
-        origin: `lib/content/guides-data.ts#${s.slug}`,
-        text: `${guide.title}\n\n${guide.description}`,
-      };
+    case "mdx-passages": {
+      const { title, text } = passages(read(root, s.file), s.passages, s.file);
+      return { id: spec.id, kind: spec.kind, title, url: spec.url, origin: `${s.file} (selected verbatim passages)`, text };
     }
     case "constant":
       return {
@@ -80,7 +131,7 @@ export function buildXDraftSources(root = process.cwd()): XDraftSource[] {
   return X_DRAFT_SOURCE_ALLOWLIST.map((spec) => {
     if (ids.has(spec.id)) throw new Error(`duplicate source id ${spec.id}`);
     ids.add(spec.id);
-    return build(spec, root);
+    return buildXDraftSource(spec, root);
   });
 }
 

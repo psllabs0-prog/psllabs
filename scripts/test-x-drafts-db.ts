@@ -201,10 +201,10 @@ async function main() {
     assert((await call("packet", { executionId: "x" }, DAY1, testEnv, `Bearer ${PUBLISHER_TOKEN}`)).status === 401, "D1: publisher token refused");
 
     // ---------- D2: batch saves drafts only ----------
-    const batch2 = [cand(textFor(WORDS[0])), cand(textFor(WORDS[1])), { ...cand(textFor(WORDS[2])), sourceIds: [COA, "science:not-real"] }];
+    const batch2 = [cand(textFor(WORDS[0])), cand(textFor(WORDS[1])), { ...cand(textFor(WORDS[2])), sourceIds: [COA, "guide:verify-peptide-coa"] }];
     const r2 = await submit(p1.batchToken, batch2, DAY1);
     assert(r2.status === 200 && counts(r2.body).saved === 2 && counts(r2.body).blocked === 1, `D2: 2 saved, 1 blocked (${JSON.stringify(r2.body.counts)})`);
-    assert(/unrecognized_source/.test(JSON.stringify(r2.body.blocked)), "D2: fabricated source blocked");
+    assert(/unrecognized_source: guide:verify-peptide-coa/.test(JSON.stringify(r2.body.blocked)), "D2: removed guide-metadata source cannot be cited");
     const id1 = draftItemId(p1.batchId, 1);
     const id2 = draftItemId(p1.batchId, 2);
     const row1 = await getPost(id1);

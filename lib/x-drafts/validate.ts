@@ -6,7 +6,7 @@ import { checkPostText } from "@/lib/x-publishing/content";
 import { prepareDraft, type PreparedDraft } from "@/lib/x-publishing/admin-store";
 
 import { X_DRAFT_AI_LABEL, X_DRAFT_LIMITS } from "./constants";
-import type { XDraftSource } from "./sources";
+import { X_DRAFT_OMISSION_MARKER, type XDraftSource } from "./sources";
 
 export type ExistingPost = { id: string; text: string; textHash: string };
 
@@ -36,9 +36,11 @@ type Input = {
 
 /**
  * Checks model output against the allowlisted evidence and the existing
- * content rules. These are heuristics: passing them does not establish that a
- * post is accurate or legally compliant — it only keeps clearly unsupported or
- * restricted text out of the queue and flags the rest for the owner.
+ * content rules. These are heuristics: a matched excerpt shows only that the
+ * quoted words appear in the cited source, and passing the checks does not
+ * establish that a post is accurate or legally compliant — it only keeps
+ * clearly unsupported or restricted text out of the queue and flags the rest
+ * for the owner.
  */
 export function validateCandidates(input: Input): ValidationResult {
   const parsed = parseOutput(input.modelOutput, input.stopReason);
@@ -186,6 +188,8 @@ function checkCandidate(
       reasons.push("excerpt_source_not_cited: excerpt must come from a cited evidence source");
     } else if (exQuote.length < X_DRAFT_LIMITS.minExcerptChars || exQuote.length > X_DRAFT_LIMITS.maxExcerptChars) {
       reasons.push(`excerpt_length: excerpt must be ${X_DRAFT_LIMITS.minExcerptChars}-${X_DRAFT_LIMITS.maxExcerptChars} characters`);
+    } else if (exQuote.includes(X_DRAFT_OMISSION_MARKER) || exQuote.includes("[...]")) {
+      reasons.push("excerpt_spans_omission: quote must not cross omitted source text");
     } else if (!normalizeForMatch(src.text).includes(normalizeForMatch(exQuote))) {
       reasons.push(`excerpt_not_found: quote is not verbatim text from ${exSource}`);
     }
@@ -235,7 +239,12 @@ function checkCandidate(
   const hashtags = twitterText.extractHashtags(text);
   if (hashtags.length > 0) warnings.push(`hashtag: ${hashtags.slice(0, 3).join(", ")}`);
   const namedProducts = PRODUCT_NAMES.filter((name) => wordPresent(text, name));
-  if (namedProducts.length > 0) warnings.push(`names_product_or_compound: ${namedProducts.join(", ")}`);
+  const unsupportedProducts = namedProducts.filter((name) => !wordPresent(evidenceText, name));
+  if (unsupportedProducts.length > 0) {
+    reasons.push(`unsupported_product_reference: ${unsupportedProducts.join(", ")} not named in the cited evidence`);
+  } else if (namedProducts.length > 0) {
+    warnings.push(`names_product_or_compound: ${namedProducts.join(", ")}`);
+  }
   const namedLabs = LAB_NAMES.filter((name) => wordPresent(text, name));
   if (namedLabs.length > 0) warnings.push(`names_laboratory: ${namedLabs.join(", ")}`);
 

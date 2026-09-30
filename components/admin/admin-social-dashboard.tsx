@@ -415,7 +415,23 @@ function PostCard({ post, data, busy, readOnly, run, onEdit }: CardProps & { pos
       {post.sourceRefs.length > 0 &&
         (post.createdBy === X_DRAFT_ASSISTANT_ACTOR ? (
           <div className="mt-1 text-xs text-ash">
-            <p>Provenance (internal, never posted) — check the excerpt against the source before approving:</p>
+            <ul className="mb-1 ml-4 list-disc text-ink">
+              <li>
+                <strong>Source excerpt present:</strong> the quoted words appear in the cited approved source. This shows where the
+                wording came from; it is not a factual check of the post.
+              </li>
+              <li>
+                <strong>Heuristic checks passed:</strong> keyword and source-matching rules only — not factual, legal, or regulatory
+                verification.
+              </li>
+              <li>
+                <strong>Owner review:</strong>{" "}
+                {post.status === "draft"
+                  ? "still required. This draft is not approved and nothing is scheduled."
+                  : "see the status above; the assistant never approves or schedules anything."}
+              </li>
+            </ul>
+            <p>Provenance (internal, never posted) — compare the post and excerpt with the source before approving:</p>
             <ul className="ml-4 list-disc">
               {post.sourceRefs.map((ref, i) => (
                 <li key={i} className="break-words">

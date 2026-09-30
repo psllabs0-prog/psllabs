@@ -23,7 +23,8 @@ export const X_DRAFT_LIMITS = {
   batchMaxBodyBytes: 48 * 1024,
 } as const;
 
-export const X_DRAFT_AI_LABEL = "AI-assisted draft (x-draft-assistant) — owner review required before approval.";
+export const X_DRAFT_AI_LABEL =
+  "AI-assisted draft (x-draft-assistant): source excerpt present; heuristic checks passed; owner review required — not verified, not approved.";
 
 export const X_DRAFT_CHECKS_DISCLAIMER =
   "Automated checks are keyword and source-matching heuristics. They do not establish factual accuracy or legal/regulatory compliance; every draft still requires owner review.";

@@ -32,8 +32,9 @@ import {
   X_DRAFT_SOURCES,
   X_DRAFT_SYSTEM_PROMPT,
 } from "../lib/x-drafts/packet";
-import { buildXDraftSources, renderXDraftSnapshotModule } from "../lib/x-drafts/source-build";
-import { X_DRAFT_SOURCE_ALLOWLIST } from "../lib/x-drafts/sources";
+import { products } from "../lib/products";
+import { buildXDraftSource, buildXDraftSources, renderXDraftSnapshotModule } from "../lib/x-drafts/source-build";
+import { X_DRAFT_OMISSION_MARKER, X_DRAFT_SOURCE_ALLOWLIST, type XDraftSourceSpec } from "../lib/x-drafts/sources";
 import { normalizeForMatch, similarity, validateCandidates, type ExistingPost } from "../lib/x-drafts/validate";
 
 let passed = 0;
@@ -104,7 +105,7 @@ function testSources() {
   assert(committed === renderXDraftSnapshotModule(buildXDraftSources()), "committed source snapshot matches the allowlisted files (no drift)");
   assert(X_DRAFT_SOURCES.length === X_DRAFT_SOURCE_ALLOWLIST.length, "snapshot has exactly the allowlisted sources");
   assert(new Set(X_DRAFT_SOURCES.map((s) => s.id)).size === X_DRAFT_SOURCES.length, "source IDs are unique");
-  const allowedOrigin = /^(content\/science\/[a-z0-9-]+\.mdx|lib\/content\/guides-data\.ts#[a-z0-9-]+|lib\/content\/testing-scope\.ts#TESTING_SCOPE_STATEMENT|ops-knowledge\/compliance\/(claims-rules|prohibited-content)\.md \(.+\))$/;
+  const allowedOrigin = /^(content\/science\/[a-z0-9-]+\.mdx \(selected verbatim passages\)|lib\/content\/testing-scope\.ts#TESTING_SCOPE_STATEMENT|ops-knowledge\/compliance\/(claims-rules|prohibited-content)\.md \(.+\))$/;
   for (const s of X_DRAFT_SOURCES) {
     assert(allowedOrigin.test(s.origin), `${s.id}: origin ${s.origin} is on the allowlist paths`);
     assert(!/<\/?source|<\/?recent_queue/i.test(s.text), `${s.id}: cannot close or open prompt blocks`);
@@ -112,7 +113,58 @@ function testSources() {
     assert(emails.length === 0, `${s.id}: no personal email addresses`);
     assert(!/\bPSL-\d{3,}|\border\s*#?\s*\d{3,}|\b(tracking|address|phone)\b/i.test(s.text), `${s.id}: no order or customer details`);
     assert(s.kind === "guidance" ? s.url === null : true, `${s.id}: guidance is never linkable`);
-    if (s.url) assert(/^https:\/\/www\.psllabs\.org\/(science|guides)\/[a-z0-9-]+$/.test(s.url), `${s.id}: url is a public PSL page`);
+    if (s.url) assert(/^https:\/\/www\.psllabs\.org\/science\/[a-z0-9-]+$/.test(s.url), `${s.id}: url is a public PSL science page`);
+  }
+
+  assert(
+    JSON.stringify(X_DRAFT_SOURCES.map((s) => s.id)) ===
+      JSON.stringify([
+        "science:how-to-read-a-coa",
+        "science:third-party-testing-explained",
+        "statement:testing-scope",
+        "guidance:claims-rules",
+        "guidance:prohibited-content",
+      ]),
+    "first-run packet is exactly the two article passage sets, the testing-scope statement, and two guidance sources"
+  );
+  assert(!X_DRAFT_SOURCES.some((s) => s.id.startsWith("guide:") || /guides-data|\/guides\//.test(`${s.origin} ${s.url}`)), "guide metadata is not in the packet");
+  const evidenceText = X_DRAFT_SOURCES.filter((s) => s.kind === "evidence").map((s) => s.text).join("\n");
+  for (const excluded of ["Retatrutide", "Black Top", "199788", "10mg", "e.g.", "Verify with Janoshik", "PSL documentation workflow", "Product name and SKU"]) {
+    assert(!evidenceText.includes(excluded), `excluded example or section absent from evidence: ${excluded}`);
+  }
+  const productNames = Object.values(products).map((p) => p.name);
+  assert(!productNames.some((name) => new RegExp(`(^|[^A-Za-z0-9])${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}($|[^A-Za-z0-9])`).test(evidenceText)), "no product or compound names in evidence");
+  assert(!/\d/.test(evidenceText.replace(/^\d\. /gm, "")), "no numbers in evidence other than step numbering");
+
+  const passageSpecs = X_DRAFT_SOURCE_ALLOWLIST.filter((s) => s.select.type === "mdx-passages");
+  assert(passageSpecs.length === 2, "both articles use verbatim passage selection");
+  for (const spec of passageSpecs) {
+    if (spec.select.type !== "mdx-passages") continue;
+    const file = readFileSync(join(process.cwd(), spec.select.file), "utf8").replace(/\r\n?/g, "\n");
+    const built = X_DRAFT_SOURCES.find((s) => s.id === spec.id)!;
+    for (const p of spec.select.passages) {
+      assert(file.includes(p.text) && built.text.includes(p.text), `${spec.id}: passage is verbatim in the article and the snapshot (${p.text.slice(0, 40)}…)`);
+    }
+    assert(built.text.includes(X_DRAFT_OMISSION_MARKER), `${spec.id}: omitted article text is marked`);
+    const altered: XDraftSourceSpec = {
+      ...spec,
+      select: { ...spec.select, passages: [{ heading: null, text: spec.select.passages[0].text.replace("specific", "every") }] },
+    };
+    let refused = false;
+    try {
+      buildXDraftSource(altered);
+    } catch {
+      refused = true;
+    }
+    assert(refused, `${spec.id}: builder refuses a reworded passage`);
+    const misplaced: XDraftSourceSpec = { ...spec, select: { ...spec.select, passages: [{ heading: spec.select.passages.at(-1)!.heading, text: spec.select.passages[0].text }] } };
+    refused = false;
+    try {
+      buildXDraftSource(misplaced);
+    } catch {
+      refused = true;
+    }
+    assert(refused, `${spec.id}: builder refuses a passage outside its stated section`);
   }
   const claims = X_DRAFT_SOURCES.find((s) => s.id === "guidance:claims-rules")!;
   assert(!/Historical structure\/function|Supports cellular health/.test(claims.text), "legacy structure/function examples are excluded");
@@ -165,7 +217,24 @@ function testTokensAndPrompt() {
 
 const COA = "science:how-to-read-a-coa";
 const VERIFY = "science:third-party-testing-explained";
+/** Guide-metadata sources that were in the first packet draft and are now removed. */
+const REMOVED_GUIDES = [
+  "guide:peptide-identity-vs-purity-vs-content",
+  "guide:verify-peptide-laboratory-report",
+  "guide:peptide-purity-vs-content",
+  "guide:batch-specific-vs-generic-coa",
+  "guide:what-peptide-testing-can-establish",
+  "guide:verify-peptide-coa",
+  "guide:peptide-purity-percentages",
+];
 const PURITY = "guide:peptide-purity-vs-content";
+const purityCandidate = {
+  text: "What does a 99% HPLC purity number measure? Purity is not the same as how much material is in the vial.",
+  sourceIds: [PURITY],
+  excerpt: { sourceId: PURITY, quote: "What a 99% purity number really measures, why the test method changes the result" },
+  purpose: "What does a purity percentage measure?",
+  warnings: [],
+};
 
 const good = {
   text: "A COA is an original laboratory report for a specific sample and batch. Results apply only to the tested sample identified in that report — not to other lots.",
@@ -195,6 +264,11 @@ function testValidator() {
   const refs = ok.prepared!.refs;
   assert(refs.length <= X_LIMITS.maxSourceRefs && refs.every((r) => r.length <= X_LIMITS.maxSourceRefLength), "provenance fits source_refs limits");
   assert(refs[0].startsWith(X_DRAFT_AI_LABEL) && refs[0].includes(BATCH) && refs[0].includes("test-model"), "first ref labels AI-assisted, batch, model");
+  assert(
+    /source excerpt present; heuristic checks passed; owner review required — not verified, not approved/.test(refs[0]),
+    "first ref separates excerpt present / heuristic checks / owner review, and disclaims verification and approval"
+  );
+  assert(!refs.some((r) => /\b(verified|fact-checked|compliant|approved)\b/i.test(r.replace(/not verified, not approved/, ""))), "refs never claim verification, compliance, or approval");
   assert(refs.some((r) => r.startsWith("Purpose: ")) && refs.some((r) => r.startsWith(`Excerpt [${COA}]`)) && refs.some((r) => r.includes("https://www.psllabs.org/science/how-to-read-a-coa")), "refs carry purpose, excerpt, and source URL");
   assert(refs.some((r) => /not a factual or legal review/.test(r)), "refs disclaim factual/legal review");
 
@@ -211,9 +285,25 @@ function testValidator() {
   assert(/missing_purpose/.test(reasons({ purpose: "" })), "purpose required");
 
   assert(/unsupported_number: 98/.test(reasons({ text: "A 98% purity figure applies only to the tested sample identified in that report." })), "invented value blocked");
-  const purityOk = { sourceIds: [PURITY], excerpt: { sourceId: PURITY, quote: "What a 99% purity number really measures, why the test method changes the result" } };
-  assert(reasons({ ...purityOk, text: "What does a 99% HPLC purity number measure? The test method changes the result, and purity is not the same as how much peptide is in the vial." }) === "", "value and method present in the cited guide are allowed");
-  assert(/contains_number/.test(warns({ ...purityOk, text: "What does a 99% purity number measure? Purity is not the same as how much peptide is in the vial." })), "numbers still flagged for review");
+  assert(
+    /contains_number/.test(warns({ text: "Step 1: find the lot or batch identifier on your vial label or packaging. Results apply only to the tested sample identified in that report." })),
+    "numbers present in the evidence are still flagged for review"
+  );
+
+  for (const id of REMOVED_GUIDES) {
+    const r = run([{ ...purityCandidate, sourceIds: [id], excerpt: { sourceId: id, quote: purityCandidate.excerpt.quote } }]).verdicts[0];
+    assert(!r.prepared && /unrecognized_source/.test(r.blockReasons.join()) && /no_evidence_source/.test(r.blockReasons.join()), `removed metadata-only source ${id} cannot be cited`);
+  }
+  const mixed = reasons({ sourceIds: [COA, PURITY] });
+  assert(/unrecognized_source: guide:peptide-purity-vs-content/.test(mixed), "a removed guide alongside a valid source still blocks the candidate");
+  const purityViaCoa = reasons({ ...purityCandidate, sourceIds: [COA], excerpt: good.excerpt });
+  assert(/unsupported_number: 99/.test(purityViaCoa) && /unsupported_testing_capability: "HPLC"/.test(purityViaCoa), "the former guide's value and method are no longer supported evidence");
+  assert(/link_not_cited_source/.test(reasons({ text: "Results apply only to the tested sample. https://www.psllabs.org/guides/peptide-purity-vs-content" })), "removed guide pages cannot be linked");
+  assert(/unsupported_number: 199788/.test(reasons({ text: "Task 199788 applies only to the tested sample identified in that report." })), "excluded historical task number blocked");
+  assert(
+    /excerpt_spans_omission/.test(reasons({ excerpt: { sourceId: COA, quote: `not a retyped summary.\n\n${X_DRAFT_OMISSION_MARKER}\n\n## Read the fields` } })),
+    "an excerpt cannot cross omitted article text"
+  );
   assert(/unsupported_number: 2026/.test(reasons({ text: "Published in 2026: results apply only to the tested sample identified in that report." })), "publication dates not in evidence blocked");
 
   assert(/link_not_cited_source/.test(reasons({ text: "Results apply only to the tested sample. https://www.psllabs.org/guides/verify-peptide-coa" })), "uncited own link blocked");
@@ -234,7 +324,10 @@ function testValidator() {
   assert(/unsupported_credential/.test(reasons({ text: "Our ISO 17025 accredited process: results apply only to the tested sample." })), "unsupported accreditation blocked");
   assert(/unsupported_credential/.test(reasons({ text: "Our scientists note results apply only to the tested sample." })), "unsupported scientific credentials blocked");
   assert(/unsupported_testing_capability: "NMR"/.test(reasons({ text: "NMR results apply only to the tested sample identified in that report." })), "test methods absent from the evidence blocked");
-  assert(/names_product_or_compound: Retatrutide/.test(warns({ text: "A published Retatrutide report may include the analysis date. Results apply only to the tested sample identified in that report." })), "named compound flagged for review");
+  assert(
+    /unsupported_product_reference: Retatrutide/.test(reasons({ text: "A published Retatrutide report may include the analysis date. Results apply only to the tested sample identified in that report." })),
+    "compound named without support in the cited evidence blocked"
+  );
   assert(/names_laboratory: Janoshik/.test(warns({ sourceIds: [VERIFY], excerpt: { sourceId: VERIFY, quote: "Janoshik reports include a verification key on the document" }, text: "Janoshik reports include a verification key on the document. Enter it exactly as printed on the original." })), "named laboratory flagged for review");
   assert(/model: check tone/.test(warns({ warnings: ["check tone"] })), "model warnings carried to review");
 
@@ -345,6 +438,19 @@ async function testHandler() {
   );
   assert(fake.calls.some((c) => /pg_advisory_xact_lock/.test(c.text)), "insert runs under the queue lock");
 
+  fake = createFakeSql();
+  __setSqlClientForTests(fake.sql);
+  const guideBatch = await call(
+    req("batch", body({ modelOutput: JSON.stringify({ candidates: [purityCandidate, { ...good, sourceIds: [COA, "guide:verify-peptide-coa"] }] }) })),
+    "batch"
+  );
+  const guideCounts = guideBatch.body.counts as Record<string, number>;
+  assert(
+    guideBatch.status === 200 && guideCounts.saved === 0 && guideCounts.blocked === 2 && /unrecognized_source: guide:/.test(JSON.stringify(guideBatch.body.blocked)),
+    "submitted candidates citing removed guide metadata are blocked"
+  );
+  assert(!writes(fake.calls).some((c) => /^INSERT INTO x_publishing_posts/.test(c.text)), "no draft inserted for removed-source citations");
+
   fake = createFakeSql({ insertSucceeds: false, existingById: { [draftItemId(BATCH, 1)]: { text_hash: textHash(X_ACCOUNT_ID, good.text), is_test: true, created_by: X_DRAFT_ASSISTANT_ACTOR } } });
   __setSqlClientForTests(fake.sql);
   const replay = await call(req("batch", body()), "batch");
@@ -434,6 +540,17 @@ function testWorkflow() {
   );
   assert(readme.includes("PSL X Drafts") && readme.includes("PSL X Draft Model") && readme.includes("X_DRAFT_ASSISTANT_TOKEN"), "README names credentials and token");
   for (const s of X_DRAFT_SOURCES) assert(readme.includes(s.id), `README lists source ${s.id}`);
+  assert(/Source excerpt present/.test(readme) && /Heuristic checks passed/.test(readme) && /Owner review still required/.test(readme), "README separates excerpt present / heuristic checks / owner review");
+
+  const notes = String(wf.nodes.find((n) => n.type === "n8n-nodes-base.stickyNote")?.parameters.content);
+  for (const [label, text] of [["README", readme], ["sticky note", notes]] as const) {
+    assert(/non-default/i.test(text) && /workspace/i.test(text) && /monthly/i.test(text), `${label}: dedicated non-default workspace with a monthly spend limit`);
+    assert(!/(spend|spending) limit (on|for) (the |a |your )?(dedicated )?key\b|key with a spend limit|key\/workspace/i.test(text), `${label}: no per-key spend-limit instruction`);
+    assert(/not (on individual API keys|offer a per-key)|no per-key limit/i.test(text), `${label}: states that spend limits are not per key`);
+    assert(/10.{0,20}(saved )?drafts?.{0,40}(not|is not).{0,20}(model )?spend/i.test(text.replace(/\*\*/g, "")), `${label}: distinguishes the saved-drafts cap from model spend`);
+  }
+  assert(/Do not add a Schedule trigger/i.test(notes) && /manual-only/i.test(notes), "sticky: manual-only pilot");
+  assert(!/Schedule Trigger \(for example weekly\)/.test(readme) && /Manual-only pilot/.test(readme), "README: no scheduling suggestion for the pilot");
 }
 
 async function main() {
