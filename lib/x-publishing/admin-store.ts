@@ -57,21 +57,30 @@ export type SaveDraftInput = {
   now: Date;
 };
 
+export type PreparedDraft = { text: string; refs: string[]; textHash: string };
+
+/** Normalization and storage limits shared by every draft writer (admin UI and the draft assistant). */
+export function prepareDraft(rawText: string, sourceRefs: string[]): { ok: true; value: PreparedDraft } | { ok: false; error: string } {
+  const text = normalizeDraftText(rawText);
+  if (text.length === 0) return { ok: false, error: "Text is required." };
+  if (text.length > X_DRAFT_MAX_CHARS) return { ok: false, error: `Text exceeds ${X_DRAFT_MAX_CHARS} characters.` };
+  const refs = sourceRefs.map((s) => s.normalize("NFC").trim()).filter(Boolean);
+  if (refs.length > X_LIMITS.maxSourceRefs || refs.some((r) => r.length > X_LIMITS.maxSourceRefLength)) {
+    return { ok: false, error: `At most ${X_LIMITS.maxSourceRefs} source references of ${X_LIMITS.maxSourceRefLength} characters.` };
+  }
+  return { ok: true, value: { text, refs, textHash: textHash(X_ACCOUNT_ID, text) } };
+}
+
 export async function saveXDraft(input: SaveDraftInput): Promise<XResult> {
-  const text = normalizeDraftText(input.text);
-  if (text.length === 0) return fail(400, "Text is required.");
-  if (text.length > X_DRAFT_MAX_CHARS) return fail(400, `Text exceeds ${X_DRAFT_MAX_CHARS} characters.`);
+  const prepared = prepareDraft(input.text, input.sourceRefs);
+  if (!prepared.ok) return fail(400, prepared.error);
+  const { text, refs, textHash: th } = prepared.value;
   let scheduledFor: string | null = null;
   if (input.scheduledForLocal) {
     const d = parsePhoenixLocal(input.scheduledForLocal);
     if (!d) return fail(400, "Invalid Phoenix date/time.");
     scheduledFor = d.toISOString();
   }
-  const refs = input.sourceRefs.map((s) => s.normalize("NFC").trim()).filter(Boolean);
-  if (refs.length > X_LIMITS.maxSourceRefs || refs.some((r) => r.length > X_LIMITS.maxSourceRefLength)) {
-    return fail(400, `At most ${X_LIMITS.maxSourceRefs} source references of ${X_LIMITS.maxSourceRefLength} characters.`);
-  }
-  const th = textHash(X_ACCOUNT_ID, text);
   const now = input.now.toISOString();
 
   if (!input.id) {

@@ -30,9 +30,10 @@ function isTrue(value: string | undefined): boolean {
 
 const OTHER_SECRET_NAME_RE = /SECRET|PASSWORD|TOKEN|API_KEY|PRIVATE|DATABASE_URL|POSTGRES/i;
 
-function reusesAnotherSecret(token: string, env: Env): boolean {
+/** True when `token` equals or is contained in any other secret-like variable (never compares `ownName`). */
+export function reusesAnotherSecret(token: string, env: Env, ownName = "X_PUBLISHER_TOKEN"): boolean {
   return Object.entries(env).some(([name, value]) => {
-    if (name === "X_PUBLISHER_TOKEN" || !OTHER_SECRET_NAME_RE.test(name)) return false;
+    if (name === ownName || !OTHER_SECRET_NAME_RE.test(name)) return false;
     const v = value?.trim();
     return Boolean(v) && (v === token || v!.includes(token));
   });

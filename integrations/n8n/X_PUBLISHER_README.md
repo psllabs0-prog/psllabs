@@ -1,9 +1,17 @@
 # n8n → X approved publishing (B2)
 
-`psl-x-publisher.workflow.json` publishes **owner-approved** original text
-posts to **@PSLLabspurity** (X user ID `"2094368418443280384"`, always a
-string). It is imported **inactive**, has a **Manual Trigger only**, and
-contains no credentials, credential IDs, tokens, or account IDs.
+The X publisher posts **owner-approved** original text posts to
+**@PSLLabspurity** (X user ID `"2094368418443280384"`, always a string).
+Two exports are kept here. Neither contains credentials, credential IDs,
+tokens, or account IDs:
+
+| File | What it is |
+|---|---|
+| `PSL_X_Publisher_Scheduled.workflow.json` | The owner's export of the publisher **running in n8n**: Manual Trigger **and** a Schedule Trigger at :00 and :30 (America/Phoenix). Committed unchanged as the record of the production workflow. See [section 8](#8-scheduled-publisher-running-in-n8n) |
+| `psl-x-publisher.workflow.json` | The original manual-only workflow (sections 3–7). It is the reference that the scheduled export was built from, and a manual fallback |
+
+Both files import **inactive**. The running n8n copy is the live one. Do not
+re-import either file over it.
 
 Owner flow: save draft in `/admin-social` → review the exact text, account,
 and time → approve → n8n publishes the approved version when due → X's
@@ -81,8 +89,10 @@ Do not reuse `PSL Mission Control n8n` (B1) here, and do not use
 ## 4. Import and bind
 
 1. **Workflows → Import from File** → `psl-x-publisher.workflow.json`. It
-   imports inactive with a Manual Trigger. Do not add Schedule/Cron/Webhook
-   triggers yet.
+   imports inactive with a Manual Trigger only. (Its sticky note predates the
+   schedule. The scheduled version is a separate workflow; see section 8.
+   Do not add a trigger to this one, and do not run two scheduled
+   publishers.)
 2. Open **Config** and set `pslBaseUrl` to the Production HTTPS origin (no
    path, no trailing slash). The **Config valid?** node stops the run
    otherwise.
@@ -198,6 +208,9 @@ disabled: `npm run test:x-publishing-db` (see `scripts/test-x-publishing-db.ts`)
 
 ## 7. First live post (manual acceptance)
 
+This acceptance has been completed: a manual run published to X. The steps
+are kept for reference and for re-acceptance after major changes.
+
 1. Owner runs the migration against Production and sets the three Vercel
    variables above, then redeploys.
 2. In `/admin-social`: confirm "Live publishing enabled", the account ID, and
@@ -214,16 +227,79 @@ disabled: `npm run test:x-publishing-db` (see `scripts/test-x-publishing-db.ts`)
    at **created on X, lookup not confirmed**, the post ID is recorded; do not
    post again.
 
-## 8. Future schedule (not enabled)
+## 8. Scheduled publisher (running in n8n)
 
-A later change may add a Schedule Trigger every 30 minutes (matching the
-slots) and send `trigger: 'schedule'`. That is about 48 runs a day, roughly
-1,440 executions a month (a planning count only; most runs end at "Nothing
-due" with zero X calls). There is no Vercel posting cron.
+Source: `PSL_X_Publisher_Scheduled.workflow.json`, the owner's export of the
+workflow that runs in n8n, committed byte for byte. Everything below is read
+from that file. The running n8n copy is authoritative. Do not overwrite it
+by re-importing, and change it only in n8n (then re-export here).
+
+- **Name:** "PSL X publisher - scheduled + manual (Phoenix)". The export has
+  `"active": false`. n8n always writes that into exports, and it does **not**
+  mean the running copy is off.
+- **Workflow settings:** `executionOrder: v1`, `timezone: America/Phoenix`.
+- **Triggers:** a Manual Trigger, and a Schedule Trigger with cron
+  expression `0,30 * * * *`. That runs at :00 and :30 every hour in the
+  workflow time zone (Phoenix; no DST). This is 48 timer executions a day,
+  about 1,440 per 30 days. Manual runs and other workflows are extra.
+- **Run labelling:** each trigger goes to its own Set node before **Config**:
+  - *Manual run type* sets `runTrigger = "manual"`.
+  - *Scheduled run type* sets `runTrigger = "schedule"`.
+  - **Config** carries `runTrigger` and sets `pslBaseUrl` to
+    `https://www.psllabs.org`.
+  - **Config valid?** also requires `runTrigger` to be `manual` or
+    `schedule`.
+  - **Claim work** sends `mode: 'live'` with
+    `trigger: $('Config').first().json.runTrigger`.
+- **Everything from Claim work onward is unchanged** from
+  `psl-x-publisher.workflow.json`: the same nodes, parameters, connections,
+  and retry settings. In particular, Create Post never retries, and permit and
+  claim requests are not retried. Only the sticky note, **Config**,
+  **Config valid?**, **Stop: invalid config** (its message), and the claim
+  body differ.
+- **Credentials:** the same two, selected in n8n on the 8 HTTP nodes:
+  - **PSL X Queue** (Header Auth) on Claim work, Report account check, Request
+    dispatch permit, Report create result, and Report lookup evidence.
+  - **PSL X Publishing** (generic OAuth2) on Get authenticated X account,
+    Create Post on X, and Look up post on X.
+
+### Scheduled nodes (35 total: 8 HTTP Request, 8 IF, 9 Stop and Error, 5 Set, 2 No-Op, 1 Manual Trigger, 1 Schedule Trigger, 1 Sticky Note)
+
+These are the 32 manual-workflow nodes plus three: Schedule Trigger, Manual
+run type, and Scheduled run type.
+
+### What the timer does and does not do
+
+- Each run claims at most one unit of work under the server rules in section
+  5. Most runs find nothing due and end at "Nothing due (no X calls)" with
+  zero X API calls.
+- **Server behaviour by trigger:**
+  - A scheduled run (`trigger: schedule`) publishes only approved posts whose
+    scheduled slot is due.
+  - "Approve for next manual run" items are served only to
+    `trigger: manual`.
+  - Pause, approval, account, and daily-cap checks all stay on PSL.
+- The timer checks the queue. It never creates, edits, or approves
+  content. Proposed drafts from the draft assistant
+  (`X_DRAFT_ASSISTANT_README.md`) are unapproved and are never claimed.
+- **Operating rules** (from the export's setup note):
+  - Keep exactly one scheduled publisher.
+  - Do not replay old executions, pin response data, or run Create Post by
+    itself.
+  - "Outcome unknown" means review, never a blind repost.
+  - To change the workflow:
+    1. Pause new dispatches in `/admin-social`.
+    2. Import the change as a **new** workflow and attach the credentials.
+    3. Unpublish the old workflow before publishing the new one.
+    4. Check the first automatic execution with nothing due.
+
+There is no Vercel posting cron.
 
 ## Turning it off
 
-Unset `X_PUBLISHING_ENABLED` (live claims and permits return 503), or pause
-in `/admin-social` (no new permits). Result and lookup reports are still
-accepted so in-flight evidence is not lost. Unset `X_PUBLISHER_TOKEN` to
-disable every machine endpoint.
+- Unset `X_PUBLISHING_ENABLED`: live claims and permits return 503.
+- Or pause in `/admin-social`: no new permits.
+- Or deactivate (unpublish) the scheduled workflow in n8n.
+
+Result and lookup reports are still accepted so in-flight evidence is not
+lost. Unset `X_PUBLISHER_TOKEN` to disable every machine endpoint.

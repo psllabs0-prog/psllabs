@@ -15,6 +15,7 @@ export const X_EVENT_TYPES = {
   identityMismatch: "x_account_mismatch",
   paused: "x_publishing_paused",
   resumed: "x_publishing_resumed",
+  draftsProposed: "x_drafts_proposed",
 } as const;
 
 export type XEventType = (typeof X_EVENT_TYPES)[keyof typeof X_EVENT_TYPES];

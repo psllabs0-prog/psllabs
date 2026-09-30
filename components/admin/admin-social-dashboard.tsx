@@ -7,6 +7,7 @@ import type { XGate, XAdminMode } from "@/lib/x-publishing/config";
 import type { XDisplayState } from "@/lib/x-publishing/constants";
 import { checkPostText, normalizeDraftText } from "@/lib/x-publishing/content";
 import type { XSection } from "@/lib/x-publishing/reads";
+import { X_DRAFT_ASSISTANT_ACTOR } from "@/lib/x-drafts/constants";
 
 type Payload = {
   now: string;
@@ -399,6 +400,9 @@ function PostCard({ post, data, busy, readOnly, run, onEdit }: CardProps & { pos
         <span className={`rounded px-2 py-0.5 text-xs ${STATE_STYLE[post.displayState]}`}>{post.displayLabel}</span>
         {post.reviewRequired && <span className="rounded bg-orange-100 px-2 py-0.5 text-xs text-orange-900">Review required</span>}
         {post.isTest && <span className="rounded bg-zinc-100 px-1 text-xs text-zinc-600">TEST</span>}
+        {post.createdBy === X_DRAFT_ASSISTANT_ACTOR && (
+          <span className="rounded bg-violet-100 px-2 py-0.5 text-xs text-violet-900">AI-assisted — owner review required</span>
+        )}
         <span className="font-mono text-xs text-ash">queue {post.id} · revision {post.revision}</span>
       </div>
       <pre className="mt-2 whitespace-pre-wrap break-words rounded border border-zinc-200 bg-white p-2 font-mono text-sm text-ink">{post.text}</pre>
@@ -408,7 +412,37 @@ function PostCard({ post, data, busy, readOnly, run, onEdit }: CardProps & { pos
         {post.scheduledForPhoenix ?? "— no time chosen"}
         {post.expiresAtPhoenix ? ` · approval expires ${post.expiresAtPhoenix}` : ""}
       </p>
-      {post.sourceRefs.length > 0 && <p className="mt-1 text-xs text-ash">Sources (internal): {post.sourceRefs.join(" · ")}</p>}
+      {post.sourceRefs.length > 0 &&
+        (post.createdBy === X_DRAFT_ASSISTANT_ACTOR ? (
+          <div className="mt-1 text-xs text-ash">
+            <ul className="mb-1 ml-4 list-disc text-ink">
+              <li>
+                <strong>Source excerpt present:</strong> the quoted words appear in the cited approved source. This shows where the
+                wording came from; it is not a factual check of the post.
+              </li>
+              <li>
+                <strong>Heuristic checks passed:</strong> keyword and source-matching rules only — not factual, legal, or regulatory
+                verification.
+              </li>
+              <li>
+                <strong>Owner review:</strong>{" "}
+                {post.status === "draft"
+                  ? "still required. This draft is not approved and nothing is scheduled."
+                  : "see the status above; the assistant never approves or schedules anything."}
+              </li>
+            </ul>
+            <p>Provenance (internal, never posted) — compare the post and excerpt with the source before approving:</p>
+            <ul className="ml-4 list-disc">
+              {post.sourceRefs.map((ref, i) => (
+                <li key={i} className="break-words">
+                  {ref}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="mt-1 text-xs text-ash">Sources (internal): {post.sourceRefs.join(" · ")}</p>
+        ))}
       <div className="mt-1">
         <IssueList check={post.check} />
       </div>

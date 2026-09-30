@@ -489,7 +489,12 @@ function testWorkflowWording() {
 }
 
 type N8nNode = { name: string; type: string; parameters: Record<string, unknown>; retryOnFail?: boolean; credentials?: unknown; onError?: string };
-type N8nWorkflow = { active: boolean; nodes: N8nNode[]; connections: Record<string, { main: Array<Array<{ node: string }>> }> };
+type N8nWorkflow = {
+  active: boolean;
+  settings?: Record<string, unknown>;
+  nodes: N8nNode[];
+  connections: Record<string, { main: Array<Array<{ node: string }>> }>;
+};
 
 function loadWorkflow(file: string): { wf: N8nWorkflow; raw: string } {
   const raw = readFileSync(join(process.cwd(), "integrations/n8n", file), "utf8");
@@ -604,6 +609,71 @@ function testWorkflows() {
   assert(dryClaim.includes("mode: 'dry_run'") && !dryClaim.includes("mode: 'live'"), "dry-run claims only dry_run (TEST) work");
 }
 
+/** The owner's export of the running scheduled publisher: record-only checks; the file itself is never modified. */
+function testScheduledExport() {
+  const { wf, raw } = loadWorkflow("PSL_X_Publisher_Scheduled.workflow.json");
+  const manual = loadWorkflow("psl-x-publisher.workflow.json").wf;
+  const label = "scheduled export";
+  assert(wf.active === false, `${label}: file imports inactive`);
+  assert(wf.settings?.timezone === "America/Phoenix" && wf.settings?.executionOrder === "v1", `${label}: Phoenix workflow time zone`);
+  const triggers = wf.nodes.filter((n) => /trigger|webhook|cron|schedule/i.test(n.type));
+  assert(
+    triggers.length === 2 &&
+      triggers.some((t) => t.type === "n8n-nodes-base.manualTrigger") &&
+      triggers.some((t) => t.type === "n8n-nodes-base.scheduleTrigger"),
+    `${label}: Manual Trigger and one Schedule Trigger only (no webhook)`
+  );
+  const schedule = triggers.find((t) => t.type === "n8n-nodes-base.scheduleTrigger")!;
+  assert(
+    JSON.stringify(schedule.parameters) === JSON.stringify({ rule: { interval: [{ field: "cronExpression", expression: "0,30 * * * *" }] } }),
+    `${label}: cron 0,30 * * * * (:00 and :30)`
+  );
+  assert(!/"credentials"\s*:/.test(raw), `${label}: no credential blocks or IDs`);
+  assert(!raw.includes(X_ACCOUNT_ID) && !/\d{15,}/.test(raw), `${label}: no account or post IDs embedded`);
+  assert(!/Bearer\s+[A-Za-z0-9]/.test(raw) && !/client_?secret|access_?token|refresh_?token/i.test(raw), `${label}: no secrets`);
+  assert(!wf.nodes.some((n) => /langchain|openAi|anthropic|lmChat|agent|\.code$|function/i.test(n.type)), `${label}: no LLM or code nodes`);
+
+  const runType = (name: string) =>
+    JSON.stringify((wf.nodes.find((n) => n.name === name)?.parameters.assignments as { assignments?: Array<{ name: string; value: unknown }> })?.assignments?.map((a) => [a.name, a.value]));
+  assert(runType("Manual run type") === JSON.stringify([["runTrigger", "manual"]]), `${label}: manual runs labelled manual`);
+  assert(runType("Scheduled run type") === JSON.stringify([["runTrigger", "schedule"]]), `${label}: timer runs labelled schedule`);
+  const outs = (w: N8nWorkflow, name: string) => JSON.stringify((w.connections[name]?.main ?? []).map((o) => o.map((t) => t.node)));
+  assert(outs(wf, "Manual Trigger") === JSON.stringify([["Manual run type"]]) && outs(wf, "Schedule Trigger") === JSON.stringify([["Scheduled run type"]]), `${label}: each trigger labels its run`);
+  assert(outs(wf, "Manual run type") === JSON.stringify([["Config"]]) && outs(wf, "Scheduled run type") === JSON.stringify([["Config"]]), `${label}: both labels feed Config`);
+  const configValid = JSON.stringify(wf.nodes.find((n) => n.name === "Config valid?")?.parameters);
+  assert(configValid.includes("$json.runTrigger === 'manual' || $json.runTrigger === 'schedule'"), `${label}: Config valid? requires a known trigger`);
+
+  const claim = (w: N8nWorkflow) => String(w.nodes.find((n) => n.name === "Claim work")?.parameters.jsonBody);
+  assert(
+    claim(manual).replace("trigger: 'manual'", "trigger: $('Config').first().json.runTrigger") === claim(wf),
+    `${label}: claim body differs from the manual workflow only in the trigger label`
+  );
+  const shape = (n: N8nNode & Record<string, unknown>) =>
+    JSON.stringify([n.type, n.typeVersion, n.parameters, n.retryOnFail, n.maxTries, n.waitBetweenTries, n.onError]);
+  const changed = new Set(["Setup notes", "Manual Trigger", "Config", "Config valid?", "Stop: invalid config", "Claim work"]);
+  for (const n of manual.nodes.filter((x) => !changed.has(x.name))) {
+    const s = wf.nodes.find((x) => x.name === n.name);
+    assert(s && shape(s as N8nNode & Record<string, unknown>) === shape(n as N8nNode & Record<string, unknown>), `${label}: ${n.name} identical to the manual workflow`);
+  }
+  for (const from of Object.keys(manual.connections).filter((f) => f !== "Manual Trigger")) {
+    assert(outs(wf, from) === outs(manual, from), `${label}: connections from ${from} unchanged`);
+  }
+  const create = wf.nodes.find((n) => n.name === "Create Post on X")!;
+  assert(create.retryOnFail === false && predecessors(wf, "Create Post on X").every((p) => p.from === "Permit issued?" && p.output === 0), `${label}: Create Post only after a permit, never retried`);
+
+  const readme = readFileSync(join(process.cwd(), "integrations/n8n/X_PUBLISHER_README.md"), "utf8");
+  const m = /### Scheduled nodes \((\d+) total: (\d+) HTTP Request, (\d+) IF, (\d+) Stop and Error, (\d+) Set, (\d+) No-Op, (\d+) Manual Trigger, (\d+) Schedule Trigger, (\d+) Sticky Note\)/.exec(readme);
+  assert(m, "README states scheduled node counts");
+  const byType = (t: string) => wf.nodes.filter((n) => n.type === `n8n-nodes-base.${t}`).length;
+  const [total, http, ifs, stop, set, noop, manualT, scheduleT, sticky] = m.slice(1).map(Number);
+  assert(
+    wf.nodes.length === total && byType("httpRequest") === http && byType("if") === ifs && byType("stopAndError") === stop && byType("set") === set &&
+      byType("noOp") === noop && byType("manualTrigger") === manualT && byType("scheduleTrigger") === scheduleT && byType("stickyNote") === sticky,
+    `README scheduled counts = export (${wf.nodes.length} nodes)`
+  );
+  assert(readme.includes("0,30 * * * *") && readme.includes("America/Phoenix") && !/Future schedule \(not enabled\)/.test(readme), "README documents the running schedule, not a future one");
+}
+
 async function main() {
   testIdentityStrings();
   testTime();
@@ -619,6 +689,7 @@ async function main() {
   testDerivedStates();
   testWorkflows();
   testWorkflowWording();
+  testScheduledExport();
   assert(X_LIMITS.createDispatchesPerPhoenixDay === 1 && X_LIMITS.postsPerWorkflowRun === 1 && X_LIMITS.slotMinutes === 30 && X_LIMITS.expiryMinutesAfterScheduled === 60, "documented defaults");
   console.log(`[x-publishing] ${passed} offline (mocked) assertions passed.`);
 }
