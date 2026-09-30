@@ -9,7 +9,9 @@ import {
   scheduleProblem,
   setReconcileCandidate,
   setXPaused,
+  setXSchedule,
 } from "./admin-store";
+import { authorizeAutopilot, autopilotViewReads, disableAutopilot, emptyAutopilotView } from "./autopilot/store";
 import { getXPublishingConfig } from "./config";
 import {
   X_ACCOUNT_HANDLE,
@@ -45,6 +47,9 @@ export const X_ADMIN_ACTOR = "admin";
 
 export const X_MIGRATION_REQUIRED =
   "X publishing tables are missing. The owner must run the explicit migration (npm run migrate-x-publishing) against the intended database. Nothing is created automatically.";
+
+export const X_AUTOPILOT_MIGRATION_REQUIRED =
+  "Autopilot tables are missing. Run the additive migration (npm run migrate-x-publishing) against the intended database first; manual publishing is unaffected.";
 
 type Env = Record<string, string | undefined>;
 
@@ -168,10 +173,14 @@ export async function handleXAdminGet(options: { env?: Env; now?: Date; query?: 
   try {
     const sql = getSql();
     const at = now.toISOString();
-    const [tallyRows, ...pages] = await readOnlySnapshot(sql, [
+    const autopilotReads = schema.autopilotReady ? autopilotViewReads(sql, { isTest, now }) : null;
+    const [tallyRows, ...rest] = await readOnlySnapshot(sql, [
       tallyQuery(sql, isTest, at),
       ...X_SECTIONS.map((s) => sectionPageQuery(sql, isTest, at, s, X_ADMIN_PAGE_SIZE[s], offsets[s])),
+      ...(autopilotReads?.queries ?? []),
     ]);
+    const pages = rest.slice(0, X_SECTIONS.length);
+    const autopilot = autopilotReads ? autopilotReads.build(rest.slice(X_SECTIONS.length)) : emptyAutopilotView(schema.autopilotMissing);
     const tally = foldTally(tallyRows);
     const pagePosts = pages.map((rows) => rows.map(mapPost));
     const ids = pagePosts.flat().map((p) => p.id);
@@ -210,6 +219,7 @@ export async function handleXAdminGet(options: { env?: Env; now?: Date; query?: 
         counts: tally.counts,
         totalPosts: tally.total,
         sections,
+        autopilot,
       },
     };
   } catch (error) {
@@ -221,7 +231,7 @@ export async function handleXAdminGet(options: { env?: Env; now?: Date; query?: 
 }
 
 function emptyRead() {
-  return { control: null, counts: {}, totalPosts: 0, sections: emptySections() };
+  return { control: null, counts: {}, totalPosts: 0, sections: emptySections(), autopilot: null };
 }
 
 /**
@@ -311,10 +321,30 @@ export async function handleXAdminPost(request: Request, options: { env?: Env; n
         now,
       });
     }
+    case "set_schedule": {
+      const id = uuidField(b.id);
+      if (!id) return bad("Invalid id.");
+      if (!Number.isInteger(b.expectedRevision)) return bad("expectedRevision must be an integer.");
+      const local = b.scheduledForLocal === null || b.scheduledForLocal === "" ? null : str(b.scheduledForLocal, 16);
+      if (b.scheduledForLocal && local === null) return bad("scheduledForLocal must be YYYY-MM-DDTHH:mm.");
+      return setXSchedule({ id, expectedRevision: b.expectedRevision as number, scheduledForLocal: local, isTest, actor, now });
+    }
     case "cancel": {
       const id = uuidField(b.id);
       if (!id) return bad("Invalid id.");
       return cancelXPost({ id, isTest, actor, now });
+    }
+    case "autopilot_authorize": {
+      if (!schema.autopilotReady) return bad(X_AUTOPILOT_MIGRATION_REQUIRED, 503);
+      const policyVersion = str(b.policyVersion, 200);
+      const libraryVersion = str(b.libraryVersion, 64);
+      if (!policyVersion || !libraryVersion) return bad("policyVersion and libraryVersion are required.");
+      const confirmations = b.confirmations && typeof b.confirmations === "object" && !Array.isArray(b.confirmations) ? (b.confirmations as Record<string, unknown>) : {};
+      return authorizeAutopilot({ isTest, environment: config.environment, actor, now, policyVersion, libraryVersion, confirmations });
+    }
+    case "autopilot_disable": {
+      if (!schema.autopilotReady) return bad(X_AUTOPILOT_MIGRATION_REQUIRED, 503);
+      return disableAutopilot({ isTest, actor, reason: str(b.reason, 300) ?? "", now });
     }
     case "pause":
     case "resume":

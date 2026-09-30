@@ -5,6 +5,7 @@ import { X_ACCOUNT_HANDLE, X_ACCOUNT_ID, X_DISPLAY_LABELS, xPostUrl, type XDispl
 import { foldTally, readOnlySnapshot, recentQuery, sectionPageQuery, tallyQuery } from "./reads";
 import { displayState, getControl, mapPost, type XControl } from "./records";
 import { getXPublishingSchemaState } from "./schema";
+import { autopilotViewReads, type XAutopilotView } from "./autopilot/store";
 
 /** Attention rows listed in Mission Control; the total is always exact and links to /admin-social for the rest. */
 export const X_PANEL_ATTENTION_LIMIT = 20;
@@ -37,6 +38,18 @@ export type XPublishingPanel = {
     updatedAt: string;
   }>;
   note: string | null;
+  autopilot: XAutopilotSummary | null;
+};
+
+export type XAutopilotSummary = {
+  available: boolean;
+  mode: XAutopilotView["mode"];
+  policyLabel: string | null;
+  remaining: number;
+  templates: number;
+  counts: XAutopilotView["counts"] | null;
+  nextSlots: Array<{ slotAtPhoenix: string; status: string }>;
+  lastSkip: { slotAtPhoenix: string; reason: string; detail: string | null } | null;
 };
 
 /** Read-only Mission Control view of the live (non-test) X queue. */
@@ -57,6 +70,7 @@ export async function readXPublishingPanel(now: Date): Promise<XPublishingPanel>
     attention: [],
     recent: [],
     note: null,
+    autopilot: null,
   };
   const schema = await getXPublishingSchemaState();
   if (!schema.initialized) {
@@ -64,11 +78,39 @@ export async function readXPublishingPanel(now: Date): Promise<XPublishingPanel>
   }
   const sql = getSql();
   const at = now.toISOString();
-  const [tallyRows, attentionRows, recentRows] = await readOnlySnapshot(sql, [
+  const autopilotReads = schema.autopilotReady ? autopilotViewReads(sql, { isTest: false, now, slotCount: 2 }) : null;
+  const [tallyRows, attentionRows, recentRows, ...autopilotRows] = await readOnlySnapshot(sql, [
     tallyQuery(sql, false, at),
     sectionPageQuery(sql, false, at, "review", X_PANEL_ATTENTION_LIMIT, 0),
     recentQuery(sql, false, at, X_PANEL_RECENT_LIMIT),
+    ...(autopilotReads?.queries ?? []),
   ]);
+  const view = autopilotReads ? autopilotReads.build(autopilotRows) : null;
+  const lastSkip = view?.recentSlots.find((s) => s.outcome === "skipped") ?? null;
+  const autopilot: XAutopilotSummary = view
+    ? {
+        available: true,
+        mode: view.mode,
+        policyLabel: view.policy.label,
+        remaining: view.remaining,
+        templates: view.library.templates.length,
+        counts: view.counts,
+        nextSlots: view.nextSlots.map((s) => ({
+          slotAtPhoenix: s.slotAtPhoenix,
+          status:
+            s.outcome === "authorized"
+              ? `authorized ${s.templateId} (${s.postStatus ?? "?"})`
+              : s.outcome === "skipped"
+                ? `skipped: ${s.reason}`
+                : view.mode === "on"
+                  ? s.expectedTemplateId
+                    ? `expected ${s.expectedTemplateId}`
+                    : "would skip: library exhausted"
+                  : "off",
+        })),
+        lastSkip: lastSkip ? { slotAtPhoenix: lastSkip.slotAtPhoenix, reason: lastSkip.reason, detail: lastSkip.detail } : null,
+      }
+    : { available: false, mode: "off", policyLabel: null, remaining: 0, templates: 0, counts: null, nextSlots: [], lastSkip: null };
   const tally = foldTally(tallyRows);
   const control = await getControl();
   const accountMismatch = control.paused && control.updatedBy === "x-publisher";
@@ -77,6 +119,7 @@ export async function readXPublishingPanel(now: Date): Promise<XPublishingPanel>
     initialized: true,
     control,
     accountMismatch,
+    autopilot,
     counts: tally.counts,
     totalPosts: tally.total,
     attentionTotal: tally.sections.review,

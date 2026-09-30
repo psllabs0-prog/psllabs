@@ -1,0 +1,58 @@
+---
+description: PSL release policy — owner-requested work finishes merged, deployed, and verified in Production
+alwaysApply: true
+---
+
+# PSL release policy
+
+Applies to work Luke requests. It does not authorize merging arbitrary,
+unrequested PRs.
+
+## Default finish
+
+Unless Luke explicitly asks for review-only work, the finish is:
+implemented → tested → merged into `main` → Production READY → verified.
+Do not stop at "branch pushed" or ask for another routine merge approval.
+
+This supersedes older task briefs or prompts that default to "push for
+review only" or "no merge/deploy without approval". A current request that
+explicitly says review-only, or withholds a specific authority, still wins.
+
+## Before merging
+
+- Use temporary branches and PRs internally when appropriate.
+- Run the relevant tests, typecheck, lint on changed files, and build.
+- Review the complete diff for unrelated changes. Never stage unrelated local
+  files; preserve them and all secrets.
+- Merge the requested work through its PR, pinned to the exact tested head
+  SHA. If `main` or the branch moved, check the combined changes and rerun the
+  affected checks before merging.
+- Never force-push, bypass required checks, or weaken tests to release.
+
+## After merging
+
+- A Vercel build alone does not prove the application tests passed.
+- Verify the resulting Production deployment: READY state, its commit SHA,
+  and that the normal custom domain serves it. Only then report the work as
+  live.
+- Do not promote an old preview that omits newer `main` changes.
+
+## Data, money, and permissions
+
+- Database tests run only against the disposable test database, never
+  Production.
+- Production migrations need explicit authorization for the task, a review of
+  the effective script, and a verified target. Stop if the migration would do
+  more than what was reviewed.
+- Code-release permission does not authorize new spending, destructive data
+  operations, broader permissions, or public content.
+- Do not turn off already-authorized, working automations just because
+  another task originally shipped them disabled.
+
+## Stopping and reporting
+
+- Stop only for a real blocker, missing authority, or unresolved risk, and
+  state exactly what blocked completion.
+- Final report: live or not live, merge commit, tests, Production deployment,
+  and any one-time activation still needed. Do not leave routine branch
+  management to Luke.

@@ -13,12 +13,22 @@ import {
   getPost,
   lockedTransaction,
   overdueDispatchStatement,
+  isStandingPolicy,
   recomputeApprovalHash,
   sqlState,
   type XAttemptRecord,
+  type XPostRecord,
   type XResult,
 } from "./records";
 import { addMinutes, phoenixDay } from "./time";
+import { claimCapacityOkSql, permitCapacityOkSql } from "./capacity";
+import {
+  activeAuthorizationGuardSql,
+  runAutopilotSlot,
+  standingPolicyProblem,
+  withdrawStandingPost,
+  type XAutopilotRun,
+} from "./autopilot/store";
 import {
   classifyCreateResult,
   verifyLookup,
@@ -83,22 +93,34 @@ export type ClaimInput = {
   trigger: "manual" | "schedule";
   executionId: string;
   now: Date;
+  /** Autopilot tables exist; only then does a scheduled claim consider the standing policy. */
+  autopilotReady?: boolean;
+  environment?: string;
 };
 
 /**
  * Housekeeping, then at most one unit of work: a due approved post (publish)
  * or a pending read-only lookup. Returns `work: null` when nothing is due, in
- * which case the workflow makes no X API calls.
+ * which case the workflow makes no X API calls. A scheduled claim first lets
+ * the standing-policy autopilot decide the current slot (at most one post).
  */
 export async function claimXWork(input: ClaimInput): Promise<XResult> {
   const isTest = input.mode === "dry_run";
+  let autopilot: XAutopilotRun | { outcome: "error" } | null = null;
+  if (input.trigger === "schedule" && input.autopilotReady) {
+    try {
+      autopilot = await runAutopilotSlot({ isTest, environment: input.environment ?? "unknown", now: input.now });
+    } catch (error) {
+      console.error("[x-publishing] autopilot slot check failed (nothing authorized):", error instanceof Error ? error.message : error);
+      autopilot = { outcome: "error" };
+    }
+  }
   const now = input.now.toISOString();
   const today = phoenixDay(input.now);
   const attemptId = crypto.randomUUID();
   const token = randomToken();
   const th = tokenHash(token);
   const lease = addMinutes(input.now, X_LIMITS.claimLeaseMinutes).toISOString();
-  const cap = X_LIMITS.createDispatchesPerPhoenixDay;
 
   const [expired, , unknown, claimed, lookup] = await lockedTransaction((sql) => [
     sql`
@@ -138,12 +160,7 @@ export async function claimXWork(input: ClaimInput): Promise<XResult> {
             SELECT 1 FROM x_publishing_attempts r
             WHERE r.is_test = ${isTest} AND r.rate_limit_reset_at > ${now}::timestamptz
           )
-          AND (
-            SELECT COUNT(*) FROM x_publishing_attempts a
-            WHERE a.is_test = ${isTest}
-              AND ((a.permit_issued_at IS NOT NULL AND a.permit_day = ${today})
-                OR a.state IN ('claimed','identity_ok'))
-          ) < ${cap}
+          AND ${claimCapacityOkSql(sql, { isTest, today })}
         ORDER BY p.scheduled_for ASC, p.id ASC
         LIMIT 1
       ), ins AS (
@@ -198,11 +215,13 @@ export async function claimXWork(input: ClaimInput): Promise<XResult> {
   ]);
   await emitOverdueUncertain(unknown, isTest, input.now);
 
+  const autopilotBody = autopilot ? { autopilot } : {};
   const c = claimed[0];
   if (c) {
     return {
       status: 200,
       body: {
+        ...autopilotBody,
         work: {
           kind: "publish",
           mode: input.mode,
@@ -222,6 +241,7 @@ export async function claimXWork(input: ClaimInput): Promise<XResult> {
     return {
       status: 200,
       body: {
+        ...autopilotBody,
         work: {
           kind: "lookup",
           mode: input.mode,
@@ -234,7 +254,7 @@ export async function claimXWork(input: ClaimInput): Promise<XResult> {
       },
     };
   }
-  return { status: 200, body: { work: null, message: "Nothing due. No X API calls are needed." } };
+  return { status: 200, body: { ...autopilotBody, work: null, message: "Nothing due. No X API calls are needed." } };
 }
 
 export type IdentityInput = {
@@ -378,6 +398,17 @@ export async function requestXDispatchPermit(input: DispatchInput): Promise<XRes
     checkPostText(post.text).ok &&
     post.text === attempt.payloadText &&
     post.accountId === X_ACCOUNT_ID;
+  const standing = isStandingPolicy(post.approvalContext);
+  if (standing && post.status === "claimed" && post.activeAttemptId === attempt.id) {
+    const problem = intact ? standingPolicyProblem(post) : "approval no longer matches the post";
+    if (problem) {
+      await withdrawStandingPost({ post, reason: problem, now: input.now });
+      return {
+        status: 409,
+        body: { permit: "denied", code: "autopilot_authorization_invalid", reason: `Standing-policy authorization no longer valid (${problem}); withdrawn, not sent.` },
+      };
+    }
+  }
   if (!intact && post.status === "claimed" && post.activeAttemptId === attempt.id) {
     await lockedTransaction((sql) => [
       releaseStatement(sql, attempt.id, "released", "reapproval_required", "Approval no longer matches the post", now),
@@ -396,7 +427,6 @@ export async function requestXDispatchPermit(input: DispatchInput): Promise<XRes
 
   const today = phoenixDay(input.now);
   const deadline = addMinutes(input.now, X_LIMITS.dispatchDeadlineMinutes).toISOString();
-  const cap = X_LIMITS.createDispatchesPerPhoenixDay;
   let issued: Row | undefined;
   try {
     const [rows] = await lockedTransaction((sql) => [
@@ -418,10 +448,8 @@ export async function requestXDispatchPermit(input: DispatchInput): Promise<XRes
               SELECT 1 FROM x_publishing_attempts r
               WHERE r.is_test = a.is_test AND r.rate_limit_reset_at > ${now}::timestamptz
             )
-            AND (
-              SELECT COUNT(*) FROM x_publishing_attempts d
-              WHERE d.is_test = a.is_test AND d.permit_day = ${today} AND d.permit_issued_at IS NOT NULL
-            ) < ${cap}
+            AND ${permitCapacityOkSql(sql, { isTest: attempt.isTest, today })}
+            AND ${standing ? activeAuthorizationGuardSql(sql, post) : sql`TRUE`}
         ), upd AS (
           UPDATE x_publishing_attempts a SET
             state = 'dispatched', permit_issued_at = ${now}::timestamptz, permit_day = ${today},
@@ -465,15 +493,24 @@ export async function requestXDispatchPermit(input: DispatchInput): Promise<XRes
 
   const latest = await getAttempt(attempt.id);
   if (latest?.permitIssuedAt) return { status: 200, body: { permit: "already_issued", message: ALREADY_ISSUED } };
-  const reason = await explainDenial(attempt, input.now);
+  const reason = await explainDenial(attempt, input.now, standing ? post : null);
+  if (reason.code === "autopilot_authorization_invalid") {
+    await withdrawStandingPost({ post, reason: "autopilot is off or its authorization changed", now: input.now });
+    return { status: 409, body: { permit: "denied", code: reason.code, reason: reason.reason } };
+  }
   return deny(409, reason.code, reason.reason, true);
 }
 
-async function explainDenial(attempt: XAttemptRecord, now: Date): Promise<{ code: string; reason: string }> {
+async function explainDenial(
+  attempt: XAttemptRecord,
+  now: Date,
+  standingPost: XPostRecord | null
+): Promise<{ code: string; reason: string }> {
   const sql = getSql();
   const today = phoenixDay(now);
   const [r] = (await sql`
     SELECT
+      ${standingPost ? activeAuthorizationGuardSql(sql, standingPost) : sql`TRUE`} AS authorization_active,
       COALESCE((SELECT paused FROM x_publishing_control WHERE id = 1), true) AS paused,
       (SELECT COUNT(*)::int FROM x_publishing_attempts
         WHERE is_test = ${attempt.isTest} AND permit_day = ${today} AND permit_issued_at IS NOT NULL) AS permits_today,
@@ -487,6 +524,9 @@ async function explainDenial(attempt: XAttemptRecord, now: Date): Promise<{ code
   }
   if (post.scheduledFor && Date.parse(post.scheduledFor) > now.getTime()) return { code: "not_due", reason: "Not due yet." };
   if (post.expiresAt && Date.parse(post.expiresAt) <= now.getTime()) return { code: "expired", reason: "Approval window has ended." };
+  if (standingPost && r?.authorization_active !== true) {
+    return { code: "autopilot_authorization_invalid", reason: "Autopilot is off or its authorization changed; the automatic post is withdrawn, not sent." };
+  }
   if (Number(r?.permits_today ?? 0) >= X_LIMITS.createDispatchesPerPhoenixDay) {
     return { code: "daily_cap", reason: "Daily dispatch capacity already used (Phoenix day)." };
   }

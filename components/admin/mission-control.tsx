@@ -406,6 +406,37 @@ function XPublishingSection({ x }: { x: MissionControlSnapshot["xPublishing"] })
                 {x.totalPosts > 0 ? ` (exact, ${x.totalPosts} live items)` : ""}
                 {x.note ? ` ${x.note}` : ""}
               </p>
+              {x.autopilot && (
+                <div className="mt-2 text-xs text-ash">
+                  <p>
+                    Documentation autopilot:{" "}
+                    <strong className="text-ink">
+                      {!x.autopilot.available
+                        ? "unavailable (migration required)"
+                        : x.autopilot.mode === "on"
+                          ? `ON — ${x.autopilot.policyLabel}`
+                          : x.autopilot.mode === "needs_reauthorization"
+                            ? "policy changed — re-authorization required"
+                            : "OFF"}
+                    </strong>
+                    {x.autopilot.available
+                      ? ` · eligible templates remaining ${x.autopilot.remaining}/${x.autopilot.templates}`
+                      : ""}
+                    {x.autopilot.counts
+                      ? ` · automatic authorizations ${x.autopilot.counts.authorized} · verified ${x.autopilot.counts.verified} · uncertain ${x.autopilot.counts.uncertain} · skipped slots ${x.autopilot.counts.skipped}`
+                      : ""}
+                  </p>
+                  {x.autopilot.nextSlots.length > 0 && (
+                    <p>Next slots: {x.autopilot.nextSlots.map((s) => `${s.slotAtPhoenix} — ${s.status}`).join(" · ")}</p>
+                  )}
+                  {x.autopilot.lastSkip && (
+                    <p>
+                      Last skip: {x.autopilot.lastSkip.slotAtPhoenix} ({x.autopilot.lastSkip.reason})
+                      {x.autopilot.lastSkip.detail ? ` — ${x.autopilot.lastSkip.detail}` : ""}
+                    </p>
+                  )}
+                </div>
+              )}
               {x.attentionTotal > 0 && (
                 <p className="mt-2 text-sm font-medium text-orange-900">
                   {x.attentionTotal} X {x.attentionTotal === 1 ? "post needs" : "posts need"} owner review

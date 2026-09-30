@@ -37,6 +37,7 @@
     "test:mission-control-n8n-db": "tsx scripts/test-mission-control-n8n-db.ts",
     "test:x-publishing": "tsx scripts/test-x-publishing.ts",
     "test:x-publishing-db": "tsx scripts/test-x-publishing-db.ts",
+    "test:x-autopilot": "tsx scripts/test-x-autopilot.ts",
     "x-drafts:snapshot": "tsx scripts/x-drafts-snapshot.ts",
     "test:x-drafts": "tsx scripts/x-drafts-snapshot.ts --check && tsx scripts/test-x-drafts.ts",
     "test:x-drafts-db": "tsx scripts/test-x-drafts-db.ts",

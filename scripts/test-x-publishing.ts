@@ -48,7 +48,7 @@ const TOKEN = "x-publisher-test-token-0123456789abcdef-XYZ";
 const UUID = "3f2a1b4c-5d6e-4f70-8a9b-0c1d2e3f4a5b";
 const NOW = new Date("2026-09-29T18:00:00.000Z");
 
-type FakeOpts = { tables: boolean; failOn?: RegExp };
+type FakeOpts = { tables: boolean; autopilot?: boolean; failOn?: RegExp };
 function createFakeSql(opts: FakeOpts) {
   const calls: string[] = [];
   const run = (text: string): unknown[] => {
@@ -56,10 +56,16 @@ function createFakeSql(opts: FakeOpts) {
     if (opts.failOn?.test(text)) throw Object.assign(new Error("simulated failure"), { code: "XX000" });
     if (/to_regclass/.test(text)) {
       const v = (name: string) => (opts.tables ? name : null);
-      return [{ x_posts: v("x_publishing_posts"), x_attempts: v("x_publishing_attempts"), x_control: v("x_publishing_control") }];
+      const ap = (name: string) => (opts.tables && opts.autopilot ? name : null);
+      return [{
+        x_posts: v("x_publishing_posts"), x_attempts: v("x_publishing_attempts"), x_control: v("x_publishing_control"),
+        x_ap_auth: ap("x_publishing_autopilot_authorizations"), x_ap_slots: ap("x_publishing_autopilot_slots"),
+      }];
     }
     return [];
   };
+  const isFragment = (v: unknown): v is { text: string } =>
+    !!v && typeof v === "object" && typeof (v as { text?: unknown }).text === "string" && typeof (v as { then?: unknown }).then === "function";
   const pending = (raw: string) => {
     const text = raw.replace(/\s+/g, " ").trim();
     return {
@@ -69,7 +75,8 @@ function createFakeSql(opts: FakeOpts) {
     };
   };
   const transactions: Array<{ readOnly?: boolean; isolationLevel?: string }> = [];
-  const fn = ((strings: TemplateStringsArray) => pending(strings.join("$?"))) as unknown as NeonQueryFunction<false, false> & {
+  const fn = ((strings: TemplateStringsArray, ...values: unknown[]) =>
+    pending(strings.reduce((acc, s, i) => acc + (i === 0 ? "" : isFragment(values[i - 1]) ? (values[i - 1] as { text: string }).text : "$?") + s, ""))) as unknown as NeonQueryFunction<false, false> & {
     transaction: unknown;
     query: unknown;
   };
@@ -348,6 +355,22 @@ async function testAdmin() {
   assert(r.status === 503 && fake.calls.length === 0, "Preview cannot change the queue");
   r = await handleXAdminPost(post({ action: "approve", id: UUID, expectedRevision: 1, scheduleKind: "scheduled", previewHash: "0".repeat(64) }), { env: { ...liveEnv, X_EXPECTED_ACCOUNT_ID: undefined }, now: NOW });
   assert(r.status === 503, "approval fails closed without the expected account ID");
+  fake.calls.length = 0;
+  r = await handleXAdminPost(post({ action: "set_schedule", id: "nope", expectedRevision: 1, scheduledForLocal: "2031-01-01T09:00" }), { env: liveEnv, now: NOW });
+  assert(r.status === 400, "set_schedule needs a valid id");
+  r = await handleXAdminPost(post({ action: "set_schedule", id: UUID, expectedRevision: "1", scheduledForLocal: "2031-01-01T09:00" }), { env: liveEnv, now: NOW });
+  assert(r.status === 400, "set_schedule needs an integer revision");
+  r = await handleXAdminPost(post({ action: "autopilot_authorize", policyVersion: "x", libraryVersion: "y" }), { env: liveEnv, now: NOW });
+  assert(r.status === 503 && /autopilot/i.test(String(r.body.error)), "autopilot actions refused until the autopilot tables exist");
+  r = await handleXAdminPost(post({ action: "autopilot_disable" }), { env: liveEnv, now: NOW });
+  assert(r.status === 503, "autopilot disable refused until the autopilot tables exist");
+  assert(fake.calls.every((c) => !/\b(INSERT|UPDATE|DELETE)\b/i.test(c)), "refused schedule/autopilot actions write nothing");
+  const withAp = createFakeSql({ tables: true, autopilot: true });
+  __setSqlClientForTests(withAp.sql);
+  r = await handleXAdminPost(post({ action: "autopilot_authorize", libraryVersion: "y" }), { env: liveEnv, now: NOW });
+  assert(r.status === 400, "autopilot authorization needs both versions");
+  assert(withAp.calls.every((c) => !/\b(INSERT|UPDATE|DELETE)\b/i.test(c)), "incomplete authorization writes nothing");
+  __setSqlClientForTests(fake.sql);
 
   const missing = createFakeSql({ tables: false });
   __setSqlClientForTests(missing.sql);
@@ -386,6 +409,24 @@ async function testAdmin() {
   assert(fake.calls.every((c) => !/\b(CREATE|ALTER|INSERT|UPDATE|DELETE)\b/i.test(c)), "Mission Control panel read is read-only");
   assert(fake.transactions.length === 1 && fake.transactions[0].readOnly === true, "panel uses one READ ONLY snapshot");
   assert(fake.calls.some((c) => /is_test = \$1/.test(c)), "panel queries are partitioned by is_test");
+
+  const withAutopilot = createFakeSql({ tables: true, autopilot: true });
+  __setSqlClientForTests(withAutopilot.sql);
+  const ag = await handleXAdminGet({ env: liveEnv, now: NOW });
+  const apView = ag.body.autopilot as { available: boolean; mode: string; library: { templates: unknown[] } };
+  assert(ag.status === 200 && apView.available && apView.mode === "off" && apView.library.templates.length > 0, "GET shows autopilot (off by default) with the library for review");
+  assert(withAutopilot.calls.every((c) => !/\b(CREATE|ALTER|INSERT|UPDATE|DELETE)\b/i.test(c)), "GET with autopilot is read-only");
+  assert(withAutopilot.transactions.length === 1 && withAutopilot.transactions[0].readOnly === true, "autopilot reads join the one READ ONLY snapshot");
+  withAutopilot.calls.length = 0;
+  withAutopilot.transactions.length = 0;
+  const apPanel = await readXPublishingPanel(NOW);
+  assert(apPanel.autopilot?.available === true && apPanel.autopilot.mode === "off", "Mission Control shows the autopilot mode");
+  assert(withAutopilot.transactions.length === 1 && withAutopilot.calls.every((c) => !/\b(CREATE|ALTER|INSERT|UPDATE|DELETE)\b/i.test(c)), "panel autopilot read stays in one READ ONLY snapshot");
+  const noAp = await (async () => {
+    __setSqlClientForTests(fake.sql);
+    return handleXAdminGet({ env: liveEnv, now: NOW });
+  })();
+  assert((noAp.body.autopilot as { available: boolean }).available === false, "without the autopilot tables the view reports them missing (manual publishing unaffected)");
   __setSqlClientForTests(null);
 }
 
@@ -690,7 +731,7 @@ async function main() {
   testWorkflows();
   testWorkflowWording();
   testScheduledExport();
-  assert(X_LIMITS.createDispatchesPerPhoenixDay === 1 && X_LIMITS.postsPerWorkflowRun === 1 && X_LIMITS.slotMinutes === 30 && X_LIMITS.expiryMinutesAfterScheduled === 60, "documented defaults");
+  assert(X_LIMITS.createDispatchesPerPhoenixDay === 2 && X_LIMITS.postsPerWorkflowRun === 1 && X_LIMITS.slotMinutes === 30 && X_LIMITS.expiryMinutesAfterScheduled === 60, "documented defaults");
   console.log(`[x-publishing] ${passed} offline (mocked) assertions passed.`);
 }
 

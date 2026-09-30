@@ -215,7 +215,7 @@ export async function handleXMachineRequest(
         if (!p.ok) return json(p.status, { error: p.error });
         const gate = gateForMode(config, p.value.mode);
         if (!gate.enabled) return json(503, { work: null, error: gate.reason });
-        result = await claimXWork({ ...p.value, now });
+        result = await claimXWork({ ...p.value, now, autopilotReady: schema.autopilotReady, environment: config.environment });
         break;
       }
       case "identity": {
