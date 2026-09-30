@@ -1,0 +1,337 @@
+{
+  "name": "PSL X draft assistant - proposes unapproved drafts (manual)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [],
+  "pinData": {},
+  "nodes": [
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000001",
+      "name": "Setup notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-260, -360],
+      "parameters": {
+        "width": 700,
+        "height": 320,
+        "content": "## PSL X draft assistant - MANUAL ONLY, DRAFTS ONLY\nSee integrations/n8n/X_DRAFT_ASSISTANT_README.md in the PSL repo.\n1. Config > pslBaseUrl (PSL HTTPS origin, no path), modelId (current Anthropic model ID), maxTokens (256-4000).\n2. Header Auth credential **PSL X Drafts** (Authorization: Bearer <X_DRAFT_ASSISTANT_TOKEN>) on the 2 PSL HTTP nodes. Never the X publisher token.\n3. Header Auth credential **PSL X Draft Model** (x-api-key: dedicated Anthropic key with a spend limit) on the model node only.\n4. Keep inactive. No Schedule trigger until the owner has reviewed the first batch.\n\nOne packet, at most 2 model calls (1 retry), one submission. PSL validates the output and saves passing candidates as UNAPPROVED drafts in /admin-social. This workflow cannot approve, schedule, or publish. No X credentials belong here."
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000002",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-260, 0],
+      "parameters": {}
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000003",
+      "name": "Config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-60, 0],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1f2a3b4-0000-4000-8000-000000000001",
+              "name": "pslBaseUrl",
+              "value": "https://REPLACE-WITH-PSL-BASE-URL",
+              "type": "string"
+            },
+            {
+              "id": "c1f2a3b4-0000-4000-8000-000000000002",
+              "name": "modelId",
+              "value": "REPLACE-WITH-ANTHROPIC-MODEL-ID",
+              "type": "string"
+            },
+            {
+              "id": "c1f2a3b4-0000-4000-8000-000000000003",
+              "name": "maxTokens",
+              "value": 2000,
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000004",
+      "name": "Config valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [140, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "d2a1b3c4-0000-4000-8000-000000000001",
+              "leftValue": "={{ /^https:[/][/][A-Za-z0-9.-]+$/.test($json.pslBaseUrl) && !$json.pslBaseUrl.includes('REPLACE') && /^[A-Za-z0-9._:-]{3,100}$/.test($json.modelId) && !$json.modelId.includes('REPLACE') && Number.isInteger($json.maxTokens) && $json.maxTokens >= 256 && $json.maxTokens <= 4000 }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000005",
+      "name": "Stop: invalid config",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [340, 200],
+      "parameters": {
+        "errorMessage": "Config is invalid: pslBaseUrl must be the PSL HTTPS origin (no path), modelId a real model ID, and maxTokens an integer from 256 to 4000. No request was made."
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000006",
+      "name": "Request source packet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [340, 0],
+      "retryOnFail": false,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl }}/api/integrations/n8n/x-drafts/packet",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ executionId: String($execution.id).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64) || 'manual' }) }}",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "timeout": 15000
+        }
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000007",
+      "name": "Stop: no source packet",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [540, 240],
+      "parameters": {
+        "errorMessage": "=PSL did not issue a source packet ({{ $json.error && $json.error.message ? $json.error.message : ($json.error || 'unexpected response') }}). No model call was made and nothing was saved."
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000008",
+      "name": "Packet issued?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [540, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "d2a1b3c4-0000-4000-8000-000000000002",
+              "leftValue": "={{ typeof $json.batchToken === 'string' && !!$json.prompt && typeof $json.prompt.system === 'string' && typeof $json.prompt.user === 'string' && $json.maxCandidates === 5 }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000009",
+      "name": "Generate candidates (model)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [740, 0],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "anthropic-version", "value": "2023-06-01" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $('Config').first().json.modelId, max_tokens: $('Config').first().json.maxTokens, temperature: 0.3, system: $json.prompt.system, messages: [{ role: 'user', content: $json.prompt.user }] }) }}",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "timeout": 120000
+        }
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000010",
+      "name": "Stop: model call failed",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [940, 240],
+      "parameters": {
+        "errorMessage": "=The model call failed after at most 2 attempts ({{ $json.error && $json.error.message ? $json.error.message : 'no response' }}). Nothing was saved. Check the provider console for usage before re-running."
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000011",
+      "name": "Model output received?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [940, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "d2a1b3c4-0000-4000-8000-000000000003",
+              "leftValue": "={{ Array.isArray($json.content) && $json.content.some(c => c && c.type === 'text' && typeof c.text === 'string' && c.text.trim().length > 0) }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000012",
+      "name": "Stop: no usable model output",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [1140, 240],
+      "parameters": {
+        "errorMessage": "=The model returned no text (stop reason: {{ $json.stop_reason || 'unknown' }}). Nothing was saved."
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000013",
+      "name": "Submit candidates",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1140, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Config').first().json.pslBaseUrl }}/api/integrations/n8n/x-drafts/batches",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ batchToken: $('Request source packet').first().json.batchToken, executionId: String($execution.id).replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64) || 'manual', model: typeof $json.model === 'string' ? $json.model : $('Config').first().json.modelId, stopReason: typeof $json.stop_reason === 'string' ? $json.stop_reason : null, usage: { inputTokens: $json.usage && Number.isInteger($json.usage.input_tokens) ? $json.usage.input_tokens : null, outputTokens: $json.usage && Number.isInteger($json.usage.output_tokens) ? $json.usage.output_tokens : null }, modelOutput: $json.content.filter(c => c && c.type === 'text').map(c => c.text).join('\\n').slice(0, 20000) }) }}",
+        "options": {
+          "redirect": { "redirect": { "followRedirects": false } },
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000014",
+      "name": "Stop: submission not confirmed",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [1340, 240],
+      "parameters": {
+        "errorMessage": "=PSL did not confirm the submission ({{ $json.error && $json.error.message ? $json.error.message : 'no response' }}). Some drafts may or may not have been saved: check /admin-social. Re-running starts a new batch and a new model call; exact duplicates are still blocked."
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000015",
+      "name": "Any drafts saved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 0],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "d2a1b3c4-0000-4000-8000-000000000004",
+              "leftValue": "={{ !!$json.counts && ($json.counts.saved + $json.counts.alreadySaved) > 0 }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000016",
+      "name": "Drafts saved - review in /admin-social",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1540, -100],
+      "parameters": {}
+    },
+    {
+      "id": "8b2f1c63-4d5e-4f60-9b12-000000000017",
+      "name": "Nothing saved - see blocked reasons",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1540, 100],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Config", "type": "main", "index": 0 }]] },
+    "Config": { "main": [[{ "node": "Config valid?", "type": "main", "index": 0 }]] },
+    "Config valid?": {
+      "main": [
+        [{ "node": "Request source packet", "type": "main", "index": 0 }],
+        [{ "node": "Stop: invalid config", "type": "main", "index": 0 }]
+      ]
+    },
+    "Request source packet": {
+      "main": [
+        [{ "node": "Packet issued?", "type": "main", "index": 0 }],
+        [{ "node": "Stop: no source packet", "type": "main", "index": 0 }]
+      ]
+    },
+    "Packet issued?": {
+      "main": [
+        [{ "node": "Generate candidates (model)", "type": "main", "index": 0 }],
+        [{ "node": "Stop: no source packet", "type": "main", "index": 0 }]
+      ]
+    },
+    "Generate candidates (model)": {
+      "main": [
+        [{ "node": "Model output received?", "type": "main", "index": 0 }],
+        [{ "node": "Stop: model call failed", "type": "main", "index": 0 }]
+      ]
+    },
+    "Model output received?": {
+      "main": [
+        [{ "node": "Submit candidates", "type": "main", "index": 0 }],
+        [{ "node": "Stop: no usable model output", "type": "main", "index": 0 }]
+      ]
+    },
+    "Submit candidates": {
+      "main": [
+        [{ "node": "Any drafts saved?", "type": "main", "index": 0 }],
+        [{ "node": "Stop: submission not confirmed", "type": "main", "index": 0 }]
+      ]
+    },
+    "Any drafts saved?": {
+      "main": [
+        [{ "node": "Drafts saved - review in /admin-social", "type": "main", "index": 0 }],
+        [{ "node": "Nothing saved - see blocked reasons", "type": "main", "index": 0 }]
+      ]
+    }
+  }
+}
