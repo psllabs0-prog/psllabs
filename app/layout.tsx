@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Archivo, IBM_Plex_Mono, Inter, Source_Serif_4 } from "next/font/google";
 
 import { SiteLayout } from "@/components/layout/SiteLayout";
+import { PLAUSIBLE_INIT_JS } from "@/lib/plausible/redact";
 import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 
@@ -75,8 +76,7 @@ export default function RootLayout({
         <Script
           id="plausible-init"
           strategy="afterInteractive"
-        >{`window.plausible=window.plausible||function(){(plausible.q=plausible.q||[]).push(arguments)},plausible.init=plausible.init||function(i){plausible.o=i||{}};
-plausible.init()`}</Script>
+        >{PLAUSIBLE_INIT_JS}</Script>
       </head>
       <body className="font-sans">
         <SiteLayout>{children}</SiteLayout>

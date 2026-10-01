@@ -30,7 +30,11 @@ export function escapeHtml(value: string): string {
     .replace(/'/g, "&#39;");
 }
 
-export function createSmtpTransport() {
+export function createSmtpTransport(timeouts?: {
+  connectionTimeout?: number;
+  greetingTimeout?: number;
+  socketTimeout?: number;
+}) {
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASSWORD;
@@ -43,6 +47,7 @@ export function createSmtpTransport() {
     secure: false,
     requireTLS: true,
     auth: { user, pass },
+    ...timeouts,
   });
 }
 
