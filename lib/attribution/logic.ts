@@ -15,7 +15,7 @@ function cleanField(value: string | null | undefined): string | null {
   return cleaned || null;
 }
 
-export function isPaidTouch(touch: {
+type TouchFields = {
   utmSource?: string | null;
   utmMedium?: string | null;
   utmCampaign?: string | null;
@@ -25,9 +25,23 @@ export function isPaidTouch(touch: {
   fbclid?: string | null;
   msclkid?: string | null;
   ttclid?: string | null;
-}): boolean {
-  if (touch.gclid || touch.fbclid || touch.msclkid || touch.ttclid) {
+};
+
+function hasClickId(touch: TouchFields): boolean {
+  return Boolean(touch.gclid || touch.fbclid || touch.msclkid || touch.ttclid);
+}
+
+/** Owned-email visit (retention, newsletter). Kept separate from paid touches. */
+export function isEmailTouch(touch: TouchFields): boolean {
+  return !hasClickId(touch) && (touch.utmMedium ?? "").trim().toLowerCase() === "email";
+}
+
+export function isPaidTouch(touch: TouchFields): boolean {
+  if (hasClickId(touch)) {
     return true;
+  }
+  if (isEmailTouch(touch)) {
+    return false;
   }
   const medium = (touch.utmMedium ?? "").toLowerCase();
   if (
@@ -76,7 +90,7 @@ export function parseTouchFromSearchParams(
     capturedAt: new Date().toISOString(),
   };
 
-  if (!isPaidTouch(touch)) {
+  if (!isPaidTouch(touch) && !isEmailTouch(touch)) {
     return null;
   }
 
@@ -127,33 +141,48 @@ function isWithinWindow(iso: string | null | undefined, now = Date.now()): boole
   return now - ts <= ATTRIBUTION_WINDOW_MS;
 }
 
-/** Drop expired paid touches. Direct visits never clear this; only time does. */
+function latest(...touches: Array<AttributionTouch | null | undefined>): AttributionTouch | null {
+  let best: AttributionTouch | null = null;
+  for (const t of touches) {
+    if (t && (!best || Date.parse(t.capturedAt) > Date.parse(best.capturedAt))) best = t;
+  }
+  return best;
+}
+
+/**
+ * Drop expired touches. Direct visits never clear this; only time does.
+ * Email touches stored as "paid" by older clients are moved to lastEmail.
+ */
 export function pruneStoredAttribution(
   state: StoredAttributionState | null,
   now = Date.now()
 ): StoredAttributionState {
   if (!state) {
-    return { firstPaid: null, lastPaid: null };
+    return { firstPaid: null, lastPaid: null, lastEmail: null };
   }
-  const firstPaid =
-    state.firstPaid && isWithinWindow(state.firstPaid.capturedAt, now)
-      ? state.firstPaid
-      : null;
-  const lastPaid =
-    state.lastPaid && isWithinWindow(state.lastPaid.capturedAt, now)
-      ? state.lastPaid
-      : null;
+  const live = (t: AttributionTouch | null | undefined) =>
+    t && isWithinWindow(t.capturedAt, now) ? t : null;
+  const rawFirst = live(state.firstPaid);
+  const rawLast = live(state.lastPaid);
+  const firstPaid = rawFirst && !isEmailTouch(rawFirst) ? rawFirst : null;
+  const lastPaid = rawLast && !isEmailTouch(rawLast) ? rawLast : null;
+  const lastEmail = latest(
+    live(state.lastEmail),
+    rawFirst && isEmailTouch(rawFirst) ? rawFirst : null,
+    rawLast && isEmailTouch(rawLast) ? rawLast : null
+  );
   // If last expired but first remains (shouldn't usually), keep first only.
   return {
     firstPaid: firstPaid,
     lastPaid: lastPaid ?? firstPaid,
+    lastEmail,
   };
 }
 
 /**
- * Merge a new paid landing into stored state.
- * Direct / organic landings should not call this with a touch (pass null) —
- * existing paid attribution is left intact.
+ * Merge a new tagged landing into stored state. Paid landings update
+ * first/last paid; email landings only update lastEmail, so an email visit
+ * never overwrites paid attribution. Direct / organic landings pass null.
  */
 export function mergePaidTouch(
   previous: StoredAttributionState | null,
@@ -164,18 +193,22 @@ export function mergePaidTouch(
   if (!incoming) {
     return pruned;
   }
+  if (isEmailTouch(incoming)) {
+    return { ...pruned, lastEmail: incoming };
+  }
 
   const firstPaid = pruned.firstPaid ?? incoming;
   const lastPaid = incoming;
 
-  return { firstPaid, lastPaid };
+  return { firstPaid, lastPaid, lastEmail: pruned.lastEmail ?? null };
 }
 
 export function toOrderAttribution(
   state: StoredAttributionState | null
 ): OrderAttribution | null {
   const pruned = pruneStoredAttribution(state);
-  const primary = pruned.lastPaid ?? pruned.firstPaid;
+  const lastEmail = pruned.lastEmail ?? null;
+  const primary = pruned.lastPaid ?? pruned.firstPaid ?? lastEmail;
   if (!primary) return null;
 
   return {
@@ -194,6 +227,8 @@ export function toOrderAttribution(
     lastPaidTouchAt: pruned.lastPaid?.capturedAt ?? null,
     firstPaid: pruned.firstPaid,
     lastPaid: pruned.lastPaid,
+    lastEmail,
+    lastEmailTouchAt: lastEmail?.capturedAt ?? null,
   };
 }
 
@@ -203,7 +238,7 @@ export function sanitizeAttributionFromBody(
   if (!raw || typeof raw !== "object") return null;
   const obj = raw as Record<string, unknown>;
 
-  const touchFrom = (value: unknown): AttributionTouch | null => {
+  const anyTouchFrom = (value: unknown): AttributionTouch | null => {
     if (!value || typeof value !== "object") return null;
     const t = value as Record<string, unknown>;
     const touch: AttributionTouch = {
@@ -229,33 +264,42 @@ export function sanitizeAttributionFromBody(
           ? new Date(t.capturedAt).toISOString()
           : new Date().toISOString(),
     };
-    return isPaidTouch(touch) ? touch : null;
+    return isPaidTouch(touch) || isEmailTouch(touch) ? touch : null;
   };
+  const paidOnly = (t: AttributionTouch | null) => (t && isPaidTouch(t) ? t : null);
+  const emailOnly = (t: AttributionTouch | null) => (t && isEmailTouch(t) ? t : null);
 
-  const firstPaid = touchFrom(obj.firstPaid);
-  const lastPaid = touchFrom(obj.lastPaid);
-  const primary =
-    lastPaid ??
-    firstPaid ??
-    touchFrom({
-      utmSource: obj.utmSource,
-      utmMedium: obj.utmMedium,
-      utmCampaign: obj.utmCampaign,
-      utmContent: obj.utmContent,
-      utmTerm: obj.utmTerm,
-      landingPage: obj.landingPage,
-      referrer: obj.referrer,
-      gclid: obj.gclid,
-      fbclid: obj.fbclid,
-      msclkid: obj.msclkid,
-      ttclid: obj.ttclid,
-      capturedAt: obj.lastPaidTouchAt ?? obj.firstPaidTouchAt,
-    });
+  const rawFirst = anyTouchFrom(obj.firstPaid);
+  const rawLast = anyTouchFrom(obj.lastPaid);
+  const rawTop = anyTouchFrom({
+    utmSource: obj.utmSource,
+    utmMedium: obj.utmMedium,
+    utmCampaign: obj.utmCampaign,
+    utmContent: obj.utmContent,
+    utmTerm: obj.utmTerm,
+    landingPage: obj.landingPage,
+    referrer: obj.referrer,
+    gclid: obj.gclid,
+    fbclid: obj.fbclid,
+    msclkid: obj.msclkid,
+    ttclid: obj.ttclid,
+    capturedAt: obj.lastPaidTouchAt ?? obj.firstPaidTouchAt ?? obj.lastEmailTouchAt,
+  });
+  const firstPaid = paidOnly(rawFirst);
+  const lastPaid = paidOnly(rawLast);
+  const paidPrimary = lastPaid ?? firstPaid ?? paidOnly(rawTop);
+  const lastEmail = latest(
+    emailOnly(anyTouchFrom(obj.lastEmail)),
+    emailOnly(rawFirst),
+    emailOnly(rawLast),
+    paidPrimary ? null : emailOnly(rawTop)
+  );
+  const primary = paidPrimary ?? lastEmail;
 
   if (!primary) return null;
 
-  const resolvedFirst = firstPaid ?? primary;
-  const resolvedLast = lastPaid ?? primary;
+  const resolvedFirst = paidPrimary ? firstPaid ?? paidPrimary : null;
+  const resolvedLast = paidPrimary ? lastPaid ?? paidPrimary : null;
 
   return {
     utmSource: primary.utmSource,
@@ -269,9 +313,11 @@ export function sanitizeAttributionFromBody(
     fbclid: primary.fbclid,
     msclkid: primary.msclkid,
     ttclid: primary.ttclid,
-    firstPaidTouchAt: resolvedFirst.capturedAt,
-    lastPaidTouchAt: resolvedLast.capturedAt,
+    firstPaidTouchAt: resolvedFirst?.capturedAt ?? null,
+    lastPaidTouchAt: resolvedLast?.capturedAt ?? null,
     firstPaid: resolvedFirst,
     lastPaid: resolvedLast,
+    lastEmail,
+    lastEmailTouchAt: lastEmail?.capturedAt ?? null,
   };
 }

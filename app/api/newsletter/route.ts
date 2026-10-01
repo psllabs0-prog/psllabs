@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 
-import { subscribeNewsletterEmail } from "@/lib/newsletter/store";
+import { handleNewsletterSignup, newsletterContext } from "@/lib/newsletter/service";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
+
+function clientIp(request: Request): string | null {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0]?.trim() || null;
+  return request.headers.get("x-real-ip");
+}
 
 export async function POST(request: Request) {
-  let body: { email?: unknown };
+  let body: { email?: unknown; placement?: unknown; signupCopyVersion?: unknown; website?: unknown };
   try {
-    body = (await request.json()) as { email?: unknown };
+    body = (await request.json()) as typeof body;
   } catch {
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },
@@ -15,16 +22,23 @@ export async function POST(request: Request) {
     );
   }
 
-  const email = typeof body.email === "string" ? body.email : "";
-  const result = await subscribeNewsletterEmail(email);
-
-  if (!result.ok) {
-    return NextResponse.json({ error: result.error }, { status: 400 });
+  try {
+    const result = await handleNewsletterSignup(
+      {
+        email: body.email,
+        placement: body.placement,
+        signupCopyVersion: body.signupCopyVersion,
+        honeypot: body.website,
+        ip: clientIp(request),
+      },
+      newsletterContext()
+    );
+    return NextResponse.json(result.body, { status: result.status });
+  } catch (error) {
+    console.error("[newsletter] signup failed:", error instanceof Error ? error.message : "unknown");
+    return NextResponse.json(
+      { error: "Something went wrong. Please try again." },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({
-    ok: true,
-    message:
-      "Thank you. You'll receive updates on new batch documentation and product availability.",
-  });
 }

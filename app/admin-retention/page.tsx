@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { AdminNewsletterWelcomePanel } from "@/components/admin/admin-newsletter-welcome-panel";
 import { AdminRetentionDashboard } from "@/components/admin/admin-retention-dashboard";
 import { AdminLoginForm } from "@/components/admin/admin-login-form";
 import {
@@ -52,6 +53,7 @@ export default async function AdminRetentionPage() {
     <main className="min-h-screen bg-page px-6 py-12 md:px-16 lg:px-24">
       <div className="mx-auto max-w-3xl">
         <AdminRetentionDashboard />
+        <AdminNewsletterWelcomePanel />
       </div>
     </main>
   );

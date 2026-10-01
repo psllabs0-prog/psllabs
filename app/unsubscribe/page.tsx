@@ -2,11 +2,15 @@ import type { Metadata } from "next";
 
 import { createPageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = createPageMetadata({
-  title: "Unsubscribe",
-  description: "Unsubscribe from PSL Labs marketing email.",
-  path: "/unsubscribe",
-});
+export const metadata: Metadata = {
+  ...createPageMetadata({
+    title: "Unsubscribe",
+    description: "Unsubscribe from PSL Labs marketing email.",
+    path: "/unsubscribe",
+  }),
+  referrer: "no-referrer",
+  robots: { index: false, follow: false },
+};
 
 export const dynamic = "force-dynamic";
 

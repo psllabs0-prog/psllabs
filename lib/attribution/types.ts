@@ -52,9 +52,14 @@ export type AttributionTouch = {
 export type StoredAttributionState = {
   firstPaid: AttributionTouch | null;
   lastPaid: AttributionTouch | null;
+  /** Most recent owned-email visit (utm_medium=email). Never replaces a paid touch. */
+  lastEmail?: AttributionTouch | null;
 };
 
-/** Snapshot persisted on the order (reporting uses lastPaid as primary). */
+/**
+ * Snapshot persisted on the order. Primary fields come from lastPaid, then
+ * firstPaid, and only fall back to lastEmail when no paid touch exists.
+ */
 export type OrderAttribution = {
   utmSource: string | null;
   utmMedium: string | null;
@@ -71,4 +76,6 @@ export type OrderAttribution = {
   lastPaidTouchAt: string | null;
   firstPaid: AttributionTouch | null;
   lastPaid: AttributionTouch | null;
+  lastEmail?: AttributionTouch | null;
+  lastEmailTouchAt?: string | null;
 };

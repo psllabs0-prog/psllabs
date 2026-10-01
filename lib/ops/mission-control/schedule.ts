@@ -75,6 +75,13 @@ export const SCHEDULED_JOBS: ScheduledJob[] = [
     hasRunLog: true,
   },
   {
+    path: "/api/cron/newsletter-welcome",
+    schedule: "0 18 * * *",
+    worker: "retention",
+    label: "Newsletter welcome emails",
+    hasRunLog: false,
+  },
+  {
     path: "/api/cron/weekly-ceo-brief",
     schedule: "0 15 * * 1",
     worker: "ceo_brief",

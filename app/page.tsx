@@ -6,6 +6,8 @@ import { NewsletterSignup } from "@/components/home/newsletter-signup";
 import { WhyChooseSection } from "@/components/home/why-choose-section";
 import { JsonLd } from "@/components/seo/json-ld";
 import { getAvailabilityForCatalogHandles } from "@/lib/inventory/availability";
+import { newsletterSignupVariant } from "@/lib/newsletter/config";
+import { getNewsletterWelcomeSchemaState } from "@/lib/newsletter/schema";
 import { getActiveCatalogProducts } from "@/lib/products/catalog";
 import { whyChooseCards } from "@/lib/home/homepage";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
@@ -41,6 +43,11 @@ export default async function Home() {
   const availabilityMap = await getAvailabilityForCatalogHandles(
     activeProducts.map((product) => product.handle)
   ).catch(() => new Map());
+  let signupVariant = newsletterSignupVariant();
+  if (signupVariant === "welcome") {
+    const schema = await getNewsletterWelcomeSchemaState().catch(() => ({ ready: false }));
+    if (!schema.ready) signupVariant = "legacy";
+  }
 
   return (
     <main>
@@ -52,7 +59,7 @@ export default async function Home() {
         availabilityMap={availabilityMap}
       />
       <WhyChooseSection cards={whyChooseCards} />
-      <NewsletterSignup />
+      <NewsletterSignup variant={signupVariant} />
     </main>
   );
 }
