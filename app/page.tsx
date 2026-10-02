@@ -38,12 +38,17 @@ const organizationLd = {
 
 export const dynamic = "force-dynamic";
 
-export default async function Home() {
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
   const activeProducts = getActiveCatalogProducts();
   const availabilityMap = await getAvailabilityForCatalogHandles(
     activeProducts.map((product) => product.handle)
   ).catch(() => new Map());
-  let signupVariant = newsletterSignupVariant();
+  const { newsletter_test } = await searchParams;
+  let signupVariant = newsletterSignupVariant(undefined, { allowlistTestView: newsletter_test === "1" });
   if (signupVariant === "welcome") {
     const schema = await getNewsletterWelcomeSchemaState().catch(() => ({ ready: false }));
     if (!schema.ready) signupVariant = "legacy";

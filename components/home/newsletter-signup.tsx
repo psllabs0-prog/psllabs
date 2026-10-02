@@ -100,6 +100,7 @@ export function NewsletterSignup({ variant = "legacy" }: { variant?: "legacy" | 
           </div>
           <button
             type="submit"
+            aria-describedby={copy.consent ? "newsletter-consent" : undefined}
             disabled={status === "loading" || status === "success"}
             className="inline-flex h-12 items-center justify-center rounded-pill bg-accent px-6 text-base font-medium text-page transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -107,10 +108,12 @@ export function NewsletterSignup({ variant = "legacy" }: { variant?: "legacy" | 
           </button>
         </form>
 
-        {copy.supporting && (
-          <p className="mt-3 text-xs text-ash md:text-sm">
-            {copy.supporting}{" "}
-            <span className="block sm:inline">
+        {copy.consent && (
+          <>
+            <p id="newsletter-consent" className="mt-3 text-xs text-ash md:text-sm">
+              {copy.consent}
+            </p>
+            <p className="mt-2 text-xs text-ash md:text-sm">
               The guide is also public:{" "}
               <Link
                 href="/science/how-to-read-a-coa"
@@ -119,8 +122,8 @@ export function NewsletterSignup({ variant = "legacy" }: { variant?: "legacy" | 
                 How to read a COA
               </Link>
               .
-            </span>
-          </p>
+            </p>
+          </>
         )}
 
         {message && (

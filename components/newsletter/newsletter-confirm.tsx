@@ -20,7 +20,7 @@ const MESSAGES: Partial<Record<State, string>> = {
   confirmed_sent: "You’re subscribed. We’ve emailed your report-reading guide.",
   confirmed_simulated: "You’re subscribed. Test mode: no email was sent.",
   confirmed_pending: "You’re subscribed. Your guide email will follow.",
-  already_confirmed: "This email address is already confirmed.",
+  already_confirmed: "This email address is already subscribed.",
   invalid:
     "This confirmation link is invalid, expired, or was replaced by a newer one. You can sign up again from the home page.",
   unavailable: "Confirmation is not available right now. Please try again later.",
@@ -92,8 +92,8 @@ export function NewsletterConfirm() {
       {(state === "ready" || state === "submitting") && (
         <>
           <p className="text-sm leading-relaxed text-ash md:text-base">
-            Confirm that you want PSL’s report-reading guide, two short follow-up emails, and occasional
-            documentation and availability updates. Nothing is sent until you confirm.
+            Confirm that you want PSL’s report-reading guide and occasional documentation and availability
+            updates. Nothing is sent until you confirm.
           </p>
           <button
             type="button"

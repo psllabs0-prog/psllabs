@@ -15,7 +15,7 @@ import { deliverNewsletterEmail } from "./send";
 import {
   claimSend,
   confirmConsentRequest,
-  createSignupRequest,
+  enrollSingleOptIn,
   findConsentRequestByTokenHash,
   getSendRecord,
   incrementRateLimit,
@@ -23,18 +23,15 @@ import {
   SIGNUP_LIMITS,
 } from "./welcome-store";
 import {
-  buildNewsletterConfirmationEmail,
   buildNewsletterWelcomeEmail,
-  NEWSLETTER_CONSENT_TEXT_HASH,
   NEWSLETTER_PLACEMENTS,
   NEWSLETTER_PUBLIC_MESSAGES as M,
+  NEWSLETTER_SIGNUP_CONSENT,
+  NEWSLETTER_SIGNUP_CONSENT_HASH,
   NEWSLETTER_SIGNUP_COPY,
-  NEWSLETTER_SIGNUP_VERSIONS,
   NEWSLETTER_TEMPLATE_VERSIONS,
 } from "./templates";
 import {
-  CONFIRMATION_TOKEN_TTL_MS,
-  createConfirmationToken,
   createNewsletterUnsubscribeToken,
   hashConfirmationToken,
   isConfirmationTokenShape,
@@ -60,6 +57,30 @@ function elapsedFrom(now: Date, startedMs: number): Date {
   return new Date(now.getTime() + Math.max(0, Date.now() - startedMs));
 }
 
+/**
+ * Form check for journey signups: a JSON body (which a cross-site page cannot
+ * send without a CORS preflight) and, when the browser sends one, an Origin of
+ * this site or its www/apex twin.
+ */
+export function isSameOriginSignup(
+  headers: { contentType: string | null; origin: string | null },
+  requestOrigin: string,
+  siteUrl: string
+): boolean {
+  if (!(headers.contentType ?? "").toLowerCase().startsWith("application/json")) return false;
+  if (headers.origin === null) return true;
+  const allowed = new Set([requestOrigin]);
+  try {
+    const u = new URL(siteUrl);
+    const twin = u.hostname.startsWith("www.") ? u.hostname.slice(4) : `www.${u.hostname}`;
+    allowed.add(u.origin);
+    allowed.add(`${u.protocol}//${twin}${u.port ? `:${u.port}` : ""}`);
+  } catch {
+    // An unparseable SITE_URL leaves only the request's own origin.
+  }
+  return allowed.has(headers.origin);
+}
+
 async function legacySignup(email: string): Promise<PublicResult> {
   const result = await subscribeNewsletterEmail(email);
   if (!result.ok) return { status: 400, body: { error: result.error } };
@@ -70,77 +91,70 @@ async function legacySignup(email: string): Promise<PublicResult> {
 }
 
 /**
- * Public signup. Anything not routed to the journey keeps the legacy
- * behaviour exactly (store unconfirmed, send nothing). Journey responses are
- * generic so they never reveal whether an address is registered.
+ * Public signup. Anything not routed to the journey — including any form that
+ * did not display the current consent wording — keeps the legacy behaviour
+ * exactly (store unconfirmed, send nothing). A journey submission is single
+ * opt-in: it enrolls immediately and attempts Welcome 1. Journey responses
+ * are identical for new, existing, suppressed, and address-limited emails.
  */
 export async function handleNewsletterSignup(
-  input: { email: unknown; placement?: unknown; signupCopyVersion?: unknown; honeypot?: unknown; ip: string | null },
+  input: {
+    email: unknown;
+    placement?: unknown;
+    signupCopyVersion?: unknown;
+    honeypot?: unknown;
+    ip: string | null;
+    sameOrigin: boolean;
+  },
   ctx: NewsletterContext
 ): Promise<PublicResult> {
   const raw = typeof input.email === "string" ? input.email : "";
   const email = normalizeNewsletterEmail(raw);
   const route = routeNewsletterSignup(email, ctx.config);
   if (route.path === "legacy") return legacySignup(raw);
+  if (input.signupCopyVersion !== NEWSLETTER_SIGNUP_COPY.welcome.version) return legacySignup(raw);
 
-  if (typeof input.honeypot === "string" && input.honeypot.trim() !== "") {
-    return { status: 200, body: { message: M.requested } };
-  }
+  const received: PublicResult = { status: 200, body: { ok: true, message: M.received } };
+  if (!input.sameOrigin) return { status: 403, body: { error: M.unavailable } };
+  if (typeof input.honeypot === "string" && input.honeypot.trim() !== "") return received;
   if (!isValidNewsletterEmail(email)) return { status: 400, body: { error: M.invalid } };
 
   const schema = await getNewsletterWelcomeSchemaState();
   if (!schema.ready) return legacySignup(raw);
 
   const ipKey = rateLimitKey("ip", input.ip?.trim() || "unknown");
-  if (!ipKey) return { status: 503, body: { error: M.unavailable } };
+  const emailKey = rateLimitKey("email", email);
+  if (!ipKey || !emailKey) return { status: 503, body: { error: M.unavailable } };
   if ((await incrementRateLimit(ipKey, ctx.now)) > SIGNUP_LIMITS.ipPerHour) {
     return { status: 429, body: { error: M.rateLimited } };
   }
   if ((await incrementRateLimit("global:signup", ctx.now)) > SIGNUP_LIMITS.globalPerHour) {
     return { status: 503, body: { error: M.unavailable } };
   }
+  if ((await incrementRateLimit(emailKey, ctx.now)) > SIGNUP_LIMITS.addressPerHour) return received;
 
   const placement = (NEWSLETTER_PLACEMENTS as readonly string[]).includes(String(input.placement))
     ? String(input.placement)
     : "unknown";
-  const signupCopyVersion = NEWSLETTER_SIGNUP_VERSIONS.includes(String(input.signupCopyVersion))
-    ? String(input.signupCopyVersion)
-    : NEWSLETTER_SIGNUP_COPY.legacy.version;
 
-  const { token, hash } = createConfirmationToken();
-  const created = await createSignupRequest({
+  const enrolled = await enrollSingleOptIn({
     email,
     isTest: route.isTest,
-    tokenHash: hash,
+    publicId: newSubscriptionPublicId(),
     placement,
-    signupCopyVersion,
-    consentVersion: NEWSLETTER_TEMPLATE_VERSIONS.confirmation,
-    consentTextHash: NEWSLETTER_CONSENT_TEXT_HASH,
-    now: ctx.now,
-    expiresAt: new Date(ctx.now.getTime() + CONFIRMATION_TOKEN_TTL_MS),
-  });
-  if (!created.sendId) return { status: 200, body: { message: M.requested } };
-
-  const claimToken = crypto.randomBytes(16).toString("hex");
-  const claim = await claimSend({
-    id: created.sendId,
-    email,
-    claimToken,
-    templateVersion: NEWSLETTER_TEMPLATE_VERSIONS.confirmation,
+    signupCopyVersion: NEWSLETTER_SIGNUP_COPY.welcome.version,
+    consentVersion: NEWSLETTER_SIGNUP_CONSENT.version,
+    consentTextHash: NEWSLETTER_SIGNUP_CONSENT_HASH,
     now: ctx.now,
   });
-  if (!claim.claimed) return { status: 200, body: { message: M.requested } };
-
-  const started = Date.now();
-  const built = buildNewsletterConfirmationEmail({ siteUrl: ctx.siteUrl, token, postalAddress: env("MARKETING_POSTAL_ADDRESS") });
-  const outcome = await deliverNewsletterEmail({ to: email, fromEmail: env("MARKETING_FROM_EMAIL"), built, simulate: ctx.config.simulate });
-  await recordSendOutcome({ id: created.sendId, claimToken, ...outcome, at: elapsedFrom(ctx.now, started) });
-
-  if (outcome.status === "accepted" || outcome.status === "simulated") {
-    return { status: 200, body: { message: M.requested } };
+  if (enrolled.outcome === "subscribed" && enrolled.welcome1SendId) {
+    try {
+      await dispatchWelcomeSend(enrolled.welcome1SendId, ctx);
+    } catch (error) {
+      console.error("[newsletter] welcome 1 dispatch error", error instanceof Error ? error.message : "unknown");
+    }
   }
-  if (outcome.status === "unknown") return { status: 202, body: { message: M.uncertain } };
-  return { status: 503, body: { error: M.sendFailed } };
+  return received;
 }
 
 export type DispatchOutcome =
@@ -160,7 +174,7 @@ export type DispatchOutcome =
 export function stepGate(kind: NewsletterSendKind, config: NewsletterWelcomeConfig): { enabled: boolean; reason: string } {
   if (config.mode === "off") return { enabled: false, reason: config.modeReason };
   if (config.prerequisites.missing.length > 0) return { enabled: false, reason: `Missing prerequisites: ${config.prerequisites.missing.join(", ")}` };
-  if (kind === "confirmation") return config.confirmationSend;
+  if (kind === "confirmation") return { enabled: false, reason: "Confirmation emails are retired (single opt-in)" };
   if (kind === "welcome_1") return config.welcome1;
   return config.laterSteps;
 }
@@ -218,6 +232,9 @@ export async function handleNewsletterConfirm(input: { token: unknown }, ctx: Ne
 
   const result = await confirmConsentRequest({ tokenHash, publicId: newSubscriptionPublicId(), now: ctx.now });
   if (result.outcome === "already_confirmed") {
+    return { status: 200, body: { status: "already_confirmed" satisfies ConfirmPublicStatus } };
+  }
+  if (result.outcome === "invalid" && result.reason === "already_subscribed") {
     return { status: 200, body: { status: "already_confirmed" satisfies ConfirmPublicStatus } };
   }
   if (result.outcome === "invalid") return invalid;

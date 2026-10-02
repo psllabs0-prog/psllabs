@@ -8,8 +8,7 @@ type Row = Record<string, unknown>;
 type Query = ReturnType<Sql>;
 
 export const SIGNUP_LIMITS = {
-  addressCooldownMinutes: 10,
-  addressPerDay: 3,
+  addressPerHour: 5,
   ipPerHour: 5,
   globalPerHour: 100,
   maxAttempts: 3,
@@ -44,36 +43,33 @@ export async function incrementRateLimit(bucket: string, now: Date): Promise<num
   return Number(rows[0]?.count ?? 0);
 }
 
-export type SignupRequestResult = {
-  blocked: boolean;
-  alreadySubscribed: boolean;
-  cooldown: boolean;
-  dailyCapReached: boolean;
-  requestId: string | null;
-  sendId: string | null;
-  invalidated: number;
-};
+export type EnrollResult =
+  | { outcome: "subscribed"; subscriptionId: string; welcome1SendId: string | null }
+  | { outcome: "blocked" }
+  | { outcome: "already_subscribed" };
 
 /**
- * Creates a pending consent request plus its confirmation-send row, unless the
- * address is suppressed/unsubscribed (any reason), already confirmed, inside
- * its resend cooldown, or at its daily cap. Older open requests are
- * invalidated so only the newest link can confirm.
+ * Single opt-in: records the subscription and its three step rows, timed from
+ * the submission, in one locked transaction. Refuses any address with a
+ * suppression or unsubscribe of any reason (an unauthenticated signup never
+ * re-subscribes an opt-out) or an active subscription in either partition, so
+ * retries and concurrent submissions enroll once. confirmed_at stays NULL:
+ * permission is recorded, mailbox ownership is not claimed.
  */
-export async function createSignupRequest(input: {
+export async function enrollSingleOptIn(input: {
   email: string;
   isTest: boolean;
-  tokenHash: string;
+  publicId: string;
   placement: string;
   signupCopyVersion: string;
   consentVersion: string;
   consentTextHash: string;
   now: Date;
-  expiresAt: Date;
-}): Promise<SignupRequestResult> {
+}): Promise<EnrollResult> {
   const sql = getSql();
   const e = input.email;
   const now = iso(input.now);
+  const d = NEWSLETTER_STEP_DELAY_HOURS;
   const [rows] = await lockedForEmail(sql, e, [
     sql`
       WITH flags AS (
@@ -81,58 +77,40 @@ export async function createSignupRequest(input: {
           (EXISTS (SELECT 1 FROM marketing_suppressions WHERE email = ${e})
             OR EXISTS (SELECT 1 FROM customer_marketing_preferences WHERE email = ${e} AND unsubscribed_at IS NOT NULL)
             OR EXISTS (SELECT 1 FROM newsletter_subscriptions WHERE email = ${e} AND unsubscribed_at IS NOT NULL)) AS blocked,
-          EXISTS (SELECT 1 FROM newsletter_subscriptions WHERE email = ${e} AND is_test = ${input.isTest}::boolean AND status = 'confirmed') AS already,
-          EXISTS (
-            SELECT 1 FROM newsletter_email_sends
-            WHERE email = ${e} AND kind = 'confirmation'
-              AND created_at > ${now}::timestamptz - make_interval(mins => ${SIGNUP_LIMITS.addressCooldownMinutes}::int)
-              AND status IN ('queued', 'attempting', 'accepted', 'simulated', 'unknown')
-          ) AS cooldown,
-          (SELECT COUNT(*) FROM newsletter_email_sends
-            WHERE email = ${e} AND kind = 'confirmation' AND created_at > ${now}::timestamptz - interval '24 hours')::int AS today
+          EXISTS (SELECT 1 FROM newsletter_subscriptions WHERE email = ${e} AND status IN ('confirmed', 'subscribed')) AS already
       ),
-      go AS (
-        SELECT 1 AS ok FROM flags WHERE NOT blocked AND NOT already AND NOT cooldown AND today < ${SIGNUP_LIMITS.addressPerDay}
-      ),
-      inv AS (
-        UPDATE newsletter_consent_requests
-        SET invalidated_at = ${now}::timestamptz, invalidated_reason = 'superseded'
-        WHERE email = ${e} AND is_test = ${input.isTest}::boolean AND confirmed_at IS NULL AND invalidated_at IS NULL
-          AND EXISTS (SELECT 1 FROM go)
-        RETURNING id
-      ),
-      req AS (
-        INSERT INTO newsletter_consent_requests (
-          email, is_test, token_hash, placement, signup_copy_version, consent_version, consent_text_hash, created_at, expires_at
+      sub AS (
+        INSERT INTO newsletter_subscriptions (
+          public_id, email, is_test, status, consent_method, placement, signup_copy_version,
+          consent_version, consent_text_hash, subscribed_at, created_at, updated_at
         )
-        SELECT ${e}, ${input.isTest}::boolean, ${input.tokenHash}, ${input.placement}, ${input.signupCopyVersion},
-               ${input.consentVersion}, ${input.consentTextHash}, ${now}::timestamptz, ${iso(input.expiresAt)}::timestamptz
-        FROM go
-        RETURNING id
+        SELECT ${input.publicId}, ${e}, ${input.isTest}::boolean, 'subscribed', 'single_opt_in', ${input.placement},
+               ${input.signupCopyVersion}, ${input.consentVersion}, ${input.consentTextHash},
+               ${now}::timestamptz, ${now}::timestamptz, ${now}::timestamptz
+        FROM flags WHERE NOT blocked AND NOT already
+        ON CONFLICT (email, is_test) DO NOTHING
+        RETURNING id, email, is_test
       ),
-      snd AS (
-        INSERT INTO newsletter_email_sends (kind, email, is_test, request_id, status, due_at, created_at, updated_at)
-        SELECT 'confirmation', ${e}, ${input.isTest}::boolean, req.id, 'queued', ${now}::timestamptz, ${now}::timestamptz, ${now}::timestamptz
-        FROM req
-        RETURNING id
+      steps AS (
+        INSERT INTO newsletter_email_sends (kind, email, is_test, subscription_id, status, due_at, created_at, updated_at)
+        SELECT k.kind, sub.email, sub.is_test, sub.id, 'queued',
+               ${now}::timestamptz + make_interval(hours => k.hours), ${now}::timestamptz, ${now}::timestamptz
+        FROM sub
+        CROSS JOIN (VALUES ('welcome_1', ${d.welcome_1}::int), ('welcome_2', ${d.welcome_2}::int), ('welcome_3', ${d.welcome_3}::int)) AS k(kind, hours)
+        ON CONFLICT DO NOTHING
+        RETURNING id, kind
       )
-      SELECT f.blocked, f.already, f.cooldown, f.today,
-             (SELECT id FROM req)::text AS request_id,
-             (SELECT id FROM snd)::text AS send_id,
-             (SELECT COUNT(*) FROM inv)::int AS invalidated
+      SELECT f.blocked, f.already,
+             (SELECT id FROM sub)::text AS subscription_id,
+             (SELECT id FROM steps WHERE kind = 'welcome_1')::text AS welcome1_id
       FROM flags f
     `,
   ]);
   const r = rows[0] ?? {};
-  return {
-    blocked: Boolean(r.blocked),
-    alreadySubscribed: Boolean(r.already),
-    cooldown: Boolean(r.cooldown),
-    dailyCapReached: Number(r.today ?? 0) >= SIGNUP_LIMITS.addressPerDay,
-    requestId: r.request_id ? String(r.request_id) : null,
-    sendId: r.send_id ? String(r.send_id) : null,
-    invalidated: Number(r.invalidated ?? 0),
-  };
+  if (r.subscription_id) {
+    return { outcome: "subscribed", subscriptionId: String(r.subscription_id), welcome1SendId: r.welcome1_id ? String(r.welcome1_id) : null };
+  }
+  return r.blocked ? { outcome: "blocked" } : { outcome: "already_subscribed" };
 }
 
 export type ConsentRequestRecord = {
@@ -195,16 +173,16 @@ export async function confirmConsentRequest(input: {
           AND NOT EXISTS (SELECT 1 FROM marketing_suppressions WHERE email = r.email)
           AND NOT EXISTS (SELECT 1 FROM customer_marketing_preferences WHERE email = r.email AND unsubscribed_at IS NOT NULL)
           AND NOT EXISTS (SELECT 1 FROM newsletter_subscriptions WHERE email = r.email AND unsubscribed_at IS NOT NULL)
-          AND NOT EXISTS (SELECT 1 FROM newsletter_subscriptions WHERE email = r.email AND is_test = r.is_test AND status = 'confirmed')
+          AND NOT EXISTS (SELECT 1 FROM newsletter_subscriptions WHERE email = r.email AND status IN ('confirmed', 'subscribed'))
         RETURNING r.id, r.email, r.is_test, r.placement, r.signup_copy_version, r.consent_version, r.consent_text_hash
       ),
       sub AS (
         INSERT INTO newsletter_subscriptions (
-          public_id, email, is_test, status, request_id, placement, signup_copy_version,
-          consent_version, consent_text_hash, confirmed_at, created_at, updated_at
+          public_id, email, is_test, status, consent_method, request_id, placement, signup_copy_version,
+          consent_version, consent_text_hash, confirmed_at, subscribed_at, created_at, updated_at
         )
-        SELECT ${input.publicId}, email, is_test, 'confirmed', id, placement, signup_copy_version,
-               consent_version, consent_text_hash, ${now}::timestamptz, ${now}::timestamptz, ${now}::timestamptz
+        SELECT ${input.publicId}, email, is_test, 'confirmed', 'double_opt_in', id, placement, signup_copy_version,
+               consent_version, consent_text_hash, ${now}::timestamptz, ${now}::timestamptz, ${now}::timestamptz, ${now}::timestamptz
         FROM req
         ON CONFLICT (email, is_test) DO NOTHING
         RETURNING id, email, is_test
@@ -378,7 +356,7 @@ export async function claimSend(input: {
         ))
         AND (s.kind = 'confirmation' OR EXISTS (
           SELECT 1 FROM newsletter_subscriptions sub
-          WHERE sub.id = s.subscription_id AND sub.status = 'confirmed' AND sub.unsubscribed_at IS NULL
+          WHERE sub.id = s.subscription_id AND sub.status IN ('confirmed', 'subscribed') AND sub.unsubscribed_at IS NULL
         ))
         AND (s.kind NOT IN ('welcome_2', 'welcome_3') OR EXISTS (
           SELECT 1 FROM newsletter_email_sends p

@@ -137,7 +137,33 @@ export async function ensureNewsletterWelcomeSchema(): Promise<void> {
       error_summary TEXT
     )
   `;
+
+  // v2 (single opt-in). Existing rows are double-opt-in records and keep that
+  // label. Only double-opt-in rows may carry a confirmation request and a
+  // confirmed_at (mailbox verified by link); single-opt-in rows record the
+  // signup submission time in subscribed_at and never claim verification.
+  await sql`ALTER TABLE newsletter_subscriptions ADD COLUMN IF NOT EXISTS consent_method TEXT NOT NULL DEFAULT 'double_opt_in'`;
+  await sql`ALTER TABLE newsletter_subscriptions ADD COLUMN IF NOT EXISTS subscribed_at TIMESTAMPTZ`;
+  await sql`ALTER TABLE newsletter_subscriptions ALTER COLUMN request_id DROP NOT NULL, ALTER COLUMN confirmed_at DROP NOT NULL`;
+  await sql`
+    ALTER TABLE newsletter_subscriptions
+      DROP CONSTRAINT IF EXISTS newsletter_subscriptions_status_check,
+      ADD CONSTRAINT newsletter_subscriptions_status_check CHECK (status IN ('confirmed', 'subscribed', 'unsubscribed'))
+  `;
+  await sql`
+    ALTER TABLE newsletter_subscriptions
+      DROP CONSTRAINT IF EXISTS newsletter_subscriptions_consent_method_check,
+      ADD CONSTRAINT newsletter_subscriptions_consent_method_check CHECK (
+        (consent_method = 'double_opt_in' AND status IN ('confirmed', 'unsubscribed')
+          AND request_id IS NOT NULL AND confirmed_at IS NOT NULL)
+        OR (consent_method = 'single_opt_in' AND status IN ('subscribed', 'unsubscribed')
+          AND request_id IS NULL AND confirmed_at IS NULL AND subscribed_at IS NOT NULL)
+      )
+  `;
 }
+
+/** Schema elements added after the first release; the journey stays on the legacy path until they exist. */
+const V2_COLUMN = "newsletter_subscriptions.consent_method";
 
 export type NewsletterSchemaState = { ready: boolean; missing: string[] };
 
@@ -151,8 +177,13 @@ export async function getNewsletterWelcomeSchemaState(): Promise<NewsletterSchem
   const rows = (await sql`
     SELECT n AS name, to_regclass('public.' || n) IS NOT NULL AS present
     FROM unnest(${names}::text[]) AS n
+    UNION ALL
+    SELECT ${V2_COLUMN}, EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'newsletter_subscriptions' AND column_name = 'consent_method'
+    )
   `) as Array<{ name: string; present: boolean }>;
-  const missing = rows.filter((r) => !r.present).map((r) => r.name);
+  const missing = [...names, V2_COLUMN].filter((n) => !rows.some((r) => r.name === n && r.present));
   readyCache = missing.length === 0;
   return { ready: readyCache, missing };
 }
