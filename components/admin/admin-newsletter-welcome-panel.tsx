@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import type { NewsletterWelcomeAdminView, PartitionCounts } from "@/lib/newsletter/admin";
 
 const KIND_LABELS: Record<string, string> = {
-  confirmation: "Confirmation",
+  confirmation: "Confirmation (retired)",
   welcome_1: "Welcome 1",
   welcome_2: "Welcome 2",
   welcome_3: "Welcome 3",
@@ -27,11 +27,14 @@ function Counts({ title, counts }: { title: string; counts: PartitionCounts | nu
     <div className="mt-3">
       <h3 className="font-semibold text-ink">{title}</h3>
       <p className="mt-1">
-        Signup requests: {counts.requests.total} · pending {counts.requests.pending} · expired {counts.requests.expired} ·
-        superseded {counts.requests.superseded} · confirmed {counts.requests.confirmed}
+        Active subscriptions: single opt-in {counts.subscriptions.singleOptIn}{" "}
+        <span className="text-ash">(subscription permission recorded; address not verified)</span> · double opt-in{" "}
+        {counts.subscriptions.doubleOptIn} <span className="text-ash">(address verified by confirmation link)</span>
       </p>
-      <p>
-        Subscriptions: confirmed {counts.subscriptions.confirmed} · unsubscribed {counts.subscriptions.unsubscribed}
+      <p>Unsubscribed: {counts.subscriptions.unsubscribed}</p>
+      <p className="text-ash">
+        Older double-opt-in requests: {counts.requests.total} · pending {counts.requests.pending} · expired{" "}
+        {counts.requests.expired} · superseded {counts.requests.superseded} · confirmed {counts.requests.confirmed}
       </p>
       <div className="mt-2 overflow-x-auto">
         <table className="min-w-full text-left text-xs">
@@ -63,25 +66,35 @@ function Counts({ title, counts }: { title: string; counts: PartitionCounts | nu
   );
 }
 
+async function loadNewsletterView(): Promise<NewsletterWelcomeAdminView | null> {
+  try {
+    const res = await fetch("/api/admin/newsletter-welcome", { cache: "no-store" });
+    return res.ok ? ((await res.json()) as NewsletterWelcomeAdminView) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AdminNewsletterWelcomePanel() {
   const [data, setData] = useState<NewsletterWelcomeAdminView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [showHtml, setShowHtml] = useState(false);
 
-  const refresh = useCallback(async () => {
-    setError(null);
-    const res = await fetch("/api/admin/newsletter-welcome", { cache: "no-store" });
-    if (!res.ok) {
-      setError("Failed to load newsletter status.");
-      return;
-    }
-    setData((await res.json()) as NewsletterWelcomeAdminView);
+  const apply = useCallback((view: NewsletterWelcomeAdminView | null) => {
+    setError(view ? null : "Failed to load newsletter status.");
+    if (view) setData(view);
   }, []);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    let active = true;
+    void loadNewsletterView().then((view) => {
+      if (active) apply(view);
+    });
+    return () => {
+      active = false;
+    };
+  }, [apply]);
 
   const c = data?.config;
   const selected = data?.previews.find((p) => p.kind === preview) ?? null;
@@ -93,9 +106,10 @@ export function AdminNewsletterWelcomePanel() {
           Newsletter / Welcome
         </h2>
         <p className="mt-2 text-sm text-ash">
-          Double opt-in signup → confirmation → three welcome emails. Separate from the order-based retention
-          campaign: confirming never marks a contact retention-eligible. Read-only here; activation is by environment
-          flag.
+          Single opt-in: pressing Subscribe records subscription permission and starts the welcome emails; it does
+          not verify the address. Older double-opt-in links still work until they expire. Separate from the order-based
+          retention campaign: subscribing never marks a contact retention-eligible. Read-only here; activation is by
+          environment flag.
         </p>
       </header>
 
@@ -110,13 +124,15 @@ export function AdminNewsletterWelcomePanel() {
               <span className="text-ash">— {c.modeReason}</span>
             </p>
             <Gate label="New journey" gate={c.journey} />
-            <Gate label="Confirmation email" gate={c.confirmationSend} />
             <Gate label="Welcome 1" gate={c.welcome1} />
             <Gate label="Welcome 2 and 3" gate={c.laterSteps} />
             <p>
               Simulation (no SMTP): {c.simulate ? "on" : "off"} · Test allowlist: {c.allowlistSize} address
               {c.allowlistSize === 1 ? "" : "es"}
             </p>
+            {c.obsolete.length > 0 && (
+              <p className="text-ash">Set but ignored (obsolete): {c.obsolete.join(", ")}</p>
+            )}
             <p>
               Prerequisites: SMTP {c.prerequisites.smtp ? "yes" : "no"} · From {c.prerequisites.fromEmail ? "yes" : "no"} ·
               Postal address {c.prerequisites.postalAddress ? "yes" : "no"} · Unsubscribe secret{" "}
@@ -188,12 +204,10 @@ export function AdminNewsletterWelcomePanel() {
             {data.timing.map((t) => (
               <li key={t.kind}>
                 {KIND_LABELS[t.kind]}:{" "}
-                {t.kind === "confirmation"
-                  ? "sent when the signup is submitted"
-                  : t.delayHours === 0
-                    ? "right after confirmation (retried on the next daily run after a definite failure)"
-                    : `about ${t.delayHours}h after confirmation, on the next eligible daily run`}
-                {t.staleAfterHours != null && ` · skipped if more than ${t.staleAfterHours}h overdue`}
+                {t.delayHours === 0
+                  ? "right after signup (retried on the next daily run after a definite failure)"
+                  : `about ${t.delayHours}h after signup, on the next eligible daily run`}
+                {` · skipped if more than ${t.staleAfterHours}h overdue`}
               </li>
             ))}
           </ul>

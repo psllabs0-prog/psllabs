@@ -1,6 +1,7 @@
 /**
  * REAL-database acceptance + concurrency test for the newsletter welcome
- * journey. Opt-in only, and only against an isolated, disposable Neon DB:
+ * journey (single opt-in). Opt-in only, and only against an isolated,
+ * disposable Neon DB:
  *
  *   NEWSLETTER_DB_TEST=1 N8N_TEST_DATABASE_URL=<isolated DB URL> npm run test:newsletter-welcome-db
  *
@@ -35,8 +36,13 @@ import {
 import { __setNewsletterTransportForTests, type NewsletterMail } from "../lib/newsletter/send";
 import { handleNewsletterConfirm, handleNewsletterSignup, type NewsletterContext } from "../lib/newsletter/service";
 import { subscribeNewsletterEmail } from "../lib/newsletter/store";
-import { buildNewsletterWelcomeEmail, NEWSLETTER_PUBLIC_MESSAGES as M } from "../lib/newsletter/templates";
-import { createConfirmationToken, hashConfirmationToken } from "../lib/newsletter/tokens";
+import {
+  buildNewsletterWelcomeEmail,
+  NEWSLETTER_PUBLIC_MESSAGES as M,
+  NEWSLETTER_SIGNUP_CONSENT,
+  NEWSLETTER_SIGNUP_CONSENT_HASH,
+} from "../lib/newsletter/templates";
+import { CONFIRMATION_TOKEN_TTL_MS, createConfirmationToken, rateLimitKey } from "../lib/newsletter/tokens";
 import { markNewsletterUnsubscribed } from "../lib/newsletter/welcome-store";
 import { ensureRetentionSchema } from "../lib/retention/schema";
 import { addMarketingSuppression, markMarketingUnsubscribed } from "../lib/retention/store";
@@ -85,13 +91,13 @@ const SITE = "https://www.psllabs.org";
 const addr = (label: string) => `${label}.${TAG}@example.test`;
 const H = 3_600_000;
 const BASE = Date.parse("2031-05-01T15:00:00Z");
+const iso = (ms: number) => new Date(ms).toISOString();
 let scenario = 0;
 /** Each scenario starts 20 days after the last so its rows are stale for later scenarios. */
 const scenarioStart = () => BASE + scenario++ * 20 * 24 * H;
 
 const BASE_ENV: Env = {
   NEWSLETTER_WELCOME_MODE: "on",
-  NEWSLETTER_CONFIRMATION_SEND_ENABLED: "true",
   NEWSLETTER_WELCOME_1_ENABLED: "true",
   NEWSLETTER_WELCOME_LATER_STEPS_ENABLED: "true",
   SMTP_HOST: "smtp.invalid",
@@ -111,8 +117,8 @@ const nextIp = () => {
 function ctx(at: number, overrides: Env = {}): NewsletterContext {
   return { now: new Date(at), config: getNewsletterWelcomeConfig({ ...BASE_ENV, ...overrides }), siteUrl: SITE };
 }
-const signup = (email: string, at: number, overrides: Env = {}, ip = nextIp()) =>
-  handleNewsletterSignup({ email, placement: "home_newsletter", signupCopyVersion: "signup-v1", ip }, ctx(at, overrides));
+const signup = (email: string, at: number, overrides: Env = {}, ip = nextIp(), signupCopyVersion = "signup-v2") =>
+  handleNewsletterSignup({ email, placement: "home_newsletter", signupCopyVersion, ip, sameOrigin: true }, ctx(at, overrides));
 const confirm = (token: string, at: number, overrides: Env = {}) => handleNewsletterConfirm({ token }, ctx(at, overrides));
 const job = (at: number, overrides: Env = {}) => runNewsletterWelcomeJob(ctx(at, overrides));
 
@@ -137,7 +143,7 @@ __setNewsletterTransportForTests(async (mail) => {
   return { messageId: mail.messageId, response: `250 2.0.0 Ok: queued as TQ${queueSeq}X${TAG}`, accepted: [mail.to], rejected: [] };
 });
 
-const CONFIRM_SUBJECT = "Confirm your PSL Labs updates";
+const RETIRED_CONFIRM_SUBJECT = "Confirm your PSL Labs updates";
 const SUBJECT = {
   welcome_1: buildNewsletterWelcomeEmail({ kind: "welcome_1", siteUrl: SITE, unsubscribeToken: "x", postalAddress: "x" }).subject,
   welcome_2: buildNewsletterWelcomeEmail({ kind: "welcome_2", siteUrl: SITE, unsubscribeToken: "x", postalAddress: "x" }).subject,
@@ -145,12 +151,6 @@ const SUBJECT = {
 };
 const mailsTo = (email: string) => outbox.filter((m) => m.to === email);
 const subjectsTo = (email: string) => mailsTo(email).map((m) => m.subject);
-function confirmTokenFor(email: string): string {
-  const mail = [...mailsTo(email)].reverse().find((m) => m.subject === CONFIRM_SUBJECT);
-  const m = mail ? /#t=(nc1_[A-Za-z0-9_-]+)/.exec(mail.text) : null;
-  if (!m) throw new Error(`no confirmation link captured for ${email}`);
-  return decodeURIComponent(m[1]);
-}
 function unsubscribeTokenFrom(mail: NewsletterMail): string {
   const m = /token=([^>&\s]+)/.exec(mail.headers["List-Unsubscribe"] ?? "");
   if (!m) throw new Error("welcome email has no List-Unsubscribe token");
@@ -195,14 +195,13 @@ async function main() {
   delete process.env.POSTGRES_URL;
   delete process.env.VERCEL;
   delete process.env.VERCEL_ENV;
+  delete process.env.NEWSLETTER_CONFIRMATION_SEND_ENABLED;
   for (const [k, v] of Object.entries(BASE_ENV)) process.env[k] = v;
   __setSqlClientForTests(sql);
   __resetNewsletterSchemaCacheForTests();
 
   await ensureRetentionSchema();
   await ensureNewsletterWelcomeSchema();
-  await ensureNewsletterWelcomeSchema();
-  assert((await getNewsletterWelcomeSchemaState()).ready, "schema ready after the (idempotent) migration");
 
   const tableCounts = async () => {
     const out: Record<string, number> = {};
@@ -236,93 +235,176 @@ async function main() {
     `) as Row[];
   const sendOf = async (email: string, kind: string) => (await sendsFor(email)).find((r) => r.kind === kind);
   const subsFor = async (email: string) =>
-    (await sql`SELECT status, is_test, confirmed_at, unsubscribed_at FROM newsletter_subscriptions WHERE email = ${email}`) as Row[];
-  const reqsFor = async (email: string) =>
     (await sql`
-      SELECT token_hash, is_test, confirmed_at, invalidated_at, invalidated_reason, placement, signup_copy_version, consent_text_hash
-      FROM newsletter_consent_requests WHERE email = ${email} ORDER BY id
+      SELECT status, is_test, consent_method, request_id, confirmed_at, subscribed_at, unsubscribed_at,
+             placement, signup_copy_version, consent_version, consent_text_hash
+      FROM newsletter_subscriptions WHERE email = ${email} ORDER BY id
     `) as Row[];
+  const reqsFor = async (email: string) =>
+    (await sql`SELECT confirmed_at, invalidated_at FROM newsletter_consent_requests WHERE email = ${email} ORDER BY id`) as Row[];
   const prefsFor = async (email: string) =>
     (await sql`SELECT marketing_eligible, unsubscribed_at FROM customer_marketing_preferences WHERE email = ${email}`) as Row[];
+  /** An older double-opt-in request (issued before single opt-in); no email is sent for it here. */
+  const seedPendingRequest = async (email: string, at: number, isTest = false) => {
+    const { token, hash } = createConfirmationToken();
+    await sql`
+      INSERT INTO newsletter_consent_requests (
+        email, is_test, token_hash, placement, signup_copy_version, consent_version, consent_text_hash, created_at, expires_at
+      ) VALUES (${email}, ${isTest}, ${hash}, 'home_newsletter', 'signup-v1', 'confirmation-v1', 'historical-consent-hash',
+                ${iso(at)}::timestamptz, ${iso(at + CONFIRMATION_TOKEN_TTL_MS)}::timestamptz)
+    `;
+    return token;
+  };
   const closeScenario = async (emails: string[]) => {
     await sql`
       UPDATE newsletter_email_sends SET status = 'cancelled', status_reason = 'test_scenario_closed', claim_token = NULL
       WHERE email = ANY(${emails}::text[]) AND status IN ('queued', 'failed', 'attempting')
     `;
   };
+  const rejects = async (q: () => Promise<unknown>) => {
+    try {
+      await q();
+      return false;
+    } catch {
+      return true;
+    }
+  };
   const journeyAddresses: string[] = [];
 
   let failure: unknown = null;
   try {
     // ------------------------------------------------------------------
-    log("signup → pending → deliberate confirmation → welcome 1 → steps 2 and 3");
+    log("v2 schema adjustment: deploy-before-migrate stays legacy; existing double-opt-in rows keep their label");
+    const hv1 = addr("hv1");
+    {
+      // Recreate the exact first-release shape of the (empty) table so the upgrade path is exercised every run.
+      await sql`ALTER TABLE newsletter_subscriptions DROP CONSTRAINT IF EXISTS newsletter_subscriptions_consent_method_check`;
+      await sql`ALTER TABLE newsletter_subscriptions DROP COLUMN IF EXISTS consent_method, DROP COLUMN IF EXISTS subscribed_at`;
+      await sql`ALTER TABLE newsletter_subscriptions ALTER COLUMN request_id SET NOT NULL, ALTER COLUMN confirmed_at SET NOT NULL`;
+      await sql`
+        ALTER TABLE newsletter_subscriptions
+          DROP CONSTRAINT IF EXISTS newsletter_subscriptions_status_check,
+          ADD CONSTRAINT newsletter_subscriptions_status_check CHECK (status IN ('confirmed', 'unsubscribed'))
+      `;
+      __resetNewsletterSchemaCacheForTests();
+      const v1 = await getNewsletterWelcomeSchemaState();
+      assert(!v1.ready && v1.missing.join() === "newsletter_subscriptions.consent_method", "first-release schema is reported as not ready (v2 column missing)");
+
+      const t0 = scenarioStart();
+      const early = addr("early");
+      const r = await signup(early, t0);
+      assert(r.status === 200 && r.body.message === "Thank you. You'll receive updates on new batch documentation and product availability.", "before the v2 migration: legacy signup response");
+      assert((await sendsFor(early)).length === 0 && mailsTo(early).length === 0, "before the v2 migration: no enrollment and no mail");
+      assert((await confirm(createConfirmationToken().token, t0)).status === 503, "before the v2 migration: confirmation unavailable");
+      assert(((await job(t0)) as { skipped: boolean }).skipped === true, "before the v2 migration: daily run skipped");
+
+      const [req] = (await sql`
+        INSERT INTO newsletter_consent_requests (
+          email, is_test, token_hash, placement, signup_copy_version, consent_version, consent_text_hash, created_at, expires_at, confirmed_at
+        ) VALUES (${hv1}, false, ${createConfirmationToken().hash}, 'home_newsletter', 'signup-v1', 'confirmation-v1', 'historical-consent-hash',
+                  ${iso(t0 - 2 * H)}::timestamptz, ${iso(t0 + 46 * H)}::timestamptz, ${iso(t0 - H)}::timestamptz)
+        RETURNING id
+      `) as Row[];
+      await sql`
+        INSERT INTO newsletter_subscriptions (
+          public_id, email, is_test, status, request_id, placement, signup_copy_version, consent_version, consent_text_hash,
+          confirmed_at, created_at, updated_at
+        ) VALUES (${`ns_${TAG}_hv1`}, ${hv1}, false, 'confirmed', ${req.id}, 'home_newsletter', 'signup-v1', 'confirmation-v1',
+                  'historical-consent-hash', ${iso(t0 - H)}::timestamptz, ${iso(t0 - H)}::timestamptz, ${iso(t0 - H)}::timestamptz)
+      `;
+
+      await ensureNewsletterWelcomeSchema();
+      await ensureNewsletterWelcomeSchema();
+      __resetNewsletterSchemaCacheForTests();
+      assert((await getNewsletterWelcomeSchemaState()).ready, "schema ready after the (idempotent) migration");
+      const [old] = await subsFor(hv1);
+      assert(
+        old.consent_method === "double_opt_in" && old.status === "confirmed" && new Date(String(old.confirmed_at)).getTime() === t0 - H && old.subscribed_at === null,
+        "existing row labelled double opt-in with its confirmation time preserved; nothing fabricated"
+      );
+      const cols = (await sql`
+        SELECT column_name, is_nullable FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'newsletter_subscriptions' AND column_name IN ('request_id', 'confirmed_at', 'consent_method', 'subscribed_at')
+      `) as Row[];
+      assert(cols.length === 4 && cols.filter((c) => c.column_name !== "consent_method").every((c) => c.is_nullable === "YES"), "v2 columns present; request/confirmation fields optional");
+
+      const bad = (method: string, status: string, requestId: string | null, confirmedAt: string | null, subscribedAt: string | null) => () =>
+        sql`
+          INSERT INTO newsletter_subscriptions (
+            public_id, email, is_test, status, consent_method, request_id, placement, signup_copy_version, consent_version, consent_text_hash,
+            confirmed_at, subscribed_at, created_at, updated_at
+          ) VALUES (${`ns_${TAG}_bad${crypto.randomBytes(4).toString("hex")}`}, ${addr("badrow")}, true, ${status}, ${method}, ${requestId}::bigint,
+                    'x', 'x', 'x', 'x', ${confirmedAt}::timestamptz, ${subscribedAt}::timestamptz, now(), now())
+        `;
+      const ts = iso(t0);
+      assert(await rejects(bad("single_opt_in", "subscribed", null, ts, ts)), "constraint: a single-opt-in row cannot claim a confirmation time");
+      assert(await rejects(bad("single_opt_in", "confirmed", null, null, ts)), "constraint: a single-opt-in row cannot use the verified status");
+      assert(await rejects(bad("single_opt_in", "subscribed", "1", null, ts)), "constraint: a single-opt-in row cannot reference a confirmation request");
+      assert(await rejects(bad("single_opt_in", "subscribed", null, null, null)), "constraint: a single-opt-in row needs its submission time");
+      assert(await rejects(bad("double_opt_in", "confirmed", null, ts, ts)), "constraint: a double-opt-in row needs its confirmation request");
+      assert(await rejects(bad("double_opt_in", "subscribed", "1", ts, ts)), "constraint: double opt-in keeps the confirmed status");
+      assert(await rejects(bad("other", "subscribed", null, null, ts)), "constraint: unknown consent methods refused");
+      assert((await subsFor(addr("badrow"))).length === 0, "no invalid rows stored");
+    }
+
+    // ------------------------------------------------------------------
+    log("single opt-in: one signup → one subscription and Welcome 1 → steps 2 and 3 → unsubscribe");
     {
       const t0 = scenarioStart();
       const a = addr("a");
       journeyAddresses.push(a);
       const r = await signup(a, t0);
-      assert(r.status === 200 && r.body.message === M.requested, "signup returns the generic pending message");
-      assert(subjectsTo(a).join("|") === CONFIRM_SUBJECT, "exactly one confirmation email, nothing else");
-      const confirmMail = mailsTo(a)[0];
-      assert(!confirmMail.headers["List-Unsubscribe"], "confirmation email carries no list-unsubscribe header");
-      assert(confirmMail.from === "PSL Labs <updates@psllabs.org>" && confirmMail.replyTo === "support@psllabs.org", "from/reply-to");
-      const token = confirmTokenFor(a);
-      const [req] = await reqsFor(a);
-      assert(req && req.confirmed_at === null && req.token_hash === hashConfirmationToken(token), "request pending; only the token hash stored");
-      assert(req.placement === "home_newsletter" && req.signup_copy_version === "signup-v1" && typeof req.consent_text_hash === "string", "consent evidence recorded");
-      const [hits] = (await sql`
-        SELECT (SELECT COUNT(*) FROM newsletter_consent_requests WHERE token_hash = ${token})::int AS raw
-      `) as Row[];
-      assert(Number(hits.raw) === 0, "raw token never stored");
+      assert(r.status === 200 && r.body.ok === true && r.body.message === M.received, "signup returns the accurate, generic acknowledgement");
+      assert(subjectsTo(a).join("|") === SUBJECT.welcome_1, "exactly one email (Welcome 1); zero confirmation emails");
+      assert((await reqsFor(a)).length === 0, "no confirmation request or token created");
+      const w1 = mailsTo(a)[0];
+      assert(w1.text.includes("Thanks for subscribing.") && !/confirm/i.test(w1.text), "Welcome 1 says “Thanks for subscribing”");
+      assert(w1.headers["List-Unsubscribe-Post"] === "List-Unsubscribe=One-Click" && /\/api\/marketing\/unsubscribe\?token=nu1_/.test(w1.headers["List-Unsubscribe"]), "Welcome 1 has one-click unsubscribe");
+      assert(w1.from === "PSL Labs <updates@psllabs.org>" && w1.replyTo === "support@psllabs.org", "from/reply-to");
+      assert(w1.text.includes("/science/how-to-read-a-coa?utm_source=email&utm_medium=email&utm_campaign=newsletter_welcome_v1&utm_content=welcome_1_guide"), "Welcome 1 CTA");
+      const subs = await subsFor(a);
+      assert(subs.length === 1, "one subscription");
+      const sub = subs[0];
+      assert(sub.consent_method === "single_opt_in" && sub.status === "subscribed" && sub.is_test === false, "recorded as live single opt-in");
+      assert(sub.confirmed_at === null && sub.request_id === null, "no verification event fabricated");
+      assert(new Date(String(sub.subscribed_at)).getTime() === t0, "submission timestamp recorded");
+      assert(
+        sub.placement === "home_newsletter" && sub.signup_copy_version === "signup-v2" &&
+          sub.consent_version === NEWSLETTER_SIGNUP_CONSENT.version && sub.consent_text_hash === NEWSLETTER_SIGNUP_CONSENT_HASH,
+        "placement and exact consent-copy version/hash recorded"
+      );
       let s = await sendsFor(a);
-      assert(s.length === 1 && s[0].kind === "confirmation" && s[0].status === "accepted" && String(s[0].provider_queue_id).startsWith("TQ"), "confirmation send accepted with provider queue id");
-      assert((await subsFor(a)).length === 0, "not subscribed before confirmation");
-      assert((await prefsFor(a)).length === 0, "marketing preferences untouched");
+      const due = (k: string) => new Date(String(s.find((x) => x.kind === k)!.due_at)).getTime();
+      assert(s.length === 3 && !s.some((x) => x.kind === "confirmation"), "three welcome step rows, no confirmation row");
+      const w1Row = s.find((x) => x.kind === "welcome_1")!;
+      assert(w1Row.status === "accepted" && String(w1Row.provider_queue_id).startsWith("TQ"), "Welcome 1 accepted with provider queue id");
+      assert(due("welcome_1") === t0 && due("welcome_2") === t0 + 48 * H && due("welcome_3") === t0 + 120 * H, "sequence timed from the signup");
+      assert((await prefsFor(a)).length === 0, "signup never sets marketing_eligible");
 
       const get = await confirmGET();
-      assert(get.status === 405 && get.headers.get("allow") === "POST", "GET on the confirm API never confirms");
-      await job(t0 + 0.5 * H);
-      assert((await subsFor(a)).length === 0 && subjectsTo(a).length === 1, "worker sends nothing before confirmation");
+      assert(get.status === 405, "GET on the confirm API never confirms");
 
-      const t1 = t0 + 1 * H;
-      const c = await confirm(token, t1);
-      assert(c.status === 200 && c.body.status === "confirmed" && c.body.guideEmail === "sent", "deliberate POST confirms and sends the guide");
-      assert(subjectsTo(a).join("|") === `${CONFIRM_SUBJECT}|${SUBJECT.welcome_1}`, "welcome 1 sent immediately after confirmation");
-      const w1 = mailsTo(a)[1];
-      assert(w1.headers["List-Unsubscribe-Post"] === "List-Unsubscribe=One-Click" && /\/api\/marketing\/unsubscribe\?token=nu1_/.test(w1.headers["List-Unsubscribe"]), "welcome 1 has one-click unsubscribe");
-      assert(w1.text.includes("/science/how-to-read-a-coa?utm_source=email&utm_medium=email&utm_campaign=newsletter_welcome_v1&utm_content=welcome_1_guide"), "welcome 1 CTA");
-      const [sub] = await subsFor(a);
-      assert(sub && sub.status === "confirmed" && sub.is_test === false, "live subscription confirmed");
+      const again = await signup(a, t0 + 2 * H);
+      assert(again.status === 200 && again.body.message === M.received && subjectsTo(a).length === 1, "re-signup of a subscriber: same message, no mail");
+      assert((await subsFor(a)).length === 1 && (await sendsFor(a)).length === 3, "re-signup: no new subscription or steps");
+
+      await job(t0 + 47 * H);
+      assert(subjectsTo(a).length === 1, "Welcome 2 not sent before 48h");
+      await job(t0 + 48.5 * H);
+      assert(subjectsTo(a)[1] === SUBJECT.welcome_2 && mailsTo(a)[1].text.includes("utm_content=welcome_2_reports"), "Welcome 2 sent at 48h");
+      await job(t0 + 48.6 * H);
+      assert(subjectsTo(a).length === 2, "no duplicate Welcome 2");
+      await job(t0 + 120.5 * H);
+      assert(subjectsTo(a)[2] === SUBJECT.welcome_3 && mailsTo(a)[2].text.includes("utm_content=welcome_3_information"), "Welcome 3 sent at 120h");
+      await job(t0 + 200 * H);
+      assert(subjectsTo(a).length === 3, "nothing after Welcome 3");
       s = await sendsFor(a);
-      const due = (k: string) => new Date(String(s.find((r) => r.kind === k)!.due_at)).getTime();
-      assert(s.length === 4 && s.find((r) => r.kind === "welcome_1")!.status === "accepted", "welcome 1 accepted");
-      assert(due("welcome_2") === t1 + 48 * H && due("welcome_3") === t1 + 120 * H, "welcome 2 due at 48h, welcome 3 at 120h");
-      assert((await prefsFor(a)).length === 0, "confirmation never sets marketing_eligible");
-
-      const replay = await confirm(token, t1 + H);
-      assert(replay.status === 200 && replay.body.status === "already_confirmed" && subjectsTo(a).length === 2, "replayed token: idempotent, no new mail");
-      const again = await signup(a, t1 + 2 * H);
-      assert(again.status === 200 && again.body.message === M.requested && subjectsTo(a).length === 2, "re-signup of a subscriber: same generic message, no mail");
-
-      await job(t1 + 47 * H);
-      assert(subjectsTo(a).length === 2, "welcome 2 not sent before 48h");
-      await job(t1 + 48.5 * H);
-      assert(subjectsTo(a)[2] === SUBJECT.welcome_2, "welcome 2 sent at 48h");
-      assert(mailsTo(a)[2].text.includes("utm_content=welcome_2_reports"), "welcome 2 UTM");
-      await job(t1 + 48.6 * H);
-      assert(subjectsTo(a).length === 3, "no duplicate welcome 2");
-      await job(t1 + 120.5 * H);
-      assert(subjectsTo(a)[3] === SUBJECT.welcome_3, "welcome 3 sent at 120h");
-      assert(mailsTo(a)[3].text.includes("utm_content=welcome_3_information"), "welcome 3 UTM");
-      await job(t1 + 200 * H);
-      assert(subjectsTo(a).length === 4, "nothing after welcome 3");
-      s = await sendsFor(a);
-      const acc = ["welcome_1", "welcome_2", "welcome_3"].map((k) => new Date(String(s.find((r) => r.kind === k)!.accepted_at)).getTime());
+      const acc = ["welcome_1", "welcome_2", "welcome_3"].map((k) => new Date(String(s.find((x) => x.kind === k)!.accepted_at)).getTime());
       assert(acc[1] - acc[0] >= 24 * H && acc[2] - acc[1] >= 24 * H, "at least 24h between welcome steps");
 
-      const unsubToken = unsubscribeTokenFrom(mailsTo(a)[3]);
+      const unsubToken = unsubscribeTokenFrom(mailsTo(a)[2]);
       const g = await unsubscribeGET(new Request(`${SITE}/api/marketing/unsubscribe?token=${encodeURIComponent(unsubToken)}`));
-      assert(g.status >= 300 && g.status < 400 && (await subsFor(a))[0].status === "confirmed", "unsubscribe GET only redirects (no change)");
+      assert(g.status >= 300 && g.status < 400 && (await subsFor(a))[0].status === "subscribed", "unsubscribe GET only redirects (no change)");
       const p = await unsubscribePOST(
         new Request(`${SITE}/api/marketing/unsubscribe?token=${encodeURIComponent(unsubToken)}`, {
           method: "POST",
@@ -332,77 +414,77 @@ async function main() {
       );
       assert(p.status === 200, "one-click unsubscribe accepted");
       const [after] = await subsFor(a);
-      assert(after.status === "unsubscribed" && after.unsubscribed_at !== null, "subscription ended");
+      assert(after.status === "unsubscribed" && after.unsubscribed_at !== null && after.consent_method === "single_opt_in", "subscription ended; consent method unchanged");
       const [pref] = await prefsFor(a);
       assert(pref && pref.unsubscribed_at !== null && pref.marketing_eligible === false, "existing marketing unsubscribe recorded");
-      const resub = await signup(a, t1 + 300 * H);
-      assert(resub.status === 200 && resub.body.message === M.requested && subjectsTo(a).length === 4, "after unsubscribe: generic response, no mail");
-      assert((await reqsFor(a)).length === 1, "no new request after unsubscribe");
-      const old = await confirm(token, t1 + 301 * H);
-      assert(old.status === 410 && old.body.status === "invalid", "an old link can never resubscribe");
+      const resub = await signup(a, t0 + 300 * H);
+      assert(resub.status === 200 && resub.body.message === M.received && subjectsTo(a).length === 3, "after unsubscribe: same message, no mail");
+      const [still] = await subsFor(a);
+      assert((await subsFor(a)).length === 1 && still.status === "unsubscribed", "an unauthenticated signup never resubscribes an opt-out");
       await closeScenario([a]);
     }
 
     // ------------------------------------------------------------------
-    log("concurrent confirmations and signups");
+    log("repeated clicks, retries, and concurrent submissions");
     {
       const t0 = scenarioStart();
       const b = addr("b");
-      const c = addr("c");
-      journeyAddresses.push(b, c);
-      await signup(b, t0);
-      const tok = confirmTokenFor(b);
-      const results = await Promise.all(Array.from({ length: 5 }, () => confirm(tok, t0 + H)));
-      const statuses = results.map((r) => r.body.status).sort();
-      assert(statuses.filter((s) => s === "confirmed").length === 1 && statuses.filter((s) => s === "already_confirmed").length === 4, `exactly one confirmation wins (${statuses.join(",")})`);
-      assert((await subsFor(b)).length === 1, "one subscription");
-      const s = await sendsFor(b);
-      assert(s.filter((r) => r.kind !== "confirmation").length === 3, "three step rows");
-      assert(subjectsTo(b).filter((x) => x === SUBJECT.welcome_1).length === 1, "welcome 1 sent once");
+      journeyAddresses.push(b);
+      const results = await Promise.all(Array.from({ length: 5 }, () => signup(b, t0)));
+      assert(results.every((r) => r.status === 200 && r.body.message === M.received), "every concurrent submission gets the same acknowledgement");
+      assert((await subsFor(b)).length === 1 && (await sendsFor(b)).length === 3, "one subscription and one set of steps");
+      assert(subjectsTo(b).filter((x) => x === SUBJECT.welcome_1).length === 1 && mailsTo(b).length === 1, "Welcome 1 sent once");
+      for (let i = 1; i <= 3; i++) await signup(b, t0 + i * 5 * 60_000 + H);
+      assert((await subsFor(b)).length === 1 && mailsTo(b).length === 1, "network retries never repeat the sequence");
 
-      const signups = await Promise.all(Array.from({ length: 4 }, () => signup(c, t0 + 2 * H)));
-      assert(signups.every((r) => r.status === 200 && r.body.message === M.requested), "concurrent signups get the generic message");
-      assert((await reqsFor(c)).length === 1 && subjectsTo(c).length === 1, "concurrent signups create one request and one email");
-      await closeScenario([b, c]);
+      const bt = addr("btest");
+      journeyAddresses.push(bt);
+      await signup(bt, t0, { NEWSLETTER_WELCOME_MODE: "allowlist", NEWSLETTER_WELCOME_TEST_ALLOWLIST: bt });
+      await signup(bt, t0 + H);
+      assert((await subsFor(bt)).length === 1 && (await subsFor(bt))[0].is_test === true && mailsTo(bt).length === 1, "an active TEST subscription also blocks a second (live) enrollment");
+      await closeScenario([b, bt]);
     }
 
     // ------------------------------------------------------------------
-    log("expired, altered, unknown, superseded tokens; cooldown and daily cap");
+    log("durable address, IP, and global limits constrain enrollment and sends");
     {
       const t0 = scenarioStart();
-      const d = addr("d");
-      const e = addr("e");
-      const f = addr("f");
-      journeyAddresses.push(d, e, f);
-      await signup(d, t0);
-      const tok = confirmTokenFor(d);
-      const expired = await confirm(tok, t0 + 49 * H);
-      assert(expired.status === 410 && (await subsFor(d)).length === 0, "expired token refused");
-      const altered = tok.slice(0, -1) + (tok.endsWith("A") ? "B" : "A");
-      assert((await confirm(altered, t0 + H)).status === 410, "altered token refused");
-      assert((await confirm(createConfirmationToken().token, t0 + H)).status === 410, "unknown token refused");
-      assert((await confirm("nc1_short", t0 + H)).status === 410, "malformed token refused");
-      assert((await subsFor(d)).length === 0, "no subscription from bad tokens");
+      const results = [];
+      const ipAddrs: string[] = [];
+      for (let i = 0; i < 6; i++) {
+        const x = addr(`ip${i}`);
+        ipAddrs.push(x);
+        journeyAddresses.push(x);
+        results.push(await signup(x, t0, {}, "203.0.113.9"));
+      }
+      assert(results.slice(0, 5).every((r) => r.status === 200) && results[5].status === 429 && results[5].body.error === M.rateLimited, "6th signup from one IP within an hour is limited");
+      assert((await subsFor(ipAddrs[5])).length === 0 && mailsTo(ipAddrs[5]).length === 0, "IP-limited submission: no enrollment, no mail");
 
-      await signup(e, t0);
-      const tok1 = confirmTokenFor(e);
-      const cool = await signup(e, t0 + 5 * 60_000);
-      assert(cool.status === 200 && cool.body.message === M.requested && subjectsTo(e).length === 1, "within cooldown: generic, no mail");
-      await signup(e, t0 + 11 * 60_000);
-      const tok2 = confirmTokenFor(e);
-      assert(tok2 !== tok1 && subjectsTo(e).length === 2, "new link after cooldown");
-      const reqs = await reqsFor(e);
-      assert(reqs[0].invalidated_reason === "superseded" && reqs[1].invalidated_at === null, "older request superseded");
-      assert((await confirm(tok1, t0 + 20 * 60_000)).status === 410, "superseded token refused");
-      assert((await confirm(tok2, t0 + 21 * 60_000)).body.status === "confirmed", "newest token confirms");
+      const al = addr("addrlimit");
+      journeyAddresses.push(al);
+      await sql`
+        INSERT INTO newsletter_rate_limits (bucket, window_start, count)
+        VALUES (${rateLimitKey("email", al)!}, date_trunc('hour', ${iso(t0 + 2 * H)}::timestamptz), 5)
+      `;
+      const limited = await signup(al, t0 + 2 * H);
+      assert(limited.status === 200 && limited.body.message === M.received, "address limit: same acknowledgement (no list-membership signal)");
+      assert((await subsFor(al)).length === 0 && mailsTo(al).length === 0, "address limit: no enrollment, no mail");
+      await signup(al, t0 + 3 * H);
+      assert((await subsFor(al)).length === 1 && mailsTo(al).length === 1, "address limit resets in the next hourly window");
 
-      for (const m of [0, 11, 22, 33]) await signup(f, t0 + m * 60_000);
-      assert(subjectsTo(f).length === 3, "at most 3 confirmation emails per address per day");
-      await closeScenario([d, e, f]);
+      const gl = addr("globallimit");
+      journeyAddresses.push(gl);
+      await sql`
+        INSERT INTO newsletter_rate_limits (bucket, window_start, count)
+        VALUES ('global:signup', date_trunc('hour', ${iso(t0 + 5 * H)}::timestamptz), 100)
+      `;
+      const gr = await signup(gl, t0 + 5 * H);
+      assert(gr.status === 503 && (await subsFor(gl)).length === 0 && mailsTo(gl).length === 0, "global hourly cap: refused before any enrollment or mail");
+      await closeScenario([...ipAddrs, al, gl]);
     }
 
     // ------------------------------------------------------------------
-    log("confirmation delivery outcomes are honest and never confirm");
+    log("Welcome 1 outcomes at signup are honest; ambiguous results are never resent");
     {
       const t0 = scenarioStart();
       const p = addr("p");
@@ -416,67 +498,57 @@ async function main() {
       transportMode = "refuse";
       const rr = await signup(r, t0);
       transportMode = "accept";
-      assert(rp.status === 503 && rp.body.error === M.sendFailed, "rejected → send failed message");
-      assert(rq.status === 202 && rq.body.message === M.uncertain, "timeout → uncertain message");
-      assert(rr.status === 503 && rr.body.error === M.sendFailed, "connection refused → send failed message");
-      const [sp] = await sendsFor(p);
-      const [sq] = await sendsFor(q);
-      const [sr] = await sendsFor(r);
-      assert(sp.status === "rejected" && sp.error_category === "rejected_recipient" && sp.accepted_at === null, "rejected recorded");
-      assert(sq.status === "unknown" && sq.accepted_at === null, "timeout recorded as unknown");
-      assert(sr.status === "failed" && sr.error_category === "connection", "refused recorded as failed");
-      for (const x of [p, q, r]) assert((await subsFor(x)).length === 0, `${x.split(".")[0]}: send failure never confirms`);
+      for (const res of [rp, rq, rr]) assert(res.status === 200 && res.body.message === M.received, "acknowledgement reflects the committed subscription, not SMTP");
+      const wp = (await sendOf(p, "welcome_1"))!;
+      const wq = (await sendOf(q, "welcome_1"))!;
+      const wr = (await sendOf(r, "welcome_1"))!;
+      assert(wp.status === "rejected" && wp.error_category === "rejected_recipient" && wp.accepted_at === null, "rejected recorded");
+      assert(wq.status === "unknown" && wq.accepted_at === null, "timeout recorded as unknown");
+      assert(wr.status === "failed" && wr.error_category === "connection", "refused recorded as failed");
       await signup(q, t0 + 60_000);
-      assert(mailsTo(q).length === 1, "unknown outcome is not retried by a quick re-signup");
       await job(t0 + 10 * H);
-      assert(mailsTo(q).length === 1 && mailsTo(p).length === 1, "the worker never retries confirmation emails");
+      assert(mailsTo(q).length === 1 && mailsTo(p).length === 1, "unknown and rejected Welcome 1 never resent");
+      assert(mailsTo(r).length === 2 && (await sendOf(r, "welcome_1"))!.status === "accepted", "definite failure retried by the daily run");
       await closeScenario([p, q, r]);
     }
 
     // ------------------------------------------------------------------
-    log("welcome 1 retry, spacing, unknown outcomes, stale skip, no burst");
+    log("spacing, stale steps, later-step switch, no burst");
     {
       const t0 = scenarioStart();
       const n = addr("n");
       const o = addr("o");
       const m = addr("m");
       journeyAddresses.push(n, o, m);
-      const t1 = t0 + H;
 
-      await signup(n, t0);
       transportMode = "refuse";
-      const cn = await confirm(confirmTokenFor(n), t1);
+      await signup(n, t0);
       transportMode = "accept";
-      assert(cn.body.status === "confirmed" && cn.body.guideEmail === "pending", "confirmation still succeeds when welcome 1 fails");
-      assert((await sendOf(n, "welcome_1"))!.status === "failed", "welcome 1 failed (definite)");
-      await job(t1 + 30 * H);
-      assert((await sendOf(n, "welcome_1"))!.status === "accepted", "welcome 1 retried by the worker");
-      await job(t1 + 48.5 * H);
-      assert((await sendOf(n, "welcome_2"))!.status === "queued", "welcome 2 held until 24h after welcome 1");
-      await job(t1 + 55 * H);
-      assert((await sendOf(n, "welcome_2"))!.status === "accepted", "welcome 2 sent once spacing allows");
+      await job(t0 + 30 * H);
+      assert((await sendOf(n, "welcome_1"))!.status === "accepted", "Welcome 1 retried by the worker");
+      await job(t0 + 48.5 * H);
+      assert((await sendOf(n, "welcome_2"))!.status === "queued", "Welcome 2 held until 24h after Welcome 1");
+      await job(t0 + 55 * H);
+      assert((await sendOf(n, "welcome_2"))!.status === "accepted", "Welcome 2 sent once spacing allows");
 
-      await signup(o, t0);
       transportMode = "timeout";
-      await confirm(confirmTokenFor(o), t1);
+      await signup(o, t0);
       transportMode = "accept";
-      assert((await sendOf(o, "welcome_1"))!.status === "unknown", "ambiguous welcome 1 recorded unknown");
       const oMails = mailsTo(o).length;
-      await job(t1 + 48.5 * H);
-      assert(mailsTo(o).length === oMails, "unknown welcome 1 never retried; welcome 2 cannot overtake it");
-      await job(t1 + 121 * H);
-      assert((await sendOf(o, "welcome_2"))!.status === "skipped_stale", "overdue welcome 2 skipped");
-      assert((await sendOf(o, "welcome_3"))!.status === "cancelled", "welcome 3 cancelled when its predecessor never sent");
+      await job(t0 + 48.5 * H);
+      assert(mailsTo(o).length === oMails, "unknown Welcome 1 never retried; Welcome 2 cannot overtake it");
+      await job(t0 + 121 * H);
+      assert((await sendOf(o, "welcome_2"))!.status === "skipped_stale", "overdue Welcome 2 skipped");
+      assert((await sendOf(o, "welcome_3"))!.status === "cancelled", "Welcome 3 cancelled when its predecessor never sent");
       assert(mailsTo(o).length === oMails, "no burst");
 
       await signup(m, t0);
-      await confirm(confirmTokenFor(m), t1);
       const off = { NEWSLETTER_WELCOME_LATER_STEPS_ENABLED: "false" };
-      await job(t1 + 48.5 * H, off);
-      assert((await sendOf(m, "welcome_2"))!.status === "queued" && mailsTo(m).length === 2, "later steps disabled: nothing sent");
-      await job(t1 + 125 * H);
+      await job(t0 + 48.5 * H, off);
+      assert((await sendOf(m, "welcome_2"))!.status === "queued" && mailsTo(m).length === 1, "later steps disabled: nothing sent");
+      await job(t0 + 125 * H);
       assert((await sendOf(m, "welcome_2"))!.status === "skipped_stale" && (await sendOf(m, "welcome_3"))!.status === "cancelled", "re-enabling does not burst old steps");
-      assert(mailsTo(m).length === 2, "no catch-up mail");
+      assert(mailsTo(m).length === 1, "no catch-up mail");
       await closeScenario([n, o, m]);
     }
 
@@ -487,10 +559,9 @@ async function main() {
       const k = addr("k");
       journeyAddresses.push(k);
       await signup(k, t0);
-      await confirm(confirmTokenFor(k), t0 + H);
       await addMarketingSuppression({ email: k, reason: "complaint", source: TAG });
       await job(t0 + 49.5 * H);
-      assert((await sendOf(k, "welcome_2"))!.status === "suppressed" && mailsTo(k).length === 2, "suppression between enqueue and dispatch stops the send");
+      assert((await sendOf(k, "welcome_2"))!.status === "suppressed" && mailsTo(k).length === 1, "suppression between enqueue and dispatch stops the send");
 
       const blocked: Array<[string, () => Promise<void>]> = [
         [addr("g"), async () => addMarketingSuppression({ email: addr("g"), reason: "hard_bounce", source: TAG })],
@@ -502,25 +573,28 @@ async function main() {
         await block();
         const prefsBefore = JSON.stringify(await prefsFor(email));
         const res = await signup(email, t0 + 2 * H);
-        assert(res.status === 200 && res.body.message === M.requested, `${email.split(".")[0]}: generic response`);
-        assert(mailsTo(email).length === 0 && (await reqsFor(email)).length === 0, `${email.split(".")[0]}: no mail, no request`);
-        assert(JSON.stringify(await prefsFor(email)) === prefsBefore, `${email.split(".")[0]}: preferences unchanged`);
+        assert(res.status === 200 && res.body.message === M.received, `${email.split(".")[0]}: same acknowledgement`);
+        assert(mailsTo(email).length === 0 && (await subsFor(email)).length === 0 && (await sendsFor(email)).length === 0, `${email.split(".")[0]}: no subscription, no mail`);
+        assert(JSON.stringify(await prefsFor(email)) === prefsBefore, `${email.split(".")[0]}: suppression/preferences unchanged`);
       }
+      const blockedEmails = [k, ...blocked.map(([email]) => email)];
+      const [supp] = (await sql`SELECT COUNT(DISTINCT email)::int AS n FROM marketing_suppressions WHERE email = ANY(${blockedEmails}::text[])`) as Row[];
+      assert(Number(supp.n) === 5, "suppressions are never cleared by a signup");
 
       const g2 = addr("g2");
       journeyAddresses.push(g2);
+      transportMode = "refuse";
       await signup(g2, t0);
-      const tok = confirmTokenFor(g2);
+      transportMode = "accept";
       await addMarketingSuppression({ email: g2, reason: "hard_bounce", source: TAG });
-      assert((await confirm(tok, t0 + H)).status === 410 && (await subsFor(g2)).length === 0, "suppressed after signup: link no longer confirms");
+      await job(t0 + 10 * H);
+      assert((await sendOf(g2, "welcome_1"))!.status === "suppressed" && mailsTo(g2).length === 1, "suppression re-checked immediately before the Welcome 1 retry");
 
       for (const label of ["race1", "race2", "race3"]) {
         const x = addr(label);
         journeyAddresses.push(x);
-        await signup(x, t0 + 3 * H);
-        const tk = confirmTokenFor(x);
         await Promise.all([
-          confirm(tk, t0 + 4 * H),
+          signup(x, t0 + 4 * H),
           (async () => {
             await markMarketingUnsubscribed(x);
             await markNewsletterUnsubscribed(x, new Date(t0 + 4 * H));
@@ -530,11 +604,198 @@ async function main() {
         assert(subs.every((s) => s.status === "unsubscribed" && s.unsubscribed_at !== null), `${label}: unsubscribe wins the final state`);
         const s = await sendsFor(x);
         assert(!s.some((r) => r.status === "queued" || r.status === "failed" || r.status === "attempting"), `${label}: no pending sends remain`);
-        assert(!s.some((r) => (r.kind === "welcome_2" || r.kind === "welcome_3") && r.status === "accepted"), `${label}: no later steps sent`);
         await job(t0 + 60 * H);
         assert(!subjectsTo(x).includes(SUBJECT.welcome_2), `${label}: nothing sent after unsubscribe`);
       }
       await closeScenario([k, g2]);
+    }
+
+    // ------------------------------------------------------------------
+    log("older confirmation links: not auto-enrolled, still valid until expiry, never duplicate or override");
+    {
+      const t0 = scenarioStart();
+      const o1 = addr("old1");
+      const o2 = addr("old2");
+      const o3 = addr("old3");
+      const o4 = addr("old4");
+      const o5 = addr("old5");
+      journeyAddresses.push(o1, o2, o3, o4, o5);
+      const tk1 = await seedPendingRequest(o1, t0);
+      const tk2 = await seedPendingRequest(o2, t0);
+      const tk3 = await seedPendingRequest(o3, t0);
+      const tk4 = await seedPendingRequest(o4, t0);
+      const tk5 = await seedPendingRequest(o5, t0);
+      await job(t0 + H);
+      for (const x of [o1, o2, o3, o4, o5]) {
+        assert((await subsFor(x)).length === 0 && (await sendsFor(x)).length === 0 && mailsTo(x).length === 0, `${x.split(".")[0]}: pending request not enrolled by deployment or the daily run`);
+      }
+
+      const c1 = await confirm(tk1, t0 + 2 * H);
+      assert(c1.status === 200 && c1.body.status === "confirmed" && c1.body.guideEmail === "sent", "a valid older link still confirms");
+      const [s1] = await subsFor(o1);
+      assert(s1.consent_method === "double_opt_in" && s1.status === "confirmed" && s1.request_id !== null && s1.confirmed_at !== null, "older link recorded as double opt-in (address verified)");
+      assert(subjectsTo(o1).join("|") === SUBJECT.welcome_1, "older link: Welcome 1 only, no confirmation email");
+      const replay = await confirm(tk1, t0 + 3 * H);
+      assert(replay.status === 200 && replay.body.status === "already_confirmed" && mailsTo(o1).length === 1, "replayed link: idempotent, no new mail");
+      await signup(o1, t0 + 3 * H);
+      assert((await subsFor(o1)).length === 1 && mailsTo(o1).length === 1, "new signup after an old-link confirmation: no duplicate");
+
+      await signup(o2, t0 + 2 * H);
+      assert((await subsFor(o2))[0].consent_method === "single_opt_in" && mailsTo(o2).length === 1, "fresh signup with a pending old link enrolls as single opt-in");
+      const c2 = await confirm(tk2, t0 + 3 * H);
+      assert(c2.status === 200 && c2.body.status === "already_confirmed", "old link after a single-opt-in signup reports already subscribed");
+      const s2 = await subsFor(o2);
+      assert(s2.length === 1 && s2[0].consent_method === "single_opt_in" && s2[0].confirmed_at === null && mailsTo(o2).length === 1, "old link neither duplicates nor relabels the single-opt-in consent");
+
+      assert((await confirm(tk3, t0 + 49 * H)).status === 410 && (await subsFor(o3)).length === 0, "older link refused after its normal expiry");
+
+      await markMarketingUnsubscribed(o4);
+      assert((await confirm(tk4, t0 + 2 * H)).status === 410 && (await subsFor(o4)).length === 0, "older link can never undo an opt-out");
+
+      await Promise.all([signup(o5, t0 + 2 * H), confirm(tk5, t0 + 2 * H), signup(o5, t0 + 2 * H), confirm(tk5, t0 + 2 * H)]);
+      assert((await subsFor(o5)).length === 1 && mailsTo(o5).length === 1, "concurrent old link and new signup: one subscription, one Welcome 1");
+
+      const o6 = addr("old6");
+      journeyAddresses.push(o6);
+      const tk6 = await seedPendingRequest(o6, t0);
+      const allowOther = { NEWSLETTER_WELCOME_MODE: "allowlist", NEWSLETTER_WELCOME_TEST_ALLOWLIST: addr("someoneelse") };
+      assert((await confirm(tk6, t0 + 2 * H, allowOther)).status === 503 && (await subsFor(o6)).length === 0, "allowlist mode: older links for other addresses unavailable");
+      await closeScenario([o1, o2, o3, o4, o5, o6]);
+    }
+
+    // ------------------------------------------------------------------
+    log("off, obsolete confirmation switch, allowlist, Preview, simulation, legacy forms");
+    {
+      const t0 = scenarioStart();
+      const legacy = "Thank you. You'll receive updates on new batch documentation and product availability.";
+      for (const [label, overrides] of [
+        ["mode off", { NEWSLETTER_WELCOME_MODE: "off" }],
+        ["welcome 1 off", { NEWSLETTER_WELCOME_1_ENABLED: "false" }],
+        ["Preview", { VERCEL_ENV: "preview" }],
+      ] as Array<[string, Env]>) {
+        const x = addr(`kill${label.replace(/\W/g, "")}`);
+        const res = await signup(x, t0, overrides);
+        assert(res.status === 200 && res.body.message === legacy, `${label}: legacy signup response`);
+        assert(mailsTo(x).length === 0 && (await subsFor(x)).length === 0 && (await sendsFor(x)).length === 0, `${label}: no new rows, no mail`);
+      }
+      const lf = addr("legacyform");
+      const lfr = await signup(lf, t0, {}, nextIp(), "legacy-v0");
+      assert(lfr.body.message === legacy && (await subsFor(lf)).length === 0 && mailsTo(lf).length === 0, "a form without the consent wording never enrolls");
+      const pv = await confirm(createConfirmationToken().token, t0, { VERCEL_ENV: "preview" });
+      assert(pv.status === 503, "Preview: confirmation unavailable");
+      const pj = await job(t0, { VERCEL_ENV: "preview" });
+      assert(pj.skipped === true, "Preview: worker skipped");
+
+      for (const value of ["false", "true"]) {
+        const x = addr(`obsolete${value}`);
+        journeyAddresses.push(x);
+        await signup(x, t0 + H, { NEWSLETTER_CONFIRMATION_SEND_ENABLED: value });
+        assert(subjectsTo(x).join("|") === SUBJECT.welcome_1 && (await reqsFor(x)).length === 0, `confirmation switch = ${value}: ignored (single opt-in, no confirmation email)`);
+      }
+
+      const v = addr("v");
+      journeyAddresses.push(v);
+      transportMode = "refuse";
+      await signup(v, t0 + H);
+      transportMode = "accept";
+      await job(t0 + 2 * H, { NEWSLETTER_WELCOME_1_ENABLED: "false" });
+      assert((await sendOf(v, "welcome_1"))!.status === "failed" && mailsTo(v).length === 1, "Welcome 1 held while switched off");
+      await job(t0 + 3 * H);
+      assert((await sendOf(v, "welcome_1"))!.status === "accepted", "Welcome 1 sent once switched on");
+
+      const live = addr("live");
+      const testAddr = addr("allow");
+      journeyAddresses.push(live, testAddr);
+      await signup(live, t0 + 4 * H);
+      const allow = { NEWSLETTER_WELCOME_MODE: "allowlist", NEWSLETTER_WELCOME_TEST_ALLOWLIST: testAddr };
+      const unlisted = addr("unlisted");
+      const notListed = await signup(unlisted, t0 + 4 * H, allow);
+      assert(notListed.body.message === legacy && (await subsFor(unlisted)).length === 0, "allowlist mode: other addresses use the legacy path");
+      await signup(testAddr, t0 + 4 * H, allow);
+      const [ts] = await subsFor(testAddr);
+      assert(ts.is_test === true && ts.consent_method === "single_opt_in" && subjectsTo(testAddr).join("|") === SUBJECT.welcome_1, "allowlisted address: TEST single-opt-in record and Welcome 1");
+      assert((await sendsFor(testAddr)).every((r) => r.is_test === true), "TEST sends");
+      await job(t0 + 4 * H + 48.5 * H, allow);
+      assert((await sendOf(live, "welcome_2"))!.status === "queued", "allowlist mode never dispatches live rows");
+      assert((await sendOf(testAddr, "welcome_2"))!.status === "accepted", "allowlist mode dispatches TEST rows");
+
+      const simOn = { NEWSLETTER_WELCOME_SIMULATE: "true" };
+      const liveSim = addr("livesim");
+      journeyAddresses.push(liveSim);
+      transportMode = "refuse";
+      await signup(liveSim, t0 + 6 * H);
+      transportMode = "accept";
+      await job(t0 + 8 * H, simOn);
+      assert((await sendOf(liveSim, "welcome_1"))!.status === "failed", "simulated worker never consumes a live record's step");
+
+      const mailsBefore = outbox.length;
+      const sim = addr("sim");
+      journeyAddresses.push(sim);
+      await signup(sim, t0 + 6 * H, { ...allow, NEWSLETTER_WELCOME_TEST_ALLOWLIST: sim, ...simOn });
+      const simSignup = addr("simsignup");
+      journeyAddresses.push(simSignup);
+      await signup(simSignup, t0 + 6 * H, simOn);
+      for (const x of [sim, simSignup]) {
+        const [sx] = await subsFor(x);
+        const w1 = (await sendOf(x, "welcome_1"))!;
+        assert(sx.is_test === true && w1.status === "simulated" && w1.is_test === true && w1.accepted_at === null && w1.simulated_at !== null, `${x.split(".")[0]}: simulation is a TEST record and not accepted`);
+      }
+      assert(outbox.length === mailsBefore, "simulation sends nothing");
+      await closeScenario([v, live, testAddr, liveSim, sim, simSignup, addr("obsoletefalse"), addr("obsoletetrue")]);
+    }
+
+    // ------------------------------------------------------------------
+    log("historical records: no bulk enrollment; a fresh explicit submission can enroll");
+    {
+      const t0 = scenarioStart();
+      const h1 = addr("hist1");
+      const h2 = addr("hist2");
+      journeyAddresses.push(h1);
+      assert((await subscribeNewsletterEmail(h1)).ok && (await subscribeNewsletterEmail(h2)).ok, "legacy rows inserted");
+      await sql`UPDATE newsletter_subscribers SET confirmed = true WHERE email = ${h2}`;
+      await job(t0 + 200 * H);
+      for (const h of [h1, h2, hv1]) {
+        assert((await sendsFor(h)).length === 0 && mailsTo(h).length === 0, `${h.split(".")[0]}: historical record not enrolled`);
+      }
+      const [legacyCount] = (await sql`SELECT COUNT(*)::int AS n FROM newsletter_subscribers WHERE email IN (${h1}, ${h2})`) as Row[];
+      assert(Number(legacyCount.n) === 2, "legacy rows preserved");
+      assert((await subsFor(h2)).length === 0, "legacy “confirmed” flag is not converted into a subscription");
+
+      await signup(h1, t0 + 201 * H);
+      assert((await subsFor(h1))[0]?.consent_method === "single_opt_in" && subjectsTo(h1).join("|") === SUBJECT.welcome_1, "fresh explicit submission under the new wording enrolls a legacy address");
+      await signup(hv1, t0 + 201 * H);
+      const hv = await subsFor(hv1);
+      assert(hv.length === 1 && hv[0].consent_method === "double_opt_in" && mailsTo(hv1).length === 0, "already-active historical subscription preserved; no duplicate sequence");
+      await closeScenario(journeyAddresses);
+    }
+
+    // ------------------------------------------------------------------
+    log("admin view, consent labels, retention isolation");
+    {
+      const view = await readNewsletterWelcomeAdmin(new Date(BASE));
+      assert(view.schema.ready && (view.live?.subscriptions.singleOptIn ?? 0) > 0 && (view.test?.subscriptions.singleOptIn ?? 0) > 0, "admin counts single opt-in for live and TEST separately");
+      const [dbl] = (await sql`
+        SELECT COUNT(*)::int AS n FROM newsletter_subscriptions WHERE NOT is_test AND status = 'confirmed' AND consent_method = 'double_opt_in'
+      `) as Row[];
+      assert(view.live?.subscriptions.doubleOptIn === Number(dbl.n) && Number(dbl.n) >= 2, "admin counts verified (double-opt-in) subscriptions separately");
+      const [single] = (await sql`
+        SELECT COUNT(*)::int AS n FROM newsletter_subscriptions WHERE NOT is_test AND status = 'subscribed'
+      `) as Row[];
+      assert(view.live?.subscriptions.singleOptIn === Number(single.n), "single opt-in is never counted as address verification");
+      assert((view.test?.sends.welcome_1.simulated ?? 0) > 0 && !view.live?.sends.welcome_1.simulated, "simulated sends count only as TEST");
+      assert(view.attribution.available === false, "attribution unavailable without order tables");
+      assert(view.previews.length === 3 && view.previews.every((p) => p.kind !== ("confirmation" as string)), "three welcome previews, no confirmation preview");
+      for (const x of journeyAddresses) {
+        const prefs = await prefsFor(x);
+        assert(prefs.every((p) => p.marketing_eligible === false), `${x.split(".")[0]}: never marketing_eligible`);
+      }
+      const [rs] = (await sql`SELECT COUNT(*)::int AS n FROM retention_email_sends WHERE email LIKE ${like}`) as Row[];
+      assert(Number(rs.n) === 0, "the journey never writes retention sends");
+      assert(refusedHosts.length === 0, "no network access outside the test database");
+      assert(outbox.every((mail) => mail.to.endsWith("@example.test")), "every message went to the fake transport for test addresses");
+      assert(!outbox.some((mail) => mail.subject === RETIRED_CONFIRM_SUBJECT), "zero confirmation emails across the whole run");
+      const [confRows] = (await sql`SELECT COUNT(*)::int AS n FROM newsletter_email_sends WHERE kind = 'confirmation'`) as Row[];
+      assert(Number(confRows.n) === 0, "zero confirmation-send rows across the whole run");
     }
 
     // ------------------------------------------------------------------
@@ -544,147 +805,28 @@ async function main() {
       const sAddr = addr("s");
       const u = addr("u");
       journeyAddresses.push(sAddr, u);
-      const t1 = t0 + H;
       await signup(sAddr, t0);
-      await confirm(confirmTokenFor(sAddr), t1);
       await sql`
         INSERT INTO retention_email_sends (campaign, order_id, email, status, sent_at)
-        VALUES ('newsletter-db-test', ${TAG}, ${sAddr}, 'sent', ${new Date(t1 + 40 * H).toISOString()}::timestamptz)
+        VALUES ('newsletter-db-test', ${TAG}, ${sAddr}, 'sent', ${iso(t0 + 40 * H)}::timestamptz)
       `;
-      await job(t1 + 48.5 * H);
-      assert((await sendOf(sAddr, "welcome_2"))!.status === "queued", "welcome 2 deferred within 24h of a retention email");
-      await job(t1 + 65 * H);
-      assert((await sendOf(sAddr, "welcome_2"))!.status === "accepted", "welcome 2 sent after the retention gap");
+      await job(t0 + 48.5 * H);
+      assert((await sendOf(sAddr, "welcome_2"))!.status === "queued", "Welcome 2 deferred within 24h of a retention email");
+      await job(t0 + 65 * H);
+      assert((await sendOf(sAddr, "welcome_2"))!.status === "accepted", "Welcome 2 sent after the retention gap");
 
       await signup(u, t0);
-      await confirm(confirmTokenFor(u), t1);
       await sql`
         UPDATE newsletter_email_sends
-        SET status = 'attempting', claim_token = 'crashed', claimed_at = ${new Date(t1 + 48.2 * H).toISOString()}::timestamptz, attempt_count = 1
+        SET status = 'attempting', claim_token = 'crashed', claimed_at = ${iso(t0 + 48.2 * H)}::timestamptz, attempt_count = 1
         WHERE email = ${u} AND kind = 'welcome_2'
       `;
-      const before = mailsTo(u).length;
-      await job(t1 + 49 * H);
+      const beforeMails = mailsTo(u).length;
+      await job(t0 + 49 * H);
       assert((await sendOf(u, "welcome_2"))!.status === "unknown", "interrupted attempt marked unknown");
-      await job(t1 + 121 * H);
-      assert(mailsTo(u).length === before, "interrupted attempt never resent and does not unlock welcome 3");
+      await job(t0 + 121 * H);
+      assert(mailsTo(u).length === beforeMails, "interrupted attempt never resent and does not unlock Welcome 3");
       await closeScenario([sAddr, u]);
-    }
-
-    // ------------------------------------------------------------------
-    log("kill switches, allowlist test mode, Preview, simulation");
-    {
-      const t0 = scenarioStart();
-      const v = addr("v");
-      journeyAddresses.push(v);
-      const legacy = "Thank you. You'll receive updates on new batch documentation and product availability.";
-      for (const [label, overrides] of [
-        ["mode off", { NEWSLETTER_WELCOME_MODE: "off" }],
-        ["confirmation send off", { NEWSLETTER_CONFIRMATION_SEND_ENABLED: "false" }],
-        ["welcome 1 off", { NEWSLETTER_WELCOME_1_ENABLED: "false" }],
-        ["Preview", { VERCEL_ENV: "preview" }],
-      ] as Array<[string, Env]>) {
-        const x = addr(`kill${label.replace(/\W/g, "")}`);
-        const res = await signup(x, t0, overrides);
-        assert(res.status === 200 && res.body.message === legacy, `${label}: legacy signup response`);
-        assert(mailsTo(x).length === 0 && (await reqsFor(x)).length === 0, `${label}: no new rows, no mail`);
-      }
-      const pv = await confirm(createConfirmationToken().token, t0, { VERCEL_ENV: "preview" });
-      assert(pv.status === 503, "Preview: confirmation unavailable");
-      const pj = await job(t0, { VERCEL_ENV: "preview" });
-      assert(pj.skipped === true, "Preview: worker skipped");
-
-      await signup(v, t0);
-      const gated = await confirm(confirmTokenFor(v), t0 + H, { NEWSLETTER_WELCOME_1_ENABLED: "false" });
-      assert(gated.body.status === "confirmed" && gated.body.guideEmail === "pending", "welcome 1 switched off at confirmation: held");
-      await job(t0 + 2 * H, { NEWSLETTER_WELCOME_1_ENABLED: "false" });
-      assert((await sendOf(v, "welcome_1"))!.status === "queued", "welcome 1 stays queued while off");
-      await job(t0 + 3 * H);
-      assert((await sendOf(v, "welcome_1"))!.status === "accepted", "welcome 1 sent once switched on");
-
-      const live = addr("live");
-      const testAddr = addr("allow");
-      journeyAddresses.push(live, testAddr);
-      await signup(live, t0 + 4 * H);
-      await confirm(confirmTokenFor(live), t0 + 5 * H);
-      const allow = { NEWSLETTER_WELCOME_MODE: "allowlist", NEWSLETTER_WELCOME_TEST_ALLOWLIST: testAddr };
-      const notListed = await signup(addr("unlisted"), t0 + 4 * H, allow);
-      assert(notListed.body.message === legacy && (await reqsFor(addr("unlisted"))).length === 0, "allowlist mode: other addresses use the legacy path");
-      await signup(testAddr, t0 + 4 * H, allow);
-      const ct = await confirm(confirmTokenFor(testAddr), t0 + 5 * H, allow);
-      assert(ct.body.status === "confirmed" && (await subsFor(testAddr))[0].is_test === true, "allowlisted address is a TEST record");
-      assert((await sendsFor(testAddr)).every((r) => r.is_test === true), "TEST sends");
-      await job(t0 + 5 * H + 48.5 * H, allow);
-      assert((await sendOf(live, "welcome_2"))!.status === "queued", "allowlist mode never dispatches live rows");
-      assert((await sendOf(testAddr, "welcome_2"))!.status === "accepted", "allowlist mode dispatches TEST rows");
-
-      const simOn = { NEWSLETTER_WELCOME_SIMULATE: "true" };
-      const liveSim = addr("livesim");
-      journeyAddresses.push(liveSim);
-      await signup(liveSim, t0 + 6 * H);
-      const cl = await confirm(confirmTokenFor(liveSim), t0 + 7 * H, simOn);
-      assert(cl.body.status === "confirmed" && cl.body.guideEmail === "pending", "simulation never consumes a live record's welcome step");
-      assert((await sendOf(liveSim, "welcome_1"))!.status === "queued", "live welcome 1 stays queued while simulating");
-      await job(t0 + 8 * H, simOn);
-      assert((await sendOf(liveSim, "welcome_1"))!.status === "queued", "simulated worker skips live rows");
-
-      const sim = addr("sim");
-      journeyAddresses.push(sim);
-      const allowSim = { ...allow, NEWSLETTER_WELCOME_TEST_ALLOWLIST: sim };
-      await signup(sim, t0 + 6 * H, allowSim);
-      const mailsBefore = outbox.length;
-      const cs = await confirm(confirmTokenFor(sim), t0 + 7 * H, { ...allowSim, ...simOn });
-      assert(cs.body.guideEmail === "simulated" && outbox.length === mailsBefore, "simulation sends nothing");
-      const w1 = (await sendOf(sim, "welcome_1"))!;
-      assert(w1.status === "simulated" && w1.is_test === true && w1.accepted_at === null && w1.simulated_at !== null, "simulated is a TEST record and not accepted");
-      const simSignup = addr("simsignup");
-      journeyAddresses.push(simSignup);
-      await signup(simSignup, t0 + 6 * H, simOn);
-      const [simConf] = await sendsFor(simSignup);
-      assert(simConf.status === "simulated" && simConf.is_test === true && outbox.length === mailsBefore, "simulated signup is a TEST record with no mail");
-      await closeScenario([v, live, testAddr, liveSim, sim, simSignup]);
-    }
-
-    // ------------------------------------------------------------------
-    log("IP rate limit and historical subscribers");
-    {
-      const t0 = scenarioStart();
-      const results = [];
-      for (let i = 0; i < 6; i++) {
-        const x = addr(`ip${i}`);
-        journeyAddresses.push(x);
-        results.push(await signup(x, t0, {}, "203.0.113.9"));
-      }
-      assert(results.slice(0, 5).every((r) => r.status === 200) && results[5].status === 429, "6th signup from one IP within an hour is limited");
-
-      const h1 = addr("hist1");
-      const h2 = addr("hist2");
-      assert((await subscribeNewsletterEmail(h1)).ok && (await subscribeNewsletterEmail(h2)).ok, "legacy rows inserted");
-      await sql`UPDATE newsletter_subscribers SET confirmed = true WHERE email = ${h2}`;
-      await job(t0 + 200 * H);
-      for (const h of [h1, h2]) {
-        assert((await reqsFor(h)).length === 0 && (await sendsFor(h)).length === 0 && mailsTo(h).length === 0, "historical subscriber not enrolled");
-      }
-      await closeScenario(journeyAddresses);
-    }
-
-    // ------------------------------------------------------------------
-    log("admin view and retention isolation");
-    {
-      const view = await readNewsletterWelcomeAdmin(new Date(BASE));
-      const subscribed = (p: typeof view.live) => (p ? p.subscriptions.confirmed + p.subscriptions.unsubscribed : 0);
-      assert(view.schema.ready && subscribed(view.live) > 0 && subscribed(view.test) > 0, "admin shows live and TEST counts separately");
-      assert((view.test?.sends.welcome_1.simulated ?? 0) > 0 && !view.live?.sends.welcome_1.simulated, "simulated sends count only as TEST");
-      assert(view.attribution.available === false, "attribution unavailable without order tables");
-      assert(view.previews.length === 4, "four previews");
-      for (const x of journeyAddresses) {
-        const prefs = await prefsFor(x);
-        assert(prefs.every((p) => p.marketing_eligible === false), `${x.split(".")[0]}: never marketing_eligible`);
-      }
-      const [rs] = (await sql`SELECT COUNT(*)::int AS n FROM retention_email_sends WHERE email LIKE ${like}`) as Row[];
-      assert(Number(rs.n) === 1, "the journey never writes retention sends (only the fixture row exists)");
-      assert(refusedHosts.length === 0, "no network access outside the test database");
-      assert(outbox.every((mail) => mail.to.endsWith("@example.test")), "every message went to the fake transport for test addresses");
     }
   } catch (e) {
     failure = e;

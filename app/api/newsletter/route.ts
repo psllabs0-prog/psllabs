@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { handleNewsletterSignup, newsletterContext } from "@/lib/newsletter/service";
+import { handleNewsletterSignup, isSameOriginSignup, newsletterContext } from "@/lib/newsletter/service";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -23,6 +23,7 @@ export async function POST(request: Request) {
   }
 
   try {
+    const ctx = newsletterContext();
     const result = await handleNewsletterSignup(
       {
         email: body.email,
@@ -30,8 +31,13 @@ export async function POST(request: Request) {
         signupCopyVersion: body.signupCopyVersion,
         honeypot: body.website,
         ip: clientIp(request),
+        sameOrigin: isSameOriginSignup(
+          { contentType: request.headers.get("content-type"), origin: request.headers.get("origin") },
+          new URL(request.url).origin,
+          ctx.siteUrl
+        ),
       },
-      newsletterContext()
+      ctx
     );
     return NextResponse.json(result.body, { status: result.status });
   } catch (error) {

@@ -10,7 +10,6 @@ export type NewsletterWelcomeConfig = {
   modeReason: string;
   allowlist: Set<string>;
   simulate: boolean;
-  confirmationSend: NewsletterGate;
   welcome1: NewsletterGate;
   laterSteps: NewsletterGate;
   prerequisites: {
@@ -20,18 +19,22 @@ export type NewsletterWelcomeConfig = {
     unsubSecret: boolean;
     missing: string[];
   };
-  /** New signup/confirmation journey may run (still per-address in allowlist mode). */
+  /** Single-opt-in enrollment may run (still per-address in allowlist mode). */
   journey: NewsletterGate;
+  /** Settings that are set but no longer have any effect. */
+  obsolete: string[];
 };
 
 export const NEWSLETTER_ENV = {
   mode: "NEWSLETTER_WELCOME_MODE",
   allowlist: "NEWSLETTER_WELCOME_TEST_ALLOWLIST",
   simulate: "NEWSLETTER_WELCOME_SIMULATE",
-  confirmationSend: "NEWSLETTER_CONFIRMATION_SEND_ENABLED",
   welcome1: "NEWSLETTER_WELCOME_1_ENABLED",
   laterSteps: "NEWSLETTER_WELCOME_LATER_STEPS_ENABLED",
 } as const;
+
+/** Double-opt-in confirmation emails are no longer sent (single opt-in); this switch is ignored. */
+export const OBSOLETE_ENV = ["NEWSLETTER_CONFIRMATION_SEND_ENABLED"] as const;
 
 const isTrue = (v: string | undefined) => v?.trim().toLowerCase() === "true";
 
@@ -90,7 +93,6 @@ export function getNewsletterWelcomeConfig(env: Env = process.env): NewsletterWe
   if (!postalAddress) missing.push("MARKETING_POSTAL_ADDRESS");
   if (!unsubSecret) missing.push("MARKETING_UNSUB_SECRET");
 
-  const confirmationSend = gate(NEWSLETTER_ENV.confirmationSend, "Confirmation email");
   const welcome1 = gate(NEWSLETTER_ENV.welcome1, "Welcome 1");
   const laterSteps = gate(NEWSLETTER_ENV.laterSteps, "Welcome 2 and 3");
 
@@ -98,7 +100,6 @@ export function getNewsletterWelcomeConfig(env: Env = process.env): NewsletterWe
   if (mode === "off") journey = { enabled: false, reason: modeReason };
   else if (mode === "allowlist" && allowlist.size === 0) journey = { enabled: false, reason: `${NEWSLETTER_ENV.allowlist} is empty` };
   else if (missing.length > 0) journey = { enabled: false, reason: `Missing prerequisites: ${missing.join(", ")}` };
-  else if (!confirmationSend.enabled) journey = confirmationSend;
   else if (!welcome1.enabled) journey = welcome1;
   else journey = { enabled: true, reason: modeReason };
 
@@ -108,11 +109,11 @@ export function getNewsletterWelcomeConfig(env: Env = process.env): NewsletterWe
     modeReason,
     allowlist,
     simulate,
-    confirmationSend,
     welcome1,
     laterSteps,
     prerequisites: { smtp, fromEmail, postalAddress, unsubSecret, missing },
     journey,
+    obsolete: OBSOLETE_ENV.filter((k) => Boolean(env[k]?.trim())),
   };
 }
 
@@ -130,7 +131,16 @@ export function routeNewsletterSignup(
   return { path: "journey", isTest: listed || config.simulate };
 }
 
-/** Public signup copy changes only when the journey is fully on. */
-export function newsletterSignupVariant(config: NewsletterWelcomeConfig = getNewsletterWelcomeConfig()): "legacy" | "welcome" {
-  return config.mode === "on" && config.journey.enabled ? "welcome" : "legacy";
+/**
+ * Public signup copy changes only when the journey is fully on. In allowlist
+ * mode the subscribe form with its consent wording is shown only on an
+ * unlinked test URL; the server still enrolls allowlisted addresses only.
+ */
+export function newsletterSignupVariant(
+  config: NewsletterWelcomeConfig = getNewsletterWelcomeConfig(),
+  options: { allowlistTestView?: boolean } = {}
+): "legacy" | "welcome" {
+  if (!config.journey.enabled) return "legacy";
+  if (config.mode === "on") return "welcome";
+  return config.mode === "allowlist" && options.allowlistTestView ? "welcome" : "legacy";
 }

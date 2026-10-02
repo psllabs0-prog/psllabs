@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { emailPageWrapper, escapeHtml, EMAIL_COLORS, SUPPORT_EMAIL } from "@/lib/email/shared";
 
+import { NEWSLETTER_SIGNUP_CONSENT } from "./copy";
 import type { NewsletterSendKind } from "./schema";
 
 export const NEWSLETTER_UTM_CAMPAIGN = "newsletter_welcome_v1";
@@ -13,38 +14,34 @@ export const NEWSLETTER_UTM_CONTENT = {
   welcome_3: "welcome_3_information",
 } as const;
 
+/** "confirmation" is historical (double opt-in, no longer sent). */
 export const NEWSLETTER_TEMPLATE_VERSIONS: Record<NewsletterSendKind, string> = {
   confirmation: "confirmation-v1",
-  welcome_1: "welcome-1-v1",
-  welcome_2: "welcome-2-v1",
-  welcome_3: "welcome-3-v1",
+  welcome_1: "welcome-1-v2",
+  welcome_2: "welcome-2-v2",
+  welcome_3: "welcome-3-v2",
 };
 
-/** Pilot timing after confirmation; later steps go out on the next eligible daily run. */
+/** Timing from enrollment (signup, or confirmation for older double-opt-in records); later steps go out on the next eligible daily run. */
 export const NEWSLETTER_STEP_DELAY_HOURS = { welcome_1: 0, welcome_2: 48, welcome_3: 120 } as const;
 
 export const NEWSLETTER_PLACEMENTS = ["home_newsletter"] as const;
 export type NewsletterPlacement = (typeof NEWSLETTER_PLACEMENTS)[number];
 
-export { NEWSLETTER_SIGNUP_COPY, NEWSLETTER_SIGNUP_VERSIONS } from "./copy";
+export { NEWSLETTER_SIGNUP_CONSENT, NEWSLETTER_SIGNUP_COPY, NEWSLETTER_SIGNUP_VERSIONS } from "./copy";
 
 export const NEWSLETTER_GUIDE_PATH = "/science/how-to-read-a-coa";
 
-/** Exact wording the subscriber confirms (in the confirmation email). */
-export const NEWSLETTER_CONSENT_TEXT =
-  "You requested PSL’s report-reading guide, two short follow-ups, and occasional documentation and availability updates.";
-
-export const NEWSLETTER_CONSENT_TEXT_HASH = crypto
+export const NEWSLETTER_SIGNUP_CONSENT_HASH = crypto
   .createHash("sha256")
-  .update(`${NEWSLETTER_TEMPLATE_VERSIONS.confirmation}\n${NEWSLETTER_CONSENT_TEXT}`, "utf8")
+  .update(`${NEWSLETTER_SIGNUP_CONSENT.version}\n${NEWSLETTER_SIGNUP_CONSENT.text}`, "utf8")
   .digest("hex");
 
+export type WelcomeKind = Exclude<NewsletterSendKind, "confirmation">;
+
 export const NEWSLETTER_PUBLIC_MESSAGES = {
-  requested:
-    "Thanks. If this address can be subscribed, a confirmation link is on its way. You are not subscribed until you confirm.",
-  uncertain:
-    "We could not confirm that the confirmation email was sent. If nothing arrives within 15 minutes, please try again later.",
-  sendFailed: "We could not send the confirmation email right now. Please try again later.",
+  // Identical for new, existing, suppressed, and rate-limited addresses so a response never reveals list membership.
+  received: "Thanks for signing up. If this address is eligible, it’s now subscribed and PSL’s report-reading guide will be emailed to it.",
   rateLimited: "Too many requests. Please try again later.",
   unavailable: "Signup is temporarily unavailable. Please try again later.",
   invalid: "Enter a valid email address.",
@@ -61,11 +58,6 @@ export function newsletterCampaignUrl(siteUrl: string, path: string, content: st
   u.searchParams.set("utm_campaign", NEWSLETTER_UTM_CAMPAIGN);
   u.searchParams.set("utm_content", content);
   return u.toString();
-}
-
-/** Token in the fragment: never sent to the server, analytics, or referrers. */
-export function newsletterConfirmUrl(siteUrl: string, token: string): string {
-  return `${base(siteUrl)}/newsletter/confirm#t=${encodeURIComponent(token)}`;
 }
 
 export function newsletterHumanUnsubscribeUrl(siteUrl: string, token: string): string {
@@ -135,34 +127,7 @@ function signature(): Paragraph[] {
   return ["Thanks,\nPSL Labs"];
 }
 
-export function buildNewsletterConfirmationEmail(input: {
-  siteUrl: string;
-  token: string;
-  postalAddress: string;
-}): BuiltNewsletterEmail {
-  const confirmUrl = newsletterConfirmUrl(input.siteUrl, input.token);
-  const paragraphs: Paragraph[] = [
-    "Hi,",
-    NEWSLETTER_CONSENT_TEXT,
-    "Confirm your email to subscribe:",
-    { cta: "Confirm my email", url: confirmUrl },
-    "If you did not request this, you can ignore this message. The welcome emails will not start unless you confirm.",
-    "PSL Labs",
-  ];
-  const footerText = [LEGAL_ENTITY_NAME, input.postalAddress];
-  const footerHtml = `<p style="margin:24px 0 0;font-size:12px;color:${muted};">${escapeHtml(LEGAL_ENTITY_NAME)}<br/>${escapeHtml(input.postalAddress)}</p>`;
-  return {
-    kind: "confirmation",
-    templateVersion: NEWSLETTER_TEMPLATE_VERSIONS.confirmation,
-    subject: "Confirm your PSL Labs updates",
-    text: renderText(paragraphs, footerText),
-    html: renderHtml(paragraphs, footerHtml),
-    links: [{ label: "Confirm my email", url: confirmUrl }],
-    listUnsubscribeUrl: null,
-  };
-}
-
-function welcomeContent(kind: Exclude<NewsletterSendKind, "confirmation">, siteUrl: string): {
+function welcomeContent(kind: WelcomeKind, siteUrl: string): {
   subject: string;
   paragraphs: Paragraph[];
   links: Array<{ label: string; url: string }>;
@@ -174,10 +139,9 @@ function welcomeContent(kind: Exclude<NewsletterSendKind, "confirmation">, siteU
       subject: "Your PSL report-reading guide",
       paragraphs: [
         "Hi,",
-        "Thanks for confirming your email.",
+        "Thanks for subscribing.",
         "Our guide walks through locating a lot identifier, opening the original laboratory report, and reading the fields actually shown.",
         { cta: "Read the guide", url: guide },
-        "We’ll send two short follow-ups over the next few days. After that, you can expect occasional documentation and availability updates.",
         ...signature(),
       ],
       links: [{ label: "Read the guide", url: guide }],
@@ -234,7 +198,7 @@ function welcomeContent(kind: Exclude<NewsletterSendKind, "confirmation">, siteU
 }
 
 export function buildNewsletterWelcomeEmail(input: {
-  kind: Exclude<NewsletterSendKind, "confirmation">;
+  kind: WelcomeKind;
   siteUrl: string;
   unsubscribeToken: string;
   postalAddress: string;
@@ -242,7 +206,7 @@ export function buildNewsletterWelcomeEmail(input: {
   const { subject, paragraphs, links } = welcomeContent(input.kind, input.siteUrl);
   const humanUrl = newsletterHumanUnsubscribeUrl(input.siteUrl, input.unsubscribeToken);
   const listUrl = newsletterListUnsubscribeUrl(input.siteUrl, input.unsubscribeToken);
-  const why = "You are receiving this because you confirmed your email for PSL Labs updates.";
+  const why = "You are receiving this because you signed up for PSL Labs emails on psllabs.org.";
   const ruo = "All products are for laboratory research use only. Not for human or animal consumption.";
   const footerText = [why, ruo, "", LEGAL_ENTITY_NAME, input.postalAddress, `Support: ${SUPPORT_EMAIL}`, "", `Unsubscribe: ${humanUrl}`];
   const footerHtml = [
@@ -264,10 +228,7 @@ export function buildNewsletterWelcomeEmail(input: {
 }
 
 /** Template fingerprint so the admin page can show exactly which copy is live. */
-export function newsletterTemplateHash(kind: NewsletterSendKind): string {
-  const sample =
-    kind === "confirmation"
-      ? buildNewsletterConfirmationEmail({ siteUrl: "https://example.invalid", token: "nc1_PREVIEW", postalAddress: "ADDRESS" })
-      : buildNewsletterWelcomeEmail({ kind, siteUrl: "https://example.invalid", unsubscribeToken: "nu1_PREVIEW", postalAddress: "ADDRESS" });
+export function newsletterTemplateHash(kind: WelcomeKind): string {
+  const sample = buildNewsletterWelcomeEmail({ kind, siteUrl: "https://example.invalid", unsubscribeToken: "nu1_PREVIEW", postalAddress: "ADDRESS" });
   return crypto.createHash("sha256").update(`${sample.subject}\n${sample.text}`, "utf8").digest("hex").slice(0, 16);
 }

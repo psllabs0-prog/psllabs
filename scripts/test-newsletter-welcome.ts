@@ -20,10 +20,12 @@ import { getNewsletterWelcomeConfig, newsletterSignupVariant, routeNewsletterSig
 import { NEWSLETTER_SIGNUP_COPY } from "../lib/newsletter/copy";
 import { __resetNewsletterSchemaCacheForTests } from "../lib/newsletter/schema";
 import { __setNewsletterTransportForTests, classifySmtpError, deliverNewsletterEmail, type NewsletterMail } from "../lib/newsletter/send";
+import { isSameOriginSignup } from "../lib/newsletter/service";
 import {
-  buildNewsletterConfirmationEmail,
   buildNewsletterWelcomeEmail,
-  NEWSLETTER_CONSENT_TEXT,
+  NEWSLETTER_PUBLIC_MESSAGES,
+  NEWSLETTER_SIGNUP_CONSENT,
+  NEWSLETTER_SIGNUP_CONSENT_HASH,
   NEWSLETTER_TEMPLATE_VERSIONS,
 } from "../lib/newsletter/templates";
 import {
@@ -128,7 +130,7 @@ async function main() {
     setEnv({ NEWSLETTER_WELCOME_MODE: "yes please" });
     assert(getNewsletterWelcomeConfig().mode === "off", "unrecognised mode is off");
 
-    const allOn = { NEWSLETTER_WELCOME_MODE: "on", NEWSLETTER_CONFIRMATION_SEND_ENABLED: "true", NEWSLETTER_WELCOME_1_ENABLED: "true" };
+    const allOn = { NEWSLETTER_WELCOME_MODE: "on", NEWSLETTER_WELCOME_1_ENABLED: "true" };
     setEnv({ ...allOn, VERCEL_ENV: "preview" });
     c = getNewsletterWelcomeConfig();
     assert(c.mode === "off" && !c.journey.enabled && /Preview/.test(c.modeReason), "Preview is always off, even with every flag on");
@@ -137,8 +139,14 @@ async function main() {
     c = getNewsletterWelcomeConfig();
     assert(!c.journey.enabled && /NEWSLETTER_WELCOME_1_ENABLED/.test(c.journey.reason), "journey needs Welcome 1 enabled");
 
-    setEnv({ ...allOn, NEWSLETTER_CONFIRMATION_SEND_ENABLED: undefined });
-    assert(!getNewsletterWelcomeConfig().journey.enabled, "journey needs the confirmation send enabled");
+    setEnv(allOn);
+    c = getNewsletterWelcomeConfig();
+    assert(c.journey.enabled && c.obsolete.length === 0, "single opt-in needs no confirmation switch");
+    setEnv({ ...allOn, NEWSLETTER_CONFIRMATION_SEND_ENABLED: "false" });
+    c = getNewsletterWelcomeConfig();
+    assert(c.journey.enabled && c.obsolete.join() === "NEWSLETTER_CONFIRMATION_SEND_ENABLED", "the confirmation switch is ignored and reported as obsolete");
+    setEnv({ ...allOn, NEWSLETTER_CONFIRMATION_SEND_ENABLED: "true" });
+    assert(!("confirmationSend" in getNewsletterWelcomeConfig()), "no confirmation gate exists to re-enable confirmation emails");
 
     setEnv({ ...allOn, MARKETING_POSTAL_ADDRESS: undefined });
     c = getNewsletterWelcomeConfig();
@@ -157,7 +165,14 @@ async function main() {
     const listed = routeNewsletterSignup("qa@example.com", c);
     assert(listed.path === "journey" && listed.isTest === true, "allowlisted address takes the journey as a TEST record");
     assert(routeNewsletterSignup("someone@else.com", c).path === "legacy", "non-allowlisted address stays on the legacy path");
-    assert(newsletterSignupVariant(c) === "legacy", "allowlist mode never shows the new public promise");
+    assert(newsletterSignupVariant(c) === "legacy", "allowlist mode never shows the new form on the normal home page");
+    assert(newsletterSignupVariant(c, { allowlistTestView: true }) === "welcome", "allowlist mode shows the consent form only on the test URL");
+    setEnv({ ...allOn, NEWSLETTER_WELCOME_MODE: "allowlist" });
+    assert(newsletterSignupVariant(getNewsletterWelcomeConfig(), { allowlistTestView: true }) === "legacy", "test URL shows nothing new while the journey is disabled");
+    setEnv({});
+    assert(newsletterSignupVariant(getNewsletterWelcomeConfig(), { allowlistTestView: true }) === "legacy", "test URL shows nothing new while off");
+    setEnv({ ...allOn, NEWSLETTER_WELCOME_MODE: "allowlist", NEWSLETTER_WELCOME_TEST_ALLOWLIST: "QA@Example.com" });
+    c = getNewsletterWelcomeConfig();
 
     setEnv(allOn);
     c = getNewsletterWelcomeConfig();
@@ -197,16 +212,6 @@ async function main() {
   section("templates: copy, links, UTMs, footer");
   {
     setEnv({});
-    const tok = createConfirmationToken().token;
-    const confirm = buildNewsletterConfirmationEmail({ siteUrl: SITE, token: tok, postalAddress: POSTAL });
-    assert(confirm.subject === "Confirm your PSL Labs updates", "confirmation subject per Appendix A");
-    assert(confirm.text.includes(NEWSLETTER_CONSENT_TEXT) && confirm.text.includes("The welcome emails will not start unless you confirm."), "confirmation states exactly what is being confirmed");
-    assert(confirm.links.length === 1 && confirm.links[0].url === `${SITE}/newsletter/confirm#t=${tok}`, "confirm link carries the token in the fragment only");
-    assert(!confirm.links[0].url.includes("utm_") && !confirm.links[0].url.includes("?"), "confirmation link has no UTMs or query");
-    assert(confirm.listUnsubscribeUrl === null && !/unsubscribe/i.test(confirm.text), "confirmation request is not a subscription email (no unsubscribe)");
-    assert(!/products|catalog|order/i.test(confirm.text), "confirmation contains no product promotion");
-    assert(confirm.text.includes(POSTAL), "confirmation carries the configured postal address");
-
     const pid = newSubscriptionPublicId();
     const unsubTok = createNewsletterUnsubscribeToken(pid);
     const expect = {
@@ -240,7 +245,24 @@ async function main() {
       assert(e.html.includes(POSTAL) && /Unsubscribe<\/a>/.test(e.html), `${kind}: HTML footer with unsubscribe link`);
       assert(!banned.test(e.text) && !banned.test(e.subject), `${kind}: no dosing, benefits, claims, urgency, discounts, stock, or shipping promises`);
       assert(!/\b(batch|lot)\s*(#|no\.?|id)?\s*[A-Z0-9]{4,}/.test(e.text.replace(/https?:\S+/g, "")), `${kind}: no hard-coded batch identifiers`);
+      assert(e.text.includes("You are receiving this because you signed up for PSL Labs emails on psllabs.org."), `${kind}: footer describes the website signup`);
+      assert(!/confirm/i.test(e.text) && !/confirm/i.test(e.html), `${kind}: never refers to a confirmation`);
+      assert(e.templateVersion.endsWith("-v2"), `${kind}: new template version for the single-opt-in copy`);
     }
+    const w1Text = buildNewsletterWelcomeEmail({ kind: "welcome_1", siteUrl: SITE, unsubscribeToken: unsubTok, postalAddress: POSTAL }).text;
+    assert(w1Text.includes("Thanks for subscribing.") && !/thanks for confirming/i.test(w1Text), "Welcome 1 says “Thanks for subscribing”");
+    assert(!/follow-up|next few days|two (short )?(more )?emails|we.ll (also )?send/i.test(w1Text), "Welcome 1 promises no follow-up emails (Welcome 2 and 3 are off)");
+
+    assert(
+      NEWSLETTER_SIGNUP_CONSENT.text ===
+        "By selecting Subscribe, you agree to receive PSL’s report-reading guide and documentation and availability emails. Unsubscribe anytime.",
+      "consent wording is exactly the approved sentence"
+    );
+    assert(NEWSLETTER_SIGNUP_COPY.welcome.consent === NEWSLETTER_SIGNUP_CONSENT.text && NEWSLETTER_SIGNUP_COPY.welcome.button === "Subscribe", "the form shows that sentence beside the Subscribe button");
+    assert(/^[0-9a-f]{64}$/.test(NEWSLETTER_SIGNUP_CONSENT_HASH) && NEWSLETTER_SIGNUP_CONSENT.version === "signup-consent-v2", "consent records a version and a SHA-256 of the exact text");
+    const publicCopy = [...Object.values(NEWSLETTER_PUBLIC_MESSAGES), ...Object.values(NEWSLETTER_SIGNUP_COPY.welcome).map(String)].join("\n");
+    assert(!/check your (e-?mail|inbox)|confirm/i.test(publicCopy), "no “check your email to confirm” wording in signup copy or responses");
+    assert(!/delivered|in your inbox|has been sent/i.test(NEWSLETTER_PUBLIC_MESSAGES.received), "acknowledgement never claims inbox delivery");
     const w1 = buildNewsletterWelcomeEmail({ kind: "welcome_1", siteUrl: SITE, unsubscribeToken: unsubTok, postalAddress: "<b>x</b>" });
     assert(!w1.html.includes("<b>x</b>") && w1.html.includes("&lt;b&gt;x&lt;/b&gt;"), "HTML escapes configured values");
   }
@@ -257,10 +279,6 @@ async function main() {
     const m = sent[0];
     assert(m.from === "PSL Labs <updates@psllabs.org>" && m.replyTo === "support@psllabs.org", "From is the configured marketing sender; Reply-To is support");
     assert(m.headers["List-Unsubscribe"] === `<${w1.listUnsubscribeUrl}>` && m.headers["List-Unsubscribe-Post"] === "List-Unsubscribe=One-Click", "RFC 8058 headers present");
-    const conf = buildNewsletterConfirmationEmail({ siteUrl: SITE, token: createConfirmationToken().token, postalAddress: POSTAL });
-    await deliverNewsletterEmail({ to: "a@example.com", fromEmail: "updates@psllabs.org", built: conf, simulate: false });
-    assert(Object.keys(sent[1].headers).length === 0, "confirmation request carries no List-Unsubscribe headers");
-
     sent.length = 0;
     const sim = await deliverNewsletterEmail({ to: "a@example.com", fromEmail: "updates@psllabs.org", built: w1, simulate: true });
     assert(sim.status === "simulated" && sent.length === 0, "simulation never touches SMTP");
@@ -344,11 +362,11 @@ async function main() {
   // ---------- routes while off: no new-table statements, no mail ----------
   section("journey off / Preview: legacy behaviour, no new writes, no mail");
   {
-    for (const env of [{}, { NEWSLETTER_WELCOME_MODE: "on", NEWSLETTER_CONFIRMATION_SEND_ENABLED: "true", NEWSLETTER_WELCOME_1_ENABLED: "true", VERCEL_ENV: "preview" }]) {
+    for (const env of [{}, { NEWSLETTER_WELCOME_MODE: "on", NEWSLETTER_WELCOME_1_ENABLED: "true", VERCEL_ENV: "preview" }]) {
       setEnv({ ...env, CRON_SECRET: "cron-secret" });
       installFakeSql();
       sent.length = 0;
-      const res = await signupPOST(jsonRequest("https://psl.test/api/newsletter", { email: "Person@Example.com", placement: "home_newsletter" }));
+      const res = await signupPOST(jsonRequest("https://psl.test/api/newsletter", { email: "Person@Example.com", placement: "home_newsletter", signupCopyVersion: "signup-v2" }));
       const body = (await res.json()) as Record<string, unknown>;
       assert(res.status === 200 && body.ok === true && body.message === "Thank you. You'll receive updates on new batch documentation and product availability.", "legacy response unchanged");
       assert(touched(/INSERT INTO newsletter_subscribers/).length === 1 && touched(NEW_TABLES).length === 0, "legacy path writes only the legacy row");
@@ -365,9 +383,41 @@ async function main() {
     assert(unauth.status === 401, "cron requires CRON_SECRET");
   }
 
+  section("journey signup: form and origin checks, legacy forms stay legacy");
+  {
+    const site = "https://www.psllabs.org";
+    const ok = (origin: string | null, contentType: string | null = "application/json") =>
+      isSameOriginSignup({ contentType, origin }, "https://psl-preview.vercel.app", site);
+    assert(ok(null) && ok("https://www.psllabs.org") && ok("https://psllabs.org") && ok("https://psl-preview.vercel.app"), "same-origin, www/apex, and Origin-less JSON posts accepted");
+    assert(!ok("https://evil.example") && !ok("null") && !ok("http://www.psllabs.org"), "foreign, opaque, or downgraded origins refused");
+    assert(!ok(null, "text/plain") && !ok("https://www.psllabs.org", "application/x-www-form-urlencoded") && !ok(null, null), "non-JSON bodies refused");
+
+    setEnv({ NEWSLETTER_WELCOME_MODE: "on", NEWSLETTER_WELCOME_1_ENABLED: "true" });
+    installFakeSql();
+    sent.length = 0;
+    const foreign = await signupPOST(
+      jsonRequest("https://psl.test/api/newsletter", { email: "person@example.com", placement: "home_newsletter", signupCopyVersion: "signup-v2" }, { origin: "https://evil.example" })
+    );
+    assert(foreign.status === 403 && touched(NEW_TABLES).length === 0 && touched(/newsletter_subscribers/).length === 0 && sent.length === 0, "cross-site journey post refused before any write or mail");
+
+    statements.length = 0;
+    const legacyForm = await signupPOST(jsonRequest("https://psl.test/api/newsletter", { email: "person@example.com", placement: "home_newsletter", signupCopyVersion: "legacy-v0" }));
+    assert(legacyForm.status === 200 && touched(/INSERT INTO newsletter_subscribers/).length === 1 && touched(NEW_TABLES).length === 0, "a form that did not show the consent wording never enrolls");
+    statements.length = 0;
+    await signupPOST(jsonRequest("https://psl.test/api/newsletter", { email: "person@example.com" }));
+    assert(touched(NEW_TABLES).length === 0 && sent.length === 0, "a post with no copy version never enrolls");
+
+    statements.length = 0;
+    const bot = await signupPOST(jsonRequest("https://psl.test/api/newsletter", { email: "person@example.com", signupCopyVersion: "signup-v2", website: "http://spam" }));
+    const botBody = (await bot.json()) as { message?: string };
+    assert(bot.status === 200 && botBody.message === NEWSLETTER_PUBLIC_MESSAGES.received && statements.length === 0 && sent.length === 0, "honeypot: generic acknowledgement, zero statements, no mail");
+    const bad = await signupPOST(jsonRequest("https://psl.test/api/newsletter", { email: "not-an-email", signupCopyVersion: "signup-v2" }));
+    assert(bad.status === 400, "invalid address rejected server-side");
+  }
+
   section("GET never confirms or unsubscribes");
   {
-    setEnv({ NEWSLETTER_WELCOME_MODE: "on", NEWSLETTER_CONFIRMATION_SEND_ENABLED: "true", NEWSLETTER_WELCOME_1_ENABLED: "true" });
+    setEnv({ NEWSLETTER_WELCOME_MODE: "on", NEWSLETTER_WELCOME_1_ENABLED: "true" });
     installFakeSql();
     const g = await confirmGET();
     assert(g.status === 405 && statements.length === 0, "GET /api/newsletter/confirm is refused without touching the database");
@@ -381,11 +431,12 @@ async function main() {
 
   section("missing tables degrade safely");
   {
-    setEnv({ NEWSLETTER_WELCOME_MODE: "on", NEWSLETTER_CONFIRMATION_SEND_ENABLED: "true", NEWSLETTER_WELCOME_1_ENABLED: "true", CRON_SECRET: "cron-secret" });
+    setEnv({ NEWSLETTER_WELCOME_MODE: "on", NEWSLETTER_WELCOME_1_ENABLED: "true", CRON_SECRET: "cron-secret" });
     installFakeSql((text) => (/to_regclass\('public\.' \|\| n\)/.test(text) ? [{ name: "newsletter_consent_requests", present: false }] : /to_regclass/.test(text) ? [{ legacy: true, orders: false }] : /COUNT\(\*\)/.test(text) ? [{ total: 4, confirmed: 0 }] : []));
     sent.length = 0;
-    const res = await signupPOST(jsonRequest("https://psl.test/api/newsletter", { email: "person@example.com" }));
+    const res = await signupPOST(jsonRequest("https://psl.test/api/newsletter", { email: "person@example.com", signupCopyVersion: "signup-v2" }));
     assert(res.status === 200 && ((await res.json()) as { ok?: boolean }).ok === true, "signup falls back to the legacy path");
+    assert(touched(/INSERT INTO newsletter_subscribers/).length === 1, "fallback stores only the legacy row");
     assert(touched(/(INSERT INTO|UPDATE) newsletter_(consent|subscriptions|email|rate|welcome)/).length === 0 && sent.length === 0, "no new-table writes and no mail without the schema");
     statements.length = 0;
     const c = await confirmPOST(jsonRequest("https://psl.test/api/newsletter/confirm", { token: createConfirmationToken().token }));
@@ -396,7 +447,8 @@ async function main() {
     const view = await readNewsletterWelcomeAdmin();
     assert(!view.schema.ready && view.live === null && view.legacySubscribers?.total === 4, "admin view: not migrated, legacy counts only");
     assert(touched(/\b(CREATE|ALTER|INSERT|UPDATE|DELETE)\b/i).length === 0, "admin read issues no DDL or writes");
-    assert(view.previews.length === 4 && view.previews.every((p) => !p.text.includes("offline-test-secret")), "admin previews render without secrets");
+    assert(view.previews.length === 3 && view.previews.every((p) => !p.text.includes("offline-test-secret")), "admin previews: the three welcome emails, no secrets");
+    assert(view.timing.every((t) => t.kind !== ("confirmation" as string)), "admin timing has no confirmation step");
     assert(touched(/newsletter_email_sends|marketing_eligible/).length === 0, "no newsletter or retention-eligibility statements while unmigrated");
   }
 
@@ -439,6 +491,14 @@ async function main() {
     assert(/replaceState/.test(confirmClient), "token removed from the address bar on load");
     const unsubPage = readFileSync(join(ROOT, "app/unsubscribe/page.tsx"), "utf8");
     assert(/referrer: "no-referrer"/.test(unsubPage), "unsubscribe page: no-referrer");
+    const form = readFileSync(join(ROOT, "components/home/newsletter-signup.tsx"), "utf8");
+    assert(/copy\.consent/.test(form) && /aria-describedby/.test(form) && !/type="checkbox"/.test(form), "signup form shows the consent sentence by the button, with no extra checkbox");
+    const panel = readFileSync(join(ROOT, "components/admin/admin-newsletter-welcome-panel.tsx"), "utf8");
+    assert(/address not verified/.test(panel) && /address verified by confirmation link/.test(panel), "admin distinguishes single-opt-in permission from verified addresses");
+    const store = readFileSync(join(ROOT, "lib/newsletter/welcome-store.ts"), "utf8");
+    const enroll = store.slice(store.indexOf("export async function enrollSingleOptIn"), store.indexOf("export type ConsentRequestRecord"));
+    assert(/'single_opt_in'/.test(enroll) && !/confirmed_at,/.test(enroll) && !/newsletter_consent_requests/.test(enroll), "single opt-in never writes a confirmation time or a confirmation request");
+    assert(!/kind = 'confirmation'|'confirmation',/.test(enroll), "single opt-in creates no confirmation-email row");
   }
 
   __setSqlClientForTests(null);

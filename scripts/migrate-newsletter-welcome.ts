@@ -1,16 +1,18 @@
 /**
  * Explicit, idempotent, additive migration for the newsletter welcome journey.
- * Creates only the five newsletter_* tables below (and their indexes). It
- * inserts no rows, never touches newsletter_subscribers or any retention,
- * order, or finance table, and enrolls nobody. The journey stays off until
- * its environment flags are set.
+ * Creates only the five newsletter_* tables below (and their indexes), then
+ * applies the v2 single-opt-in adjustment to newsletter_subscriptions (two
+ * columns, two relaxed NOT NULLs, two replaced CHECK constraints; existing rows
+ * keep consent_method = 'double_opt_in'). It inserts no rows, never touches
+ * newsletter_subscribers or any retention, order, or finance table, and
+ * enrolls nobody. The journey stays off until its environment flags are set.
  *
  * Usage (owner, against the intended database only):
  *   npm run migrate-newsletter-welcome
  */
 import { loadEnvLocal } from "./_env";
 import { getSql } from "@/lib/db/sql";
-import { ensureNewsletterWelcomeSchema, NEWSLETTER_WELCOME_TABLES } from "@/lib/newsletter/schema";
+import { ensureNewsletterWelcomeSchema, getNewsletterWelcomeSchemaState, NEWSLETTER_WELCOME_TABLES } from "@/lib/newsletter/schema";
 import { RETENTION_TABLES } from "@/lib/retention/schema";
 
 loadEnvLocal();
@@ -42,6 +44,14 @@ async function main() {
     if (!row) throw new Error(`Expected table missing after migration: ${name}`);
     console.log(`[migrate-newsletter-welcome] ok: ${name} (${row.n} rows)`);
   }
+  const schema = await getNewsletterWelcomeSchemaState();
+  if (!schema.ready) throw new Error(`Schema incomplete after migration: ${schema.missing.join(", ")}`);
+  const methods = (await sql`
+    SELECT consent_method, COUNT(*)::int AS n FROM newsletter_subscriptions GROUP BY consent_method ORDER BY consent_method
+  `) as Array<{ consent_method: string; n: number }>;
+  console.log(
+    `[migrate-newsletter-welcome] ok: newsletter_subscriptions.consent_method (${methods.map((m) => `${m.consent_method}=${m.n}`).join(", ") || "no rows"})`
+  );
   console.log("[migrate-newsletter-welcome] done. No rows inserted; the journey stays off until NEWSLETTER_WELCOME_MODE is set.");
 }
 

@@ -5,19 +5,20 @@ import { getNewsletterWelcomeConfig } from "./config";
 import { getNewsletterWelcomeSchemaState, NEWSLETTER_SEND_KINDS, type NewsletterSendKind } from "./schema";
 import { STALE_AFTER_HOURS } from "./welcome-store";
 import {
-  buildNewsletterConfirmationEmail,
   buildNewsletterWelcomeEmail,
   NEWSLETTER_SIGNUP_COPY,
   NEWSLETTER_STEP_DELAY_HOURS,
   NEWSLETTER_UTM_CAMPAIGN,
   newsletterTemplateHash,
+  type WelcomeKind,
 } from "./templates";
 
 type Row = Record<string, unknown>;
 
 export type PartitionCounts = {
   requests: { total: number; pending: number; expired: number; superseded: number; confirmed: number };
-  subscriptions: { confirmed: number; unsubscribed: number };
+  /** singleOptIn: subscription permission only (address not verified). doubleOptIn: address verified by link. */
+  subscriptions: { singleOptIn: number; doubleOptIn: number; unsubscribed: number };
   sends: Record<NewsletterSendKind, Record<string, number>>;
 };
 
@@ -28,10 +29,10 @@ export type NewsletterWelcomeAdminView = {
     mode: string;
     modeReason: string;
     journey: { enabled: boolean; reason: string };
-    confirmationSend: { enabled: boolean; reason: string };
     welcome1: { enabled: boolean; reason: string };
     laterSteps: { enabled: boolean; reason: string };
     simulate: boolean;
+    obsolete: string[];
     allowlistSize: number;
     prerequisites: { smtp: boolean; fromEmail: boolean; postalAddress: boolean; unsubSecret: boolean; missing: string[] };
   };
@@ -42,8 +43,8 @@ export type NewsletterWelcomeAdminView = {
   lastRun: { startedAt: string; finishedAt: string | null; ok: boolean | null; summary: unknown; error: string | null } | null;
   attribution: { available: true; orders: number; revenue: number; note: string } | { available: false; note: string };
   unavailable: Array<{ metric: string; reason: string }>;
-  timing: Array<{ kind: NewsletterSendKind; delayHours: number; staleAfterHours: number | null }>;
-  previews: Array<{ kind: NewsletterSendKind; templateVersion: string; hash: string; subject: string; text: string; html: string; links: Array<{ label: string; url: string }> }>;
+  timing: Array<{ kind: WelcomeKind; delayHours: number; staleAfterHours: number }>;
+  previews: Array<{ kind: WelcomeKind; templateVersion: string; hash: string; subject: string; text: string; html: string; links: Array<{ label: string; url: string }> }>;
   signupCopy: typeof NEWSLETTER_SIGNUP_COPY;
 };
 
@@ -61,18 +62,17 @@ function partition(rows: { req: Row[]; subs: Row[]; sends: Row[] }, isTest: bool
   const n = (v: unknown) => Number(v ?? 0);
   return {
     requests: { total: n(req.total), pending: n(req.pending), expired: n(req.expired), superseded: n(req.superseded), confirmed: n(req.confirmed) },
-    subscriptions: { confirmed: n(subs.confirmed), unsubscribed: n(subs.unsubscribed) },
+    subscriptions: { singleOptIn: n(subs.single_opt_in), doubleOptIn: n(subs.double_opt_in), unsubscribed: n(subs.unsubscribed) },
     sends,
   };
 }
 
+const WELCOME_KINDS: WelcomeKind[] = ["welcome_1", "welcome_2", "welcome_3"];
+
 function previews(): NewsletterWelcomeAdminView["previews"] {
   const postal = process.env.MARKETING_POSTAL_ADDRESS?.trim() || "[MARKETING_POSTAL_ADDRESS not configured]";
-  return NEWSLETTER_SEND_KINDS.map((kind) => {
-    const built =
-      kind === "confirmation"
-        ? buildNewsletterConfirmationEmail({ siteUrl: SITE_URL, token: "nc1_PREVIEW-TOKEN", postalAddress: postal })
-        : buildNewsletterWelcomeEmail({ kind, siteUrl: SITE_URL, unsubscribeToken: "nu1_PREVIEW-TOKEN", postalAddress: postal });
+  return WELCOME_KINDS.map((kind) => {
+    const built = buildNewsletterWelcomeEmail({ kind, siteUrl: SITE_URL, unsubscribeToken: "nu1_PREVIEW-TOKEN", postalAddress: postal });
     return { kind, templateVersion: built.templateVersion, hash: newsletterTemplateHash(kind), subject: built.subject, text: built.text, html: built.html, links: built.links };
   });
 }
@@ -87,10 +87,10 @@ export async function readNewsletterWelcomeAdmin(now = new Date()): Promise<News
       mode: c.mode,
       modeReason: c.modeReason,
       journey: c.journey,
-      confirmationSend: c.confirmationSend,
       welcome1: c.welcome1,
       laterSteps: c.laterSteps,
       simulate: c.simulate,
+      obsolete: c.obsolete,
       allowlistSize: c.allowlist.size,
       prerequisites: c.prerequisites,
     },
@@ -106,7 +106,6 @@ export async function readNewsletterWelcomeAdmin(now = new Date()): Promise<News
       { metric: "Contribution profit, CAC, LTV", reason: "No approved variable-cost evidence for this channel" },
     ],
     timing: [
-      { kind: "confirmation", delayHours: 0, staleAfterHours: null },
       { kind: "welcome_1", delayHours: NEWSLETTER_STEP_DELAY_HOURS.welcome_1, staleAfterHours: STALE_AFTER_HOURS.welcome_1 },
       { kind: "welcome_2", delayHours: NEWSLETTER_STEP_DELAY_HOURS.welcome_2, staleAfterHours: STALE_AFTER_HOURS.welcome_2 },
       { kind: "welcome_3", delayHours: NEWSLETTER_STEP_DELAY_HOURS.welcome_3, staleAfterHours: STALE_AFTER_HOURS.welcome_3 },
@@ -150,7 +149,8 @@ export async function readNewsletterWelcomeAdmin(now = new Date()): Promise<News
     `,
     sql`
       SELECT is_test,
-        COUNT(*) FILTER (WHERE status = 'confirmed')::int AS confirmed,
+        COUNT(*) FILTER (WHERE status = 'subscribed' AND consent_method = 'single_opt_in')::int AS single_opt_in,
+        COUNT(*) FILTER (WHERE status = 'confirmed' AND consent_method = 'double_opt_in')::int AS double_opt_in,
         COUNT(*) FILTER (WHERE status = 'unsubscribed')::int AS unsubscribed
       FROM newsletter_subscriptions GROUP BY is_test
     `,
