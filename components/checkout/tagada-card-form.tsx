@@ -1,62 +1,120 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   TagadaHeadlessProvider,
   useCheckout,
   usePayment,
+  useHeadlessClient,
 } from "@tagadapay/headless-sdk/react";
 
 import { Input } from "@/components/ui/input";
 import { normalizeCountryCode } from "@/lib/checkout/us-states";
 import { pickTagadaShippingRate } from "@/lib/tagada/select-shipping-rate";
-import { PAYMENTS_URL } from "@/lib/seo";
+import {
+  cardSessionStore,
+  cardSessionReadyToCharge,
+  retryCardConfirmation,
+  sanitizeConfirmationHints,
+  type CardConfirmationHints,
+  type TagadaCardSession,
+} from "@/lib/checkout/card-session-storage";
 import { cn } from "@/lib/utils";
 
-export type TagadaCardSession = {
-  orderId: string;
-  checkoutToken: string;
-  sessionToken: string | null;
-  storeId: string;
-  customer: {
-    email: string;
-    firstName: string;
-    lastName: string;
-  };
-  shippingAddress: {
-    line1: string;
-    city: string;
-    state: string;
-    postalCode: string;
-    country: string;
-  };
-  items: Array<{ variantId: string; quantity: number }>;
-  shippingCost: number;
-};
+export type { TagadaCardSession } from "@/lib/checkout/card-session-storage";
 
 type TagadaCardFormProps = {
   session: TagadaCardSession;
+  returnHints?: CardConfirmationHints | null;
   onError: (message: string) => void;
   onSuccessRedirect: (redirectTo: string) => void;
 };
 
+async function requestCardConfirmation(payload: { orderId: string } & CardConfirmationHints) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    const response = await fetch("/api/checkout/card", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload), signal: controller.signal,
+    });
+    const data: unknown = await response.json();
+    return { status: response.status, json: async () => data };
+  } finally { clearTimeout(timer); }
+}
+
+/** Expired secrets are discarded while the unresolved original order stays locked. */
+export function ExpiredCardConfirmation({ orderId, hints, onError, onSuccessRedirect }: {
+  orderId: string;
+  hints: CardConfirmationHints | null;
+  onError: (message: string) => void;
+  onSuccessRedirect: (redirectTo: string) => void;
+}) {
+  const [busy, setBusy] = useState(!!hints);
+  const [error, setError] = useState<string | null>(null);
+  const pending = useRef<Promise<void> | null>(null);
+  const confirm = useCallback((references: CardConfirmationHints) => {
+    if (pending.current) return pending.current;
+    cardSessionStore.rememberConfirmation(orderId, references);
+    const task = (async () => {
+      const result = await retryCardConfirmation(orderId, references, requestCardConfirmation);
+      setBusy(false);
+      if (result.ok) onSuccessRedirect(result.redirectTo);
+      else { setError(result.error); onError(result.error); }
+    })();
+    pending.current = task;
+    void task.then(() => { pending.current = null; }, () => { pending.current = null; });
+    return task;
+  }, [orderId, onError, onSuccessRedirect]);
+  const paymentId = hints?.paymentId;
+  const tagadaOrderId = hints?.tagadaOrderId;
+  const checkoutSessionId = hints?.checkoutSessionId;
+  useEffect(() => {
+    const references = sanitizeConfirmationHints({ paymentId, tagadaOrderId, checkoutSessionId });
+    if (references) void confirm(references);
+  }, [paymentId, tagadaOrderId, checkoutSessionId, confirm]);
+  return (
+    <div className="flex flex-col gap-4">
+      <h1 className="font-display text-2xl font-bold text-ink">Confirm your original order</h1>
+      <p className="text-sm text-ash" role="status">
+        {busy ? "Checking your payment and order…" : "Your card session expired while payment was unresolved. Confirm this order or contact support before making another payment."}
+      </p>
+      <p className="text-xs text-stone">Order ID: {orderId}</p>
+      {error && <p role="alert" className="text-sm text-signal">{error}</p>}
+      {hints && <button type="button" disabled={busy}
+        onClick={() => { setBusy(true); setError(null); onError(""); void confirm(hints); }}
+        className="inline-flex w-full items-center justify-center rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page disabled:cursor-not-allowed disabled:opacity-50">
+        {busy ? "Confirming order…" : "Retry order confirmation"}
+      </button>}
+      <a href="/contact" className="text-sm text-primary-blue underline underline-offset-2">Contact support with this order ID</a>
+    </div>
+  );
+}
+
 function TagadaCardFields({
   session,
+  returnHints,
   onError,
   onSuccessRedirect,
 }: TagadaCardFormProps) {
+  const client = useHeadlessClient();
   const [cardNumber, setCardNumber] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
   const [cvc, setCvc] = useState("");
   const [cardholderName, setCardholderName] = useState("");
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
-  const [bootstrapped, setBootstrapped] = useState(false);
+  const retained = useSyncExternalStore(
+    cardSessionStore.subscribe, cardSessionStore.getSnapshot, cardSessionStore.getServerSnapshot,
+  );
+  const context = retained?.orderId === session.orderId ? retained : null;
+  const confirmation = context?.confirmation ?? returnHints ?? null;
+  const [confirming, setConfirming] = useState(context?.phase !== "ready" || !!confirmation);
+  const confirmationRequest = useRef<Promise<void> | null>(null);
 
   const {
     session: checkoutSession,
     isLoading,
-    createSession,
     updateCustomerAndAddress,
     getShippingRates,
     selectShippingRate,
@@ -67,49 +125,53 @@ function TagadaCardFields({
     session.sessionToken ?? undefined
   );
 
+  const confirmPayment = useCallback((hints: CardConfirmationHints) => {
+    if (confirmationRequest.current) return confirmationRequest.current;
+    // Persist the provider IDs before asking our server to verify them. No card
+    // details enter this store, and these IDs never authorize fulfillment.
+    cardSessionStore.rememberConfirmation(session.orderId, hints);
+    const task = (async () => {
+      const result = await retryCardConfirmation(session.orderId, hints, requestCardConfirmation);
+      setBusy(false);
+      setConfirming(false);
+      if (result.ok) {
+        onSuccessRedirect(result.redirectTo);
+      } else {
+        setLocalError(result.error);
+        onError(result.error);
+      }
+    })();
+    confirmationRequest.current = task;
+    void task.then(() => { confirmationRequest.current = null; }, () => { confirmationRequest.current = null; });
+    return task;
+  }, [session.orderId, onError, onSuccessRedirect]);
+
+  const hintPaymentId = confirmation?.paymentId;
+  const hintOrderId = confirmation?.tagadaOrderId;
+  const hintSessionId = confirmation?.checkoutSessionId;
+  useEffect(() => {
+    const hints = sanitizeConfirmationHints({
+      paymentId: hintPaymentId, tagadaOrderId: hintOrderId, checkoutSessionId: hintSessionId,
+    });
+    if (hints) void confirmPayment(hints);
+  }, [hintPaymentId, hintOrderId, hintSessionId, confirmPayment]);
+
   const { tokenizeCard, processPayment, isProcessing } = usePayment({
     onPaymentSuccess: (result) => {
-      void (async () => {
-        try {
-          const paymentId =
-            result.payment && typeof result.payment === "object" && "id" in result.payment
-              ? String((result.payment as { id?: string }).id ?? "")
-              : "";
-          const tagadaOrderId =
-            result.order && typeof result.order === "object" && "id" in result.order
-              ? String((result.order as { id?: string }).id ?? "")
-              : "";
-
-          const res = await fetch("/api/checkout/card", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              orderId: session.orderId,
-              checkoutSessionId: checkoutSession?.id,
-              paymentId: paymentId || undefined,
-              tagadaOrderId: tagadaOrderId || undefined,
-            }),
-          });
-          const data = (await res.json()) as {
-            redirectTo?: string;
-            error?: string;
-          };
-          if (!res.ok || !data.redirectTo) {
-            onError(
-              data.error ??
-                "Payment succeeded but we couldn't confirm the order. Contact support."
-            );
-            setBusy(false);
-            return;
-          }
-          onSuccessRedirect(data.redirectTo);
-        } catch {
-          onError(
-            "Payment succeeded but confirmation failed. Contact support with your order ID."
-          );
-          setBusy(false);
-        }
-      })();
+      const hints = sanitizeConfirmationHints({
+        paymentId: result.payment?.id,
+        tagadaOrderId: result.order?.id,
+        checkoutSessionId: checkoutSession?.id,
+      });
+      setCardNumber(""); setExpiryDate(""); setCvc(""); setCardholderName("");
+      setBusy(false);
+      if (!hints || !cardSessionStore.rememberConfirmation(session.orderId, hints, true)) {
+        const message = "We couldn't retain your payment reference. Contact support with your order ID before trying another payment.";
+        setLocalError(message); onError(message); setConfirming(false);
+        return;
+      }
+      setConfirming(true);
+      void confirmPayment(hints);
     },
     onPaymentFailed: (result) => {
       const message =
@@ -119,50 +181,16 @@ function TagadaCardFields({
       setLocalError(message);
       onError(message);
       setBusy(false);
+      setConfirming(false);
+      // SDK exceptions can synthesize failure after the charge request began.
+      // Retain the lock; only server confirmation can settle the original order.
+      const hints = sanitizeConfirmationHints({ paymentId: result.payment?.id, checkoutSessionId: checkoutSession?.id });
+      if (hints) cardSessionStore.rememberConfirmation(session.orderId, hints);
     },
   });
 
-  // If tokens alone don't hydrate a session, create one client-side with the
-  // reserved line items (still uses Tagada — never hits our server with PANs).
-  useEffect(() => {
-    if (bootstrapped || isLoading || checkoutSession?.id) return;
-
-    let cancelled = false;
-    setBootstrapped(true);
-
-    void (async () => {
-      try {
-        await createSession({
-          items: session.items,
-          currency: "USD",
-          returnUrl: `${PAYMENTS_URL}/checkout`,
-          customerEmail: session.customer.email,
-        });
-      } catch (error) {
-        if (cancelled) return;
-        const message =
-          error instanceof Error
-            ? error.message
-            : "Unable to prepare card payment session.";
-        setLocalError(message);
-        onError(message);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    bootstrapped,
-    isLoading,
-    checkoutSession?.id,
-    createSession,
-    session.items,
-    session.customer.email,
-    onError,
-  ]);
-
   async function handlePay() {
+    if (context?.phase !== "ready" || confirmation || confirmationRequest.current) return;
     setLocalError(null);
     onError("");
     setBusy(true);
@@ -241,20 +269,25 @@ function TagadaCardFields({
         cardholderName: cardholderName.trim() || undefined,
       });
 
-      const paymentPayload = {
-        checkoutSessionId: checkoutSession.id,
-        tagadaToken: "[redacted]",
-      };
-
-      if (process.env.NODE_ENV === "development") {
-        console.info("[tagada] pay-with-token payload:", paymentPayload);
-        console.info("[tagada] checkout session at pay time:", checkoutSession);
+      const freshSession = await client.checkout.loadSession(session.checkoutToken, session.sessionToken ?? undefined);
+      if (!cardSessionReadyToCharge(session, freshSession, checkoutSession.id)) {
+        throw new Error("The current card checkout total does not match your order. Cancel this checkout and start again, use Bitcoin, or contact support. No card charge was started.");
       }
-
-      await processPayment({
+      if (!cardSessionStore.markProcessing(session.orderId)) {
+        throw new Error("Your checkout could not be saved for payment recovery. Enable browser session storage and start a fresh checkout before paying. No card charge was started.");
+      }
+      const result = await processPayment({
         checkoutSessionId: checkoutSession.id,
         tagadaToken,
+        returnUrl: `${window.location.origin}/checkout`,
       });
+      if (result.status === "pending" || result.status === "requires_redirect") {
+        const hints = sanitizeConfirmationHints({ paymentId: result.paymentId, checkoutSessionId: checkoutSession.id });
+        if (hints) {
+          cardSessionStore.rememberConfirmation(session.orderId, hints);
+          if (result.status === "pending") { setConfirming(true); void confirmPayment(hints); }
+        }
+      }
     } catch (error) {
       const message =
         error instanceof Error
@@ -266,7 +299,31 @@ function TagadaCardFields({
     }
   }
 
-  const disabled = busy || isProcessing || isLoading || !checkoutSession?.id;
+  const paymentLocked = context?.phase !== "ready" || !!confirmation;
+  const disabled = busy || isProcessing || isLoading || !checkoutSession?.id || paymentLocked;
+
+  if (paymentLocked) {
+    return (
+      <div className="mt-5 flex flex-col gap-4 border-t border-linen pt-5">
+        <p className="text-sm text-ash" role="status">
+          {confirming || isProcessing
+            ? "Confirming your payment and order…"
+            : "Your payment needs order confirmation. Keep your order ID for support."}
+        </p>
+        <p className="text-xs text-stone">Order ID: {session.orderId}</p>
+        {localError && <p role="alert" className="text-sm text-signal">{localError}</p>}
+        {confirmation ? (
+          <button type="button" disabled={confirming || isProcessing}
+            onClick={() => { setConfirming(true); setLocalError(null); onError(""); void confirmPayment(confirmation); }}
+            className="inline-flex w-full items-center justify-center rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page disabled:cursor-not-allowed disabled:opacity-50">
+            {confirming || isProcessing ? "Confirming order…" : "Retry order confirmation"}
+          </button>
+        ) : (
+          <p className="text-sm text-ash">If your bank has finished and this page does not update, contact support with your order ID before making another payment.</p>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="mt-5 flex flex-col gap-4 border-t border-linen pt-5">

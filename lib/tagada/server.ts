@@ -41,10 +41,13 @@ export async function createTagadaCheckoutSession(params: {
     customerEmail: params.email,
     customerFirstName: params.firstName,
     customerLastName: params.lastName,
-    includeCheckoutToken: true,
+    // The SDK defaults to the documented parameter name "checkoutToken".
+    // Its boolean declaration is older than the provider's string contract.
     // Custom metadata for webhook / fulfillment correlation
     orderId: params.orderId,
-    metadata: { orderId: params.orderId },
+    metadata: {
+      cartCustomAttributes: [{ name: "pslOrderId", value: params.orderId }],
+    },
   });
 
   const redirectUrl = result.redirectUrl;

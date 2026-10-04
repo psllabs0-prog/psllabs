@@ -1,12 +1,14 @@
 import { listRecentCompletedOrders } from "@/lib/orders/store";
 import { BTCPayProcessor } from "@/lib/payments/btcpay";
 import { isTagadaConfigured } from "@/lib/tagada";
+import { verifyTagadaCardPayment } from "@/lib/tagada/verify-payment";
 
 import { ensureFinanceTransactionForPaidOrder } from "./record";
 import { syncPendingFinanceTransactionsToSheet } from "./sheets-sync";
 import {
   finishFinanceJobRun,
   findDuplicateProviderPaymentIds,
+  getFinanceTransactionByOrderId,
   resolveReconciliationWarning,
   startFinanceJobRun,
   upsertReconciliationWarning,
@@ -78,6 +80,38 @@ export async function runFinanceReconciliation(): Promise<ReconciliationSummary>
 
       const invoiceId = order.invoiceId?.trim() ?? "";
       if (!invoiceId) continue;
+
+      if (order.paymentMethod === "card" && isTagadaConfigured()) {
+        const finance = await getFinanceTransactionByOrderId(order.orderId);
+        const paymentId = finance?.providerPaymentId ?? undefined;
+        const verification = await verifyTagadaCardPayment(order, { paymentId });
+        const warningKeys = {
+          status: `psl_paid_provider_not_settled:tagada:${order.orderId}`,
+          lookup: `provider_lookup_failed:tagada:${order.orderId}`,
+          amount: `amount_mismatch:tagada:${order.orderId}`,
+          currency: `currency_mismatch:tagada:${order.orderId}`,
+        };
+        if (verification.ok) {
+          for (const key of Object.values(warningKeys)) {
+            if (await resolveIfOpen(key)) summary.warningsResolved += 1;
+          }
+        } else {
+          const kind = verification.reason.includes("amount") ? "amount" :
+            verification.reason.includes("currency") ? "currency" :
+            verification.retryable || !paymentId ? "lookup" : "status";
+          const warningType = kind === "amount" ? "amount_mismatch" :
+            kind === "currency" ? "currency_mismatch" :
+            kind === "lookup" ? "provider_lookup_failed" : "psl_paid_provider_not_settled";
+          await upsertReconciliationWarning({
+            warningKey: warningKeys[kind], warningType,
+            pslOrderId: order.orderId, provider: "tagada",
+            providerPaymentId: paymentId,
+            message: `Unable to verify the recorded card payment for this completed order: ${verification.reason}`,
+          });
+          summary.warningsCreated += 1;
+        }
+        continue;
+      }
 
       const isBitcoin =
         order.paymentMethod === "bitcoin" ||

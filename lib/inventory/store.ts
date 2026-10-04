@@ -333,14 +333,41 @@ export type SettlePaidResult = {
   stockDecrementFailed: boolean;
 };
 
+export type CardSettlementBinding = {
+  paymentMethod: "card";
+  total: number;
+  currency: string;
+};
+
 export async function settlePaidOrder(
   orderId: string,
-  invoiceId: string | null
+  invoiceId: string | null,
+  cardBinding?: CardSettlementBinding
 ): Promise<SettlePaidResult> {
   await ensureInventorySchema();
   const sql = getSql();
 
-  const rows = (await sql`
+  // Lock and recheck the exact verified snapshot in the same statement as the
+  // existing settlement function. A cancellation or checkout-token change
+  // during the provider lookup must not revive or fulfill a different order.
+  // This guard uses the existing schema and requires no production migration.
+  const rows = (cardBinding ? await sql`
+    WITH eligible AS MATERIALIZED (
+      SELECT order_id, status
+      FROM orders
+      WHERE order_id = ${orderId}
+        AND payment_method = ${cardBinding.paymentMethod}
+        AND invoice_id = ${invoiceId}
+        AND total = ${cardBinding.total}
+        AND currency = ${cardBinding.currency}
+        AND status IN ('pending', 'paid', 'shipped')
+      FOR UPDATE
+    )
+    SELECT CASE WHEN status = 'shipped' THEN
+      jsonb_build_object('ok', true, 'was_newly_paid', false, 'stock_decrement_failed', false)
+    ELSE settle_paid_order(order_id, ${invoiceId}) END AS result
+    FROM eligible
+  ` : await sql`
     SELECT settle_paid_order(${orderId}, ${invoiceId}) AS result
   `) as {
     result: {

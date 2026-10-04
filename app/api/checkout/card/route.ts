@@ -2,12 +2,9 @@ import { NextResponse } from "next/server";
 
 import { safeRecordPaidOrderFinance } from "@/lib/finance/record";
 import { fulfillPaidOrder } from "@/lib/orders/fulfill-paid-order";
-import {
-  getOrder,
-  setInvoiceId,
-  setPaymentMethod,
-} from "@/lib/orders/store";
+import { getOrder } from "@/lib/orders/store";
 import { isTagadaConfigured } from "@/lib/tagada";
+import { verifyTagadaCardPayment } from "@/lib/tagada/verify-payment";
 
 export const runtime = "nodejs";
 
@@ -22,8 +19,8 @@ const str = (value: unknown): string =>
   typeof value === "string" ? value.trim() : "";
 
 /**
- * Fulfill a locally reserved order after Tagada reports a successful
- * browser-side processPayment. Does not charge the card.
+ * Confirm an existing payment with Tagada before fulfilling its reserved order.
+ * Browser references are lookup hints; this endpoint never charges a card.
  */
 export async function POST(request: Request) {
   if (!isTagadaConfigured()) {
@@ -36,6 +33,9 @@ export async function POST(request: Request) {
   let body: CardFulfillBody;
   try {
     body = (await request.json()) as CardFulfillBody;
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      throw new Error("Invalid body");
+    }
   } catch {
     return NextResponse.json(
       { error: "Invalid request format." },
@@ -48,19 +48,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing order id." }, { status: 400 });
   }
 
-  const paymentRef =
-    str(body.paymentId) ||
-    str(body.tagadaOrderId) ||
-    str(body.checkoutSessionId) ||
-    orderId;
-
   try {
     const order = await getOrder(orderId);
     if (!order) {
       return NextResponse.json({ error: "Order not found." }, { status: 404 });
     }
 
-    if (order.status === "paid") {
+    if (order.status === "paid" || order.status === "shipped") {
       return NextResponse.json({
         orderId,
         redirectTo: `/success?orderId=${orderId}`,
@@ -75,15 +69,30 @@ export async function POST(request: Request) {
       );
     }
 
-    await setPaymentMethod(orderId, "card");
-    if (!order.invoiceId) {
-      await setInvoiceId(orderId, paymentRef);
+    const verification = await verifyTagadaCardPayment(order, {
+      paymentId: str(body.paymentId) || undefined,
+      tagadaOrderId: str(body.tagadaOrderId) || undefined,
+      checkoutSessionId: str(body.checkoutSessionId) || undefined,
+    });
+    if (!verification.ok) {
+      return NextResponse.json(
+        {
+          error: verification.retryable
+            ? "Payment confirmation is still pending. Please retry confirmation; do not pay again."
+            : "We couldn't verify this payment for your order. Contact support before paying again.",
+          orderId,
+          pendingConfirmation: verification.retryable,
+        },
+        { status: verification.retryable ? 202 : 409 }
+      );
     }
 
+    const paymentRef = verification.paymentId;
     const fulfilled = await fulfillPaidOrder(
       orderId,
-      order.invoiceId ?? paymentRef,
-      "[checkout/card]"
+      order.invoiceId!,
+      "[checkout/card]",
+      { paymentMethod: "card", total: order.total, currency: order.currency }
     );
 
     if (!fulfilled.ok) {
@@ -112,6 +121,9 @@ export async function POST(request: Request) {
             paymentRef,
           },
           providerPaymentId: paymentRef,
+          providerOrderId: verification.providerOrderId,
+          amount: verification.amountCents / 100,
+          currency: verification.currency,
           pslOrderId: orderId,
           paymentStatus: "succeeded",
           paymentMethod: "card",

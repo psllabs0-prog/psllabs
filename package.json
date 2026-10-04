@@ -50,6 +50,7 @@
     "test:fulfillment": "tsx scripts/test-fulfillment.ts",
     "test:btcpostage": "tsx scripts/test-btcpostage.ts",
     "test:order-notification": "tsx scripts/test-order-notification.ts",
+    "test:card-verification": "tsx scripts/test-card-verification.ts && tsx scripts/test-card-routes.ts && tsx scripts/test-card-session-storage.ts",
     "test:acquisition": "tsx scripts/test-acquisition.ts",
     "test:authority": "tsx scripts/test-authority.ts",
     "test:customer-intelligence": "tsx scripts/test-customer-intelligence.ts && tsx scripts/test-customer-intelligence-smoke-offline.ts",

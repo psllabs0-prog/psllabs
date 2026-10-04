@@ -88,8 +88,10 @@ export async function ensureFinanceTransactionForPaidOrder(
   const provider = options?.provider ?? providerFromOrder(order);
   const { products, quantities } = productsSummary(order);
   const attribution = order.attribution;
-  const paymentId =
-    options?.providerPaymentId ?? order.invoiceId ?? null;
+  // Card invoice IDs hold checkout tokens, not verified payment IDs. A later
+  // backfill must preserve the actual payment ID recorded at confirmation.
+  const paymentId = options?.providerPaymentId ??
+    (provider === "tagada" ? null : order.invoiceId) ?? null;
 
   await upsertFinanceTransaction({
     pslOrderId: order.orderId,
