@@ -1,5 +1,5 @@
 import type { ContentPageMeta, ContentSection } from "./types";
-import { LEGAL_ENTITY_NAME, PRIVACY_LAST_UPDATED } from "./testing-scope";
+import { PRIVACY_LAST_UPDATED } from "./testing-scope";
 
 export const privacyPageMeta: ContentPageMeta = {
   label: "LEGAL",
@@ -15,6 +15,7 @@ export const privacySections: ContentSection[] = [
     paragraphs: [
       "When you place an order or contact us, you may give us information such as your name, email address, shipping address, and order details. Payment information is handled by our payment provider. PSL Labs does not store your full card number.",
       "We also collect basic information about how the website is used, such as browser information, pages viewed, and referral information through the analytics tools used on the site.",
+      "Advertising links may include a reference that identifies an ad click. Campaign information is retained in your browser for up to 30 days and may be saved with your order to measure which advertising leads to completed purchases.",
     ],
   },
   {
@@ -29,6 +30,7 @@ export const privacySections: ContentSection[] = [
     title: "Information sharing",
     paragraphs: [
       "We share information only with service providers that help us run the business, such as payment processors, shipping carriers, email providers, and analytics services.",
+      "When OpenAI advertising measurement is enabled, we send OpenAI a completed-purchase event containing its time, amount, currency, a generated event identifier and an available ad-click reference. This integration does not send your name, email, shipping address, card details or the products you purchased. We suppress these events when a Global Privacy Control preference was received at checkout and opt the events out of future user-level personalization.",
       "We do not sell your personal information.",
     ],
   },
@@ -39,6 +41,7 @@ export const privacySections: ContentSection[] = [
       // Verified against codebase: public site analytics use Plausible (cookieless). Admin login uses a session cookie. Checkout payment fields are handled by third-party payment providers.
       "We use a small number of cookies when needed for site function, such as securing an admin sign-in session. Website analytics on psllabs.org use Plausible Analytics, which is set up to work without tracking cookies.",
       "Payment pages may use cookies or similar tools from our payment providers. You can control cookies through your browser settings where your browser allows it.",
+      "Campaign information uses browser local storage. Card checkout also uses temporary session storage to recover payment confirmation after a bank redirect; card numbers, expiry dates and security codes are not stored there.",
     ],
   },
   {

@@ -64,7 +64,8 @@ export type Order = {
   attribution: OrderAttribution | null;
 };
 
-// Safe subset returned to the browser (no email, invoice id, or internal flags).
+// Public order references expose only the summary, never customer/address or
+// payment/attribution details. Keep this explicit as the private Order grows.
 export type PublicOrder = Pick<
   Order,
   | "orderId"
@@ -72,7 +73,6 @@ export type PublicOrder = Pick<
   | "status"
   | "currency"
   | "items"
-  | "shipping"
   | "subtotal"
   | "discountCode"
   | "discountAmount"
@@ -86,8 +86,14 @@ export function toPublicOrder(order: Order): PublicOrder {
     createdAt: order.createdAt,
     status: order.status,
     currency: order.currency,
-    items: order.items,
-    shipping: order.shipping,
+    items: order.items.map((item) => ({
+      handle: item.handle,
+      name: item.name,
+      strength: item.strength,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      lineTotal: item.lineTotal,
+    })),
     subtotal: order.subtotal,
     discountCode: order.discountCode,
     discountAmount: order.discountAmount,

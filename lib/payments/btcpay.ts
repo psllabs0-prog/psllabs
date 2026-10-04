@@ -222,12 +222,14 @@ export class BTCPayProcessor implements PaymentProcessor {
   }
 
   async getInvoiceStatus(
-    invoiceId: string
+    invoiceId: string,
+    options: { signal?: AbortSignal } = {}
   ): Promise<InvoiceStatusResult> {
     const storeId = getStoreId();
 
     const invoice = await btcpayFetch<BTCPayInvoiceResponse>(
-      `/stores/${storeId}/invoices/${invoiceId}`
+      `/stores/${storeId}/invoices/${invoiceId}`,
+      { signal: options.signal }
     );
 
     return {

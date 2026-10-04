@@ -217,23 +217,31 @@ export type RevenueSheetRowValues = {
   lastSynced: string;
 };
 
-function toSheetValues(row: RevenueSheetRowValues): string[] {
+function sheetText(value: string): string {
+  // USER_ENTERED consumes one leading apostrophe as a literal-text marker.
+  // Prefix even an existing apostrophe so the original text is preserved.
+  return value === "" ? "" : `'${value}`;
+}
+
+export function toSheetValues(row: RevenueSheetRowValues): string[] {
+  // Keep native date/amount/time parsing, but prevent text fields from being
+  // coerced into dates/numbers or interpreted as spreadsheet formulas.
   return [
     row.date,
-    row.pslOrderId,
-    row.provider,
-    row.providerPaymentId,
-    row.paymentMethod,
+    sheetText(row.pslOrderId),
+    sheetText(row.provider),
+    sheetText(row.providerPaymentId),
+    sheetText(row.paymentMethod),
     row.grossRevenue,
-    row.currency,
-    row.products,
-    row.quantities,
-    row.utmSource,
-    row.utmMedium,
-    row.campaign,
-    row.creative,
-    row.landingPage,
-    row.syncStatus,
+    sheetText(row.currency),
+    sheetText(row.products),
+    sheetText(row.quantities),
+    sheetText(row.utmSource),
+    sheetText(row.utmMedium),
+    sheetText(row.campaign),
+    sheetText(row.creative),
+    sheetText(row.landingPage),
+    sheetText(row.syncStatus),
     row.lastSynced,
   ];
 }

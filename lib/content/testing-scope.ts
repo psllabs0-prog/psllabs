@@ -22,7 +22,7 @@ export const LEGAL_ENTITY_NAME = "PSL Group LLC";
  * Do not derive from build time, deploy time, or unrelated commits.
  */
 export const TERMS_LAST_UPDATED = "September 8, 2026";
-export const PRIVACY_LAST_UPDATED = "September 8, 2026";
+export const PRIVACY_LAST_UPDATED = "October 4, 2026";
 
 /** @deprecated Prefer TERMS_LAST_UPDATED or PRIVACY_LAST_UPDATED. */
 export const LEGAL_LAST_UPDATED = TERMS_LAST_UPDATED;
