@@ -172,11 +172,13 @@ async function main() {
   await writeFile(join(OUT, "psl-icon-512.png"), await squareIcon(art, 512, 0.08));
   await writeFile(join(APP, "apple-icon.png"), await squareIcon(art, 180, 0.08));
 
+  // Fill the tab icon's full width with the exact DNA + PSL artwork.
+  // No extra inset: the browser already constrains the icon to a tiny square.
   // ICO decoders (including Next's) require 32-bit RGBA PNG entries.
   const ico = await Promise.all(
     [16, 32, 48].map(async (size) => ({
       size,
-      png: await sharp(await squareIcon(art, size, 0.03))
+      png: await sharp(await onBlack(art, size, size, size))
         .ensureAlpha()
         .png({ compressionLevel: 9, palette: false })
         .toBuffer(),
