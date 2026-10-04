@@ -1,6 +1,6 @@
 import { sendCustomerOrderConfirmation } from "@/lib/email/order-confirmation";
 import { sendOrderEmail } from "@/lib/email/order-notification";
-import { settlePaidOrder } from "@/lib/inventory/store";
+import { settlePaidOrder, type CardSettlementBinding } from "@/lib/inventory/store";
 import {
   claimCustomerOrderEmail,
   claimOrderEmail,
@@ -18,9 +18,10 @@ import {
 export async function fulfillPaidOrder(
   orderId: string,
   invoiceId: string,
-  logPrefix = "[fulfill-paid-order]"
+  logPrefix = "[fulfill-paid-order]",
+  cardBinding?: CardSettlementBinding
 ): Promise<{ ok: boolean; stockDecrementFailed: boolean }> {
-  const settled = await settlePaidOrder(orderId, invoiceId);
+  const settled = await settlePaidOrder(orderId, invoiceId, cardBinding);
   if (!settled.ok) {
     console.error(`${logPrefix} settle failed for ${orderId}`);
     return { ok: false, stockDecrementFailed: false };

@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { Bitcoin, Check, CreditCard } from "lucide-react";
 
 import {
   TagadaCardForm,
+  ExpiredCardConfirmation,
   type TagadaCardSession,
 } from "@/components/checkout/tagada-card-form";
 import { useCart } from "@/components/cart/cart-provider";
@@ -16,10 +17,18 @@ import { computeTotals, type OrderTotals } from "@/lib/checkout/totals";
 import { trackPlausibleClientEvent } from "@/lib/plausible/client";
 import { US_COUNTRY, US_COUNTRY_LABEL, US_STATES } from "@/lib/checkout/us-states";
 import { getOrderAttributionForCheckout } from "@/lib/attribution/storage";
+import { cardCartFingerprint, cardSessionMatchesCart, cardSessionStore, getCardReturnHints } from "@/lib/checkout/card-session-storage";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function subscribeToCheckoutUrl(listener: () => void) {
+  window.addEventListener("popstate", listener);
+  return () => window.removeEventListener("popstate", listener);
+}
+const getCheckoutSearch = () => window.location.search;
+const getServerCheckoutSearch = () => "";
 
 type FormState = {
   email: string;
@@ -122,15 +131,32 @@ function CheckoutLoadingShell() {
 export function CheckoutPage() {
   const { lines, isHydrated } = useCart();
 
-  const [form, setForm] = useState<FormState>(initialForm);
+  const retained = useSyncExternalStore(
+    cardSessionStore.subscribe, cardSessionStore.getSnapshot, cardSessionStore.getServerSnapshot,
+  );
+  const search = useSyncExternalStore(subscribeToCheckoutUrl, getCheckoutSearch, getServerCheckoutSearch);
+  const returnHints = useMemo(() => getCardReturnHints(search), [search]);
+  const isCardReturn = new URLSearchParams(search).get("paymentAction") === "requireAction";
+  const tagadaSession = retained?.session ?? null;
+  const paymentUnresolved = !!retained && retained.phase !== "ready";
+  const [formOverrides, setForm] = useState<Partial<FormState>>({});
+  const form: FormState = tagadaSession ? {
+      email: tagadaSession.customer.email, firstName: tagadaSession.customer.firstName,
+      lastName: tagadaSession.customer.lastName, address: tagadaSession.shippingAddress.line1,
+      city: tagadaSession.shippingAddress.city, state: tagadaSession.shippingAddress.state,
+      zip: tagadaSession.shippingAddress.postalCode,
+    } : { ...initialForm, ...formOverrides };
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitted, setSubmitted] = useState(false);
-  const [method, setMethod] = useState<PaymentMethod | null>("btcpay");
+  const [selectedMethod, setMethod] = useState<PaymentMethod | null>("btcpay");
+  const method = tagadaSession ? "card" : selectedMethod;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
-  const [tagadaSession, setTagadaSession] = useState<TagadaCardSession | null>(
-    null
-  );
+  const handleCardError = useCallback((message: string) => setPayError(message || null), [setPayError]);
+  const handleCardSuccess = useCallback((redirectTo: string) => {
+    cardSessionStore.clear();
+    window.location.href = redirectTo;
+  }, []);
   const [discountInput, setDiscountInput] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{
     code: string;
@@ -230,6 +256,7 @@ export function CheckoutPage() {
   }
 
   async function handleBtcpaySubmit() {
+    cardSessionStore.clear();
     setPayError(null);
     setIsSubmitting(true);
 
@@ -261,7 +288,7 @@ export function CheckoutPage() {
   async function handleCardSessionStart() {
     setPayError(null);
     setIsSubmitting(true);
-    setTagadaSession(null);
+    cardSessionStore.clear();
 
     try {
       const res = await fetch("/api/checkout/card/session", {
@@ -281,7 +308,7 @@ export function CheckoutPage() {
         return;
       }
 
-      setTagadaSession({
+      const saved = cardSessionStore.start({
         orderId: data.orderId,
         checkoutToken: data.checkoutToken,
         sessionToken: data.sessionToken ?? null,
@@ -290,7 +317,10 @@ export function CheckoutPage() {
         shippingAddress: data.shippingAddress,
         items: data.items,
         shippingCost: data.shippingCost ?? totals.shipping,
+        total: data.total,
+        cartFingerprint: cardCartFingerprint(lines),
       });
+      if (!saved) setPayError("We couldn't restore a valid card checkout session. Please try again.");
       setIsSubmitting(false);
     } catch {
       setPayError("We couldn't start card payment. Please try again.");
@@ -300,6 +330,7 @@ export function CheckoutPage() {
 
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (retained || isSubmitting || isCardReturn) return;
     const nextErrors = validateForm(form);
     setErrors(nextErrors);
     setSubmitted(true);
@@ -322,6 +353,58 @@ export function CheckoutPage() {
 
   if (!isHydrated) {
     return <CheckoutLoadingShell />;
+  }
+
+  if (isCardReturn && !retained) {
+    return (
+      <main className="min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
+        <div className="mx-auto max-w-lg text-center">
+          <h1 className="font-display text-display-md font-bold text-ink">Check your card payment</h1>
+          <p role="alert" className="mt-4 text-ash">
+            Your original checkout session is no longer available in this tab. Contact support to confirm your payment before placing another order.
+          </p>
+          <Link href="/contact" className="mt-6 inline-flex rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page">Contact support</Link>
+        </div>
+      </main>
+    );
+  }
+
+  if (retained && !retained.session) {
+    return (
+      <main className="min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
+        <div className="premium-card mx-auto max-w-lg p-6">
+          <ExpiredCardConfirmation orderId={retained.orderId} hints={retained.confirmation ?? returnHints}
+            onError={handleCardError} onSuccessRedirect={handleCardSuccess} />
+        </div>
+      </main>
+    );
+  }
+
+  if (tagadaSession && retained?.phase === "ready" && !isCardReturn && !cardSessionMatchesCart(tagadaSession, lines)) {
+    return (
+      <main className="min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
+        <div className="premium-card mx-auto max-w-lg p-6">
+          <h1 className="font-display text-display-md font-bold text-ink">Your cart has changed</h1>
+          <p className="mt-4 text-ash">Start a new checkout to review the current items and prices before paying.</p>
+          <button type="button" onClick={() => cardSessionStore.clear()} className="mt-6 inline-flex rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page">Start new checkout</button>
+        </div>
+      </main>
+    );
+  }
+
+  if (lines.length === 0 && tagadaSession) {
+    return (
+      <main className="min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
+        <div className="premium-card mx-auto max-w-lg p-6">
+          <h1 className="font-display text-display-md font-bold text-ink">Your card checkout</h1>
+          <TagadaCardForm key={tagadaSession.orderId} session={tagadaSession} returnHints={returnHints}
+            onError={handleCardError} onSuccessRedirect={handleCardSuccess} />
+          {retained?.phase === "ready" && !isCardReturn && (
+            <button type="button" onClick={() => cardSessionStore.clear()} className="mt-4 text-sm text-primary-blue underline underline-offset-2">Cancel card checkout</button>
+          )}
+        </div>
+      </main>
+    );
   }
 
   if (lines.length === 0) {
@@ -377,6 +460,7 @@ export function CheckoutPage() {
                   <Input
                     id="checkout-email"
                     type="email"
+                    disabled={!!tagadaSession || isSubmitting}
                     autoComplete="email"
                     value={form.email}
                     onChange={(e) => updateField("email", e.target.value)}
@@ -404,6 +488,7 @@ export function CheckoutPage() {
                   <Input
                     id="checkout-first-name"
                     autoComplete="given-name"
+                    disabled={!!tagadaSession || isSubmitting}
                     value={form.firstName}
                     onChange={(e) => updateField("firstName", e.target.value)}
                     className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base md:text-sm"
@@ -418,6 +503,7 @@ export function CheckoutPage() {
                   <Input
                     id="checkout-last-name"
                     autoComplete="family-name"
+                    disabled={!!tagadaSession || isSubmitting}
                     value={form.lastName}
                     onChange={(e) => updateField("lastName", e.target.value)}
                     className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base md:text-sm"
@@ -433,6 +519,7 @@ export function CheckoutPage() {
                     <Input
                       id="checkout-address"
                       autoComplete="street-address"
+                      disabled={!!tagadaSession || isSubmitting}
                       value={form.address}
                       onChange={(e) => updateField("address", e.target.value)}
                       className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base md:text-sm"
@@ -448,6 +535,7 @@ export function CheckoutPage() {
                   <Input
                     id="checkout-city"
                     autoComplete="address-level2"
+                    disabled={!!tagadaSession || isSubmitting}
                     value={form.city}
                     onChange={(e) => updateField("city", e.target.value)}
                     className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base md:text-sm"
@@ -462,6 +550,7 @@ export function CheckoutPage() {
                   <select
                     id="checkout-state"
                     autoComplete="address-level1"
+                    disabled={!!tagadaSession || isSubmitting}
                     value={form.state}
                     onChange={(e) => updateField("state", e.target.value)}
                     className={selectClassName}
@@ -484,6 +573,7 @@ export function CheckoutPage() {
                   <Input
                     id="checkout-zip"
                     autoComplete="postal-code"
+                    disabled={!!tagadaSession || isSubmitting}
                     value={form.zip}
                     onChange={(e) => updateField("zip", e.target.value)}
                     className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base md:text-sm"
@@ -507,7 +597,7 @@ export function CheckoutPage() {
               </div>
             </section>
 
-            <div className="premium-card p-5 md:p-6 lg:hidden">
+            {!paymentUnresolved && !isCardReturn && <div className="premium-card p-5 md:p-6 lg:hidden">
               <CheckoutSummary
                 lines={lines}
                 totals={totals}
@@ -520,7 +610,7 @@ export function CheckoutPage() {
                 applied={!!appliedDiscount}
                 showDiscount={DISCOUNT_CODES_ENABLED}
               />
-            </div>
+            </div>}
 
             <section className="premium-card p-5 md:p-6">
               <h2 className="font-display text-lg font-bold text-ink">
@@ -532,8 +622,9 @@ export function CheckoutPage() {
                   onClick={() => {
                     setMethod("btcpay");
                     setPayError(null);
-                    setTagadaSession(null);
+                    cardSessionStore.clear();
                   }}
+                  disabled={paymentUnresolved || isSubmitting || isCardReturn}
                   aria-pressed={method === "btcpay"}
                   className={cn(
                     "flex items-start gap-3 rounded-xl border p-4 text-left transition-colors",
@@ -577,8 +668,9 @@ export function CheckoutPage() {
                   onClick={() => {
                     setMethod("card");
                     setPayError(null);
-                    setTagadaSession(null);
+                    cardSessionStore.clear();
                   }}
+                  disabled={paymentUnresolved || isSubmitting || isCardReturn}
                   aria-pressed={method === "card"}
                   className={cn(
                     "flex items-start gap-3 rounded-xl border p-4 text-left transition-colors",
@@ -623,13 +715,14 @@ export function CheckoutPage() {
               )}
 
               {method === "card" && tagadaSession ? (
-                <TagadaCardForm
-                  session={tagadaSession}
-                  onError={(message) => setPayError(message ? message : null)}
-                  onSuccessRedirect={(redirectTo) => {
-                    window.location.href = redirectTo;
-                  }}
-                />
+                <>
+                  <TagadaCardForm key={tagadaSession.orderId} session={tagadaSession} returnHints={returnHints}
+                    onError={handleCardError} onSuccessRedirect={handleCardSuccess} />
+                  {!paymentUnresolved && !isCardReturn && (
+                    <button type="button" onClick={() => { cardSessionStore.clear(); setPayError(null); }}
+                      className="mt-4 text-sm text-primary-blue underline underline-offset-2">Cancel card checkout</button>
+                  )}
+                </>
               ) : (
                 <button
                   type="submit"
@@ -648,7 +741,7 @@ export function CheckoutPage() {
             </section>
           </form>
 
-          <aside className="hidden lg:block">
+          {!paymentUnresolved && !isCardReturn && <aside className="hidden lg:block">
             <div className="sticky top-24 premium-card p-6">
               <CheckoutSummary
                 lines={lines}
@@ -663,7 +756,7 @@ export function CheckoutPage() {
                 showDiscount={DISCOUNT_CODES_ENABLED}
               />
             </div>
-          </aside>
+          </aside>}
         </div>
       </div>
     </main>
