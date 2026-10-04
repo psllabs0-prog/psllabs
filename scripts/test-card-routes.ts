@@ -47,6 +47,7 @@ const paidEvent = {
 type LocalOrder = typeof localFixture;
 type SettlementBinding = Pick<LocalOrder, "paymentMethod" | "total" | "currency">;
 type Route = { POST: (request: Request) => Promise<Response> };
+type CronRoute = { GET: (request: Request) => Promise<Response>; maxDuration: number };
 type FinanceModule = {
   ensureFinanceTransactionForPaidOrder: typeof ensureFinanceTransactionForPaidOrder;
   safeRecordPaidOrderFinance: typeof safeRecordPaidOrderFinance;
@@ -62,10 +63,13 @@ type Effects = {
   sent: string[];
   releases: string[];
   analytics: string[];
+  ads: Array<{ order: LocalOrder; proof: { provider: string; paymentId: string } }>;
   forbidden: string[];
   reads: string[];
   upserts: Record<string, unknown>[];
   ledger: string[];
+  cronReconciliations: number;
+  flushLimits: Array<number | undefined>;
 };
 type State = {
   configured: boolean;
@@ -77,6 +81,12 @@ type State = {
   fulfillmentOk: boolean;
   localOrderRead: boolean;
   providerHook: (() => void) | undefined;
+  afterFulfillmentHook: ((order: LocalOrder) => void) | undefined;
+  btcpaySecret: string | undefined;
+  btcpayStoreId: string | undefined;
+  cronSecret: string | undefined;
+  reconcileReject: boolean;
+  flushHook: (() => Promise<void>) | undefined;
   effects: Effects;
 };
 const ROOT = resolve(__dirname, "..");
@@ -88,8 +98,10 @@ function state(): State {
     configured: true, secret: FIXTURE_SECRET,
     orders: new Map([[localFixture.orderId, structuredClone(localFixture)]]),
     payment: structuredClone(paymentFixture), providerOrder: structuredClone(providerOrderFixture),
-    providerStatus: 200, fulfillmentOk: true, localOrderRead: false, providerHook: undefined,
-    effects: { fulfillment: [], bindings: [], settled: [], finance: [], events: [], processed: [], claims: [], sent: [], releases: [], analytics: [], forbidden: [], reads: [], upserts: [], ledger: [] },
+    providerStatus: 200, fulfillmentOk: true, localOrderRead: false, providerHook: undefined, afterFulfillmentHook: undefined,
+    btcpaySecret: FIXTURE_SECRET, btcpayStoreId: "store_fixture", cronSecret: "offline_fixture_cron_secret",
+    reconcileReject: false, flushHook: undefined,
+    effects: { fulfillment: [], bindings: [], settled: [], finance: [], events: [], processed: [], claims: [], sent: [], releases: [], analytics: [], ads: [], forbidden: [], reads: [], upserts: [], ledger: [], cronReconciliations: 0, flushLimits: [] },
   };
 }
 
@@ -124,7 +136,8 @@ function harness(s: State, actualFinance = false) {
   const modules = new Map<string, Record<string, unknown>>();
   const context = createContext({
     Request, Response, URL, Headers, Buffer, fetch: fixtureFetch,
-    process: { env: { TAGADA_WEBHOOK_SECRET: s.secret } },
+    process: { env: { TAGADA_WEBHOOK_SECRET: s.secret, BTCPAY_WEBHOOK_SECRET: s.btcpaySecret,
+      BTCPAY_STORE_ID: s.btcpayStoreId, CRON_SECRET: s.cronSecret } },
     console: { info() {}, warn() {}, error() {} },
   });
   const mocks: Record<string, Record<string, unknown>> = {
@@ -155,20 +168,23 @@ function harness(s: State, actualFinance = false) {
     "@/lib/orders/fulfill-paid-order": {
       fulfillPaidOrder: async (orderId: string, invoiceId: string, _prefix: string, binding?: SettlementBinding) => {
         s.effects.fulfillment.push({ orderId, invoiceId });
-        assert(binding, "card routes must pass their verified amount/currency/method snapshot to guarded settlement");
-        assert.equal(binding.paymentMethod, "card");
-        s.effects.bindings.push(structuredClone(binding));
+        if (_prefix !== "[btcpay-webhook]") {
+          assert(binding, "card routes must pass their verified amount/currency/method snapshot to guarded settlement");
+          assert.equal(binding.paymentMethod, "card");
+        }
+        if (binding) s.effects.bindings.push(structuredClone(binding));
         if (!s.fulfillmentOk) return { ok: false, stockDecrementFailed: false };
         const order = s.orders.get(orderId);
         assert(order, "fulfillment requires an existing local order");
         // In-memory model of the settlement guard. This checks that the route
         // provides the verified snapshot; it is NOT proof of database locking.
-        if (invoiceId !== order.invoiceId || binding.paymentMethod !== order.paymentMethod ||
-            binding.total !== order.total || binding.currency !== order.currency ||
+        if (invoiceId !== order.invoiceId || (binding && (binding.paymentMethod !== order.paymentMethod ||
+            binding.total !== order.total || binding.currency !== order.currency)) ||
             !["pending", "paid", "shipped"].includes(order.status)) {
           return { ok: false, stockDecrementFailed: false };
         }
         if (order.status === "pending") { order.status = "paid"; s.effects.settled.push(orderId); }
+        s.afterFulfillmentHook?.(order);
         return { ok: true, stockDecrementFailed: false };
       },
     },
@@ -197,6 +213,26 @@ function harness(s: State, actualFinance = false) {
     "@/lib/plausible": {
       trackPlausiblePurchase: async (order: LocalOrder) => { s.effects.analytics.push(order.orderId); },
     },
+    "@/lib/openai-ads/delivery": {
+      safeTrackVerifiedPurchase: async (order: LocalOrder, proof: { provider: string; paymentId: string }) => {
+        assert(["paid", "shipped"].includes(order.status), "Ads receives a paid database snapshot after verified settlement");
+        if (proof.provider === "tagada") assert(s.effects.reads.length >= 2, "Ads delivery must follow actual authenticated provider payment/order reads");
+        s.effects.ads.push({ order: structuredClone(order), proof: structuredClone(proof) });
+        return { status: "sent", reason: null };
+      },
+      flushOpenAIPurchases: async (limit?: number) => {
+        s.effects.flushLimits.push(limit);
+        await s.flushHook?.();
+        return { configured: true, selected: 0, sent: 0, pending: 0, rejected: 0, skipped: 0, errors: 0, expired: 0, optOut: 0 };
+      },
+    },
+    "@/lib/finance/reconciliation": {
+      runFinanceReconciliation: async () => {
+        s.effects.cronReconciliations++;
+        if (s.reconcileReject) throw new Error("offline_fixture_finance_failure");
+        return { fixture: true };
+      },
+    },
   };
   mocks["./store"] = mocks["@/lib/finance/store"];
   if (actualFinance) delete mocks["@/lib/finance/record"];
@@ -206,8 +242,11 @@ function harness(s: State, actualFinance = false) {
     "@/lib/finance/webhook-verify": "lib/finance/webhook-verify.ts",
     "@/lib/finance/record": "lib/finance/record.ts",
     "./sanitize": "lib/finance/sanitize.ts",
+    "@/lib/cron/auth": "lib/cron/auth.ts",
     card: "app/api/checkout/card/route.ts",
     webhook: "app/api/tagada-webhook/route.ts",
+    bitcoin: "app/api/btcpay-webhook/route.ts",
+    cron: "app/api/cron/finance-reconcile/route.ts",
   };
   function load(id: string): Record<string, unknown> {
     if (mocks[id]) return mocks[id];
@@ -230,6 +269,7 @@ function harness(s: State, actualFinance = false) {
   }
   return {
     card: load("card") as Route, webhook: load("webhook") as Route,
+    bitcoin: load("bitcoin") as Route, cron: load("cron") as CronRoute,
     finance: load("@/lib/finance/record") as FinanceModule,
   };
 }
@@ -260,10 +300,18 @@ function signedRequest(event: unknown, signature: "valid" | "bad" | "missing" = 
     `sha256=${crypto.createHmac("sha256", FIXTURE_SECRET).update(body, "utf8").digest("hex")}`;
   return new Request("https://fixture.invalid/api/tagada-webhook", { method: "POST", body, headers });
 }
+function signedBitcoinRequest(event: unknown, signature: "valid" | "bad" | "missing" = "valid"): Request {
+  const body = JSON.stringify(event);
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (signature !== "missing") headers["btcpay-sig"] = signature === "bad" ? "sha256=00" :
+    `sha256=${crypto.createHmac("sha256", FIXTURE_SECRET).update(body, "utf8").digest("hex")}`;
+  return new Request("https://fixture.invalid/api/btcpay-webhook", { method: "POST", body, headers });
+}
 function noSale(s: State) {
   assert.deepEqual(s.effects.fulfillment, [], "unverified evidence must not invoke fulfillment");
   assert.deepEqual(s.effects.finance, [], "unverified evidence must not record a sale");
   assert.deepEqual(s.effects.analytics, [], "unverified evidence must not track a purchase");
+  assert.deepEqual(s.effects.ads, [], "unverified evidence must not enqueue or send an OpenAI purchase");
   assert.equal(s.orders.get("psl_fixture")?.status, "pending", "pending order remains pending");
   assert.equal(s.orders.get("psl_fixture")?.invoiceId, "checkout_fixture", "checkout binding is unchanged");
 }
@@ -272,6 +320,9 @@ async function test(name: string, run: (s: State, routes: ReturnType<typeof harn
   activeState = s;
   try {
     await run(s, harness(s));
+    if (s.effects.finance.length === 0) {
+      assert.deepEqual(s.effects.ads, [], "early or unverified order state must not trigger Ads delivery");
+    }
     assert.deepEqual(s.effects.forbidden, [], "test attempted a request outside its GET fixture allowlist");
     cases++;
   } catch (error) {
@@ -366,12 +417,17 @@ async function main() {
       assert.deepEqual(s.effects.fulfillment, [{ orderId: "psl_fixture", invoiceId: "checkout_fixture" }]);
       assert.equal(s.effects.finance.length, 1);
       assert.equal(s.effects.finance[0].options.providerPaymentId, "pay_fixture");
+      assert.equal(s.effects.ads.length, 1, "verified card POST triggers Ads once");
+      assert.deepEqual(s.effects.ads[0].proof, { provider: "tagada", paymentId: "pay_fixture" });
+      assert.equal(s.effects.ads[0].order.orderId, "psl_fixture");
+      assert.equal(s.effects.ads[0].order.status, "paid");
       assert.deepEqual(s.effects.bindings.map(({ paymentMethod, total, currency }) => ({ paymentMethod, total, currency })),
         [{ paymentMethod: "card", total: 59.99, currency: "USD" }]);
       assert.equal(s.effects.settled.length, 1);
       assert.equal(s.orders.get("psl_fixture")!.invoiceId, "checkout_fixture");
       assert.equal((await routes.card.POST(request({ ...browserBody, paymentId: "forged" }))).status, 200);
       assert.equal(s.effects.fulfillment.length, 1); assert.equal(s.effects.finance.length, 1);
+      assert.equal(s.effects.ads.length, 1, "unverified browser alreadyPaid shortcut does not enqueue another purchase");
       assert.equal(s.orders.get("psl_fixture")!.invoiceId, "checkout_fixture");
     });
     for (const status of ["paid", "shipped"]) {
@@ -421,6 +477,16 @@ async function main() {
       assert.equal(s.orders.get("psl_fixture")!.status, "shipped");
       assert.equal(s.effects.settled.length, 0);
     });
+    for (const [name, alter] of races.filter(([name]) => !["cancelled", "failed"].includes(name))) {
+      for (const route of ["card", "webhook"] as const) {
+        await test(`${route} changed ${name} after fulfillment cannot emit conversion`, async (s, routes) => {
+          s.afterFulfillmentHook = alter;
+          assert.equal((await routes[route].POST(route === "card" ? request(browserBody) : signedRequest(paidEvent))).status, 200);
+          assert.equal(s.effects.settled.length, 1, "fixture settlement succeeded before later snapshot change");
+          assert.deepEqual(s.effects.ads, [], "postfulfillment snapshot must retain all verified binding fields");
+        });
+      }
+    }
     await test("webhook missing secret", async (s) => {
       s.secret = undefined;
       assert.equal((await harness(s).webhook.POST(signedRequest(paidEvent))).status, 503); noSale(s);
@@ -451,6 +517,9 @@ async function main() {
       assert.equal((await routes.webhook.POST(signedRequest(event))).status, 200);
       assert.deepEqual(s.effects.fulfillment, [{ orderId: "psl_fixture", invoiceId: "checkout_fixture" }]);
       assert.equal(s.effects.finance[0].order.orderId, "psl_fixture");
+      assert.equal(s.effects.ads.length, 1);
+      assert.deepEqual(s.effects.ads[0].proof, { provider: "tagada", paymentId: "pay_fixture" });
+      assert.equal(s.effects.ads[0].order.orderId, "psl_fixture", "Ads uses provider-bound local order rather than signed metadata hint");
       assert.equal(s.orders.get("psl_other")!.status, "pending");
       assert.equal(s.orders.get("psl_fixture")!.invoiceId, "checkout_fixture");
     });
@@ -493,10 +562,106 @@ async function main() {
       assert.equal(s.effects.fulfillment.length, 1); assert.equal(s.effects.finance.length, 1);
       assert.equal(s.effects.settled.length, 1);
       assert.equal(s.effects.analytics.length, 1);
+      assert.equal(s.effects.ads.length, 1);
+      assert.deepEqual(s.effects.ads[0].proof, { provider: "tagada", paymentId: "pay_fixture" });
       assert.equal((await routes.webhook.POST(signedRequest(paidEvent))).status, 200);
       assert.equal(s.effects.fulfillment.length, 1); assert.equal(s.effects.analytics.length, 1);
+      assert.equal(s.effects.ads.length, 2, "independently verified alreadyPaid webhook may resume durable delivery");
+      assert(s.effects.ads.every((entry) => entry.order.status === "paid" && entry.proof.provider === "tagada" && entry.proof.paymentId === "pay_fixture"));
       assert.equal(s.orders.get("psl_fixture")!.invoiceId, "checkout_fixture");
       assert(s.effects.finance.every((entry) => entry.options.providerPaymentId === "pay_fixture"));
+    });
+    const bitcoinEvent = { deliveryId: "btc_evt_fixture", type: "InvoiceSettled", storeId: "store_fixture", invoiceId: "invoice_fixture", metadata: { orderId: "psl_fixture" } };
+    const setBitcoinOrder = (s: State) => {
+      const order = s.orders.get("psl_fixture")!;
+      order.paymentMethod = "bitcoin"; order.invoiceId = "invoice_fixture";
+    };
+    for (const signature of ["missing", "bad"] as const) {
+      await test(`Bitcoin ${signature} signature cannot deliver conversion`, async (s, routes) => {
+        setBitcoinOrder(s);
+        assert.equal((await routes.bitcoin.POST(signedBitcoinRequest(bitcoinEvent, signature))).status, 401);
+        assert.deepEqual(s.effects.ads, []); assert.deepEqual(s.effects.fulfillment, []);
+        assert.equal(s.effects.events.length, 0);
+      });
+    }
+    await test("Bitcoin signed terminal invoice invokes exact conversion proof", async (s, routes) => {
+      setBitcoinOrder(s);
+      assert.equal((await routes.bitcoin.POST(signedBitcoinRequest(bitcoinEvent))).status, 200);
+      assert.equal(s.effects.ads.length, 1);
+      assert.deepEqual(s.effects.ads[0].proof, { provider: "btcpay", paymentId: "invoice_fixture" });
+      assert.equal(s.effects.ads[0].order.invoiceId, "invoice_fixture");
+      assert.equal((await routes.bitcoin.POST(signedBitcoinRequest(bitcoinEvent))).status, 200);
+      assert.equal(s.effects.ads.length, 2, "signed settled redelivery can resume the durable queue");
+      assert.equal(s.effects.analytics.length, 1, "redelivery retains existing Plausible behavior");
+      assert.equal(s.effects.reads.length, 0, "signed Bitcoin evidence does not issue Tagada reads");
+    });
+    for (const change of [
+      { type: "InvoiceProcessing" }, { type: "InvoiceReceivedPayment" }, { storeId: "store_other" },
+      { storeId: undefined }, { invoiceId: "invoice_other" }, { invoiceId: undefined },
+    ]) {
+      await test("Bitcoin nonterminal, wrong store or mismatched invoice cannot deliver conversion", async (s, routes) => {
+        setBitcoinOrder(s);
+        assert.equal((await routes.bitcoin.POST(signedBitcoinRequest({ ...bitcoinEvent, ...change }))).status, 200);
+        assert.deepEqual(s.effects.ads, []);
+      });
+    }
+    for (const [name, alter] of races.filter(([name]) => !["cancelled", "failed"].includes(name))) {
+      await test(`Bitcoin changed ${name} after fulfillment cannot emit conversion`, async (s, routes) => {
+        setBitcoinOrder(s); s.afterFulfillmentHook = name === "payment method changed" ? (order) => { order.paymentMethod = "card"; } : alter;
+        assert.equal((await routes.bitcoin.POST(signedBitcoinRequest(bitcoinEvent))).status, 200);
+        assert.deepEqual(s.effects.ads, []);
+      });
+    }
+    await test("Bitcoin terminal invoice for local card order cannot deliver conversion", async (s, routes) => {
+      s.orders.get("psl_fixture")!.invoiceId = "invoice_fixture";
+      assert.equal((await routes.bitcoin.POST(signedBitcoinRequest(bitcoinEvent))).status, 200);
+      assert.deepEqual(s.effects.ads, []);
+    });
+    await test("Bitcoin missing configured store and undefined event store cannot deliver conversion", async (s) => {
+      setBitcoinOrder(s); s.btcpayStoreId = undefined;
+      const routes = harness(s);
+      assert.equal((await routes.bitcoin.POST(signedBitcoinRequest({ ...bitcoinEvent, storeId: undefined }))).status, 200);
+      assert.deepEqual(s.effects.ads, [], "undefined store values must never count as configured-store proof");
+    });
+    await test("Bitcoin original wrong method cannot be upgraded into conversion proof", async (s, routes) => {
+      s.orders.get("psl_fixture")!.invoiceId = "invoice_fixture";
+      s.afterFulfillmentHook = (order) => { order.paymentMethod = "bitcoin"; };
+      assert.equal((await routes.bitcoin.POST(signedBitcoinRequest(bitcoinEvent))).status, 200);
+      assert.deepEqual(s.effects.ads, [], "both original and paid order must retain Bitcoin payment method");
+    });
+    const unauthorizedCronHeaders: Array<Record<string, string>> = [{}, { authorization: "Bearer wrong_fixture" }, { "x-cron-secret": "wrong_fixture" }];
+    for (const headers of unauthorizedCronHeaders) {
+      await test("unauthorized finance cron cannot flush conversion queue", async (s, routes) => {
+        assert.equal((await routes.cron.GET(new Request("https://fixture.invalid/api/cron/finance-reconcile", { headers }))).status, 401);
+        assert.deepEqual(s.effects.flushLimits, []); assert.equal(s.effects.cronReconciliations, 0);
+      });
+    }
+    const authorizedCronHeaders: Array<Record<string, string>> = [{ authorization: "Bearer offline_fixture_cron_secret" }, { "x-cron-secret": "offline_fixture_cron_secret" }];
+    for (const headers of authorizedCronHeaders) {
+      await test("authorized finance cron invokes existing bounded conversion helper", async (s, routes) => {
+        assert.equal(routes.cron.maxDuration, 60);
+        assert.equal((await routes.cron.GET(new Request("https://fixture.invalid/api/cron/finance-reconcile", { headers }))).status, 200);
+        assert.deepEqual(s.effects.flushLimits, [undefined], "route uses helper's production default bound of three");
+        assert.equal(s.effects.cronReconciliations, 1);
+      });
+    }
+    await test("failed finance cron awaits delayed conversion flush and preserves500", async (s, routes) => {
+      s.reconcileReject = true;
+      let release: (() => void) | undefined;
+      s.flushHook = () => new Promise<void>((resolve) => { release = resolve; });
+      let returned = false;
+      const responsePromise = routes.cron.GET(new Request("https://fixture.invalid/api/cron/finance-reconcile", {
+        headers: { authorization: "Bearer offline_fixture_cron_secret" },
+      })).then((response) => { returned = true; return response; });
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      assert.equal(s.effects.cronReconciliations, 1);
+      assert.deepEqual(s.effects.flushLimits, [undefined]);
+      assert(release, "delayed fixture flush has started");
+      assert.equal(returned, false, "finance rejection must not let cron return while conversion work still runs");
+      release();
+      const response = await responsePromise;
+      assert.equal(response.status, 500, "waiting for conversion work preserves the finance failure status");
+      assert.equal((await response.json()).ok, false);
     });
     await test("actual finance card backfill does not invent checkout token as payment ID", async (s) => {
       const finance = harness(s, true).finance;

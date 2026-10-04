@@ -15,6 +15,12 @@ function cleanField(value: string | null | undefined): string | null {
   return cleaned || null;
 }
 
+/** Unlike campaign labels, an opaque click reference must not be truncated. */
+export function cleanOpenAIReference(value: unknown): string | null {
+  return typeof value === "string" && value.trim().length > 0 &&
+    value.length <= 8192 && !/[\u0000-\u001F\u007F]/.test(value) ? value : null;
+}
+
 type TouchFields = {
   utmSource?: string | null;
   utmMedium?: string | null;
@@ -25,10 +31,11 @@ type TouchFields = {
   fbclid?: string | null;
   msclkid?: string | null;
   ttclid?: string | null;
+  oppref?: string | null;
 };
 
 function hasClickId(touch: TouchFields): boolean {
-  return Boolean(touch.gclid || touch.fbclid || touch.msclkid || touch.ttclid);
+  return Boolean(touch.gclid || touch.fbclid || touch.msclkid || touch.ttclid || touch.oppref);
 }
 
 /** Owned-email visit (retention, newsletter). Kept separate from paid touches. */
@@ -87,6 +94,7 @@ export function parseTouchFromSearchParams(
     fbclid: cleanField(params.get("fbclid")),
     msclkid: cleanField(params.get("msclkid")),
     ttclid: cleanField(params.get("ttclid")),
+    oppref: cleanOpenAIReference(params.get("oppref")),
     capturedAt: new Date().toISOString(),
   };
 
@@ -223,6 +231,7 @@ export function toOrderAttribution(
     fbclid: primary.fbclid,
     msclkid: primary.msclkid,
     ttclid: primary.ttclid,
+    oppref: primary.oppref ?? null,
     firstPaidTouchAt: pruned.firstPaid?.capturedAt ?? null,
     lastPaidTouchAt: pruned.lastPaid?.capturedAt ?? null,
     firstPaid: pruned.firstPaid,
@@ -259,6 +268,7 @@ export function sanitizeAttributionFromBody(
       fbclid: cleanField(typeof t.fbclid === "string" ? t.fbclid : null),
       msclkid: cleanField(typeof t.msclkid === "string" ? t.msclkid : null),
       ttclid: cleanField(typeof t.ttclid === "string" ? t.ttclid : null),
+      oppref: cleanOpenAIReference(t.oppref),
       capturedAt:
         typeof t.capturedAt === "string" && !Number.isNaN(Date.parse(t.capturedAt))
           ? new Date(t.capturedAt).toISOString()
@@ -283,6 +293,7 @@ export function sanitizeAttributionFromBody(
     fbclid: obj.fbclid,
     msclkid: obj.msclkid,
     ttclid: obj.ttclid,
+    oppref: cleanOpenAIReference(obj.oppref),
     capturedAt: obj.lastPaidTouchAt ?? obj.firstPaidTouchAt ?? obj.lastEmailTouchAt,
   });
   const firstPaid = paidOnly(rawFirst);
@@ -296,12 +307,23 @@ export function sanitizeAttributionFromBody(
   );
   const primary = paidPrimary ?? lastEmail;
 
-  if (!primary) return null;
+  if (!primary) {
+    if (obj.openaiAdsMeasurementOptOut !== true) return null;
+    return {
+      openaiAdsMeasurementOptOut: true,
+      utmSource: null, utmMedium: null, utmCampaign: null, utmContent: null,
+      utmTerm: null, landingPage: null, referrer: null, gclid: null, fbclid: null,
+      msclkid: null, ttclid: null, oppref: null, firstPaidTouchAt: null,
+      lastPaidTouchAt: null, firstPaid: null, lastPaid: null, lastEmail: null,
+      lastEmailTouchAt: null,
+    };
+  }
 
   const resolvedFirst = paidPrimary ? firstPaid ?? paidPrimary : null;
   const resolvedLast = paidPrimary ? lastPaid ?? paidPrimary : null;
 
   return {
+    ...(obj.openaiAdsMeasurementOptOut === true ? { openaiAdsMeasurementOptOut: true } : {}),
     utmSource: primary.utmSource,
     utmMedium: primary.utmMedium,
     utmCampaign: primary.utmCampaign,
@@ -313,6 +335,7 @@ export function sanitizeAttributionFromBody(
     fbclid: primary.fbclid,
     msclkid: primary.msclkid,
     ttclid: primary.ttclid,
+    oppref: primary.oppref ?? null,
     firstPaidTouchAt: resolvedFirst?.capturedAt ?? null,
     lastPaidTouchAt: resolvedLast?.capturedAt ?? null,
     firstPaid: resolvedFirst,

@@ -169,10 +169,7 @@ export function OrderStatus({
             </div>
           </dl>
           <div className="mt-5 border-t border-linen pt-4 text-sm text-ash">
-            <p className="font-medium text-ink">Shipping to</p>
-            <p className="mt-1 whitespace-pre-line">
-              {`${order.shipping.firstName} ${order.shipping.lastName}\n${order.shipping.address}\n${order.shipping.city}, ${order.shipping.state} ${order.shipping.zip}\n${order.shipping.country}`}
-            </p>
+            <p>Shipping details are included in your order confirmation email.</p>
           </div>
         </div>
       )}

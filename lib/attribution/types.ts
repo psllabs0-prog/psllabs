@@ -46,6 +46,8 @@ export type AttributionTouch = {
   fbclid: string | null;
   msclkid: string | null;
   ttclid: string | null;
+  /** Opaque OpenAI click reference; preserve its original value. */
+  oppref?: string | null;
   capturedAt: string;
 };
 
@@ -61,6 +63,8 @@ export type StoredAttributionState = {
  * firstPaid, and only fall back to lastEmail when no paid touch exists.
  */
 export type OrderAttribution = {
+  /** Measurement choice captured at checkout; true suppresses OpenAI events. */
+  openaiAdsMeasurementOptOut?: boolean;
   utmSource: string | null;
   utmMedium: string | null;
   utmCampaign: string | null;
@@ -72,6 +76,7 @@ export type OrderAttribution = {
   fbclid: string | null;
   msclkid: string | null;
   ttclid: string | null;
+  oppref?: string | null;
   firstPaidTouchAt: string | null;
   lastPaidTouchAt: string | null;
   firstPaid: AttributionTouch | null;

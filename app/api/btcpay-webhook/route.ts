@@ -7,6 +7,7 @@ import {
 import { verifyBtcpayWebhookSignature } from "@/lib/finance/webhook-verify";
 import { markPaymentEventProcessed } from "@/lib/finance/store";
 import { fulfillPaidOrder } from "@/lib/orders/fulfill-paid-order";
+import { safeTrackVerifiedPurchase } from "@/lib/openai-ads/delivery";
 import { trackPlausiblePurchase } from "@/lib/plausible";
 import {
   getOrder,
@@ -152,6 +153,18 @@ export async function POST(request: Request) {
         providerPaymentId: invoiceId || paidOrder.invoiceId,
         sourcePaymentEventId: paymentEventId,
       });
+      // Conversion proof is the signed terminal event for this exact stored
+      // invoice and configured store, never a metadata-only order association.
+      if (process.env.BTCPAY_STORE_ID?.trim() &&
+          event.storeId === process.env.BTCPAY_STORE_ID && invoiceId &&
+          order.paymentMethod === "bitcoin" &&
+          paidOrder.paymentMethod === "bitcoin" && paidOrder.invoiceId === invoiceId &&
+          order.invoiceId === invoiceId && paidOrder.total === order.total &&
+          paidOrder.currency === order.currency) {
+        await safeTrackVerifiedPurchase(paidOrder, {
+          provider: "btcpay", paymentId: invoiceId,
+        });
+      }
     }
 
     return NextResponse.json({ received: true });

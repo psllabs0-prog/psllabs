@@ -6,9 +6,23 @@ import {
   mergePaidTouch,
   parseTouchFromSearchParams,
   pruneStoredAttribution,
+  sanitizeAttributionFromBody,
   toOrderAttribution,
 } from "./logic";
 import type { OrderAttribution } from "./types";
+
+function hasMeasurementOptOut(): boolean {
+  return typeof navigator !== "undefined" &&
+    (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true;
+}
+
+function withoutOpenAIReference(state: StoredAttributionState): StoredAttributionState {
+  return {
+    firstPaid: state.firstPaid ? { ...state.firstPaid, oppref: null } : null,
+    lastPaid: state.lastPaid ? { ...state.lastPaid, oppref: null } : null,
+    lastEmail: state.lastEmail ? { ...state.lastEmail, oppref: null } : null,
+  };
+}
 
 function readRaw(): StoredAttributionState | null {
   if (typeof window === "undefined") return null;
@@ -54,11 +68,24 @@ export function captureAttributionFromLocation(
   }
 
   const incoming = parseTouchFromSearchParams(search, pathname, referrer);
-  const next = mergePaidTouch(readRaw(), incoming);
-  writeRaw(next);
-  return next;
+  const optOut = hasMeasurementOptOut();
+  const next = mergePaidTouch(readRaw(), incoming && optOut ? { ...incoming, oppref: null } : incoming);
+  const allowed = optOut ? withoutOpenAIReference(next) : next;
+  writeRaw(allowed);
+  return allowed;
 }
 
 export function getOrderAttributionForCheckout(): OrderAttribution | null {
-  return toOrderAttribution(readRaw());
+  const attribution = toOrderAttribution(readRaw());
+  if (!hasMeasurementOptOut()) return attribution;
+  return sanitizeAttributionFromBody({
+    ...attribution,
+    ...withoutOpenAIReference({
+      firstPaid: attribution?.firstPaid ?? null,
+      lastPaid: attribution?.lastPaid ?? null,
+      lastEmail: attribution?.lastEmail ?? null,
+    }),
+    oppref: null,
+    openaiAdsMeasurementOptOut: true,
+  });
 }
