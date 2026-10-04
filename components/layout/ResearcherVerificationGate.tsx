@@ -59,7 +59,7 @@ export function ResearcherVerificationGate() {
         <div className="premium-card p-6 md:p-8">
           <div className="flex flex-col items-center text-center">
             <div className="mb-5 flex justify-center">
-              <PSLLogo size={48} showWordmark className="text-left text-lg" />
+              <PSLLogo height={48} eager />
             </div>
 
             <p className="mono text-ash">RESEARCHER VERIFICATION</p>

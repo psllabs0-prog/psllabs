@@ -24,13 +24,10 @@ export function Header() {
       <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-6 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:px-24">
         <Link
           href="/"
-          className="inline-flex shrink-0 items-center gap-2.5 transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+          className="inline-flex shrink-0 items-center transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
           aria-label="PSL Labs home"
         >
-          <PSLLogo size={32} decorative />
-          <span className="font-display text-lg font-bold tracking-[-0.03em] text-ink">
-            PSL Labs
-          </span>
+          <PSLLogo height={32} decorative eager />
         </Link>
 
         <nav
@@ -58,8 +55,8 @@ export function Header() {
               className="w-full border-linen bg-paper shadow-none sm:max-w-sm"
             >
               <SheetHeader className="border-b border-linen pb-4">
-                <SheetTitle className="flex items-center gap-2.5 font-display text-xl font-normal text-ink">
-                  <PSLLogo size={28} decorative />
+                <SheetTitle className="flex items-center gap-3 font-display text-xl font-normal text-ink">
+                  <PSLLogo height={24} decorative />
                   <span>Menu</span>
                 </SheetTitle>
               </SheetHeader>

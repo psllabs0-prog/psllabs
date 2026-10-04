@@ -16,7 +16,7 @@ export function Footer() {
               className="inline-flex w-fit transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
               aria-label="PSL Labs home"
             >
-              <PSLLogo size={40} showWordmark className="text-base" />
+              <PSLLogo height={40} decorative />
             </Link>
             <p className="max-w-xs text-xs leading-relaxed text-ash">
               {footerDisclaimer}
