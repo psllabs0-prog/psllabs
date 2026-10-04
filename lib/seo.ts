@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 
-import { SITE_DESCRIPTION, SITE_TITLE } from "@/lib/branding";
+import {
+  DEFAULT_SHARE_IMAGE,
+  SITE_DESCRIPTION,
+  SITE_TITLE,
+} from "@/lib/branding";
 
 const SITE_NAME = "PSL Labs";
 
@@ -50,11 +54,13 @@ export function createPageMetadata({
       siteName: SITE_NAME,
       type,
       locale: "en_US",
+      images: [DEFAULT_SHARE_IMAGE],
     },
     twitter: {
       card: "summary_large_image",
       title: pageTitle,
       description,
+      images: [DEFAULT_SHARE_IMAGE],
     },
   };
 }

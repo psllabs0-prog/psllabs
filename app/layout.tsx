@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Archivo, IBM_Plex_Mono, Inter, Source_Serif_4 } from "next/font/google";
 
 import { SiteLayout } from "@/components/layout/SiteLayout";
+import { DEFAULT_SHARE_IMAGE } from "@/lib/branding";
 import { PLAUSIBLE_INIT_JS } from "@/lib/plausible/redact";
 import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from "@/lib/seo";
 import "./globals.css";
@@ -48,11 +49,13 @@ export const metadata: Metadata = {
     siteName: "PSL Labs",
     locale: "en_US",
     type: "website",
+    images: [DEFAULT_SHARE_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
+    images: [DEFAULT_SHARE_IMAGE],
   },
 };
 

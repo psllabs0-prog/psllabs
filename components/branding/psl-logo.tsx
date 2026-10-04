@@ -1,55 +1,39 @@
+import Image from "next/image";
+
+import pslLogo from "@/public/branding/psl-logo-web.png";
 import { cn } from "@/lib/utils";
 
-import { PslMarkSvg } from "@/components/branding/psl-mark";
-
 export type PSLLogoProps = {
-  size?: number;
+  /** Rendered height in CSS pixels; width follows the artwork's aspect ratio. */
+  height?: number;
   className?: string;
-  showWordmark?: boolean;
-  /** When true, mark is decorative (parent supplies accessible name). */
+  /** When true, logo is decorative (parent supplies accessible name). */
   decorative?: boolean;
+  /** Load immediately (above-the-fold placements such as the header). */
+  eager?: boolean;
 };
 
 /**
- * PSL brand lockup: shared mark + optional wordmark.
- * Mark geometry lives in psl-mark.tsx (same source as favicon / OG).
+ * Approved PSL lockup (cyan DNA + "PSL"), cropped from
+ * public/branding/psl-logo-source.png by scripts/generate-brand-assets.ts.
  */
 export function PSLLogo({
-  size = 32,
+  height = 32,
   className,
-  showWordmark = false,
   decorative = false,
+  eager = false,
 }: PSLLogoProps) {
-  const markDecorative = decorative || showWordmark;
+  const width = Math.round((pslLogo.width * height) / pslLogo.height);
 
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-2.5",
-        showWordmark && "gap-3",
-        className
-      )}
-    >
-      {markDecorative ? (
-        <PslMarkSvg size={size} decorative className="shrink-0" />
-      ) : (
-        <PslMarkSvg
-          size={size}
-          titleId="psl-logo-title"
-          className="shrink-0"
-        />
-      )}
-
-      {showWordmark && (
-        <span className="flex min-w-0 flex-col leading-none">
-          <span className="font-display text-[1.05em] font-bold tracking-[-0.03em] text-ink">
-            PSL Labs
-          </span>
-          <span className="mt-1 text-[0.65em] font-medium tracking-[0.02em] text-ash">
-            Research Peptides
-          </span>
-        </span>
-      )}
-    </span>
+    <Image
+      src={pslLogo}
+      alt={decorative ? "" : "PSL Labs"}
+      width={width}
+      height={height}
+      loading={eager ? "eager" : "lazy"}
+      className={cn("block shrink-0", className)}
+      style={{ width, height }}
+    />
   );
 }
