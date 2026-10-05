@@ -7,7 +7,7 @@ import { GuideLayout } from "@/components/guides/guide-layout";
 import { VerificationChecklist } from "@/components/guides/verification-checklist";
 import { AnalyticalCallout } from "@/components/guides/analytical-callout";
 import { getGuideBySlug } from "@/lib/content/guides-data";
-import { batchReports } from "@/lib/batch-reports";
+import { getAvailableBatchReports, tesamorelin10mgReport } from "@/lib/batch-reports";
 import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
 
@@ -57,14 +57,25 @@ const tocItems = [
   { id: "batch-lot-match", label: "Match the batch" },
   { id: "analysis-date", label: "Check the analysis date" },
   { id: "methods-performed", label: "See which tests were run" },
-  { id: "reading-results", label: "Read the results carefully" },
+  { id: "reading-results", label: "A real report, field by field" },
   { id: "what-was-not-tested", label: "Note what was left out" },
   { id: "sample-limitations", label: "Sample and batch limits" },
   { id: "checklist", label: "Full verification checklist" },
   { id: "psl-workflow", label: "How PSL Labs verification works" },
 ];
 
+const recordChecklist = [
+  { step: 1, title: "Identify the material", description: "Record the product, labeled strength, supplier, and batch or lot on the package." },
+  { step: 2, title: "Keep the original report", description: "Save the complete file, the laboratory, report or task ID, and verification link." },
+  { step: 3, title: "Record the match", description: "Compare the laboratory record with your copy. Note missing or different fields and who resolved them." },
+  { step: 4, title: "Keep each result with its unit", description: "Record purity, amount, or concentration separately. Use ‘not reported’ when a field is absent." },
+  { step: 5, title: "Keep dates separate", description: "Record the analysis date and the date you checked the report. Neither is automatically the product’s expiry date." },
+  { step: 6, title: "Leave a review note", description: "List the tests your work requires, missing information, and the person responsible for accepting the material for that work." },
+];
+
 export default function VerifyPeptideLaboratoryReportPage() {
+  const reports = getAvailableBatchReports();
+  const example = tesamorelin10mgReport;
   return (
     <>
       <JsonLd data={articleLd} />
@@ -73,13 +84,13 @@ export default function VerifyPeptideLaboratoryReportPage() {
       <GuideLayout guide={guide} tocItems={tocItems}>
         <section className="flex flex-col gap-4">
           <p className="text-ash leading-relaxed">
-            To verify a peptide lab report, check the batch number, confirm the testing lab, and look up the report on the lab&apos;s own website before you trust the purity number.
+            Open the laboratory record, match the batch, then read the results with their units. Those three checks are a useful starting point before adding a report to your research records.
           </p>
           <p className="text-ash leading-relaxed">
-            A report is only as strong as where it came from. If you cannot open it on the lab&apos;s server, if the batch ID does not match your vial, or if the test method does not match the claim, the purity figure is not reliable evidence.
+            Have the full report and the batch or lot on the product ready. If you have not ordered yet, ask which documented batch is being supplied.
           </p>
           <p className="text-ash leading-relaxed">
-            This guide walks through each step: how to verify third-party reports, spot weak or recycled paperwork, and check records before you rely on them.
+            Below, a published PSL Labs report shows what to compare. You can use the same record checks when reviewing another supplier or preparing documentation for a research partner.
           </p>
         </section>
 
@@ -88,16 +99,15 @@ export default function VerifyPeptideLaboratoryReportPage() {
             Start before the purity number
           </h2>
           <p className="text-ash leading-relaxed">
-            Altered or recycled reports are common. Watch for these patterns:
+            Ask three questions before comparing percentages:
           </p>
           <ul className="list-disc pl-5 space-y-1.5 text-ash text-sm sm:text-base">
-            <li><strong>Edited PDFs:</strong> Dates, names, or purity values changed on an older real file.</li>
-            <li><strong>Batch mismatches:</strong> A real test from one lot reused for later untested runs.</li>
-            <li><strong>Vendor summaries:</strong> Styled tables that leave out test graphs, method notes, or task numbers.</li>
-            <li><strong>Borrowed reports:</strong> Documents from another source with no proof your stock came from that lot.</li>
+            <li><strong>Source:</strong> Can the issuing lab confirm the report?</li>
+            <li><strong>Match:</strong> Does it cover the product and batch you are reviewing?</li>
+            <li><strong>Scope:</strong> Does it contain the measurements your work requires?</li>
           </ul>
           <p className="text-ash leading-relaxed">
-            A screenshot can be changed quickly. Real verification means checking the lab&apos;s live record.
+            A genuine report can still be the wrong report for your order. A matching report can still leave a required test unanswered.
           </p>
         </section>
 
@@ -106,7 +116,7 @@ export default function VerifyPeptideLaboratoryReportPage() {
             Who issued the report?
           </h2>
           <p className="text-ash leading-relaxed">
-            First, identify who actually ran the analysis. A solid Certificate of Analysis should make that obvious:
+            Find the laboratory name and its own website or contact details. Use the issuing lab&apos;s verification or inquiry process.
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-1">
             <div className="rounded-xl border border-linen bg-surface p-5 text-sm space-y-2">
@@ -133,23 +143,21 @@ export default function VerifyPeptideLaboratoryReportPage() {
             </div>
           </div>
           <p className="text-ash leading-relaxed">
-            Testing for PSL Labs active catalog products is performed by <strong>Janoshik Analytical</strong>, an independent lab focused on peptide testing.
+            PSL Labs&apos; published catalog reports name <strong>Janoshik</strong>. If another lab has no public lookup, contact it through an independently checked channel. A missing online lookup is a reason to ask, not proof that a report is false.
           </p>
         </section>
 
         <section id="task-identifier" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Find the task or report ID
+            Find the task number and unique key
           </h2>
           <p className="text-ash leading-relaxed">
-            Reputable labs index each submission under a unique ID. On Janoshik reports, that is the <strong>Task Number</strong> (for example, Task #199788 or Task #226456).
+            Janoshik&apos;s verification form asks for the <strong>task number</strong> and the <strong>unique key</strong>. Both appear on the published report. The task number alone is not enough for that form.
           </p>
           <p className="text-ash leading-relaxed">
-            That ID is the anchor. Anyone can use it to find the original signed PDF and related lab data without depending on a file the vendor emailed you.
+            Our example is task #{example.taskNumber}. Open the complete file for its key; do not try to reconstruct a key from the product name.
           </p>
-          <AnalyticalCallout title="No identifier, no independent check" variant="limitation">
-            If a document called a Certificate of Analysis has no task, job, or report tracking number, you cannot verify it independently. Treat it as a vendor claim, not a lab record.
-          </AnalyticalCallout>
+          <p className="text-sm text-ash">Source: <a href="https://janoshik.com/verification/" target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-4">Janoshik&apos;s verification form</a>.</p>
         </section>
 
         <section id="independent-verification" className="flex flex-col gap-4 scroll-mt-24">
@@ -167,12 +175,12 @@ export default function VerifyPeptideLaboratoryReportPage() {
               <li>
                 Open{" "}
                 <a
-                  href="https://verify.janoshik.com"
+                  href="https://janoshik.com/verification/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-accent underline underline-offset-4 hover:opacity-80 inline-flex items-center gap-1"
                 >
-                  verify.janoshik.com
+                  Janoshik&apos;s verification page
                   <ExternalLink className="size-3.5" aria-hidden />
                 </a>.
               </li>
@@ -180,18 +188,18 @@ export default function VerifyPeptideLaboratoryReportPage() {
                 Enter the <strong>Task Number</strong> and <strong>Verification Key</strong> printed on the COA.
               </li>
               <li>
-                Confirm the server returns the original document from the lab database.
+                Check that you are on the laboratory&apos;s domain, then compare its record with your copy.
               </li>
               <li>
-                Compare numbers, compound name, batch code, and chromatogram with the copy you received.
+                Compare sample name, batch, task number, dates, result labels, values, and units. Save the file and link with the date of your check.
               </li>
             </ol>
             <p className="text-xs text-stone pt-2 border-t border-linen">
-              Every published batch report in PSL Labs&apos;{" "}
+              PSL Labs&apos;{" "}
               <Link href="/coa" className="text-accent underline underline-offset-2">
-                COA Lookup
+                Batch Reports
               </Link>{" "}
-              includes a direct verification link so you can do this in one click.
+              includes report files and verification links. A link may open a particular result or the lookup form; have the full report available for either path. If lookup fails or fields differ, ask the lab or supplier to resolve the difference before relying on the file.
             </p>
           </div>
         </section>
@@ -201,10 +209,10 @@ export default function VerifyPeptideLaboratoryReportPage() {
             Match the compound
           </h2>
           <p className="text-ash leading-relaxed">
-            Confirm the sample name matches what you ordered. More importantly, look for an actual identity test, not just the client&apos;s label accepted at face value.
+            Compare the submitted sample name with the named result. A sample label identifies what was submitted; it does not, by itself, tell you how identity was assessed.
           </p>
           <p className="text-ash leading-relaxed">
-            Useful wording includes &ldquo;Identity confirmed via Mass Spectrometry&rdquo; or &ldquo;Observed MW matches theoretical average MW.&rdquo; Identity testing measures molecular mass. A purity test alone does not confirm structure. For the fuller distinction, see{" "}
+            If identity confirmation is needed for your work, check the method and evidence or ask the lab. Do not infer a specific identity method just because a purity percentage appears. See{" "}
             <Link
               href="/guides/peptide-identity-vs-purity-vs-content"
               className="font-medium text-accent underline underline-offset-4 hover:opacity-80"
@@ -219,10 +227,10 @@ export default function VerifyPeptideLaboratoryReportPage() {
             Match the batch
           </h2>
           <p className="text-ash leading-relaxed">
-            The batch or lot on the report should match the vial label and packing slip.
+            Compare the report&apos;s batch field with the package, label, and available order documentation. Product names and strength alone do not establish a batch match.
           </p>
           <p className="text-ash leading-relaxed">
-            If the vial says &ldquo;Lot PSL-TESA-10MG&rdquo; and the report says &ldquo;Lot TESA-2024-A,&rdquo; that document does not describe the material in your hands. Each production run can differ in purity, salt content, and byproducts. An older batch report does not cover a new batch.
+            For our Tesamorelin example, the report&apos;s batch field is <strong className="break-words">{example.batch}</strong>. If your package has a different code or no readable code, request the supplier&apos;s documented link to the tested batch. Keep the discrepancy open until it is resolved.
           </p>
           <p className="text-ash leading-relaxed">
             More on that in{" "}
@@ -240,14 +248,14 @@ export default function VerifyPeptideLaboratoryReportPage() {
             Check the analysis date
           </h2>
           <p className="text-ash leading-relaxed">
-            Look at both the receipt date and the analysis date.
+            Keep the sample-received and analysis dates with the report. In our example, the analysis date is {example.analysisDate}.
           </p>
           <ul className="list-disc pl-5 space-y-1.5 text-ash text-sm sm:text-base">
             <li>
-              <strong>Document freshness:</strong> Research peptide lots are usually sold within months of testing. A report from years ago on a fast-moving product can mean stale stock or a recycled file.
+              <strong>Different dates answer different questions:</strong> A test date is not a manufacturing date, expiry date, or stability study.
             </li>
             <li>
-              <strong>Storage context:</strong> Freeze-dried peptides can degrade with moisture or temperature swings. The analysis date should still make sense for the stock you are buying.
+              <strong>Keep the batch match:</strong> A more recent report for another batch does not replace the report for the batch you have. Ask separately for any storage or stability information your work requires.
             </li>
           </ul>
         </section>
@@ -257,25 +265,25 @@ export default function VerifyPeptideLaboratoryReportPage() {
             See which tests were run
           </h2>
           <p className="text-ash leading-relaxed">
-            A useful report names each method. Look for specifics like these:
+            Read the requested tests, results, and comments. A summary report may not include the full method. When your work requires more detail, ask about:
           </p>
           <div className="rounded-xl border border-linen bg-surface p-5 space-y-3 text-sm">
             <div className="flex items-start gap-2">
               <span className="font-mono text-accent text-xs pt-0.5">•</span>
               <p className="text-ash">
-                <strong className="text-ink">Purity test:</strong> Column type, solvents, flow rate, gradient, and detection wavelength.
+                <strong className="text-ink">Purity:</strong> The method, detection wavelength, and how peaks were counted.
               </p>
             </div>
             <div className="flex items-start gap-2">
               <span className="font-mono text-accent text-xs pt-0.5">•</span>
               <p className="text-ash">
-                <strong className="text-ink">Identity testing:</strong> How molecular mass was measured and what ions were observed.
+                <strong className="text-ink">Identity:</strong> What evidence supports the named result and how it was obtained.
               </p>
             </div>
             <div className="flex items-start gap-2">
               <span className="font-mono text-accent text-xs pt-0.5">•</span>
               <p className="text-ash">
-                <strong className="text-ink">Quantitative assay:</strong> How net mass was measured (standard curve or elemental assay).
+                <strong className="text-ink">Reported amount:</strong> What the value measures, its units, calibration basis, and uncertainty if needed.
               </p>
             </div>
           </div>
@@ -283,28 +291,23 @@ export default function VerifyPeptideLaboratoryReportPage() {
 
         <section id="reading-results" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Read the results carefully
+            A real report, field by field
           </h2>
-          <p className="text-ash leading-relaxed">
-            In the results section, keep these values distinct:
-          </p>
-          <ul className="list-disc pl-5 space-y-2 text-ash text-sm sm:text-base">
-            <li>
-              <strong>Purity percentage:</strong> Share of the test signal assigned to the target versus other detected peaks. See{" "}
-              <Link
-                href="/guides/peptide-purity-vs-content"
-                className="text-accent underline underline-offset-2"
-              >
-                What Does 99% Peptide Purity Actually Mean?
-              </Link>.
-            </li>
-            <li>
-              <strong>Reported net mass:</strong> Absolute weight of active compound found in the vial (for example, 11.75 mg on a nominal 10 mg BPC-157 vial).
-            </li>
-            <li>
-              <strong>Chromatogram:</strong> The test graph over time. Check for a stable baseline, clean peak shapes, and whether small peaks were counted or cut off.
-            </li>
-          </ul>
+          <div className="public-section-card p-6 sm:p-8">
+            <p className="mono text-accent">{example.product} · Task #{example.taskNumber}</p>
+            <dl className="mt-5 grid gap-4 text-sm sm:grid-cols-2">
+              <div><dt className="text-ash">Batch</dt><dd className="mt-1 break-words font-semibold text-ink">{example.batch}</dd></div>
+              <div><dt className="text-ash">Analysis date</dt><dd className="mt-1 font-semibold text-ink">{example.analysisDate}</dd></div>
+              <div><dt className="text-ash">Reported purity</dt><dd className="mt-1 font-mono text-xl text-ink">{example.purityPercent}%</dd></div>
+              <div><dt className="text-ash">Reported Tesamorelin amount</dt><dd className="mt-1 font-mono text-xl text-ink">{example.reportedAmountMg} mg</dd></div>
+            </dl>
+            <p className="mt-5 border-t border-linen pt-4 text-sm leading-relaxed text-ash">Record both results as printed. This is not a &ldquo;99%+&rdquo; result, and the milligram value is a separate measurement. The product&apos;s {example.nominalStrength} label is the nominal strength, not the laboratory result.</p>
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+              <a href={example.reportUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">Open report file</a>
+              <a href={example.verificationUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-1 text-accent underline underline-offset-4">Verify with Janoshik <ExternalLink className="size-3.5" aria-hidden /></a>
+            </div>
+          </div>
+          <p className="text-ash leading-relaxed">For the distinction between percentage, milligrams, and concentration, see <Link href="/guides/peptide-purity-vs-content" className="text-accent underline underline-offset-4">purity versus amount</Link>.</p>
         </section>
 
         <section id="what-was-not-tested" className="flex flex-col gap-4 scroll-mt-24">
@@ -312,7 +315,7 @@ export default function VerifyPeptideLaboratoryReportPage() {
             Note what was left out
           </h2>
           <p className="text-ash leading-relaxed">
-            The report only covers the tests shown on the original laboratory file. A standard peptide report typically does not cover sterility, endotoxins, heavy metals, or biological potency unless listed. For more detail, see{" "}
+            The report supports the results it contains. If sterility, endotoxin, residual-solvent, or another required result is absent, record it as not reported on that file. Request a separate result when needed rather than treating a high purity percentage as an answer. See{" "}
             <Link
               href="/guides/what-peptide-testing-can-establish"
               className="font-medium text-accent underline underline-offset-4 hover:opacity-80"
@@ -326,19 +329,19 @@ export default function VerifyPeptideLaboratoryReportPage() {
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
             Sample and batch limits
           </h2>
-          <AnalyticalCallout title="One vial was tested" variant="limitation">
-            A Certificate of Analysis describes the vial the lab received and tested. It does not prove every vial from that run is identical.
+          <AnalyticalCallout title="A report describes the tested sample" variant="limitation">
+            The result belongs to the sample identified by the laboratory. The report alone does not establish that every vial is identical, document the full supply chain, or establish suitability for a particular experiment.
           </AnalyticalCallout>
         </section>
 
         <section id="checklist" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Full verification checklist
+            Save a useful verification record
           </h2>
           <p className="text-ash leading-relaxed">
-            Use this checklist before filing a report into lab records:
+            Use these fields in your lab&apos;s receiving record or a partner&apos;s documentation review. Keep unanswered questions alongside the results.
           </p>
-          <VerificationChecklist />
+          <VerificationChecklist items={recordChecklist} />
         </section>
 
         <section id="psl-workflow" className="flex flex-col gap-4 scroll-mt-24">
@@ -346,43 +349,46 @@ export default function VerifyPeptideLaboratoryReportPage() {
             How PSL Labs verification works
           </h2>
           <p className="text-ash leading-relaxed">
-            Our documentation pipeline is built so you can audit without guesswork:
+            Open the matching file below, then confirm it with the laboratory. Results apply to the sample and batch named on that report.
           </p>
           <div className="rounded-xl border border-linen bg-surface p-6 space-y-4">
             <div className="flex items-center gap-2 text-accent font-mono text-xs uppercase tracking-wider">
               <ShieldCheck className="size-4 shrink-0" aria-hidden />
-              <span>PSL Labs Active Catalog Verification Registry</span>
+              <span>Published batch records</span>
             </div>
             <p className="text-ash text-sm leading-relaxed">
-              Every released batch in our active catalog is paired with a published Janoshik report. Current records:
+              Keep the report&apos;s result labels with its values. A concentration result for a solution is not a peptide purity percentage.
             </p>
             <div className="divide-y divide-linen/70 border-y border-linen text-xs font-mono">
-              {batchReports.map((report) => (
+              {reports.map((report) => (
                 <div
                   key={report.taskNumber}
-                  className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"
+                  className="py-4 flex flex-col gap-2"
                 >
                   <div className="flex flex-col">
                     <span className="font-bold text-ink text-sm">
                       {report.product} ({report.nominalStrength})
                     </span>
-                    <span className="text-stone">
+                    <span className="break-words text-stone">
                       Batch: {report.batch} · Task #{report.taskNumber} · Analyzed {report.analysisDate}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
                     <span className="text-accent font-semibold">
-                      {report.purityPercent
+                      {report.purityPercent !== undefined
                         ? `${report.purityPercent}% purity`
-                        : report.reportedResult?.value ?? "Assay Verified"}
+                        : report.reportedResult
+                          ? `${report.reportedResult.label}: ${report.reportedResult.value}`
+                          : "See report for results"}
                     </span>
+                    <a href={report.reportUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">Open report</a>
                     <a
                       href={report.verificationUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded border border-border-strong bg-paper px-2.5 py-1 text-ink hover:text-accent hover:border-accent/40 transition-colors"
+                      className="inline-flex min-h-11 items-center gap-1 rounded border border-border-strong bg-paper px-3 py-2 text-ink hover:text-accent hover:border-accent/40 transition-colors"
                     >
-                      Verify on Janoshik
+                      Laboratory verification
                       <ExternalLink className="size-3" aria-hidden />
                     </a>
                   </div>
@@ -399,6 +405,7 @@ export default function VerifyPeptideLaboratoryReportPage() {
                 See Testing Details
               </Link>.
             </p>
+            <p className="text-sm leading-relaxed text-ash">Need help matching a package? <Link href="/contact" className="text-accent underline underline-offset-4">Contact PSL Labs</Link> with the product, batch code, and task number. Include your order reference privately if it concerns an existing order.</p>
           </div>
         </section>
       </GuideLayout>

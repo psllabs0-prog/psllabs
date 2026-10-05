@@ -149,6 +149,14 @@ function testUtmsAndDualUnsubscribeUrls() {
   );
   assert(/research use only/i.test(built.text), "RUO");
   assert(/View Products & Batch Reports/i.test(built.text), "CTA");
+  for (const path of ["/coa", "/guides/verify-peptide-laboratory-report", "/guides/peptide-purity-vs-content"]) {
+    const expected = new URL(path, "https://psllabs.org");
+    for (const [key, value] of Object.entries(RETENTION_UTM)) expected.searchParams.set(key, value);
+    assert(built.text.includes(expected.toString()), "retention has each documentation link with the existing campaign attribution");
+    assert(built.html.includes(expected.toString().replace(/&/g, "&amp;")), "documentation link is also present and escaped in HTML");
+  }
+  assert(built.text.includes("A newly listed lot may have different documentation."), "retention never assigns current reports to a past shipment");
+  assert(built.text.includes("opted into PSL Labs marketing emails"), "retention explains the existing consent basis");
 
   assert(
     built.humanUnsubscribeUrl.startsWith("https://psllabs.org/unsubscribe?token="),

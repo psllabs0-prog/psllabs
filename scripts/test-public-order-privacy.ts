@@ -84,6 +84,7 @@ function harness(order: Order | null, failure = false) {
   const mocks: Record<string, Record<string, unknown>> = {
     "react": React,
     "react/jsx-runtime": jsxRuntime,
+    "lucide-react": { ArrowUpRight: () => null },
     "next/server": { NextResponse },
     "next/link": {
       __esModule: true,
@@ -108,6 +109,7 @@ function harness(order: Order | null, failure = false) {
   };
   const sources: Record<string, string> = {
     route: "app/api/order-status/route.ts", page: "app/success/page.tsx", status: "components/success/order-status.tsx",
+    "@/components/success/order-resources": "components/success/order-resources.tsx",
   };
   function load(id: string): Record<string, unknown> {
     if (mocks[id]) return mocks[id];
@@ -171,6 +173,13 @@ async function main() {
       check(html.includes("Shipping details are included in your order confirmation email."), true, `${status}: useful shipping guidance remains`);
       check(html.includes("Shipping to"), false, `${status}: address block is removed`);
       check(html.includes("Fixture product"), true, `${status}: product summary still renders`);
+      const hasDocuments = status === "paid" || status === "shipped";
+      check(html.includes("Your order documents"), hasDocuments, `${status}: documentation is shown only after payment`);
+      if (hasDocuments) {
+        for (const path of ["/track", "/coa", "/guides/verify-peptide-laboratory-report", "/guides/peptide-purity-vs-content", "/contact"]) {
+          check(html.includes(`href="${path}"`), true, `${status}: public documentation link ${path}`);
+        }
+      }
       check(h.reads, [privateOrder.orderId, privateOrder.orderId], `${status}: API and page query only their explicit fixture reference`);
     }
 

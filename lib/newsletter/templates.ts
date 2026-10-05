@@ -17,9 +17,9 @@ export const NEWSLETTER_UTM_CONTENT = {
 /** "confirmation" is historical (double opt-in, no longer sent). */
 export const NEWSLETTER_TEMPLATE_VERSIONS: Record<NewsletterSendKind, string> = {
   confirmation: "confirmation-v1",
-  welcome_1: "welcome-1-v2",
-  welcome_2: "welcome-2-v2",
-  welcome_3: "welcome-3-v2",
+  welcome_1: "welcome-1-v3",
+  welcome_2: "welcome-2-v3",
+  welcome_3: "welcome-3-v3",
 };
 
 /** Timing from enrollment (signup, or confirmation for older double-opt-in records); later steps go out on the next eligible daily run. */
@@ -30,7 +30,7 @@ export type NewsletterPlacement = (typeof NEWSLETTER_PLACEMENTS)[number];
 
 export { NEWSLETTER_SIGNUP_CONSENT, NEWSLETTER_SIGNUP_COPY, NEWSLETTER_SIGNUP_VERSIONS } from "./copy";
 
-export const NEWSLETTER_GUIDE_PATH = "/science/how-to-read-a-coa";
+export const NEWSLETTER_GUIDE_PATH = "/guides/verify-peptide-laboratory-report";
 
 export const NEWSLETTER_SIGNUP_CONSENT_HASH = crypto
   .createHash("sha256")
@@ -140,8 +140,9 @@ function welcomeContent(kind: WelcomeKind, siteUrl: string): {
       paragraphs: [
         "Hi,",
         "Thanks for subscribing.",
-        "Our guide walks through locating a lot identifier, opening the original laboratory report, and reading the fields actually shown.",
+        "Start with the identifier on the label, then check the original laboratory report. Our guide shows what to match, how to check the report at its source, and which questions a report leaves open.",
         { cta: "Read the guide", url: guide },
+        "Keep the report with your research records. If a label and report do not match, reply with the identifier so we can help locate the correct document.",
         ...signature(),
       ],
       links: [{ label: "Read the guide", url: guide }],
@@ -149,6 +150,7 @@ function welcomeContent(kind: WelcomeKind, siteUrl: string): {
   }
   if (kind === "welcome_2") {
     const reports = link("/coa");
+    const purity = link("/guides/peptide-purity-vs-content");
     const contact = link("/contact");
     return {
       subject: "Finding the report that matches your label",
@@ -156,6 +158,8 @@ function welcomeContent(kind: WelcomeKind, siteUrl: string): {
         "Hi,",
         "When checking documentation, start with the lot or batch identifier on the label. Open the corresponding original report rather than substituting one for a different lot.",
         { cta: "Open Batch Reports", url: reports },
+        "A purity percentage and the amount of peptide in a vial answer different questions. Read the field names, units, and methods rather than treating one number as proof of the other.",
+        { text: "Our purity and content guide explains that distinction with examples from the published reports.", link: { label: "purity and content guide", url: purity } },
         {
           text: "If the connection is unclear or a report is missing, our contact form is the place to ask PSL to check.",
           link: { label: "contact form", url: contact },
@@ -164,6 +168,7 @@ function welcomeContent(kind: WelcomeKind, siteUrl: string): {
       ],
       links: [
         { label: "Open Batch Reports", url: reports },
+        { label: "Purity and content guide", url: purity },
         { label: "Contact form", url: contact },
       ],
     };
@@ -178,6 +183,7 @@ function welcomeContent(kind: WelcomeKind, siteUrl: string): {
       "Hi,",
       "For product details and current availability, visit the PSL catalog.",
       { cta: "View product information", url: products },
+      "Before a future order, check the documentation for the lot currently listed. Save the report that matches the label you receive; an earlier purchase may have come from a different lot.",
       "You can also find our shipping information, FAQs, and contact page on the site when you have a question before ordering.",
       {
         list: [

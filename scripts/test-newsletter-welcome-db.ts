@@ -361,7 +361,7 @@ async function main() {
       assert(w1.text.includes("Thanks for subscribing.") && !/confirm/i.test(w1.text), "Welcome 1 says “Thanks for subscribing”");
       assert(w1.headers["List-Unsubscribe-Post"] === "List-Unsubscribe=One-Click" && /\/api\/marketing\/unsubscribe\?token=nu1_/.test(w1.headers["List-Unsubscribe"]), "Welcome 1 has one-click unsubscribe");
       assert(w1.from === "PSL Labs <updates@psllabs.org>" && w1.replyTo === "support@psllabs.org", "from/reply-to");
-      assert(w1.text.includes("/science/how-to-read-a-coa?utm_source=email&utm_medium=email&utm_campaign=newsletter_welcome_v1&utm_content=welcome_1_guide"), "Welcome 1 CTA");
+      assert(w1.text.includes("/guides/verify-peptide-laboratory-report?utm_source=email&utm_medium=email&utm_campaign=newsletter_welcome_v1&utm_content=welcome_1_guide"), "Welcome 1 CTA");
       const subs = await subsFor(a);
       assert(subs.length === 1, "one subscription");
       const sub = subs[0];
