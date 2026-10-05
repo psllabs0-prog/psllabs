@@ -75,14 +75,14 @@ const comparisonRows = [
   },
   {
     attribute: "Purity",
-    question: "How much of the detected material is the main peptide?",
+    question: "For an HPLC area result, what share of the integrated signal belongs to the target peak?",
     method: "Laboratory purity test (HPLC) with UV detection",
     notEstablished: "Molecular identity by itself, net milligrams, or salts that do not absorb UV.",
   },
   {
-    attribute: "Content / assay",
-    question: "How many milligrams of peptide are in the vial?",
-    method: "Quantitative test against a reference standard",
+    attribute: "Reported amount / assay",
+    question: "What quantity did the lab measure, using the result's stated unit and method?",
+    method: "Quantitative method identified by the laboratory",
     notEstablished: "Sterility, endotoxins, counterion ratios, or biological activity.",
   },
   {
@@ -105,7 +105,7 @@ export default function PeptideIdentityVsPurityVsContentPage() {
             A lab report often gets reduced to one number, like 99.2% or 99.8% purity. That number is useful, but it answers only one of three different questions.
           </p>
           <p className="text-ash leading-relaxed">
-            <strong>Identity</strong> asks whether the right peptide is present. <strong>Purity</strong> asks how much of the detected material is the main peptide. <strong>Content</strong> (sometimes called assay) asks how many milligrams of peptide are in the vial.
+            <strong>Identity</strong> asks whether the evidence matches the expected compound. <strong>Purity</strong> describes the result of a purity method, such as the target peak&apos;s share of an HPLC signal. <strong>Amount</strong> records a measured quantity. Terms such as content and assay need the lab&apos;s definition and unit.
           </p>
           <p className="text-ash leading-relaxed">
             Mixing these up can throw off your work. A correctly identified peptide can still carry other compounds. A high purity score can still sit in an underfilled vial. This guide walks through each result and how to read them together on reports in our{" "}
@@ -131,7 +131,7 @@ export default function PeptideIdentityVsPurityVsContentPage() {
             Three questions, not one number
           </h2>
           <p className="text-ash leading-relaxed">
-            When a lab tests a freeze-dried vial, they usually run three separate checks:
+            When reading a lab report, keep these three questions separate. Check which tests the lab actually performed:
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 pt-2">
             <div className="rounded-xl border border-linen bg-surface p-5">
@@ -145,14 +145,14 @@ export default function PeptideIdentityVsPurityVsContentPage() {
               <span className="font-mono text-xs font-bold text-accent">QUESTION 2</span>
               <h3 className="mt-1 font-display text-lg font-bold text-ink">Purity</h3>
               <p className="mt-2 text-xs leading-relaxed text-ash">
-                <em>&ldquo;How much of the sample is target peptide?&rdquo;</em> Compares the main peak with other detected material.
+                <em>&ldquo;What does the purity method measure?&rdquo;</em> For HPLC area results, compare integrated peak signals rather than assuming a weight percentage.
               </p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-5">
               <span className="font-mono text-xs font-bold text-accent">QUESTION 3</span>
               <h3 className="mt-1 font-display text-lg font-bold text-ink">Content</h3>
               <p className="mt-2 text-xs leading-relaxed text-ash">
-                <em>&ldquo;How much active peptide is in the vial?&rdquo;</em> Measures absolute milligrams or concentration, not a relative percentage.
+                <em>&ldquo;What quantity or fraction is reported?&rdquo;</em> Keep the result&apos;s name, unit and method together. Milligrams, concentration and net peptide content are different measurements.
               </p>
             </div>
           </div>
@@ -175,7 +175,7 @@ export default function PeptideIdentityVsPurityVsContentPage() {
             Retention time matching helps too. The sample&apos;s run time is compared with a reference standard on the same column and conditions.
           </p>
           <AnalyticalCallout title="Identity is not a purity score" variant="limitation">
-            Confirming the expected mass shows the target is present. It does not prove the vial is free of other material or tell you how many milligrams are inside.
+            A matching mass supports an identity assessment, but its scope depends on the method and other evidence. It does not establish purity or the number of milligrams in the vial.
           </AnalyticalCallout>
         </section>
 
@@ -184,7 +184,7 @@ export default function PeptideIdentityVsPurityVsContentPage() {
             What does purity tell you?
           </h2>
           <p className="text-ash leading-relaxed">
-            When a Certificate of Analysis lists something like &ldquo;99.805% purity,&rdquo; that almost always comes from a laboratory purity test (HPLC).
+            HPLC is commonly used to assess peptide purity. When a report gives an HPLC peak-area percentage, read it as a result under that method; confirm the method rather than assuming it from the number alone.
           </p>
           <p className="text-ash leading-relaxed">
             The dissolved sample runs through a column. Different compounds leave at different times and pass a light detector. The graph of that run over time is the chromatogram.
@@ -194,10 +194,10 @@ export default function PeptideIdentityVsPurityVsContentPage() {
               How the percentage is calculated
             </p>
             <p className="font-mono text-ink text-sm sm:text-base">
-              Purity (%) = [ Area of Main Target Peak / Total Area of All Peaks ] × 100
+              Area (%) = [ Target Peak Area / Total Integrated Peak Area ] × 100
             </p>
             <p className="text-xs text-stone">
-              Total area includes shortened sequences, variants, and other byproducts the test detects.
+              This uncorrected area calculation includes peaks integrated by the method. It does not identify every other material or measure what the method does not detect.
             </p>
           </div>
           <p className="text-ash leading-relaxed">
@@ -216,16 +216,16 @@ export default function PeptideIdentityVsPurityVsContentPage() {
             What does content tell you?
           </h2>
           <p className="text-ash leading-relaxed">
-            Content (also called net peptide content, peptide assay, or quantitative mass) is how much target peptide is in the container, measured in milligrams.
+            A reported amount in milligrams is different from net peptide content. Bachem defines net peptide content as the fraction of peptidic material relative to non-peptidic material such as counterions and residual water. That fraction can include peptidic impurities and may be expressed as a percentage.
           </p>
           <p className="text-ash leading-relaxed">
-            Freeze-dried peptides arrive as salts. The powder includes the peptide, counterions, a small amount of moisture, and sometimes leftover salts.
+            Gross powder weight can include peptide, counterions and residual water. A purity percentage does not tell you how much of each is present.
           </p>
           <p className="text-ash leading-relaxed">
-            A vial labeled 10.0 mg of powder may hold closer to 7.5 to 8.5 mg of net peptide even at 99.5% purity. Getting that number right takes a quantitative assay against a reference standard, not just weighing the vial.
+            Keep the lab&apos;s result label and unit intact. Do not apply a generic adjustment to a nominal vial amount or rename a reported milligram result as net peptide content unless the lab defines it that way. See <a href="https://www.bachem.com/knowledge-center/faq-frequently-asked-questions/" target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-4">Bachem&apos;s definitions of gross weight, net peptide content and assay</a>.
           </p>
-          <AnalyticalCallout title="Gross powder vs net peptide" variant="key-point">
-            Gross weight is everything in the vial. Net peptide content is only the target peptide mass. For precise molar concentrations in research work, use net peptide mass.
+          <AnalyticalCallout title="Keep each result's meaning and unit" variant="key-point">
+            Gross weight, HPLC purity, net peptide content and reported amount are not interchangeable. Ask the laboratory what its assay measures before using a result in quantitative research.
           </AnalyticalCallout>
         </section>
 
@@ -251,28 +251,10 @@ export default function PeptideIdentityVsPurityVsContentPage() {
             Identity testing can confirm the expected weight is present without telling you the ratio of target to other material. A mixed sample can still show a clear target signal. Presence is not the same as purity.
           </p>
           <p className="text-ash leading-relaxed">
-            Purity is a relative ratio from the test graph. It does not tell you how much powder is in the vial. Two nominal 10 mg vials can look very different in practice:
+            An HPLC area percentage does not tell you the amount in the vial. A high purity result can accompany a measured amount below the label, while a different sample can have a lower purity result and a measured amount closer to the label. Neither number replaces the other.
           </p>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-1">
-            <div className="rounded-xl border border-linen bg-surface p-5">
-              <span className="font-mono text-xs font-bold text-stone">VIAL A (NOMINAL 10 MG)</span>
-              <ul className="mt-2 text-xs leading-relaxed text-ash space-y-1">
-                <li>• Purity: <strong>99.5%</strong></li>
-                <li>• Net Peptide Mass: <strong>6.20 mg</strong></li>
-                <li>• High purity, but a large underfill relative to the label.</li>
-              </ul>
-            </div>
-            <div className="rounded-xl border border-linen bg-surface p-5">
-              <span className="font-mono text-xs font-bold text-stone">VIAL B (NOMINAL 10 MG)</span>
-              <ul className="mt-2 text-xs leading-relaxed text-ash space-y-1">
-                <li>• Purity: <strong>98.1%</strong></li>
-                <li>• Net Peptide Mass: <strong>10.45 mg</strong></li>
-                <li>• Slightly lower purity, but the fill matches the label better.</li>
-              </ul>
-            </div>
-          </div>
           <p className="text-ash leading-relaxed pt-2">
-            If you only read &ldquo;99.5% purity&rdquo; on Vial A and dissolve as if it were 10 mg, your working concentration can be far off. Likewise, a solid mass assay does not guarantee a clean purity profile or microbiological status. Those are separate measurements.
+            Compare the original reported amount with the nominal label using the same units. A measured amount does not establish purity, sterility or endotoxin status. Those are separate results.
           </p>
         </section>
 
@@ -296,19 +278,19 @@ export default function PeptideIdentityVsPurityVsContentPage() {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 text-sm">
               <div>
-                <p className="font-mono text-xs text-stone uppercase">1. Identity</p>
-                <p className="font-bold text-ink mt-0.5">Retatrutide Confirmed</p>
-                <p className="text-xs text-ash mt-1">Measured mass matched the expected weight via identity testing.</p>
+                <p className="font-mono text-xs text-stone uppercase">1. Named material</p>
+                <p className="font-bold text-ink mt-0.5">Retatrutide</p>
+                <p className="text-xs text-ash mt-1">Keep the material name from the report. Ask the lab for method details when identity evidence matters to your work.</p>
               </div>
               <div>
                 <p className="font-mono text-xs text-stone uppercase">2. Purity</p>
                 <p className="font-bold text-ink mt-0.5">{retatrutideBlackTopReport.purityPercent}% Purity</p>
-                <p className="text-xs text-ash mt-1">One major peak; minor impurities total 0.195%.</p>
+                <p className="text-xs text-ash mt-1">The reported percentage applies to the tested sample and method. Subtracting it from 100 does not identify the remaining material.</p>
               </div>
               <div>
-                <p className="font-mono text-xs text-stone uppercase">3. Net amount (assay)</p>
-                <p className="font-bold text-ink mt-0.5">{retatrutideBlackTopReport.reportedAmountMg} mg Net Mass</p>
-                <p className="text-xs text-ash mt-1">Quantitative assay found 13.03 mg active peptide vs 10 mg nominal.</p>
+                <p className="font-mono text-xs text-stone uppercase">3. Reported amount</p>
+                <p className="font-bold text-ink mt-0.5">{retatrutideBlackTopReport.reportedAmountMg} mg</p>
+                <p className="text-xs text-ash mt-1">Amount reported for the tested sample, compared with the nominal 10 mg label. This is not a claim about every vial.</p>
               </div>
             </div>
 
