@@ -23,7 +23,7 @@ export function HeroSection() {
           </div>
           <div className="mt-1 flex max-w-[420px] flex-col gap-4 border-t border-border-strong pt-5">
             <div className="flex flex-wrap items-center justify-between gap-3 text-xs sm:text-sm">
-              <span className="text-[#aab0b9]">Ships from Phoenix to all 50 states.</span>
+              <span className="text-[#aab0b9]">Ships to all 50 states.</span>
               <Link href="/shipping" className="inline-flex items-center gap-1.5 text-ink underline-offset-4 hover:underline">Shipping <ArrowUpRight className="size-3.5" aria-hidden /></Link>
             </div>
             <p className="max-w-[45ch] text-xs leading-relaxed text-ash">For laboratory research only. Not for human or veterinary use.</p>
