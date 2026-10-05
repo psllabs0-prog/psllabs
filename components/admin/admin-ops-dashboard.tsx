@@ -92,9 +92,9 @@ export function AdminOpsDashboard() {
       ) : activeCount === 0 ? (
         <section className="premium-card px-5 py-6">
           <p className="font-display text-xl font-bold text-ink">
-            ALL SYSTEMS NORMAL
+            No pending actions in this view
           </p>
-          <p className="mt-2 text-sm text-ash">No action required.</p>
+          <p className="mt-2 text-sm text-ash">Check system readiness below for missing or stale data.</p>
         </section>
       ) : (
         <>
@@ -214,10 +214,10 @@ export function AdminOpsDashboard() {
       {data && (
         <section className="premium-card px-5 py-4 text-sm text-ink">
           <p>
-            Warehouse — Ready: {data.warehouse?.readyOrders ?? 0} · Units:{" "}
-            {data.warehouse?.unitsToPick ?? 0} · Holds:{" "}
-            {data.warehouse?.holds ?? 0} · Packed awaiting tracking:{" "}
-            {data.warehouse?.packedWaitingTracking ?? 0}
+            Warehouse — Ready: {data.warehouse?.readyOrders ?? "—"} · Units:{" "}
+            {data.warehouse?.unitsToPick ?? "—"} · Holds:{" "}
+            {data.warehouse?.holds ?? "—"} · Packed awaiting tracking:{" "}
+            {data.warehouse?.packedWaitingTracking ?? "—"}
           </p>
           <p className="mt-2 text-ash">
             Support inbox — latest: {data.supportHealth?.latestRunAt ?? "—"}

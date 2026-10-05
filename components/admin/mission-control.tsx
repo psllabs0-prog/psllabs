@@ -287,13 +287,13 @@ export function MissionControl() {
       <section>
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h3 className="font-display text-lg font-bold text-ink">Activity</h3>
-          <div className="flex items-center gap-4 text-xs text-ash">
-            <label className="flex items-center gap-1">
+          <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-4 gap-y-2 text-xs text-ash">
+            <label className="flex min-w-0 max-w-full items-center gap-1">
               Worker
               <select
                 value={workerFilter}
                 onChange={(e) => setWorkerFilter(e.target.value)}
-                className="rounded border border-zinc-300 bg-white px-1 py-0.5 text-ink"
+                className="min-w-0 max-w-full rounded border border-zinc-300 bg-white px-1 py-0.5 text-ink"
               >
                 <option value="all">All</option>
                 {(snapshot?.workers ?? []).map((w) => (
