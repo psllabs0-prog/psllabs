@@ -29,7 +29,7 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
     categoryLabel: "Foundations",
     readTime: "9 min read",
     publishedDate: "2026-09-08",
-    modifiedDate: "2026-09-08",
+    modifiedDate: "2026-10-05",
     order: 1,
     featured: true,
   },
