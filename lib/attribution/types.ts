@@ -65,6 +65,8 @@ export type StoredAttributionState = {
  * firstPaid, and fall back to the latest email or affiliate touch without paid data.
  */
 export type OrderAttribution = {
+  /** Explicit advertising-measurement choice at checkout; absence means no Google purchase. */
+  googleAdsMeasurementConsent?: boolean;
   /** Measurement choice captured at checkout; true suppresses OpenAI events. */
   openaiAdsMeasurementOptOut?: boolean;
   utmSource: string | null;

@@ -65,6 +65,7 @@ function adversarialFixture(status: OrderStatus = "paid"): Order {
     internalAttribution: { oppref: PRIVATE_CANARY }, futureInternalField: PRIVATE_CANARY,
   });
   Object.assign(order.attribution!, { openaiAdsDelivery: { proof: { provider: "tagada", paymentId: PRIVATE_CANARY } } });
+  Object.assign(order.attribution!, { googleAdsVerifiedPurchase: { proof: { provider: "tagada", paymentId: PRIVATE_CANARY }, transactionId: PRIVATE_CANARY } });
   return order;
 }
 type StatusProps = { orderId: string; initialOrder: PublicOrder | null };
@@ -100,6 +101,13 @@ function harness(order: Order | null, failure = false) {
       },
     },
     "@/components/success/customer-feedback-card": { CustomerFeedbackCard: () => null },
+    "@/components/analytics/google-ads-purchase": {
+      GoogleAdsPurchaseConversion: (props: { orderId: string; paid: boolean }) => {
+        check(Object.keys(props).sort(), ["orderId", "paid"], "measurement receives only order reference and status flag");
+        excludesPrivate(props, "measurement component props");
+        return null;
+      },
+    },
     "@/components/success/order-status": {
       OrderStatus: (props: StatusProps) => {
         capturedProps = props;

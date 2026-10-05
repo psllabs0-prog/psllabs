@@ -8,6 +8,7 @@ import { verifyBtcpayWebhookSignature } from "@/lib/finance/webhook-verify";
 import { markPaymentEventProcessed } from "@/lib/finance/store";
 import { fulfillPaidOrder } from "@/lib/orders/fulfill-paid-order";
 import { safeTrackVerifiedPurchase } from "@/lib/openai-ads/delivery";
+import { safeRecordVerifiedGooglePurchase } from "@/lib/google-ads/purchase";
 import { trackPlausiblePurchase } from "@/lib/plausible";
 import {
   getOrder,
@@ -162,6 +163,9 @@ export async function POST(request: Request) {
           order.invoiceId === invoiceId && paidOrder.total === order.total &&
           paidOrder.currency === order.currency) {
         await safeTrackVerifiedPurchase(paidOrder, {
+          provider: "btcpay", paymentId: invoiceId,
+        });
+        await safeRecordVerifiedGooglePurchase(paidOrder, {
           provider: "btcpay", paymentId: invoiceId,
         });
       }

@@ -8,6 +8,7 @@ import { markPaymentEventProcessed } from "@/lib/finance/store";
 import { verifyTagadaWebhookSignature } from "@/lib/finance/webhook-verify";
 import { fulfillPaidOrder } from "@/lib/orders/fulfill-paid-order";
 import { safeTrackVerifiedPurchase } from "@/lib/openai-ads/delivery";
+import { safeRecordVerifiedGooglePurchase } from "@/lib/google-ads/purchase";
 import { trackPlausiblePurchase } from "@/lib/plausible";
 import { getTagadaServerClient } from "@/lib/tagada/server";
 import { verifyTagadaCardPayment } from "@/lib/tagada/verify-payment";
@@ -223,6 +224,9 @@ export async function POST(request: Request) {
       await safeTrackVerifiedPurchase(order, {
         provider: "tagada", paymentId: verification.paymentId,
       });
+      await safeRecordVerifiedGooglePurchase(order, {
+        provider: "tagada", paymentId: verification.paymentId,
+      });
       return NextResponse.json({ received: true, alreadyPaid: true });
     }
     if (order.status !== "pending") {
@@ -261,6 +265,9 @@ export async function POST(request: Request) {
         if (paidOrder.paymentMethod === "card" && paidOrder.invoiceId === order.invoiceId &&
             paidOrder.total === order.total && paidOrder.currency === order.currency) {
           await safeTrackVerifiedPurchase(paidOrder, {
+            provider: "tagada", paymentId: verification.paymentId,
+          });
+          await safeRecordVerifiedGooglePurchase(paidOrder, {
             provider: "tagada", paymentId: verification.paymentId,
           });
         }
