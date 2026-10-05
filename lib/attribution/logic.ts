@@ -348,9 +348,10 @@ export function sanitizeAttributionFromBody(
   const primary = paidPrimary ?? latest(lastEmail, lastAffiliate);
 
   if (!primary) {
-    if (obj.openaiAdsMeasurementOptOut !== true) return null;
+    if (obj.openaiAdsMeasurementOptOut !== true && obj.googleAdsMeasurementConsent !== true) return null;
     return {
-      openaiAdsMeasurementOptOut: true,
+      ...(obj.openaiAdsMeasurementOptOut === true ? { openaiAdsMeasurementOptOut: true } : {}),
+      ...(obj.googleAdsMeasurementConsent === true ? { googleAdsMeasurementConsent: true } : {}),
       utmSource: null, utmMedium: null, utmCampaign: null, utmContent: null,
       utmTerm: null, landingPage: null, referrer: null, gclid: null, fbclid: null,
       msclkid: null, ttclid: null, oppref: null, firstPaidTouchAt: null,
@@ -364,6 +365,7 @@ export function sanitizeAttributionFromBody(
 
   return {
     ...(obj.openaiAdsMeasurementOptOut === true ? { openaiAdsMeasurementOptOut: true } : {}),
+    ...(obj.googleAdsMeasurementConsent === true ? { googleAdsMeasurementConsent: true } : {}),
     utmSource: primary.utmSource,
     utmMedium: primary.utmMedium,
     utmCampaign: primary.utmCampaign,

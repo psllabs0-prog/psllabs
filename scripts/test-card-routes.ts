@@ -64,6 +64,7 @@ type Effects = {
   releases: string[];
   analytics: string[];
   ads: Array<{ order: LocalOrder; proof: { provider: string; paymentId: string } }>;
+  googleReceipts: Array<{ order: LocalOrder; proof: { provider: string; paymentId: string } }>;
   forbidden: string[];
   reads: string[];
   upserts: Record<string, unknown>[];
@@ -101,7 +102,7 @@ function state(): State {
     providerStatus: 200, fulfillmentOk: true, localOrderRead: false, providerHook: undefined, afterFulfillmentHook: undefined,
     btcpaySecret: FIXTURE_SECRET, btcpayStoreId: "store_fixture", cronSecret: "offline_fixture_cron_secret",
     reconcileReject: false, flushHook: undefined,
-    effects: { fulfillment: [], bindings: [], settled: [], finance: [], events: [], processed: [], claims: [], sent: [], releases: [], analytics: [], ads: [], forbidden: [], reads: [], upserts: [], ledger: [], cronReconciliations: 0, flushLimits: [] },
+    effects: { fulfillment: [], bindings: [], settled: [], finance: [], events: [], processed: [], claims: [], sent: [], releases: [], analytics: [], ads: [], googleReceipts: [], forbidden: [], reads: [], upserts: [], ledger: [], cronReconciliations: 0, flushLimits: [] },
   };
 }
 
@@ -226,6 +227,13 @@ function harness(s: State, actualFinance = false) {
         return { configured: true, selected: 0, sent: 0, pending: 0, rejected: 0, skipped: 0, errors: 0, expired: 0, optOut: 0 };
       },
     },
+    "@/lib/google-ads/purchase": {
+      safeRecordVerifiedGooglePurchase: async (order: LocalOrder, proof: { provider: string; paymentId: string }) => {
+        assert(["paid", "shipped"].includes(order.status));
+        if (proof.provider === "tagada") assert(s.effects.reads.length >= 2);
+        s.effects.googleReceipts.push({ order: structuredClone(order), proof: structuredClone(proof) });
+      },
+    },
     "@/lib/finance/reconciliation": {
       runFinanceReconciliation: async () => {
         s.effects.cronReconciliations++;
@@ -320,6 +328,8 @@ async function test(name: string, run: (s: State, routes: ReturnType<typeof harn
   activeState = s;
   try {
     await run(s, harness(s));
+    assert.deepEqual(s.effects.googleReceipts, s.effects.ads,
+      "Google receipts must follow exactly the same strictly verified payment hooks, including all rejection paths");
     if (s.effects.finance.length === 0) {
       assert.deepEqual(s.effects.ads, [], "early or unverified order state must not trigger Ads delivery");
     }

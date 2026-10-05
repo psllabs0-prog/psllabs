@@ -31,6 +31,7 @@ export const privacySections: ContentSection[] = [
     paragraphs: [
       "We share information only with service providers that help us run the business, such as payment processors, shipping carriers, email providers, and analytics services.",
       "When OpenAI advertising measurement is enabled, we send OpenAI a completed-purchase event containing its time, amount, currency, a generated event identifier and an available ad-click reference. This integration does not send your name, email, shipping address, card details or the products you purchased. We suppress these events when a Global Privacy Control preference was received at checkout and opt the events out of future user-level personalization.",
+      "When Google advertising measurement is enabled and you choose to allow it, Google’s tag uses advertising cookies and browser information to connect ad visits with purchases. After our server verifies payment, we send a generated transaction identifier, purchase value and currency. We do not include your name, email, shipping address, card details or purchased product names in that event, and we keep personalized advertising and enhanced conversions off. A Global Privacy Control preference keeps this Google measurement off.",
       "We do not sell your personal information.",
     ],
   },
@@ -42,6 +43,7 @@ export const privacySections: ContentSection[] = [
       "We use a small number of cookies when needed for site function, such as securing an admin sign-in session. Website analytics on psllabs.org use Plausible Analytics, which is set up to work without tracking cookies.",
       "Payment pages may use cookies or similar tools from our payment providers. You can control cookies through your browser settings where your browser allows it.",
       "Campaign information uses browser local storage. Card checkout also uses temporary session storage to recover payment confirmation after a bank redirect; card numbers, expiry dates and security codes are not stored there.",
+      "Google advertising measurement is optional. When it is enabled on the site, use Advertising preferences in the footer to allow or decline it, or change your choice later. We remember that choice in your browser for up to 180 days and load Google’s advertising tag only after you allow measurement. We keep a local purchase-measurement marker to reduce duplicate events; that marker is treated as expired after 30 days.",
     ],
   },
   {

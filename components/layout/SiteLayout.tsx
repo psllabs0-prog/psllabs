@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 
 import { AttributionCapture } from "@/components/attribution/attribution-capture";
+import { GoogleAdsMeasurement } from "@/components/analytics/google-ads-measurement";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { CartProvider } from "@/components/cart/cart-provider";
 import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
@@ -15,6 +16,7 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
         <AttributionCapture />
       </Suspense>
       <ResearcherVerificationGate />
+      <GoogleAdsMeasurement />
       <div className="flex min-h-screen flex-col">
         <Header />
         <AnnouncementBar />

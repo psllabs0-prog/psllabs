@@ -54,6 +54,7 @@
     "test:order-notification": "tsx scripts/test-order-notification.ts",
     "test:card-verification": "tsx scripts/test-card-verification.ts && tsx scripts/test-card-routes.ts && tsx scripts/test-card-session-storage.ts",
     "test:openai-ads": "tsx scripts/test-openai-ads.ts && tsx scripts/test-openai-ads-delivery.ts && tsx scripts/test-openai-attribution.ts",
+    "test:google-ads": "tsx scripts/test-google-ads-browser.ts && tsx scripts/test-google-purchase.ts",
     "test:revenue-sheet-values": "tsx scripts/test-revenue-sheet-values.ts",
     "test:public-order-privacy": "tsx scripts/test-public-order-privacy.ts",
     "test:acquisition": "tsx scripts/test-acquisition.ts",

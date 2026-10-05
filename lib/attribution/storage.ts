@@ -10,6 +10,8 @@ import {
   toOrderAttribution,
 } from "./logic";
 import type { OrderAttribution } from "./types";
+import { readGoogleAdsConfig } from "../google-ads/config";
+import { readGoogleAdsConsent } from "../google-ads/consent";
 
 function hasMeasurementOptOut(): boolean {
   return typeof navigator !== "undefined" &&
@@ -77,7 +79,9 @@ export function captureAttributionFromLocation(
 }
 
 export function getOrderAttributionForCheckout(): OrderAttribution | null {
-  const attribution = toOrderAttribution(readRaw());
+  const stored = toOrderAttribution(readRaw());
+  const attribution = readGoogleAdsConfig() && readGoogleAdsConsent() === "granted"
+    ? sanitizeAttributionFromBody({ ...stored, googleAdsMeasurementConsent: true }) : stored;
   if (!hasMeasurementOptOut()) return attribution;
   return sanitizeAttributionFromBody({
     ...attribution,

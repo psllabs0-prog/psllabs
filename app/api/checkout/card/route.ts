@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { safeRecordPaidOrderFinance } from "@/lib/finance/record";
 import { safeTrackVerifiedPurchase } from "@/lib/openai-ads/delivery";
+import { safeRecordVerifiedGooglePurchase } from "@/lib/google-ads/purchase";
 import { fulfillPaidOrder } from "@/lib/orders/fulfill-paid-order";
 import { getOrder } from "@/lib/orders/store";
 import { isTagadaConfigured } from "@/lib/tagada";
@@ -135,6 +136,9 @@ export async function POST(request: Request) {
       if (paidOrder.paymentMethod === "card" && paidOrder.invoiceId === order.invoiceId &&
           paidOrder.total === order.total && paidOrder.currency === order.currency) {
         await safeTrackVerifiedPurchase(paidOrder, {
+          provider: "tagada", paymentId: paymentRef,
+        });
+        await safeRecordVerifiedGooglePurchase(paidOrder, {
           provider: "tagada", paymentId: paymentRef,
         });
       }
