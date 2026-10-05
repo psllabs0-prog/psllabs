@@ -265,6 +265,9 @@ export function CartDrawer() {
                     </dd>
                   </div>
                 </dl>
+                <p className="mt-2 text-xs text-ash">
+                  Discounts, if applicable, appear at checkout.
+                </p>
 
                 <button
                   type="button"

@@ -18,7 +18,7 @@ export const primaryNavLinks: NavLink[] = [
 
 export const footerNavLinks: NavLink[] = [
   { label: "Products", href: "/products" },
-  { label: "Documentation", href: "/protocol" },
+  { label: "Documentation", href: "/coa" },
   { label: "Science", href: "/science" },
   { label: "About", href: "/about" },
   { label: "FAQ", href: "/faq" },

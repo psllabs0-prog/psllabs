@@ -67,19 +67,20 @@ export function ProductVialImage({
       <div
         className={cn(
           "relative z-10 flex h-full w-full items-center justify-center",
-          config.padding
+          context === "card" ? "p-7 md:p-8" : config.padding
         )}
       >
         <div
           className={cn(
-            "relative mx-auto flex w-full items-center justify-center",
+            "relative mx-auto flex aspect-square w-full items-center justify-center",
             config.vialMax,
+            context === "card" && "max-w-[260px]",
             animate && "animate-float"
           )}
         >
           <div
             aria-hidden
-            className="absolute -bottom-2 left-1/2 z-0 h-4 w-[78%] -translate-x-1/2 rounded-[100%] bg-biotech-deep/20 blur-lg"
+            className="absolute bottom-[5%] left-1/2 z-0 h-[12%] w-[88%] -translate-x-1/2 rounded-[100%] border border-accent/15 bg-[linear-gradient(135deg,#223440,#111b23)] shadow-[0_8px_18px_rgba(0,0,0,0.45)]"
           />
           <div
             aria-hidden
@@ -88,12 +89,10 @@ export function ProductVialImage({
           <Image
             src={src}
             alt={alt}
-            width={800}
-            height={1200}
-            quality={90}
-            priority={priority}
-            sizes={config.sizes}
-            className="relative z-10 h-auto max-h-full w-full object-contain object-center"
+            fill
+            preload={priority}
+            sizes={context === "card" ? "260px" : config.sizes}
+            className="relative z-10 object-contain object-center drop-shadow-[10px_12px_10px_rgba(0,0,0,0.25)]"
           />
         </div>
       </div>

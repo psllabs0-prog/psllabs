@@ -1,6 +1,4 @@
 import { catalogProducts } from "@/lib/products/catalog";
-import { getProduct } from "@/lib/products";
-import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
 
 import type { CartLineItem, CartLineWithMeta, CartProductMeta } from "./types";
 
@@ -18,17 +16,7 @@ export function getCartProductMeta(handle: string): CartProductMeta | null {
     };
   }
 
-  const product = getProduct(handle);
-  if (!product) return null;
-
-  return {
-    handle: product.handle,
-    name: product.name,
-    strength: product.tag,
-    unitPrice: product.price,
-    imageSrc: product.imageSrc ?? PRODUCT_VIAL_IMAGE.src,
-    imageAlt: product.imageAlt ?? product.name,
-  };
+  return null;
 }
 
 export function resolveCartLines(items: CartLineItem[]): CartLineWithMeta[] {
