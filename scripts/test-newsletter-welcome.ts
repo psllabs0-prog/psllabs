@@ -215,8 +215,8 @@ async function main() {
     const pid = newSubscriptionPublicId();
     const unsubTok = createNewsletterUnsubscribeToken(pid);
     const expect = {
-      welcome_1: { subject: "Your PSL report-reading guide", content: "welcome_1_guide", paths: ["/science/how-to-read-a-coa"] },
-      welcome_2: { subject: "Finding the report that matches your label", content: "welcome_2_reports", paths: ["/coa", "/contact"] },
+      welcome_1: { subject: "Your PSL report-reading guide", content: "welcome_1_guide", paths: ["/guides/verify-peptide-laboratory-report"] },
+      welcome_2: { subject: "Finding the report that matches your label", content: "welcome_2_reports", paths: ["/coa", "/guides/peptide-purity-vs-content", "/contact"] },
       welcome_3: { subject: "Where to find PSL product and order information", content: "welcome_3_information", paths: ["/products", "/shipping", "/faq", "/contact"] },
     } as const;
     const banned = /\b(dos(e|es|ing|age)|inject|administ|benefit|efficac|safe to|testimonial|review(s|ed)? from|discount|% off|coupon|bundle|limited time|hurry|only \d+ left|in stock|ships (in|within)|deliver(ed|y) (in|within)|free shipping|solvent|bacteriostatic|purity of \d|\d+(\.\d+)?\s?%)/i;
@@ -247,7 +247,7 @@ async function main() {
       assert(!/\b(batch|lot)\s*(#|no\.?|id)?\s*[A-Z0-9]{4,}/.test(e.text.replace(/https?:\S+/g, "")), `${kind}: no hard-coded batch identifiers`);
       assert(e.text.includes("You are receiving this because you signed up for PSL Labs emails on psllabs.org."), `${kind}: footer describes the website signup`);
       assert(!/confirm/i.test(e.text) && !/confirm/i.test(e.html), `${kind}: never refers to a confirmation`);
-      assert(e.templateVersion.endsWith("-v2"), `${kind}: new template version for the single-opt-in copy`);
+      assert(e.templateVersion.endsWith("-v3"), `${kind}: documentation copy has a new template version`);
     }
     const w1Text = buildNewsletterWelcomeEmail({ kind: "welcome_1", siteUrl: SITE, unsubscribeToken: unsubTok, postalAddress: POSTAL }).text;
     assert(w1Text.includes("Thanks for subscribing.") && !/thanks for confirming/i.test(w1Text), "Welcome 1 says “Thanks for subscribing”");

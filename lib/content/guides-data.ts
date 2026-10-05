@@ -36,30 +36,30 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
   {
     slug: "verify-peptide-laboratory-report",
     title:
-      "How to Verify a Peptide Laboratory Report: Batch, Report ID, Test Method & Traceability",
+      "How to Verify a Peptide Lab Report: A Practical Batch Checklist",
     shortTitle: "Verify a Laboratory Report",
     description:
-      "Step-by-step help for checking task IDs, matching batches, confirming test methods, and verifying a report on the lab's own website.",
+      "Check a report with the issuing lab, match the batch to your order, and save a useful research record. Includes a published Tesamorelin report example.",
     category: "verification-traceability",
     categoryLabel: "Verification & Traceability",
     readTime: "8 min read",
     publishedDate: "2026-09-08",
-    modifiedDate: "2026-09-08",
+    modifiedDate: "2026-10-05",
     order: 2,
     featured: true,
   },
   {
     slug: "peptide-purity-vs-content",
     title:
-      "What Does 99% Peptide Purity Actually Mean? HPLC Purity vs Peptide Content",
+      "What Does 99% Peptide Purity Mean? Purity vs Amount",
     shortTitle: "What 99% Purity Means",
     description:
-      "What a 99% purity number really measures, why the test method changes the result, and how purity differs from how much peptide is in the vial.",
+      "Read purity, milligrams, and concentration as separate results, with published GHK-Cu, Tesamorelin, and solution report examples.",
     category: "analytical-foundations",
     categoryLabel: "Foundations",
     readTime: "8 min read",
     publishedDate: "2026-09-08",
-    modifiedDate: "2026-09-08",
+    modifiedDate: "2026-10-05",
     order: 3,
     featured: true,
   },

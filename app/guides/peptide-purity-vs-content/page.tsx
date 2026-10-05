@@ -6,7 +6,7 @@ import { GuideLayout } from "@/components/guides/guide-layout";
 import { AnalyticalCallout } from "@/components/guides/analytical-callout";
 import { ComparisonTable } from "@/components/guides/comparison-table";
 import { getGuideBySlug } from "@/lib/content/guides-data";
-import { ghkCu50mgReport } from "@/lib/batch-reports";
+import { ghkCu50mgReport, tesamorelin10mgReport, reconstitutionSolution5mlReport } from "@/lib/batch-reports";
 import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
 
@@ -56,7 +56,7 @@ const tocItems = [
   { id: "purity-not-identity", label: "Purity vs identity" },
   { id: "chromatogram-context", label: "Why the chromatogram matters" },
   { id: "questions-to-ask", label: "Five questions to ask about '99%+'" },
-  { id: "empirical-example", label: "Example: GHK-Cu 50mg" },
+  { id: "empirical-example", label: "Three published report examples" },
   { id: "analytical-limitations", label: "Boundaries worth remembering" },
 ];
 
@@ -71,20 +71,26 @@ const purityVsContentRows = [
   {
     metric: "Purity",
     units: "Percentage (%)",
-    whatItMeasures: "How much of the detected material is the main peptide.",
-    whatItIgnores: "Total vial mass, salts, counterions, water, and fillers that do not show on the test.",
+    whatItMeasures: "For an HPLC area result, the target peak’s share of the integrated signal under that method.",
+    whatItIgnores: "Total milligrams and anything the method does not detect or separate.",
   },
   {
-    metric: "Net peptide content",
+    metric: "Reported amount",
     units: "Milligrams (mg)",
-    whatItMeasures: "How many milligrams of target peptide are in the vial.",
-    whatItIgnores: "Purity profile or differences between similar variants.",
+    whatItMeasures: "The amount of the named material reported for the tested sample.",
+    whatItIgnores: "It is not itself a purity, sterility, or stability result.",
   },
   {
     metric: "Gross powder weight",
     units: "Milligrams (mg)",
     whatItMeasures: "Total weight of the freeze-dried powder including salts and moisture.",
-    whatItIgnores: "How much active peptide is in the powder; counterions often make up 15% to 25% of gross mass.",
+    whatItIgnores: "It does not separate the target material from other components by weight.",
+  },
+  {
+    metric: "Reported concentration",
+    units: "For example, mg/ml",
+    whatItMeasures: "The amount of a named substance per volume of solution.",
+    whatItIgnores: "It is not a percentage purity or the total contents of a vial.",
   },
 ];
 
@@ -97,13 +103,13 @@ export default function PeptidePurityVsContentPage() {
       <GuideLayout guide={guide} tocItems={tocItems}>
         <section className="flex flex-col gap-4">
           <p className="text-ash leading-relaxed">
-            &ldquo;99% purity&rdquo; on a lab report means about 99% of the detected material is the main peptide. It does not mean 99% of the powder by weight, and it does not prove identity, fill weight, sterility, or endotoxin status.
+            A purity percentage and a milligram result answer different questions. When purity is reported as an HPLC peak-area percentage, 99% describes the target peak&apos;s share of the integrated signal under that test. It does not establish the number of milligrams in a vial.
           </p>
           <p className="text-ash leading-relaxed">
-            That percentage usually comes from a laboratory purity test (HPLC). The number depends on the test method used.
+            Read the result label and unit together: purity in %, an amount in mg, or a concentration such as mg/ml. Keep each in its own field when comparing batches.
           </p>
           <p className="text-ash leading-relaxed">
-            This guide explains what the number really measures and how to keep purity separate from how much peptide is in the vial.
+            Below are three published PSL Labs examples: GHK-Cu, Tesamorelin, and a solution report. They show why a single &ldquo;99%+&rdquo; statement cannot replace the original results.
           </p>
         </section>
 
@@ -112,19 +118,19 @@ export default function PeptidePurityVsContentPage() {
             What people usually hear in &ldquo;99%&rdquo;
           </h2>
           <p className="text-ash leading-relaxed">
-            Non-specialists often assume something like this:
+            A purity percentage alone does not support these conclusions:
           </p>
           <div className="rounded-xl border border-linen bg-surface p-5 text-sm space-y-2 text-ash">
             <p className="text-ink font-medium">Common (incorrect) assumptions:</p>
             <ul className="list-disc pl-5 space-y-1 text-xs sm:text-sm">
-              <li><em>Assumption 1:</em> &ldquo;99% of the powder in the vial is active peptide.&rdquo;</li>
-              <li><em>Assumption 2:</em> &ldquo;If I dissolve this 10 mg vial in 10 mL of buffer, I will have a 1.0 mg/mL peptide concentration.&rdquo;</li>
-              <li><em>Assumption 3:</em> &ldquo;99% purity implies pharmaceutical or clinical grade quality.&rdquo;</li>
-              <li><em>Assumption 4:</em> &ldquo;The material is safe and free of contaminants.&rdquo;</li>
+              <li>&ldquo;99% of the powder&apos;s weight is the target peptide.&rdquo;</li>
+              <li>&ldquo;The labeled vial amount was independently measured.&rdquo;</li>
+              <li>&ldquo;Every vial in the batch has identical results.&rdquo;</li>
+              <li>&ldquo;Sterility, endotoxin, and every other contaminant were tested.&rdquo;</li>
             </ul>
           </div>
           <p className="text-ash leading-relaxed">
-            Those are natural guesses, but they are wrong. The percentage comes from a lab test under specific conditions.
+            Those are separate questions. Keep them open unless the documentation contains the relevant evidence.
           </p>
         </section>
 
@@ -133,10 +139,10 @@ export default function PeptidePurityVsContentPage() {
             What a purity test measures
           </h2>
           <p className="text-ash leading-relaxed">
-            A laboratory purity test separates dissolved molecules in a column. Different compounds leave at different times.
+            High-performance liquid chromatography (HPLC) separates components as a sample passes through a column. In an HPLC-UV method, a detector records light absorption over time, producing a chromatogram.
           </p>
           <p className="text-ash leading-relaxed">
-            A light detector records what passes through over time. That graph is the chromatogram: peaks plotted against run time.
+            Bachem&apos;s <a href="https://www.bachem.com/knowledge-center/quality-control-of-amino-acids-peptides-a-guide/" target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-4">quality-control guide</a> describes peptide purity using the main peak&apos;s area relative to all integrated peaks. The percentage describes that measurement, not every component in the powder.
           </p>
         </section>
 
@@ -145,14 +151,14 @@ export default function PeptidePurityVsContentPage() {
             How the percentage is calculated
           </h2>
           <p className="text-ash leading-relaxed">
-            The purity figure on most COAs is a ratio of peak areas:
+            For an uncorrected area-percentage result, the calculation is:
           </p>
           <div className="rounded-xl border border-linen bg-surface p-5 text-sm space-y-2">
             <p className="font-mono text-xs font-semibold uppercase tracking-wider text-accent">
               Peak area calculation
             </p>
             <p className="font-mono text-ink text-sm sm:text-base">
-              Purity (%) = [ Area of Target Peak / Sum of All Peak Areas ] × 100
+              Area (%) = (target peak area / total integrated peak area) × 100
             </p>
           </div>
           <p className="text-ash leading-relaxed">
@@ -160,12 +166,13 @@ export default function PeptidePurityVsContentPage() {
           </p>
           <ul className="list-disc pl-5 space-y-2 text-ash text-sm sm:text-base">
             <li>
-              <strong>Different compounds absorb light differently.</strong> Peak area does not always equal mass percentage.
+              <strong>Area and mass are different measurements.</strong> Detector responses can differ between compounds; a signal percentage is not automatically a weight percentage.
             </li>
             <li>
-              <strong>Some material is invisible to the test.</strong> Water, salts, and fillers may not show on the graph. A sample can carry substantial salt by weight and still show 99.8% purity.
+              <strong>The calculation has a defined scope.</strong> It uses peaks included by the method. It cannot account for material the method does not detect or separate.
             </li>
           </ul>
+          <p className="text-sm text-ash">Waters documents the distinction between <a href="https://support.waters.com/KB_Inf/Empower_Breeze/WKB14718_How_is_the_Impurity_RRF_field_in_the_components_tab_in_the_processing_method_within_Empower_used" target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-4">area percentages and response-corrected calculations</a>. Ask which basis a report uses before comparing values.</p>
         </section>
 
         <section id="method-dependence" className="flex flex-col gap-4 scroll-mt-24">
@@ -173,7 +180,7 @@ export default function PeptidePurityVsContentPage() {
             Why the method changes the number
           </h2>
           <p className="text-ash leading-relaxed">
-            There is no single absolute purity for a sample. The reported percentage depends on the test method:
+            Compare like with like. Column conditions, detection settings, and integration rules can affect what is separated and counted. A difference in the last decimal place is not, by itself, a ranking of two suppliers.
           </p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-1 text-sm">
             <div className="rounded-xl border border-linen bg-surface p-5 space-y-2">
@@ -181,8 +188,8 @@ export default function PeptidePurityVsContentPage() {
                 Method choices
               </span>
               <ul className="list-disc pl-4 space-y-1.5 text-ash text-xs sm:text-sm">
-                <li><strong>Run speed:</strong> A fast run can merge related impurities into the main peak. A slower run often separates them.</li>
-                <li><strong>Column type:</strong> Different columns interact differently with peptide structure.</li>
+                <li>Which separation method and detection settings were used?</li>
+                <li>Which peaks were included in the reported percentage?</li>
               </ul>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-5 space-y-2">
@@ -190,33 +197,33 @@ export default function PeptidePurityVsContentPage() {
                 What that does to the number
               </span>
               <ul className="list-disc pl-4 space-y-1.5 text-ash text-xs sm:text-sm">
-                <li><strong>Number shifts:</strong> The same sample might read 99.4% on one method and 97.2% on another.</li>
-                <li><strong>Detection wavelength:</strong> Different wavelengths can miss some impurities and change the result.</li>
+                <li>Were the reports produced on a comparable basis?</li>
+                <li>What uncertainty or reporting limits matter for your comparison?</li>
               </ul>
             </div>
           </div>
           <AnalyticalCallout title="Ask for method conditions" variant="method">
-            Good labs document column type, flow rate, solvents, and run conditions on the COA. A purity number without those details is hard to verify.
+            A summary certificate may not include the full method. Ask the laboratory for the detail your work needs. Do not assume missing conditions from another report.
           </AnalyticalCallout>
         </section>
 
         <section id="purity-not-content" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Purity vs net peptide content
+            Purity, measured amount, and powder weight
           </h2>
           <p className="text-ash leading-relaxed">
-            This is the distinction that matters most for quantitative work:
+            Start with the units. These fields should not be used interchangeably:
           </p>
           <ComparisonTable
             columns={purityVsContentColumns}
             rows={purityVsContentRows}
-            caption="Comparison between purity, net peptide content, and gross powder weight"
+            caption="Differences between purity, reported amount, gross powder weight, and concentration"
           />
           <p className="text-ash leading-relaxed pt-3">
-            Synthetic peptides are usually freeze dried as salts with counterions. The powders also hold a few percent water.
+            The term <strong>net peptide content</strong> also needs a definition. Bachem uses it for the fraction of peptidic material relative to non-peptidic material such as counterions and residual water. It may be expressed as a percentage, and it is not the same as HPLC purity or a vial&apos;s reported milligrams.
           </p>
           <p className="text-ash leading-relaxed">
-            In typical preparations, net peptide content is about <strong>70% to 85%</strong> of gross powder weight. The rest is counterions, water, and residual salts, even when purity is 99.8%. An assay (a quantitative mass test against a reference standard) gives you milligrams, not the purity percentage.
+            Do not apply a generic &ldquo;usual content&rdquo; correction to a PSL Labs report. Keep the lab&apos;s named result and unit, and ask what its assay includes if that is unclear. Source: <a href="https://www.bachem.com/knowledge-center/faq-frequently-asked-questions/" target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-4">Bachem&apos;s definitions of purity, gross weight, and net peptide content</a>.
           </p>
         </section>
 
@@ -225,13 +232,13 @@ export default function PeptidePurityVsContentPage() {
             Purity vs identity
           </h2>
           <p className="text-ash leading-relaxed">
-            A purity test records light absorption. It does not name the molecule.
+            An HPLC area percentage describes the distribution of the measured signal. It is not, on its own, an identity result.
           </p>
           <p className="text-ash leading-relaxed">
-            The wrong compound can still give a single, clean 99.9% peak. That shows the sample looks uniform on the test. It does not prove the sequence is correct.
+            Read the identity evidence and method separately. A single prominent peak does not by itself establish the expected sequence or structure.
           </p>
           <p className="text-ash leading-relaxed">
-            Identity needs identity testing or retention matching to a reference standard. See{" "}
+            Ask the issuing laboratory how it established the named result if your work requires that detail. See{" "}
             <Link
               href="/guides/peptide-identity-vs-purity-vs-content"
               className="font-medium text-accent underline underline-offset-4 hover:opacity-80"
@@ -246,13 +253,13 @@ export default function PeptidePurityVsContentPage() {
             Why the chromatogram matters
           </h2>
           <p className="text-ash leading-relaxed">
-            A trustworthy COA gives the chromatogram plot with integration marks, not only a summary table. When you look at it, check:
+            If you need to review the chromatogram, request the complete trace and the laboratory&apos;s explanation. A summary certificate may not include it. Useful questions include:
           </p>
           <ul className="list-disc pl-5 space-y-1.5 text-ash text-sm sm:text-base">
-            <li><strong>Baseline:</strong> Flat and stable, or drifting?</li>
-            <li><strong>Peak shape:</strong> Symmetrical, or showing fronting, tailing, or shoulders?</li>
-            <li><strong>Integration:</strong> Were small impurity peaks included, or cut off by a high area threshold?</li>
-            <li><strong>Full run:</strong> Does the plot cover the whole gradient, including late wash, so late-eluting material is not hidden?</li>
+            <li>Which peak was assigned to the target material?</li>
+            <li>Which other peaks were included in the calculation?</li>
+            <li>Does the image show the full run and readable axes?</li>
+            <li>Are there method or integration notes needed to interpret the result?</li>
           </ul>
         </section>
 
@@ -264,62 +271,72 @@ export default function PeptidePurityVsContentPage() {
             <div className="rounded-xl border border-linen bg-surface p-4 text-sm">
               <span className="font-mono text-xs font-bold text-accent">QUESTION 1</span>
               <p className="text-ink font-semibold mt-1">What detection wavelength was used?</p>
-              <p className="text-xs text-ash mt-0.5">214 nm reads the peptide backbone broadly. 280 nm can miss non-aromatic impurities.</p>
+              <p className="text-xs text-ash mt-0.5">Keep the method and detection settings with any comparison.</p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-4 text-sm">
               <span className="font-mono text-xs font-bold text-accent">QUESTION 2</span>
-              <p className="text-ink font-semibold mt-1">Was identity confirmed by a separate test?</p>
-              <p className="text-xs text-ash mt-0.5">A purity percentage alone does not prove the target sequence.</p>
+              <p className="text-ink font-semibold mt-1">What evidence supports identity?</p>
+              <p className="text-xs text-ash mt-0.5">Read the stated identity method rather than inferring it from purity.</p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-4 text-sm">
               <span className="font-mono text-xs font-bold text-accent">QUESTION 3</span>
-              <p className="text-ink font-semibold mt-1">Was net peptide mass assayed?</p>
-              <p className="text-xs text-ash mt-0.5">Did the lab measure absolute milligrams, or rely on a nominal fill assumption?</p>
+              <p className="text-ink font-semibold mt-1">Was an amount measured?</p>
+              <p className="text-xs text-ash mt-0.5">Distinguish the lab&apos;s result from the nominal product label.</p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-4 text-sm">
               <span className="font-mono text-xs font-bold text-accent">QUESTION 4</span>
               <p className="text-ink font-semibold mt-1">Can you verify the report on the lab&apos;s server?</p>
-              <p className="text-xs text-ash mt-0.5">Look for a task number and key on verify.janoshik.com.</p>
+              <p className="text-xs text-ash mt-0.5">Use the task number and unique key on Janoshik&apos;s verification form.</p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-4 text-sm">
               <span className="font-mono text-xs font-bold text-accent">QUESTION 5</span>
               <p className="text-ink font-semibold mt-1">What else was not tested?</p>
-              <p className="text-xs text-ash mt-0.5">If your experiment needs endotoxin, sterility, or TFA data, those require separate assays.</p>
+              <p className="text-xs text-ash mt-0.5">Keep missing required results marked as not reported until supporting data is available.</p>
             </div>
           </div>
         </section>
 
         <section id="empirical-example" className="flex flex-col gap-4 scroll-mt-24">
           <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">
-            Example: GHK-Cu 50mg
+            Three published report examples
           </h2>
           <p className="text-ash leading-relaxed">
-            On the published Janoshik report for PSL Labs GHK-Cu (Task #{ghkCu50mgReport.taskNumber}, Batch {ghkCu50mgReport.batch}), purity and content are reported as separate results:
+            These values come from the named PSL Labs batch reports. Open each file to compare the fields yourself. The results describe the tested sample; they are not blanket claims about every product or batch.
           </p>
-          <div className="rounded-xl border border-linen bg-surface p-6 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-linen pb-3">
-              <span className="font-mono text-xs font-semibold text-accent">
-                JANOSHIK REPORT ANALYSIS · GHK-CU 50MG
-              </span>
-              <span className="font-mono text-xs text-stone">
-                Task #{ghkCu50mgReport.taskNumber}
-              </span>
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 text-sm">
-              <div className="space-y-1">
-                <p className="font-mono text-xs text-stone uppercase">Purity</p>
-                <p className="font-bold text-2xl text-ink font-mono">{ghkCu50mgReport.purityPercent}%</p>
-                <p className="text-xs text-ash">Related side products make up less than 0.265% of the test profile.</p>
+          <div className="flex flex-col gap-4">
+            {[ghkCu50mgReport, tesamorelin10mgReport].map((report) => (
+              <article key={report.taskNumber} className="public-section-card p-6 sm:p-8">
+                <h3 className="font-display text-xl font-bold text-ink">{report.product} · {report.nominalStrength} label</h3>
+                <p className="mt-2 break-words text-xs text-ash">Batch {report.batch} · Task #{report.taskNumber} · {report.analysisDate}</p>
+                <dl className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <div><dt className="text-xs text-ash">Reported purity</dt><dd className="mt-1 font-mono text-2xl text-ink">{report.purityPercent}%</dd></div>
+                  <div><dt className="text-xs text-ash">Reported {report.product} amount</dt><dd className="mt-1 font-mono text-2xl text-ink">{report.reportedAmountMg} mg</dd></div>
+                </dl>
+                <p className="mt-5 border-t border-linen pt-4 text-sm leading-relaxed text-ash">
+                  {report.productHandle === "tesamorelin"
+                    ? "This purity result is below 99%. Keep the exact percentage with this batch; do not replace it with a general ‘99%+’ claim. The amount is a separate result."
+                    : "The amount line names GHK-Cu, and the original file also lists GHK and copper content. Keep those labels intact. Subtracting purity from 100 does not identify the remaining material or turn it into a mass measurement."}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                  <a href={report.reportUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">Open report file</a>
+                  <a href={report.verificationUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">Verify with Janoshik</a>
+                  <Link href={`/products/${report.productHandle}`} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">Product details</Link>
+                </div>
+              </article>
+            ))}
+            <article className="public-section-card p-6 sm:p-8">
+              <h3 className="font-display text-xl font-bold text-ink">Reconstitution Solution · {reconstitutionSolution5mlReport.nominalStrength} label</h3>
+              <p className="mt-2 break-words text-xs text-ash">Batch {reconstitutionSolution5mlReport.batch} · Task #{reconstitutionSolution5mlReport.taskNumber}</p>
+              <dl className="mt-5">
+                <dt className="text-xs text-ash">Reported {reconstitutionSolution5mlReport.reportedResult?.label} concentration</dt>
+                <dd className="mt-1 font-mono text-2xl text-ink">{reconstitutionSolution5mlReport.reportedResult?.value}</dd>
+              </dl>
+              <p className="mt-4 text-sm leading-relaxed text-ash">This file reports benzyl alcohol concentration. It contains no peptide purity percentage. The concentration result alone does not establish sterility or an endotoxin result.</p>
+              <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                <a href={reconstitutionSolution5mlReport.reportUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">Open report file</a>
+                <a href={reconstitutionSolution5mlReport.verificationUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">Verify with Janoshik</a>
               </div>
-              <div className="space-y-1">
-                <p className="font-mono text-xs text-stone uppercase">Content assay</p>
-                <p className="font-bold text-2xl text-ink font-mono">{ghkCu50mgReport.reportedAmountMg} mg</p>
-                <p className="text-xs text-ash">Absolute mass: 53.21 mg total complex (GHK content: 44.89 mg, copper: 8.32 mg) versus the nominal 50 mg label.</p>
-              </div>
-            </div>
-            <p className="text-xs text-stone pt-2 border-t border-linen leading-relaxed">
-              Both values are documented. For a precise research stock solution, use the assayed milligrams rather than assuming the nominal label mass.
-            </p>
+            </article>
           </div>
         </section>
 
@@ -328,11 +345,11 @@ export default function PeptidePurityVsContentPage() {
             Boundaries worth remembering
           </h2>
           <div className="space-y-3">
-            <AnalyticalCallout title="Lab data is not medical advice" variant="limitation">
-              High purity describes chemical composition under the test used. It does not mean the sample is sterile or suitable for clinical use. Materials are for laboratory research only.
+            <AnalyticalCallout title="Keep the scope of each result" variant="limitation">
+              A report supports the measurements it includes. It does not establish suitability for human or veterinary use. These materials are for laboratory research only.
             </AnalyticalCallout>
             <AnalyticalCallout title="Marketing phrases are not test results" variant="limitation">
-              Labels like &ldquo;pharmaceutical grade&rdquo; or &ldquo;100% verified pure&rdquo; are not lab measurements. Every test has detection limits.
+              Keep the product, batch, task number, result label, value, and unit together when sharing a result. A broad purity slogan loses that context.
             </AnalyticalCallout>
           </div>
           <p className="text-ash leading-relaxed pt-2">
