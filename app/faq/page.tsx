@@ -27,7 +27,7 @@ const faqPageLd = {
 
 export default function FaqPage() {
   return (
-    <main className="bg-[var(--color-paper)]">
+    <main className="public-page-surface">
       {/* Validate FAQ rich results: https://search.google.com/test/rich-results */}
       <JsonLd data={faqPageLd} />
       <FaqAccordion items={siteFaqItems} />

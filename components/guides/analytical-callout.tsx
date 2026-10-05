@@ -43,7 +43,7 @@ export function AnalyticalCallout({
 
   return (
     <aside
-      className={`rounded-xl border ${config.border} ${config.bg} p-5 sm:p-6 ${className}`}
+      className={`rounded-[20px] shadow-[0_14px_32px_-22px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.05)] border ${config.border} ${config.bg} p-5 sm:p-6 ${className}`}
     >
       <div className="flex items-center gap-2.5">
         <IconComponent

@@ -6,7 +6,7 @@ import { getCatalogProductByHandle } from "@/lib/products/catalog";
 import { hasAvailableReport } from "@/lib/batch-reports";
 import { TestingScopeExplainer } from "@/components/testing/testing-scope-explainer";
 
-import { AnimateIn } from "./animate-in";
+import { ScrollReveal } from "@/components/motion/scroll-reveal";
 import { MobileStickyCart } from "./mobile-sticky-cart";
 import { ProductDisclaimer } from "./product-disclaimer";
 import { ProductFaqSection } from "./product-faq-section";
@@ -33,13 +33,13 @@ export function ResearchPeptideTemplate({
 
   return (
     <ProductQuantityProvider unitPrice={product.price}>
-      <main className="bg-paper pb-28 lg:pb-0">
-        <section className="section-surface-ice mx-auto max-w-[1440px] px-6 pb-12 pt-5 md:px-12 md:pb-16 lg:px-16 lg:pb-20 xl:px-20">
+      <main className="public-page-surface pb-28 lg:pb-0">
+        <section className="mx-auto max-w-[1440px] px-6 pb-12 pt-5 md:px-12 md:pb-16 lg:px-16 lg:pb-20 xl:px-20">
           <Link href="/products" className="mb-6 inline-flex items-center gap-2 text-sm text-ash underline-offset-4 hover:text-ink hover:underline">
             <ArrowLeft className="size-3.5" aria-hidden /> All products
           </Link>
           <div className="grid grid-cols-1 gap-y-5 lg:grid-cols-[1.1fr_1fr] lg:grid-rows-[auto_1fr] lg:gap-x-12 xl:gap-x-16">
-            <AnimateIn className="lg:col-start-2 lg:row-start-1">
+            <ScrollReveal className="lg:col-start-2 lg:row-start-1">
               <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.16em] text-ash">PSL Labs / Laboratory research</p>
               <div className="flex flex-wrap items-baseline gap-3">
                 <h1 className="font-display text-[clamp(2.25rem,4.1vw,3.75rem)] font-semibold leading-[1.04] tracking-[-0.045em] text-ink">
@@ -52,9 +52,9 @@ export function ResearchPeptideTemplate({
                 )}
               </div>
               <p className="mt-3 text-xs leading-relaxed text-ash">Not for human or veterinary use.</p>
-            </AnimateIn>
+            </ScrollReveal>
 
-            <AnimateIn y={16} className="lg:col-start-1 lg:row-span-2 lg:row-start-1">
+            <div className="lg:col-start-1 lg:row-span-2 lg:row-start-1">
               <div className="mx-auto w-full max-w-[600px] lg:sticky lg:top-24 lg:max-w-none">
                 <ProductShowcase
                   src={product.imageSrc ?? fallbackImage.src}
@@ -63,14 +63,14 @@ export function ResearchPeptideTemplate({
                   strength={catalog?.strength}
                 />
               </div>
-            </AnimateIn>
+            </div>
 
             <div className="flex flex-col gap-5 lg:col-start-2 lg:row-start-2">
-              <AnimateIn delay={0.08}>
+              <ScrollReveal>
                 <p className="text-base leading-[1.7] text-[#aab0b9]">{product.shortDescription}</p>
-              </AnimateIn>
+              </ScrollReveal>
 
-              <AnimateIn delay={0.12}>
+              <ScrollReveal delayMs={60}>
                 <div className="flex flex-wrap items-center justify-between gap-2 border-y border-border-strong py-3 text-sm">
                   <div className="flex items-center gap-2">
                     <FileText className="size-4 shrink-0 text-accent" aria-hidden />
@@ -89,15 +89,13 @@ export function ResearchPeptideTemplate({
                     </a>
                   )}
                 </div>
-              </AnimateIn>
+              </ScrollReveal>
 
-              <AnimateIn delay={0.16}>
-                <ProductPurchase
-                  productHandle={product.handle}
-                  stockStatus={product.stockStatus}
-                  availability={availability}
-                />
-              </AnimateIn>
+              <ProductPurchase
+                productHandle={product.handle}
+                stockStatus={product.stockStatus}
+                availability={availability}
+              />
             </div>
           </div>
         </section>
@@ -133,7 +131,9 @@ export function ResearchPeptideTemplate({
             variant="white"
             width="prose"
           >
-            <ProductSpecificationsTable specifications={product.specifications} />
+            <ScrollReveal>
+              <ProductSpecificationsTable specifications={product.specifications} />
+            </ScrollReveal>
           </SectionShell>
         )}
 
@@ -144,16 +144,18 @@ export function ResearchPeptideTemplate({
           variant="ice"
           width="prose"
         >
-          <div className="premium-card flex flex-col gap-5 p-6 md:p-7">
-            {product.whyThisExists.split("\n\n").map((paragraph) => (
-              <p
-                key={paragraph.slice(0, 40)}
-                className="text-base leading-[1.7] text-ash md:text-body-lg"
-              >
-                {paragraph}
-              </p>
-            ))}
-          </div>
+          <ScrollReveal>
+            <div className="public-section-card flex flex-col gap-5 p-6 md:p-8">
+              {product.whyThisExists.split("\n\n").map((paragraph) => (
+                <p
+                  key={paragraph.slice(0, 40)}
+                  className="text-base leading-[1.7] text-ash md:text-body-lg"
+                >
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          </ScrollReveal>
         </SectionShell>
 
         {/* Research Disclaimer */}

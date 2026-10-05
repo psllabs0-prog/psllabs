@@ -5,7 +5,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import { returnsPageContent } from "@/lib/content/returns";
 import { cn } from "@/lib/utils";
 
-const cardClass = "premium-card p-6 md:p-7";
+const cardClass = "public-section-card p-6 md:p-7";
 
 function renderWithEmail(text: string) {
   const parts = text.split(/(support@psllabs\.org)/g);
@@ -28,11 +28,11 @@ export function ReturnsPage() {
   const content = returnsPageContent;
 
   return (
-    <main className="section-surface-ice">
+    <main className="public-page-surface">
       <div className="mx-auto max-w-[960px] px-6 py-16 md:px-16 md:py-20 lg:px-24 lg:py-24">
         <div className="flex flex-col gap-12 md:gap-14 lg:gap-16">
           {/* Hero */}
-          <header className="flex flex-col gap-6 md:gap-8">
+          <header className="public-page-header flex flex-col gap-6 md:gap-8">
             <AnimateIn>
               <p className="mono text-biotech-deep/80">{content.eyebrow}</p>
             </AnimateIn>
@@ -186,7 +186,7 @@ export function ReturnsPage() {
 
           {/* Disclaimer */}
           <AnimateIn delay={0.08}>
-            <section className="premium-card p-6 md:p-7">
+            <section className="public-section-card p-6 md:p-7">
               <h2 className="font-display text-lg font-bold text-ink">
                 Important Disclaimer
               </h2>

@@ -69,8 +69,8 @@ export const metadata: Metadata = createPageMetadata({
 
 export default function ShippingPage() {
   return (
-    <main className="min-h-screen bg-paper">
-      <div className="mx-auto max-w-[760px] px-6 py-16 md:px-12 md:py-20 lg:px-24 lg:py-24">
+    <main className="public-page-surface min-h-screen">
+      <div className="mx-auto max-w-[840px] px-6 py-16 md:px-12 md:py-20 lg:py-24">
         <header className="mb-12 border-b border-linen pb-10 md:mb-14 md:pb-12">
           <AnimateIn>
             <p className="mono text-ash">{shippingPageMeta.label}</p>
@@ -92,7 +92,7 @@ export default function ShippingPage() {
         <div className="flex flex-col gap-10 md:gap-12 text-base leading-relaxed text-ink md:text-[1.0625rem]">
           {shippingSections.map((section, index) => (
             <AnimateIn key={section.id} delay={0.12 + index * 0.04}>
-              <section className="flex flex-col gap-3 rounded-xl border border-linen bg-surface p-6 md:p-8">
+              <section className="flex flex-col gap-3 public-section-card p-6 md:p-8">
                 <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
                   {section.title}
                 </h2>

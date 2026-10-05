@@ -33,7 +33,7 @@ export function BatchDocumentationCTA({
 
   return (
     <section
-      className={`rounded-xl border border-linen bg-surface p-6 sm:p-8 md:p-10 ${className}`}
+      className={`public-section-card p-6 sm:p-8 md:p-10 ${className}`}
     >
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-2">

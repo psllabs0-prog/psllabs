@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Children, isValidElement, useEffect } from "react";
 import { AnimateIn } from "@/components/product/animate-in";
 import { GuideBreadcrumbs } from "./guide-breadcrumbs";
 import { GuideTableOfContents, type TocItem } from "./guide-table-of-contents";
@@ -27,7 +27,7 @@ export function GuideLayout({
   }, [guide.slug]);
 
   return (
-    <main className="min-h-screen bg-paper">
+    <main className="public-page-surface min-h-screen">
       <article className="mx-auto max-w-[760px] px-6 py-12 md:px-12 md:py-16 lg:py-20">
         {/* Breadcrumbs */}
         <AnimateIn>
@@ -88,12 +88,14 @@ export function GuideLayout({
 
         {/* Article Body Content */}
         <div className="flex flex-col gap-10 text-base leading-relaxed text-ink md:gap-12 md:text-[1.0625rem]">
-          {children}
+          {Children.map(children, (child) =>
+            isValidElement(child) ? <AnimateIn>{child}</AnimateIn> : child
+          )}
         </div>
 
         {/* Institutional & RUO Notice */}
         <AnimateIn delay={0.2} className="mt-14 pt-8 border-t border-linen">
-          <div className="rounded-xl border border-linen bg-surface p-5 sm:p-6 text-xs text-ash space-y-2">
+          <div className="public-section-card p-5 sm:p-6 text-xs text-ash space-y-2">
             <p className="font-mono font-semibold text-stone uppercase tracking-wider">
               Research Use Only
             </p>

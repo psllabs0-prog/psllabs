@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, type PointerEvent } from "react";
 
 import { cn } from "@/lib/utils";
+import { ProductArtworkDialog } from "./product-artwork-dialog";
 import styles from "./product-showcase.module.css";
 
 type ProductShowcaseProps = {
@@ -45,6 +46,8 @@ export function ProductShowcase({ src, alt, name, strength, variant = "product" 
 
   function move(event: PointerEvent<HTMLDivElement>) {
     if (!canMove.current || event.pointerType === "touch") return;
+    // Portal events should not tilt the scene behind the enlarged image.
+    if (!event.currentTarget.contains(event.target as Node)) return;
     const bounds = event.currentTarget.getBoundingClientRect();
     const x = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width));
     const y = Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height));
@@ -53,8 +56,8 @@ export function ProductShowcase({ src, alt, name, strength, variant = "product" 
       frame.current = null;
       const element = stage.current;
       if (!element) return;
-      element.style.setProperty("--turn-x", `${(0.5 - y) * 7}deg`);
-      element.style.setProperty("--turn-y", `${(x - 0.5) * 10}deg`);
+      element.style.setProperty("--turn-x", `${(0.5 - y) * 9}deg`);
+      element.style.setProperty("--turn-y", `${(x - 0.5) * 12}deg`);
       element.style.setProperty("--light-x", `${35 + x * 30}%`);
       element.style.setProperty("--light-y", `${20 + y * 30}%`);
     });
@@ -76,7 +79,7 @@ export function ProductShowcase({ src, alt, name, strength, variant = "product" 
           <div className={styles.platformLight} />
         </div>
         <div className={styles.shadow} aria-hidden />
-        <div className={styles.artwork}>
+        <div key={src} className={styles.artwork}>
           <Image src={src} alt={alt} fill preload sizes="(max-width: 640px) 90vw, (max-width: 1023px) 520px, 600px" className={styles.image} />
         </div>
       </div>
@@ -84,6 +87,7 @@ export function ProductShowcase({ src, alt, name, strength, variant = "product" 
         <span className={styles.captionMarker} aria-hidden />
         <span>For laboratory research</span>
         <span className={styles.captionRule} aria-hidden />
+        <ProductArtworkDialog key={src} src={src} alt={alt} name={name} strength={strength} />
       </div>
     </div>
   );

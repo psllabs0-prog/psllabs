@@ -106,9 +106,9 @@ function validateForm(form: FormState): FormErrors {
 
 function CheckoutLoadingShell() {
   return (
-    <main className="min-h-screen bg-paper px-6 py-12 md:px-16 md:py-16 lg:px-24 lg:py-20">
+    <main className="public-page-surface min-h-screen bg-paper px-6 py-12 md:px-16 md:py-16 lg:px-24 lg:py-20">
       <div className="mx-auto max-w-[1100px]">
-        <header className="mb-8 md:mb-10">
+        <header className="public-page-header mb-8 md:mb-10">
           <p className="mono text-ash">CHECKOUT</p>
           <h1 className="font-display text-display-lg font-bold text-ink">
             Review your order
@@ -118,9 +118,9 @@ function CheckoutLoadingShell() {
           </p>
         </header>
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_360px] lg:gap-10">
-          <div className="premium-card h-[520px] animate-pulse bg-soft-blue/20 p-5 md:p-6" />
+          <div className="premium-card public-section-card h-[520px] animate-pulse bg-soft-blue/20 p-5 md:p-6" />
           <div className="hidden lg:block">
-            <div className="premium-card h-[360px] animate-pulse bg-soft-blue/20 p-6" />
+            <div className="premium-card public-section-card h-[360px] animate-pulse bg-soft-blue/20 p-6" />
           </div>
         </div>
       </div>
@@ -357,7 +357,7 @@ export function CheckoutPage() {
 
   if (isCardReturn && !retained) {
     return (
-      <main className="min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
+      <main className="public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
         <div className="mx-auto max-w-lg text-center">
           <h1 className="font-display text-display-md font-bold text-ink">Check your card payment</h1>
           <p role="alert" className="mt-4 text-ash">
@@ -371,8 +371,8 @@ export function CheckoutPage() {
 
   if (retained && !retained.session) {
     return (
-      <main className="min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
-        <div className="premium-card mx-auto max-w-lg p-6">
+      <main className="public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
+        <div className="premium-card public-section-card mx-auto max-w-lg p-6">
           <ExpiredCardConfirmation orderId={retained.orderId} hints={retained.confirmation ?? returnHints}
             onError={handleCardError} onSuccessRedirect={handleCardSuccess} />
         </div>
@@ -382,8 +382,8 @@ export function CheckoutPage() {
 
   if (tagadaSession && retained?.phase === "ready" && !isCardReturn && !cardSessionMatchesCart(tagadaSession, lines)) {
     return (
-      <main className="min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
-        <div className="premium-card mx-auto max-w-lg p-6">
+      <main className="public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
+        <div className="premium-card public-section-card mx-auto max-w-lg p-6">
           <h1 className="font-display text-display-md font-bold text-ink">Your cart has changed</h1>
           <p className="mt-4 text-ash">Start a new checkout to review the current items and prices before paying.</p>
           <button type="button" onClick={() => cardSessionStore.clear()} className="mt-6 inline-flex rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page">Start new checkout</button>
@@ -394,8 +394,8 @@ export function CheckoutPage() {
 
   if (lines.length === 0 && tagadaSession) {
     return (
-      <main className="min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
-        <div className="premium-card mx-auto max-w-lg p-6">
+      <main className="public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
+        <div className="premium-card public-section-card mx-auto max-w-lg p-6">
           <h1 className="font-display text-display-md font-bold text-ink">Your card checkout</h1>
           <TagadaCardForm key={tagadaSession.orderId} session={tagadaSession} returnHints={returnHints}
             onError={handleCardError} onSuccessRedirect={handleCardSuccess} />
@@ -409,7 +409,7 @@ export function CheckoutPage() {
 
   if (lines.length === 0) {
     return (
-      <main className="min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
+      <main className="public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
         <div className="mx-auto max-w-lg text-center">
           <h1 className="font-display text-display-md font-bold text-ink">
             Checkout
@@ -427,9 +427,9 @@ export function CheckoutPage() {
   }
 
   return (
-    <main className="min-h-screen bg-paper px-6 py-12 md:px-16 md:py-16 lg:px-24 lg:py-20">
+    <main className="public-page-surface min-h-screen bg-paper px-6 py-12 md:px-16 md:py-16 lg:px-24 lg:py-20">
       <div className="mx-auto max-w-[1100px]">
-        <header className="mb-8 md:mb-10">
+        <header className="public-page-header mb-8 md:mb-10">
           <p className="mono text-ash">CHECKOUT</p>
           <h1 className="font-display text-display-lg font-bold text-ink">
             Review your order
@@ -446,7 +446,7 @@ export function CheckoutPage() {
             noValidate
             className="flex flex-col gap-8"
           >
-            <section className="premium-card p-5 md:p-6">
+            <section className="premium-card public-section-card p-5 md:p-6">
               <h2 className="font-display text-lg font-bold text-ink">
                 Contact Information
               </h2>
@@ -474,7 +474,7 @@ export function CheckoutPage() {
               </div>
             </section>
 
-            <section className="premium-card p-5 md:p-6">
+            <section className="premium-card public-section-card p-5 md:p-6">
               <h2 className="font-display text-lg font-bold text-ink">
                 Shipping Information
               </h2>
@@ -597,7 +597,7 @@ export function CheckoutPage() {
               </div>
             </section>
 
-            {!paymentUnresolved && !isCardReturn && <div className="premium-card p-5 md:p-6 lg:hidden">
+            {!paymentUnresolved && !isCardReturn && <div className="premium-card public-section-card p-5 md:p-6 lg:hidden">
               <CheckoutSummary
                 lines={lines}
                 totals={totals}
@@ -612,7 +612,7 @@ export function CheckoutPage() {
               />
             </div>}
 
-            <section className="premium-card p-5 md:p-6">
+            <section className="premium-card public-section-card p-5 md:p-6">
               <h2 className="font-display text-lg font-bold text-ink">
                 Payment Method
               </h2>
@@ -742,7 +742,7 @@ export function CheckoutPage() {
           </form>
 
           {!paymentUnresolved && !isCardReturn && <aside className="hidden lg:block">
-            <div className="sticky top-24 premium-card p-6">
+            <div className="sticky top-24 premium-card public-section-card p-6">
               <CheckoutSummary
                 lines={lines}
                 totals={totals}

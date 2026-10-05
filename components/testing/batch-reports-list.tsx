@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, ExternalLink } from "lucide-react";
+import { AnimateIn } from "@/components/product/animate-in";
 
 import type { BatchReport } from "@/lib/batch-reports";
 import {
@@ -30,7 +31,7 @@ function ReportCard({ report }: { report: BatchReport }) {
   const summaryBits = [amount, purity, report.analysisDate].filter(Boolean);
 
   return (
-    <article className="premium-card overflow-hidden">
+    <article className="public-section-card overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
@@ -163,10 +164,9 @@ export function BatchReportsList({ reports }: BatchReportsListProps) {
   return (
     <div className="flex flex-col gap-3">
       {reports.map((report) => (
-        <ReportCard
-          key={`${report.productHandle}-${report.batch}-${report.taskNumber}`}
-          report={report}
-        />
+        <AnimateIn key={`${report.productHandle}-${report.batch}-${report.taskNumber}`}>
+          <ReportCard report={report} />
+        </AnimateIn>
       ))}
     </div>
   );

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AnimateIn } from "@/components/product/animate-in";
+import { ScienceArticleSection, ScienceSectionHeading } from "@/components/content/science-article-body";
 import {
   getScienceArticleMeta,
   getScienceArticleSource,
@@ -41,11 +42,14 @@ export default async function ScienceArticlePage({ params }: PageProps) {
     notFound();
   }
 
-  const { content } = await compileMdxContent(source);
+  const { content } = await compileMdxContent(source, {
+    ScienceSection: ScienceArticleSection,
+    h2: ScienceSectionHeading,
+  }, "ScienceSection");
 
   return (
-    <main className="bg-[var(--color-paper)]">
-      <article className="mx-auto max-w-[720px] px-6 py-20 md:px-12 md:py-28 lg:px-24 lg:py-32">
+    <main className="public-page-surface">
+      <article className="mx-auto max-w-[840px] px-6 py-16 md:px-12 md:py-20 lg:py-24">
         <header className="mb-12 border-b border-[var(--color-sage)] pb-12">
           <AnimateIn>
             <Link
@@ -77,7 +81,7 @@ export default async function ScienceArticlePage({ params }: PageProps) {
           </AnimateIn>
         </header>
 
-        <AnimateIn delay={0.18}>{content}</AnimateIn>
+        <div className="flex flex-col gap-10 md:gap-12">{content}</div>
       </article>
     </main>
   );

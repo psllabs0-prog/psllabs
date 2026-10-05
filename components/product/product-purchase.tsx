@@ -31,7 +31,7 @@ export function ProductPurchase({ productHandle, stockStatus, availability, clas
   const isOutOfStock = status === "out_of_stock" || maxQuantity <= 0;
 
   return (
-    <div className={cn("flex flex-col gap-5 rounded-2xl border border-border-strong bg-surface p-5 sm:p-6", className)}>
+    <div data-product-purchase className={cn("public-section-card flex flex-col gap-5 p-5 sm:p-6", className)}>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="mb-2 text-xs text-ash">{quantity > 1 ? `${quantity} vials` : "Price per vial"}</p>

@@ -119,7 +119,7 @@ export function OrderStatus({
       )}
 
       {order && (
-        <div className="premium-card mt-8 p-5 md:p-6">
+        <div className="premium-card public-section-card mt-8 p-5 md:p-6">
           <h2 className="font-display text-lg font-bold text-ink">
             Order summary
           </h2>

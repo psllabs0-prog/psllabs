@@ -3,7 +3,7 @@ import { PillButton } from "@/components/ui/pill-button";
 import type { AboutContent } from "@/lib/about";
 import { cn } from "@/lib/utils";
 
-const cardClass = "premium-card p-6 md:p-7";
+const cardClass = "public-section-card p-6 md:p-7";
 
 type AboutClosingProps = {
   closing: AboutContent["closing"];

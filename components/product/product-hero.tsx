@@ -59,13 +59,11 @@ export function ProductHero({
               )}
             </AnimateIn>
 
-            <AnimateIn delay={0.4}>
-              <ProductPurchase
-                productHandle={product.handle}
-                stockStatus={product.stockStatus}
-                availability={availability}
-              />
-            </AnimateIn>
+            <ProductPurchase
+              productHandle={product.handle}
+              stockStatus={product.stockStatus}
+              availability={availability}
+            />
 
             <AnimateIn delay={0.48}>
               <ul className="flex flex-col gap-2.5 border-t border-linen pt-6">

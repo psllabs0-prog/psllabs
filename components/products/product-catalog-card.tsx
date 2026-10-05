@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { ProductVialImage } from "@/components/product/product-vial-image";
 import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
 import { PillButton } from "@/components/ui/pill-button";
@@ -21,21 +23,22 @@ export function ProductCatalogCard({
 
   return (
     <article
+      data-catalog-product={product.handle}
       className={cn(
-        "premium-card flex flex-col overflow-hidden",
-        comingSoon ? "opacity-90 ring-1 ring-linen" : "premium-card-hover",
+        "public-section-card group flex h-full flex-col overflow-hidden",
+        comingSoon ? "opacity-90" : "focus-within:border-accent/50 hover:border-accent/35 motion-safe:transition-[transform,border-color,box-shadow] motion-safe:duration-300 motion-safe:hover:-translate-y-1",
         className
       )}
     >
       {!comingSoon && (
-        <div className="relative">
+        <Link href={product.href} aria-label={`View ${product.name}`} className="relative block border-b border-linen focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent">
           <ProductVialImage
             src={product.imageSrc}
             alt={product.imageAlt}
             context="card"
             bordered={false}
             rounded="none"
-            className="rounded-none"
+            className="aspect-[6/5] rounded-none"
           />
           <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex flex-wrap items-start gap-2 p-4">
             <span className="badge-verified max-w-full whitespace-normal text-left backdrop-blur-sm">
@@ -45,10 +48,10 @@ export function ProductCatalogCard({
               Research Use Only
             </span>
           </div>
-        </div>
+        </Link>
       )}
 
-      <div className="flex flex-1 flex-col gap-5 p-6 md:p-8">
+      <div className="flex flex-1 flex-col gap-5 p-6">
         {comingSoon && (
           <span className="badge-accent w-fit">Coming Soon</span>
         )}
@@ -81,7 +84,7 @@ export function ProductCatalogCard({
                 available={availability.available}
               />
             )}
-            <PillButton href={product.href} className="w-full">
+            <PillButton href={product.href} variant="secondary" className="w-full border-border-strong bg-paper/60 group-hover:border-accent/40">
               View Details
             </PillButton>
           </>

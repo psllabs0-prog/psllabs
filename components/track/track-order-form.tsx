@@ -99,7 +99,7 @@ export function TrackOrderForm() {
     <div className="flex flex-col gap-8">
       <form
         onSubmit={(e) => void handleSubmit(e)}
-        className="premium-card flex flex-col gap-5 p-5 md:p-6"
+        className="premium-card public-section-card flex flex-col gap-5 p-5 md:p-6"
         noValidate
       >
         <div className="flex flex-col gap-1.5">
@@ -158,7 +158,7 @@ export function TrackOrderForm() {
       </form>
 
       {order && (
-        <div className="premium-card p-5 md:p-6">
+        <div className="premium-card public-section-card p-5 md:p-6">
           <div className="flex flex-col gap-2 border-b border-linen pb-4">
             <p className="mono text-xs text-ash">ORDER {order.orderId}</p>
             <p className="text-sm text-ash">

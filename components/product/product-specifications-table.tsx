@@ -13,12 +13,12 @@ export function ProductSpecificationsTable({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-md border border-linen bg-surface",
+        "public-section-card overflow-hidden",
         className
       )}
     >
-      <div className="border-b border-linen bg-gradient-to-r from-soft-blue/80 to-ice-blue px-5 py-3 md:px-6">
-        <p className="font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-wider text-biotech-deep">
+      <div className="border-b border-linen bg-accent/5 px-5 py-4 md:px-6">
+        <p className="font-mono text-[0.65rem] uppercase tracking-wider text-accent">
           Technical specifications
         </p>
       </div>
@@ -28,7 +28,7 @@ export function ProductSpecificationsTable({
             key={spec.label}
             className={cn(
               "grid grid-cols-1 gap-1 px-5 py-3.5 sm:grid-cols-[minmax(9rem,38%)_1fr] sm:gap-6 sm:px-6 sm:py-4",
-              index % 2 === 1 && "bg-ice-blue/30"
+              index % 2 === 1 && "bg-paper/30"
             )}
           >
             <dt className="font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-wider text-ash">

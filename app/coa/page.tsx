@@ -16,9 +16,9 @@ export const metadata: Metadata = createPageMetadata({
 
 export default function CoaPage() {
   return (
-    <main className="bg-paper">
+    <main className="public-page-surface">
       <div className="mx-auto max-w-[960px] px-6 py-16 md:px-16 md:py-20 lg:px-24 lg:py-24">
-        <header className="mb-10 flex max-w-3xl flex-col gap-5 md:mb-12">
+        <header className="public-page-header mb-10 flex max-w-3xl flex-col gap-5 md:mb-12">
           <AnimateIn>
             <p className="mono text-accent">BATCH REPORTS</p>
           </AnimateIn>
@@ -34,12 +34,10 @@ export default function CoaPage() {
           </AnimateIn>
         </header>
 
-        <AnimateIn delay={0.14}>
-          <BatchLookup />
-        </AnimateIn>
+        <BatchLookup />
 
         <AnimateIn delay={0.18} className="mt-10">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-linen bg-surface p-5 text-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 public-section-card p-5 text-sm">
             <div className="flex flex-col gap-1">
               <span className="font-bold text-ink">New to reading lab reports?</span>
               <p className="text-xs text-ash">
@@ -55,9 +53,9 @@ export default function CoaPage() {
           </div>
         </AnimateIn>
 
-        <AnimateIn delay={0.2} className="mt-14 md:mt-16">
+        <div className="mt-14 md:mt-16">
           <TestingScopeExplainer showPolicy={true} />
-        </AnimateIn>
+        </div>
       </div>
     </main>
   );

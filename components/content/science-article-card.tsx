@@ -6,7 +6,7 @@ export function ScienceArticleCard({ article }: { article: ScienceArticleMeta })
   return (
     <Link
       href={`/science/${article.slug}`}
-      className="group flex flex-col gap-4 border border-[var(--color-sage)] bg-[var(--color-lab-white)] p-6 transition-transform duration-200 ease-out hover:-translate-y-1 md:p-8"
+      className="public-section-card group flex h-full flex-col gap-4 p-6 transition-transform duration-200 ease-out motion-safe:hover:-translate-y-1 md:p-8"
     >
       <div className="flex flex-wrap items-center gap-3">
         <span className="mono text-[var(--color-stone)]">

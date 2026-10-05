@@ -39,7 +39,7 @@ export function ContactInfoPanel({
       </div>
 
       <AnimateIn delay={0.14}>
-        <div className="relative overflow-hidden rounded-md border border-linen bg-surface p-6 md:p-8">
+        <div className="public-section-card relative p-5 sm:p-6 md:p-8">
           <div className="relative flex flex-col gap-6">
             {content.details.map((detail) => {
               const Icon = detailIcons[detail.id as keyof typeof detailIcons];
@@ -63,7 +63,7 @@ export function ContactInfoPanel({
                     {detail.href ? (
                       <a
                         href={detail.href}
-                        className="font-display text-lg font-bold text-ink underline underline-offset-4 transition-opacity duration-200 ease-out hover:opacity-70"
+                        className="break-all font-display text-lg font-bold text-ink underline underline-offset-4 transition-opacity duration-200 ease-out hover:opacity-70"
                       >
                         {detail.value}
                       </a>

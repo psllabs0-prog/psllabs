@@ -30,10 +30,10 @@ const articleLd = {
 
 export default function VerifyPeptideCoaGuidePage() {
   return (
-    <main className="section-surface-ice min-h-screen">
+    <main className="public-page-surface min-h-screen">
       {/* Validate Article markup: https://search.google.com/test/rich-results */}
       <JsonLd data={articleLd} />
-      <article className="mx-auto max-w-[720px] px-6 py-16 md:px-12 md:py-20 lg:px-24 lg:py-24">
+      <article className="mx-auto max-w-[840px] px-6 py-16 md:px-12 md:py-20 lg:py-24">
         <header className="mb-10 border-b border-linen pb-10 md:mb-12 md:pb-12">
           <AnimateIn>
             <p className="mono text-ash">GUIDE</p>

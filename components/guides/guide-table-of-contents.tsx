@@ -19,7 +19,7 @@ export function GuideTableOfContents({
   return (
     <nav
       aria-label="Table of contents"
-      className={`rounded-xl border border-linen bg-surface p-5 sm:p-6 ${className}`}
+      className={`public-section-card p-5 sm:p-6 ${className}`}
     >
       <div className="flex items-center gap-2 border-b border-linen pb-3 text-xs font-mono uppercase tracking-wider text-accent">
         <List className="size-4 shrink-0" aria-hidden />

@@ -21,8 +21,8 @@ export default function TestingPage() {
 
   return (
     <ContentPageLayout meta={testingPageMeta}>
-      <AnimateIn>
-        <section className="flex flex-col gap-4">
+      <section className="flex flex-col gap-4">
+        <AnimateIn>
           <div>
             <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
               Published batch reports
@@ -37,16 +37,14 @@ export default function TestingPage() {
               </a>
             </p>
           </div>
-          <BatchReportsList reports={reports} />
-        </section>
-      </AnimateIn>
+        </AnimateIn>
+        <BatchReportsList reports={reports} />
+      </section>
 
-      <AnimateIn delay={0.1}>
-        <TestingScopeExplainer showPolicy={true} />
-      </AnimateIn>
+      <TestingScopeExplainer showPolicy={true} />
 
       <AnimateIn delay={0.15}>
-        <section className="rounded-xl border border-linen bg-surface p-6 sm:p-8">
+        <section className="public-section-card p-6 sm:p-8">
           <div className="flex flex-col gap-2">
             <span className="mono text-xs uppercase text-accent font-semibold">
               GUIDES
