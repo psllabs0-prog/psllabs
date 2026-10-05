@@ -1,18 +1,29 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type HTMLAttributes, type ReactNode } from "react";
 
-type ScrollRevealProps = {
+import { cn } from "@/lib/utils";
+
+type ScrollRevealProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode;
-  className?: string;
   delayMs?: number;
+  distancePx?: number;
+  contentClassName?: string;
 };
 
 /** Progressive enhancement: content is visible until a real viewport re-entry. */
-export function ScrollReveal({ children, className, delayMs = 0 }: ScrollRevealProps) {
+export function ScrollReveal({
+  children,
+  className,
+  delayMs = 0,
+  distancePx = 24,
+  contentClassName,
+  ...props
+}: ScrollRevealProps) {
   const boundary = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null);
   const delay = Math.min(180, Math.max(0, delayMs));
+  const distance = Math.min(24, Math.max(0, Math.abs(distancePx)));
 
   useEffect(() => {
     const frame = boundary.current;
@@ -59,7 +70,7 @@ export function ScrollReveal({ children, className, delayMs = 0 }: ScrollRevealP
 
         showImmediately();
         const center = entry.boundingClientRect.top + entry.boundingClientRect.height / 2;
-        const travel = center >= window.innerHeight / 2 ? 24 : -24;
+        const travel = center >= window.innerHeight / 2 ? distance : -distance;
         const nextAnimation = body!.animate(
           [
             { opacity: 0.12, transform: `translate3d(0, ${travel}px, 0) scale(0.98)` },
@@ -102,11 +113,11 @@ export function ScrollReveal({ children, className, delayMs = 0 }: ScrollRevealP
       frame.removeEventListener("focusin", onFocus);
       preference.removeEventListener("change", configure);
     };
-  }, [delay]);
+  }, [delay, distance]);
 
   return (
-    <div ref={boundary} className={className} data-scroll-reveal>
-      <div ref={content} className="h-full" data-reveal-content>{children}</div>
+    <div {...props} ref={boundary} className={className} data-scroll-reveal>
+      <div ref={content} className={cn("h-full", contentClassName)} data-reveal-content>{children}</div>
     </div>
   );
 }

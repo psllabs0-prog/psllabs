@@ -7,7 +7,7 @@ type AboutHeroProps = {
 
 export function AboutHero({ hero }: AboutHeroProps) {
   return (
-    <section className="border-b border-linen bg-gradient-to-br from-ice-blue via-soft-blue/50 to-paper px-6 py-12 md:px-16 md:py-16 lg:px-24 lg:py-20">
+    <section className="border-b border-linen px-6 py-12 md:px-16 md:py-16 lg:px-24 lg:py-20">
       <div className="mx-auto flex max-w-[720px] flex-col gap-6 md:gap-8">
         <AnimateIn>
           <h1 className="font-display text-display-lg font-bold text-ink">

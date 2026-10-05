@@ -77,7 +77,7 @@ export function VerificationChecklist({
 }: VerificationChecklistProps) {
   return (
     <div
-      className={`rounded-xl border border-linen bg-surface p-6 sm:p-8 ${className}`}
+      className={`public-section-card p-6 sm:p-8 ${className}`}
     >
       <div className="flex items-center gap-2.5 border-b border-linen pb-4 text-accent">
         <CheckSquare className="size-5 shrink-0" aria-hidden />

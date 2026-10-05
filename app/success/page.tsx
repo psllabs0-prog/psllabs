@@ -23,7 +23,7 @@ export default async function SuccessPage({
 
   if (!orderId) {
     return (
-      <main className="min-h-[60vh] bg-paper">
+      <main className="public-page-surface min-h-[60vh] bg-paper">
         <div className="mx-auto max-w-[720px] px-6 py-24 text-center md:px-12">
           <p className="mono text-ash">ORDER CONFIRMED</p>
           <h1 className="mt-4 font-display text-display-md font-bold text-ink">
@@ -53,7 +53,7 @@ export default async function SuccessPage({
   }
 
   return (
-    <main className="min-h-[60vh] bg-paper">
+    <main className="public-page-surface min-h-[60vh] bg-paper">
       <OrderStatus orderId={orderId} initialOrder={initialOrder} />
     </main>
   );

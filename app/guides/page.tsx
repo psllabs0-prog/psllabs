@@ -73,7 +73,7 @@ export default function GuidesHubPage() {
       <JsonLd data={guidesCollectionLd} />
       <JsonLd data={breadcrumbLd} />
 
-      <main className="min-h-screen bg-paper">
+      <main className="public-page-surface min-h-screen">
         <div className="mx-auto max-w-[1100px] px-6 py-12 md:px-12 md:py-16 lg:py-20">
           {/* Header */}
           <header className="mb-12 border-b border-linen pb-10 md:mb-16 md:pb-12">
@@ -143,7 +143,7 @@ export default function GuidesHubPage() {
                       >
                         <Link
                           href={`/guides/${guide.slug}`}
-                          className="group flex h-full flex-col justify-between rounded-xl border border-linen bg-surface p-6 transition-all duration-200 hover:border-linen-dark hover:bg-paper/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                          className="group flex h-full flex-col justify-between public-section-card p-6 transition-colors duration-200 hover:border-linen-dark hover:bg-paper/60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
                         >
                           <div className="flex flex-col gap-3">
                             <div className="flex items-center justify-between gap-2">
@@ -169,7 +169,7 @@ export default function GuidesHubPage() {
 
                           <div className="mt-6 flex items-center justify-between border-t border-linen pt-4 text-xs font-mono text-stone">
                             <span>Updated: {guide.publishedDate}</span>
-                            <span className="flex items-center gap-1.5 font-medium text-accent transition-transform group-hover:translate-x-1">
+                            <span className="flex items-center gap-1.5 font-medium text-accent transition-transform motion-safe:group-hover:translate-x-1">
                               Read Guide
                               <ArrowRight className="size-3.5" aria-hidden />
                             </span>
@@ -185,7 +185,7 @@ export default function GuidesHubPage() {
 
           {/* Institutional Compliance Notice */}
           <AnimateIn delay={0.2} className="mt-16 pt-8 border-t border-linen">
-            <div className="rounded-xl border border-linen bg-surface p-6 sm:p-8 text-xs text-ash space-y-2">
+            <div className="public-section-card p-6 sm:p-8 text-xs text-ash space-y-2">
               <p className="font-mono font-semibold text-stone uppercase tracking-wider">
                 Note
               </p>

@@ -4,7 +4,7 @@ import type { Product } from "@/lib/products";
 import { getBatchReportsForProduct } from "@/lib/batch-reports";
 import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 
-import { AnimateIn } from "./animate-in";
+import { ScrollReveal } from "@/components/motion/scroll-reveal";
 import { BatchTestingCard } from "./batch-testing-card";
 import { SectionShell } from "./section-shell";
 
@@ -23,8 +23,8 @@ export function ProductTesting({ product }: { product: Product }) {
       width="prose"
     >
       <div className="flex flex-col gap-5">
-        <AnimateIn>
-          <div className="premium-card p-6 md:p-7">
+        <ScrollReveal>
+          <div className="public-section-card p-6 md:p-8">
             <div className="mb-4 flex flex-wrap gap-2">
               <span className="badge-verified">
                 {hasReport ? "Original report available" : "No published report yet"}
@@ -43,12 +43,12 @@ export function ProductTesting({ product }: { product: Product }) {
               Browse all batch reports →
             </Link>
           </div>
-        </AnimateIn>
+        </ScrollReveal>
 
         {reports.map((report) => (
-          <AnimateIn key={`${report.batch}-${report.taskNumber}`}>
+          <ScrollReveal key={`${report.batch}-${report.taskNumber}`}>
             <BatchTestingCard report={report} />
-          </AnimateIn>
+          </ScrollReveal>
         ))}
       </div>
     </SectionShell>

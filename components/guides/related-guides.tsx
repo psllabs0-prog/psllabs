@@ -34,7 +34,7 @@ export function RelatedGuides({
             key={guide.slug}
             href={`/guides/${guide.slug}`}
             onClick={() => trackRelatedGuideClick(guide.slug, currentSlug)}
-            className="group flex flex-col justify-between rounded-xl border border-linen bg-surface p-5 transition-all duration-200 hover:border-linen-dark hover:bg-paper/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            className="group flex flex-col justify-between public-section-card p-5 transition-colors duration-200 hover:border-linen-dark hover:bg-paper/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
           >
             <div className="flex flex-col gap-2.5">
               <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-stone">
@@ -50,7 +50,7 @@ export function RelatedGuides({
 
             <div className="mt-4 flex items-center justify-between border-t border-linen pt-3 text-xs font-mono text-stone">
               <span>{guide.readTime}</span>
-              <span className="flex items-center gap-1 font-medium text-accent transition-transform group-hover:translate-x-0.5">
+              <span className="flex items-center gap-1 font-medium text-accent transition-transform motion-safe:group-hover:translate-x-0.5">
                 Read guide
                 <ArrowRight className="size-3" aria-hidden />
               </span>

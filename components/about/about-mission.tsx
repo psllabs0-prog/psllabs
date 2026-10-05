@@ -2,7 +2,7 @@ import { AnimateIn } from "@/components/product/animate-in";
 import type { AboutContent } from "@/lib/about";
 import { cn } from "@/lib/utils";
 
-const cardClass = "premium-card p-6 md:p-7";
+const cardClass = "public-section-card p-6 md:p-7";
 
 type AboutMissionProps = {
   mission: AboutContent["mission"];

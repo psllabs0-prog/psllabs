@@ -131,7 +131,7 @@ export function ContactForm({ title, description }: ContactFormProps) {
   };
 
   return (
-    <div className="flex flex-col gap-8 rounded-md border border-linen bg-surface p-8 md:p-10 lg:p-12">
+    <div className="public-section-card flex flex-col gap-8 p-5 sm:p-8 md:p-10 lg:p-12">
       <div className="flex flex-col gap-3 border-b border-linen pb-8">
         <p className="mono text-accent">INQUIRY</p>
         <h2 className="font-display text-2xl font-bold text-ink md:text-3xl">

@@ -12,10 +12,10 @@ export const metadata: Metadata = createPageMetadata({
 
 export default function CancelPage() {
   return (
-    <main className="bg-[var(--color-paper)]">
+    <main className="public-page-surface bg-[var(--color-paper)]">
       <div className="mx-auto flex min-h-[60vh] max-w-[720px] flex-col items-center justify-center px-6 py-24 text-center md:px-12 lg:px-24">
         <AnimateIn>
-          <p className="mono text-[var(--color-stone)]">CHECKOUT CANCELED</p>
+          <p className="mono text-ash">CHECKOUT CANCELED</p>
         </AnimateIn>
 
         <AnimateIn delay={0.08}>
@@ -25,7 +25,7 @@ export default function CancelPage() {
         </AnimateIn>
 
         <AnimateIn delay={0.16}>
-          <p className="mt-6 max-w-md text-base leading-relaxed text-[var(--color-stone)]">
+          <p className="mt-6 max-w-md text-base leading-relaxed text-ash">
             Your checkout was canceled before payment was processed. Your cart
             and selections are unchanged. You can return anytime.
           </p>
@@ -35,7 +35,7 @@ export default function CancelPage() {
           <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:gap-6">
             <Link
               href="/products"
-              className="inline-flex items-center justify-center rounded-md bg-[var(--color-sage)] px-6 py-3.5 text-base font-medium text-[var(--color-lab-white)] transition-opacity duration-200 ease-out hover:opacity-90"
+              className="inline-flex items-center justify-center rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page transition-opacity duration-200 ease-out hover:opacity-90"
             >
               Return to Products
             </Link>

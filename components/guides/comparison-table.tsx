@@ -21,7 +21,7 @@ export function ComparisonTable({
 }: ComparisonTableProps) {
   return (
     <div
-      className={`overflow-hidden rounded-xl border border-linen bg-surface ${className}`}
+      className={`overflow-hidden public-section-card ${className}`}
     >
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm border-collapse">

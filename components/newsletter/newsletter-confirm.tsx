@@ -88,7 +88,7 @@ export function NewsletterConfirm() {
   const message = MESSAGES[state];
 
   return (
-    <div className="premium-card mt-8 px-6 py-6 md:px-8">
+    <div className="premium-card public-section-card mt-8 px-6 py-6 md:px-8">
       {(state === "ready" || state === "submitting") && (
         <>
           <p className="text-sm leading-relaxed text-ash md:text-base">

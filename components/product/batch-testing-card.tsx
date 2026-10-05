@@ -53,15 +53,15 @@ export function BatchTestingCard({ report }: BatchTestingCardProps) {
         rows={batchReportToCertificateRows(report)}
       />
 
-      <div className="rounded-md border border-linen bg-surface p-5 md:p-6">
+      <div className="public-section-card p-5 md:p-8">
         <p className="text-sm leading-relaxed text-ash">
           {TESTING_SCOPE_STATEMENT} Results are batch-specific and do not apply
           to other lots.
         </p>
 
-        <div className="mt-5 grid gap-3 rounded-md border border-border-strong bg-paper p-4 sm:grid-cols-2">
+        <div className="mt-5 grid gap-5 rounded-xl border border-border-strong bg-paper/70 p-5 sm:grid-cols-2">
           <div>
-            <p className="font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-stone">
+            <p className="font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-ash">
               Label amount
             </p>
             <p className="mt-1 font-mono text-xl font-medium text-ink">
@@ -70,7 +70,7 @@ export function BatchTestingCard({ report }: BatchTestingCardProps) {
             <p className="mt-1 text-xs text-ash">Amount printed on the vial label</p>
           </div>
           <div>
-            <p className="font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-stone">
+            <p className="font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-ash">
               {amount.label}
             </p>
             <p className="mt-1 font-mono text-xl font-medium text-ink">
@@ -81,7 +81,7 @@ export function BatchTestingCard({ report }: BatchTestingCardProps) {
         </div>
         <p className="mt-2 text-xs leading-relaxed text-ash">{BATCH_SCOPE_NOTE}</p>
 
-        <div className="mt-6 overflow-hidden rounded-md border border-linen bg-paper">
+        <div className="mt-6 overflow-hidden rounded-xl border border-linen bg-paper shadow-[0_12px_32px_-18px_rgba(0,0,0,0.8)]">
           <a
             href={report.reportUrl}
             target="_blank"
@@ -133,7 +133,7 @@ export function BatchTestingCard({ report }: BatchTestingCardProps) {
           Use the unique verification key shown on the original report.
         </p>
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-linen pt-3 text-xs font-mono text-stone">
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-linen pt-3 text-xs font-mono text-ash">
           <span>Guides:</span>
           <Link
             href="/guides/peptide-purity-vs-content"

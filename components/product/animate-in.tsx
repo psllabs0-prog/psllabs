@@ -1,36 +1,29 @@
-"use client";
+import type { HTMLAttributes } from "react";
 
-import { motion, type HTMLMotionProps } from "framer-motion";
+import { ScrollReveal } from "@/components/motion/scroll-reveal";
 
-import { cn } from "@/lib/utils";
-
-type AnimateInProps = HTMLMotionProps<"div"> & {
+type AnimateInProps = HTMLAttributes<HTMLDivElement> & {
   delay?: number;
   y?: number;
 };
 
-/**
- * Light entrance motion without hiding text from crawlers or first paint.
- * Content stays fully visible in SSR HTML and before hydration.
- */
+/** Keep the existing layout API while sharing the site's accessible replay motion. */
 export function AnimateIn({
   children,
   className,
   delay = 0,
-  y: _y = 8,
+  y = 24,
   ...props
 }: AnimateInProps) {
   return (
-    <motion.div
-      initial={false}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-64px" }}
-      transition={{ duration: 0.3, ease: "easeOut", delay }}
-      style={{ opacity: 1, transform: "none" }}
-      className={cn(className)}
+    <ScrollReveal
       {...props}
+      className={className}
+      delayMs={delay * 1000}
+      distancePx={y}
+      contentClassName="w-full min-w-0 [display:inherit] [flex-direction:inherit] [flex-wrap:inherit] [align-items:inherit] [justify-content:inherit] [gap:inherit] [grid-template-columns:inherit]"
     >
       {children}
-    </motion.div>
+    </ScrollReveal>
   );
 }

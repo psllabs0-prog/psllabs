@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import { ContactForm } from "@/components/contact/contact-form";
 import { ContactInfoPanel } from "@/components/contact/contact-info-panel";
-import { AnimateIn } from "@/components/product/animate-in";
 import { contactPage } from "@/lib/contact";
 import { createPageMetadata } from "@/lib/seo";
 import { getDiscordInviteUrl } from "@/lib/social";
@@ -18,7 +17,7 @@ export default function ContactPage() {
   const discordInviteUrl = getDiscordInviteUrl();
 
   return (
-    <main className="relative bg-paper">
+    <main className="public-page-surface relative bg-paper">
       <div className="relative mx-auto max-w-[1440px] px-6 py-16 md:px-16 md:py-20 lg:px-24 lg:py-24">
         <div className="grid grid-cols-1 items-start gap-14 lg:grid-cols-2 lg:gap-16 xl:gap-24">
           <ContactInfoPanel
@@ -26,12 +25,12 @@ export default function ContactPage() {
             discordInviteUrl={discordInviteUrl}
           />
 
-          <AnimateIn delay={0.12} className="lg:sticky lg:top-28">
+          <div className="lg:sticky lg:top-28">
             <ContactForm
               title={contactPage.formTitle}
               description={contactPage.formDescription}
             />
-          </AnimateIn>
+          </div>
         </div>
       </div>
     </main>

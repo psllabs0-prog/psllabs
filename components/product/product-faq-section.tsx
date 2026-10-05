@@ -1,6 +1,6 @@
 import type { Product } from "@/lib/products";
 
-import { AnimateIn } from "./animate-in";
+import { ScrollReveal } from "@/components/motion/scroll-reveal";
 import { ProductFaq } from "./product-faq";
 import { SectionShell } from "./section-shell";
 
@@ -12,9 +12,9 @@ export function ProductFaqSection({ product }: { product: Product }) {
       variant="ice"
       width="prose"
     >
-      <AnimateIn>
+      <ScrollReveal>
         <ProductFaq faqs={product.faqs} />
-      </AnimateIn>
+      </ScrollReveal>
     </SectionShell>
   );
 }

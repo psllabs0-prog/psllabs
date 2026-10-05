@@ -26,8 +26,8 @@ export default async function UnsubscribePage({
     : "/api/marketing/unsubscribe";
 
   return (
-    <main className="min-h-screen bg-page px-6 py-16 md:px-16">
-      <div className="mx-auto max-w-lg">
+    <main className="public-page-surface min-h-screen bg-page px-6 py-16 md:px-16">
+      <div className="public-section-card mx-auto max-w-xl p-6 md:p-10">
         <h1 className="font-display text-display-lg font-bold text-ink">
           Marketing email preferences
         </h1>
@@ -51,7 +51,7 @@ export default async function UnsubscribePage({
             </p>
             <button
               type="submit"
-              className="mt-4 rounded-md bg-ink px-4 py-2 text-sm font-medium text-white"
+              className="mt-4 min-h-11 rounded-pill bg-accent px-5 py-3 text-sm font-medium text-page"
             >
               Unsubscribe
             </button>

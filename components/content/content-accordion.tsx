@@ -25,7 +25,7 @@ export function ContentAccordion({
     <Accordion
       multiple={multiple}
       className={cn(
-        "premium-card overflow-hidden",
+        "public-section-card overflow-hidden",
         className
       )}
     >

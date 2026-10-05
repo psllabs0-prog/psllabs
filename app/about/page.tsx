@@ -78,10 +78,10 @@ export default function AboutPage() {
   ];
 
   return (
-    <main className="bg-paper">
+    <main className="public-page-surface">
       <AboutHero hero={hero} />
 
-      <section className="section-surface-soft px-6 py-14 md:px-16 md:py-20 lg:px-24">
+      <section className="px-6 py-14 md:px-16 md:py-20 lg:px-24">
         <div className="mx-auto flex max-w-[960px] flex-col gap-10 md:gap-14">
           <AnimateIn>
             <div className="flex flex-col gap-3">
@@ -100,7 +100,7 @@ export default function AboutPage() {
               const Icon = section.icon;
               return (
                 <AnimateIn key={section.id} delay={0.06 * index}>
-                  <article className="premium-card flex h-full flex-col justify-between p-6 md:p-8">
+                  <article className="public-section-card flex h-full flex-col justify-between p-6 md:p-8">
                     <div className="flex flex-col gap-4">
                       <div className="flex items-center gap-3">
                         <div className="flex size-10 items-center justify-center rounded-lg border border-border-strong bg-paper text-accent">
