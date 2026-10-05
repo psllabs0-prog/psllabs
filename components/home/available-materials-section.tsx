@@ -4,6 +4,7 @@ import { CheckCircle2, FileText } from "lucide-react";
 import { ProductVialImage } from "@/components/product/product-vial-image";
 import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
 import { PillButton } from "@/components/ui/pill-button";
+import { ScrollReveal } from "@/components/motion/scroll-reveal";
 import { formatPrice } from "@/lib/cart/format";
 import { hasAvailableReport } from "@/lib/batch-reports";
 import type { ProductAvailability } from "@/lib/inventory/availability";
@@ -21,7 +22,8 @@ export function AvailableMaterialsSection({
   return (
     <section className="border-t border-linen bg-paper px-6 py-14 md:px-12 md:py-20 lg:px-16 xl:px-20">
       <div className="mx-auto max-w-[1440px]">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <ScrollReveal>
+          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="flex max-w-2xl flex-col gap-2">
             <p className="mono text-accent">THE CATALOG</p>
             <h2 className="font-display text-2xl font-bold tracking-[-0.02em] text-ink md:text-3xl">
@@ -37,18 +39,17 @@ export function AvailableMaterialsSection({
           >
             Browse all products →
           </Link>
-        </div>
+          </div>
+        </ScrollReveal>
 
         <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-          {products.map((product) => {
+          {products.map((product, index) => {
             const availability = availabilityMap.get(product.handle);
             const isDocPublished = hasAvailableReport(product.handle);
 
             return (
-              <article
-                key={product.handle}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-border-strong bg-surface transition-colors duration-200 hover:border-accent/35"
-              >
+              <ScrollReveal key={product.handle} className="h-full" delayMs={(index % 3) * 70}>
+                <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border-strong bg-surface transition-colors duration-200 hover:border-accent/35">
                 <Link href={product.href} aria-label={`View ${product.name}`} className="relative block border-b border-linen bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent">
                   <ProductVialImage
                     src={product.imageSrc}
@@ -116,7 +117,8 @@ export function AvailableMaterialsSection({
                     </PillButton>
                   </div>
                 </div>
-              </article>
+                </article>
+              </ScrollReveal>
             );
           })}
         </div>

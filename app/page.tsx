@@ -5,6 +5,7 @@ import { HeroSection } from "@/components/home/hero-section";
 import { NewsletterSignup } from "@/components/home/newsletter-signup";
 import { WhyChooseSection } from "@/components/home/why-choose-section";
 import { JsonLd } from "@/components/seo/json-ld";
+import { ScrollReveal } from "@/components/motion/scroll-reveal";
 import { getAvailabilityForCatalogHandles } from "@/lib/inventory/availability";
 import { newsletterSignupVariant } from "@/lib/newsletter/config";
 import { getNewsletterWelcomeSchemaState } from "@/lib/newsletter/schema";
@@ -64,7 +65,9 @@ export default async function Home({
         availabilityMap={availabilityMap}
       />
       <WhyChooseSection cards={whyChooseCards} />
-      <NewsletterSignup variant={signupVariant} />
+      <ScrollReveal>
+        <NewsletterSignup variant={signupVariant} />
+      </ScrollReveal>
     </main>
   );
 }
