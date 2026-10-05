@@ -156,6 +156,13 @@ export type CeoDecisionSnapshot = {
   highPriorityCount: number;
 };
 
+export type CeoPartnerSnapshot = {
+  activePartners: number;
+  followUpsDue: number;
+  paidOrders: number;
+  paidOrderRevenueUsd: number;
+};
+
 export type CeoWeeklyBrief = {
   periodStart: string;
   periodEnd: string;
@@ -171,6 +178,7 @@ export type CeoWeeklyBrief = {
   fulfillment?: CeoFulfillmentSnapshot;
   customerIntelligence?: CeoCustomerIntelligenceSnapshot;
   decisions?: CeoDecisionSnapshot;
+  partners?: CeoPartnerSnapshot;
   actions: CeoLukeAction[];
 };
 

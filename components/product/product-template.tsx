@@ -28,13 +28,13 @@ export function ProductTemplate({
     <ProductQuantityProvider unitPrice={product.price}>
       <main className="bg-[var(--color-paper)] pb-28 lg:pb-0">
         <ProductHero product={product} availability={availability} />
-        <ProductWhy product={product} />
-        <ProductIngredients product={product} />
-        <ProductStack product={product} others={otherProducts} />
         <ProductTesting product={product} />
+        <ProductIngredients product={product} />
+        <ProductFaqSection product={product} />
+        <ProductWhy product={product} />
         <ProductHowToUse product={product} />
         <ProductResearch product={product} />
-        <ProductFaqSection product={product} />
+        <ProductStack product={product} others={otherProducts} />
         {product.researchDisclaimer ? (
           <ProductDisclaimer>{product.researchDisclaimer}</ProductDisclaimer>
         ) : (

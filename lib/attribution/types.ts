@@ -56,11 +56,13 @@ export type StoredAttributionState = {
   lastPaid: AttributionTouch | null;
   /** Most recent owned-email visit (utm_medium=email). Never replaces a paid touch. */
   lastEmail?: AttributionTouch | null;
+  /** Last partner referral; retained separately from paid ads and email. */
+  lastAffiliate?: AttributionTouch | null;
 };
 
 /**
  * Snapshot persisted on the order. Primary fields come from lastPaid, then
- * firstPaid, and only fall back to lastEmail when no paid touch exists.
+ * firstPaid, and fall back to the latest email or affiliate touch without paid data.
  */
 export type OrderAttribution = {
   /** Measurement choice captured at checkout; true suppresses OpenAI events. */
@@ -83,4 +85,6 @@ export type OrderAttribution = {
   lastPaid: AttributionTouch | null;
   lastEmail?: AttributionTouch | null;
   lastEmailTouchAt?: string | null;
+  lastAffiliate?: AttributionTouch | null;
+  lastAffiliateTouchAt?: string | null;
 };

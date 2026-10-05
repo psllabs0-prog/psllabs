@@ -43,11 +43,25 @@ export function isEmailTouch(touch: TouchFields): boolean {
   return !hasClickId(touch) && (touch.utmMedium ?? "").trim().toLowerCase() === "email";
 }
 
+/** A partner referral is measurement evidence, never a commission entitlement. */
+export function isAffiliateTouch(touch: TouchFields): boolean {
+  return !hasClickId(touch) &&
+    (touch.utmMedium ?? "").trim().toLowerCase() === "affiliate" &&
+    (touch.utmSource ?? "").trim().toLowerCase() === "affiliate" &&
+    /^[a-z0-9][a-z0-9_-]{2,63}$/i.test(touch.utmContent ?? "");
+}
+
+function normalizeAffiliateTouch(touch: AttributionTouch): AttributionTouch {
+  return isAffiliateTouch(touch)
+    ? { ...touch, utmSource: "affiliate", utmMedium: "affiliate", utmContent: touch.utmContent!.toLowerCase() }
+    : touch;
+}
+
 export function isPaidTouch(touch: TouchFields): boolean {
   if (hasClickId(touch)) {
     return true;
   }
-  if (isEmailTouch(touch)) {
+  if (isEmailTouch(touch) || (touch.utmMedium ?? "").trim().toLowerCase() === "affiliate") {
     return false;
   }
   const medium = (touch.utmMedium ?? "").toLowerCase();
@@ -98,14 +112,14 @@ export function parseTouchFromSearchParams(
     capturedAt: new Date().toISOString(),
   };
 
-  if (!isPaidTouch(touch) && !isEmailTouch(touch)) {
+  if (!isPaidTouch(touch) && !isEmailTouch(touch) && !isAffiliateTouch(touch)) {
     return null;
   }
 
   // Prefer a stable landing path without leaking long query strings beyond UTMs.
   touch.landingPage = cleanField(buildLandingPage(pathname, params));
 
-  return touch;
+  return normalizeAffiliateTouch(touch);
 }
 
 function buildLandingPage(
@@ -146,7 +160,7 @@ function isWithinWindow(iso: string | null | undefined, now = Date.now()): boole
   if (!iso) return false;
   const ts = Date.parse(iso);
   if (Number.isNaN(ts)) return false;
-  return now - ts <= ATTRIBUTION_WINDOW_MS;
+  return ts <= now + 5 * 60 * 1000 && now - ts <= ATTRIBUTION_WINDOW_MS;
 }
 
 function latest(...touches: Array<AttributionTouch | null | undefined>): AttributionTouch | null {
@@ -159,7 +173,7 @@ function latest(...touches: Array<AttributionTouch | null | undefined>): Attribu
 
 /**
  * Drop expired touches. Direct visits never clear this; only time does.
- * Email touches stored as "paid" by older clients are moved to lastEmail.
+ * Email and affiliate touches stored as "paid" by older clients are reclassified.
  */
 export function pruneStoredAttribution(
   state: StoredAttributionState | null,
@@ -169,28 +183,36 @@ export function pruneStoredAttribution(
     return { firstPaid: null, lastPaid: null, lastEmail: null };
   }
   const live = (t: AttributionTouch | null | undefined) =>
-    t && isWithinWindow(t.capturedAt, now) ? t : null;
+    t && isWithinWindow(t.capturedAt, now) ? normalizeAffiliateTouch(t) : null;
   const rawFirst = live(state.firstPaid);
   const rawLast = live(state.lastPaid);
-  const firstPaid = rawFirst && !isEmailTouch(rawFirst) ? rawFirst : null;
-  const lastPaid = rawLast && !isEmailTouch(rawLast) ? rawLast : null;
+  const firstPaid = rawFirst && isPaidTouch(rawFirst) ? rawFirst : null;
+  const lastPaid = rawLast && isPaidTouch(rawLast) ? rawLast : null;
   const lastEmail = latest(
     live(state.lastEmail),
     rawFirst && isEmailTouch(rawFirst) ? rawFirst : null,
     rawLast && isEmailTouch(rawLast) ? rawLast : null
+  );
+  const storedAffiliate = live(state.lastAffiliate);
+  const lastAffiliate = latest(
+    storedAffiliate && isAffiliateTouch(storedAffiliate) ? storedAffiliate : null,
+    rawFirst && isAffiliateTouch(rawFirst) ? rawFirst : null,
+    rawLast && isAffiliateTouch(rawLast) ? rawLast : null
   );
   // If last expired but first remains (shouldn't usually), keep first only.
   return {
     firstPaid: firstPaid,
     lastPaid: lastPaid ?? firstPaid,
     lastEmail,
+    ...(lastAffiliate ? { lastAffiliate } : {}),
   };
 }
 
 /**
  * Merge a new tagged landing into stored state. Paid landings update
  * first/last paid; email landings only update lastEmail, so an email visit
- * never overwrites paid attribution. Direct / organic landings pass null.
+ * never overwrites paid attribution. Affiliate visits likewise keep a separate
+ * lastAffiliate touch. Direct / organic landings pass null.
  */
 export function mergePaidTouch(
   previous: StoredAttributionState | null,
@@ -204,11 +226,15 @@ export function mergePaidTouch(
   if (isEmailTouch(incoming)) {
     return { ...pruned, lastEmail: incoming };
   }
+  if (isAffiliateTouch(incoming)) {
+    return { ...pruned, lastAffiliate: normalizeAffiliateTouch(incoming) };
+  }
+  if (!isPaidTouch(incoming)) return pruned;
 
   const firstPaid = pruned.firstPaid ?? incoming;
   const lastPaid = incoming;
 
-  return { firstPaid, lastPaid, lastEmail: pruned.lastEmail ?? null };
+  return { ...pruned, firstPaid, lastPaid, lastEmail: pruned.lastEmail ?? null };
 }
 
 export function toOrderAttribution(
@@ -216,7 +242,8 @@ export function toOrderAttribution(
 ): OrderAttribution | null {
   const pruned = pruneStoredAttribution(state);
   const lastEmail = pruned.lastEmail ?? null;
-  const primary = pruned.lastPaid ?? pruned.firstPaid ?? lastEmail;
+  const lastAffiliate = pruned.lastAffiliate ?? null;
+  const primary = pruned.lastPaid ?? pruned.firstPaid ?? latest(lastEmail, lastAffiliate);
   if (!primary) return null;
 
   return {
@@ -238,6 +265,7 @@ export function toOrderAttribution(
     lastPaid: pruned.lastPaid,
     lastEmail,
     lastEmailTouchAt: lastEmail?.capturedAt ?? null,
+    ...(lastAffiliate ? { lastAffiliate, lastAffiliateTouchAt: lastAffiliate.capturedAt } : {}),
   };
 }
 
@@ -250,6 +278,8 @@ export function sanitizeAttributionFromBody(
   const anyTouchFrom = (value: unknown): AttributionTouch | null => {
     if (!value || typeof value !== "object") return null;
     const t = value as Record<string, unknown>;
+    const capturedAt = typeof t.capturedAt === "string" && !Number.isNaN(Date.parse(t.capturedAt))
+      ? new Date(t.capturedAt).toISOString() : null;
     const touch: AttributionTouch = {
       utmSource: cleanField(typeof t.utmSource === "string" ? t.utmSource : null),
       utmMedium: cleanField(typeof t.utmMedium === "string" ? t.utmMedium : null),
@@ -269,15 +299,17 @@ export function sanitizeAttributionFromBody(
       msclkid: cleanField(typeof t.msclkid === "string" ? t.msclkid : null),
       ttclid: cleanField(typeof t.ttclid === "string" ? t.ttclid : null),
       oppref: cleanOpenAIReference(t.oppref),
-      capturedAt:
-        typeof t.capturedAt === "string" && !Number.isNaN(Date.parse(t.capturedAt))
-          ? new Date(t.capturedAt).toISOString()
-          : new Date().toISOString(),
+      capturedAt: capturedAt ?? new Date().toISOString(),
     };
+    // New partner attribution requires a real capture date. Preserve the legacy
+    // missing-date fallback for paid/email data without renewing an invalid referral.
+    if (isAffiliateTouch(touch)) return capturedAt ? normalizeAffiliateTouch(touch) : null;
     return isPaidTouch(touch) || isEmailTouch(touch) ? touch : null;
   };
   const paidOnly = (t: AttributionTouch | null) => (t && isPaidTouch(t) ? t : null);
   const emailOnly = (t: AttributionTouch | null) => (t && isEmailTouch(t) ? t : null);
+  const affiliateOnly = (t: AttributionTouch | null) =>
+    (t && isAffiliateTouch(t) && isWithinWindow(t.capturedAt) ? t : null);
 
   const rawFirst = anyTouchFrom(obj.firstPaid);
   const rawLast = anyTouchFrom(obj.lastPaid);
@@ -294,7 +326,9 @@ export function sanitizeAttributionFromBody(
     msclkid: obj.msclkid,
     ttclid: obj.ttclid,
     oppref: cleanOpenAIReference(obj.oppref),
-    capturedAt: obj.lastPaidTouchAt ?? obj.firstPaidTouchAt ?? obj.lastEmailTouchAt,
+    capturedAt: typeof obj.utmMedium === "string" && obj.utmMedium.trim().toLowerCase() === "affiliate"
+      ? obj.lastAffiliateTouchAt
+      : obj.lastPaidTouchAt ?? obj.firstPaidTouchAt ?? obj.lastEmailTouchAt,
   });
   const firstPaid = paidOnly(rawFirst);
   const lastPaid = paidOnly(rawLast);
@@ -305,7 +339,13 @@ export function sanitizeAttributionFromBody(
     emailOnly(rawLast),
     paidPrimary ? null : emailOnly(rawTop)
   );
-  const primary = paidPrimary ?? lastEmail;
+  const lastAffiliate = latest(
+    affiliateOnly(anyTouchFrom(obj.lastAffiliate)),
+    affiliateOnly(rawFirst),
+    affiliateOnly(rawLast),
+    paidPrimary ? null : affiliateOnly(rawTop)
+  );
+  const primary = paidPrimary ?? latest(lastEmail, lastAffiliate);
 
   if (!primary) {
     if (obj.openaiAdsMeasurementOptOut !== true) return null;
@@ -342,5 +382,6 @@ export function sanitizeAttributionFromBody(
     lastPaid: resolvedLast,
     lastEmail,
     lastEmailTouchAt: lastEmail?.capturedAt ?? null,
+    ...(lastAffiliate ? { lastAffiliate, lastAffiliateTouchAt: lastAffiliate.capturedAt } : {}),
   };
 }

@@ -8,7 +8,8 @@ import { AnimateIn } from "./animate-in";
 import { MobileStickyCart } from "./mobile-sticky-cart";
 import { ProductDisclaimer } from "./product-disclaimer";
 import { ProductFaqSection } from "./product-faq-section";
-import { ProductGallery } from "./product-gallery";
+import { ProductVialImage } from "./product-vial-image";
+import { getProductImage } from "@/lib/products/images";
 import { ProductPurchase } from "./product-purchase";
 import { ProductQuantityProvider } from "./product-quantity-provider";
 import { ProductSpecificationsTable } from "./product-specifications-table";
@@ -26,79 +27,72 @@ export function ResearchPeptideTemplate({
 }: ResearchPeptideTemplateProps) {
   const catalog = getCatalogProductByHandle(product.handle);
   const hasReport = hasAvailableReport(product.handle);
+  const fallbackImage = getProductImage(product.handle);
 
   return (
     <ProductQuantityProvider unitPrice={product.price}>
       <main className="bg-paper pb-28 lg:pb-0">
-        {/* Above the Fold: Product Hero with Name, RUO Classification, Nominal Quantity, Price, Stock, Add to Cart, Compact COA Status */}
-        <section className="section-surface-ice mx-auto max-w-[1440px] px-6 py-12 md:px-16 md:py-16 lg:px-24 lg:py-20">
-          <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-16 xl:gap-20">
-            <AnimateIn y={16}>
-              <div className="mx-auto w-full max-w-[520px] overflow-hidden rounded-md border border-linen lg:max-w-none">
-                <ProductGallery
-                  productName={product.name}
-                  imageSrc={product.imageSrc}
-                  imageAlt={product.imageAlt}
+        <section className="section-surface-ice mx-auto max-w-[1440px] px-6 pb-12 pt-5 md:px-16 md:pb-16 lg:px-24 lg:pb-20">
+          <Link href="/products" className="mb-6 inline-flex items-center gap-2 text-sm text-ash underline-offset-4 hover:text-ink hover:underline">
+            <ArrowLeft className="size-3.5" aria-hidden /> All products
+          </Link>
+          <div className="grid grid-cols-1 gap-y-6 lg:grid-cols-2 lg:grid-rows-[auto_1fr] lg:gap-x-16 xl:gap-x-20">
+            <AnimateIn className="lg:col-start-2 lg:row-start-1">
+              <p className="mono mb-3 text-accent">For laboratory research</p>
+              <div className="flex flex-wrap items-baseline gap-3">
+                <h1 className="font-display text-display-lg font-bold text-ink">
+                  {product.name}
+                </h1>
+                {catalog?.strength && (
+                  <span className="font-mono text-xl font-normal text-ash md:text-2xl">
+                    {catalog.strength}
+                  </span>
+                )}
+              </div>
+              <p className="mt-3 text-xs leading-relaxed text-ash">Not for human or veterinary use.</p>
+            </AnimateIn>
+
+            <AnimateIn y={16} className="lg:col-start-1 lg:row-span-2 lg:row-start-1">
+              <div className="mx-auto w-full max-w-[520px] overflow-hidden rounded-2xl border border-border-strong shadow-[0_18px_60px_-30px_rgba(0,0,0,0.7)] lg:sticky lg:top-24 lg:max-w-none">
+                <ProductVialImage
+                  src={product.imageSrc ?? fallbackImage.src}
+                  alt={product.imageAlt ?? fallbackImage.alt}
+                  context="product"
+                  priority
+                  bordered={false}
+                  rounded="none"
+                  className="aspect-[4/3] lg:aspect-[4/5]"
                 />
               </div>
             </AnimateIn>
 
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-5 lg:col-start-2 lg:row-start-2">
               <AnimateIn delay={0.08}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="mono text-ash">{product.tag}</p>
-                  <span className="mono text-ash">·</span>
-                  <span className="mono text-accent">RUO</span>
-                </div>
+                <p className="text-base leading-relaxed text-ash md:text-body-lg">{product.shortDescription}</p>
               </AnimateIn>
 
               <AnimateIn delay={0.12}>
-                <div className="flex flex-wrap items-baseline gap-3">
-                  <h1 className="font-display text-display-lg font-bold text-ink">
-                    {product.name}
-                  </h1>
-                  {catalog?.strength && (
-                    <span className="font-mono text-2xl font-normal text-ash">
-                      {catalog.strength}
-                    </span>
-                  )}
-                </div>
-              </AnimateIn>
-
-              <AnimateIn delay={0.16}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="badge-verified">Research use only</span>
-                  <span className="badge-accent">Analytical reference standard</span>
-                </div>
-              </AnimateIn>
-
-              {/* Compact third-party documentation status */}
-              <AnimateIn delay={0.2}>
-                <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-lg border border-verified-green/30 bg-verified-green/5 px-4 py-3 text-xs">
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border-strong bg-surface px-4 py-3 text-sm">
                   <div className="flex items-center gap-2">
-                    <span className="size-2 rounded-full bg-verified-green" aria-hidden />
-                    <span className="font-mono font-medium text-ink">
+                    <FileText className="size-4 shrink-0 text-accent" aria-hidden />
+                    <span className="text-ink">
                       {hasReport
-                        ? "Third-party lab report published (Janoshik)"
-                        : "Third-party documentation pending release"}
+                        ? "Janoshik batch report available"
+                        : "Batch report not yet published"}
                     </span>
                   </div>
                   {hasReport && (
                     <a
                       href="#batch-testing"
-                      className="mono font-semibold text-accent underline underline-offset-2 hover:opacity-80"
+                      className="inline-flex items-center gap-1 text-accent underline underline-offset-4 hover:opacity-80"
                     >
-                      View lab report ↓
+                      Read the report <ArrowDown className="size-3.5" aria-hidden />
                     </a>
                   )}
                 </div>
               </AnimateIn>
 
-              <AnimateIn delay={0.24}>
-                <p className="text-body-lg text-ash">{product.shortDescription}</p>
-              </AnimateIn>
-
-              <AnimateIn delay={0.28}>
+              <AnimateIn delay={0.16}>
                 <ProductPurchase
                   productHandle={product.handle}
                   stockStatus={product.stockStatus}
@@ -112,10 +106,12 @@ export function ResearchPeptideTemplate({
         {/* Immediately Below: Batch / Lab / Task / Date / Result with "View Original Report" & "Verify Independently" */}
         <ProductTesting product={product} />
 
+        <ProductFaqSection product={product} />
+
         {/* Decision Layer Support: Analytical Scope & Limitations */}
         <SectionShell
           label="LAB REPORT"
-          title="How to read the lab report."
+          title="What the results mean"
           variant="ice"
           width="prose"
         >
@@ -126,7 +122,7 @@ export function ResearchPeptideTemplate({
         {product.specifications && product.specifications.length > 0 && (
           <SectionShell
             label="SPECIFICATIONS"
-            title="Research specifications."
+            title="Product specifications"
             variant="white"
             width="prose"
           >
@@ -137,7 +133,7 @@ export function ResearchPeptideTemplate({
         {/* Deeper Compound Overview */}
         <SectionShell
           label="DESCRIPTION"
-          title="About this compound."
+          title={`About ${product.name}`}
           variant="ice"
           width="prose"
         >
@@ -152,9 +148,6 @@ export function ResearchPeptideTemplate({
             ))}
           </div>
         </SectionShell>
-
-        {/* Product FAQs */}
-        <ProductFaqSection product={product} />
 
         {/* Research Disclaimer */}
         <ProductDisclaimer>
@@ -172,3 +165,5 @@ export function ResearchPeptideTemplate({
     </ProductQuantityProvider>
   );
 }
+import Link from "next/link";
+import { ArrowLeft, ArrowDown, FileText } from "lucide-react";

@@ -13,6 +13,7 @@ import type {
   CeoWeeklyBrief,
   CeoCustomerIntelligenceSnapshot,
   CeoDecisionSnapshot,
+  CeoPartnerSnapshot,
 } from "./types";
 
 function buildExecutiveSummary(input: {
@@ -295,6 +296,7 @@ export function composeWeeklyBrief(input: {
   fulfillment?: CeoFulfillmentSnapshot;
   customerIntelligence?: CeoCustomerIntelligenceSnapshot;
   decisions?: CeoDecisionSnapshot;
+  partners?: CeoPartnerSnapshot;
 }): CeoWeeklyBrief {
   const actions: CeoLukeAction[] = selectLukeActions(
     buildLukeActionCandidates(input)
@@ -328,6 +330,7 @@ export function composeWeeklyBrief(input: {
     fulfillment: input.fulfillment,
     customerIntelligence: input.customerIntelligence,
     decisions: input.decisions,
+    partners: input.partners,
     actions,
   };
 }

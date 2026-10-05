@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { AdminOpsDashboard } from "@/components/admin/admin-ops-dashboard";
@@ -25,11 +26,8 @@ export function AdminOpsTabs({ initialTab }: { initialTab: AdminOpsTab }) {
 
   return (
     <div>
-      <nav
-        role="tablist"
-        aria-label="Operations views"
-        className="mx-auto mb-8 flex max-w-5xl gap-6 border-b border-zinc-200 text-sm"
-      >
+      <nav aria-label="Operations" className="mx-auto mb-8 flex max-w-5xl flex-wrap items-end justify-between gap-x-6 gap-y-2 border-b border-zinc-200 text-sm">
+        <div role="tablist" aria-label="Operations views" className="flex gap-6">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -37,7 +35,7 @@ export function AdminOpsTabs({ initialTab }: { initialTab: AdminOpsTab }) {
             role="tab"
             aria-selected={tab === t.id}
             onClick={() => select(t.id)}
-            className={`-mb-px border-b-2 pb-2 ${
+            className={`-mb-px min-h-11 border-b-2 py-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
               tab === t.id
                 ? "border-ink font-medium text-ink"
                 : "border-transparent text-ash hover:text-ink"
@@ -46,9 +44,15 @@ export function AdminOpsTabs({ initialTab }: { initialTab: AdminOpsTab }) {
             {t.label}
           </button>
         ))}
-        <a href="/admin-social" className="ml-auto pb-2 text-ash hover:text-ink">
-          X post queue
-        </a>
+        </div>
+        <div className="flex flex-wrap gap-4">
+          <Link href="/admin-partners" className="inline-flex min-h-11 items-center py-2 text-ash hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+            Partners
+          </Link>
+          <Link href="/admin-social" className="inline-flex min-h-11 items-center py-2 text-ash hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+            X post queue
+          </Link>
+        </div>
       </nav>
       {tab === "overview" ? (
         <div className="mx-auto max-w-3xl">
