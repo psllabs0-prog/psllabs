@@ -80,24 +80,33 @@ function money(n: number | null | undefined): string {
   return `$${n.toFixed(2)}`;
 }
 
+async function requestDashboard(signal?: AbortSignal): Promise<Dashboard> {
+  const response = await fetch("/api/admin/acquisition", { cache: "no-store", signal });
+  if (!response.ok) throw new Error("Could not load acquisition data.");
+  return response.json() as Promise<Dashboard>;
+}
+
 export function AdminAcquisitionDashboard() {
   const [data, setData] = useState<Dashboard | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    setError(null);
-    const res = await fetch("/api/admin/acquisition");
-    if (!res.ok) {
-      setError("Failed to load acquisition dashboard.");
-      return;
-    }
-    setData((await res.json()) as Dashboard);
+  const refresh = useCallback((signal?: AbortSignal) => {
+    return requestDashboard(signal).then((dashboard) => {
+      if (!signal?.aborted) {
+        setData(dashboard);
+        setError(null);
+      }
+    }).catch(() => {
+      if (!signal?.aborted) setError("Could not load acquisition data. Please try again.");
+    });
   }, []);
 
   useEffect(() => {
-    void refresh();
+    const controller = new AbortController();
+    void refresh(controller.signal);
+    return () => controller.abort();
   }, [refresh]);
 
   async function runSync() {
@@ -140,9 +149,17 @@ export function AdminAcquisitionDashboard() {
             Acquisition intelligence
           </h1>
           <p className="mt-2 text-sm text-ash">
-            Analysis only — never creates or edits ad campaigns. PSL Neon orders
-            are the revenue source of truth.
+            Compare ad activity with confirmed PSL orders, then review the next
+            creative ideas before publishing.
           </p>
+          <a
+            href="https://chatgpt.com/space/page_5f024caac484819183b9d757a2a81fba"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 inline-flex min-h-11 items-center rounded-lg border border-linen px-4 py-2 text-sm font-medium text-ink hover:bg-ink/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            Open marketing review in ChatGPT
+          </a>
         </div>
         <button
           type="button"
@@ -157,9 +174,9 @@ export function AdminAcquisitionDashboard() {
       {error && <p className="text-sm text-red-700">{error}</p>}
       {message && <p className="text-sm text-ash">{message}</p>}
 
-      {!data ? (
+      {!data && !error ? (
         <p className="text-sm text-ash">Loading…</p>
-      ) : !data.hasPaidData ? (
+      ) : data && !data.hasPaidData ? (
         <p className="text-sm text-ash">No paid data yet.</p>
       ) : null}
 

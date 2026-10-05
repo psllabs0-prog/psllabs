@@ -4,12 +4,12 @@ import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
 
 export const heroCopy = {
   eyebrow: "PSL LABS · PHOENIX, ARIZONA",
-  headline: "Research peptides. Know your batch.",
+  headline: "Research peptides.",
   paragraph:
-    "Check the available stock and order directly from PSL Labs. Open the published batch reports and see what the lab measured before you buy.",
-  primaryCtaLabel: "Browse Products",
+    "Shop laboratory research materials, with the original batch reports right beside them. Orders ship from our team in Phoenix, Arizona.",
+  primaryCtaLabel: "Shop products",
   primaryCtaHref: "/products",
-  secondaryCtaLabel: "View Batch Reports",
+  secondaryCtaLabel: "Batch reports",
   secondaryCtaHref: "/coa",
   productImageAlt: PRODUCT_VIAL_IMAGE.alt,
   productImageSrc: PRODUCT_VIAL_IMAGE.src,

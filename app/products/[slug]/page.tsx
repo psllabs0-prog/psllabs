@@ -8,10 +8,10 @@ import { getProductAvailability } from "@/lib/inventory/availability";
 import { getOtherProducts, getProduct } from "@/lib/products";
 import {
   getCatalogProductByHandle,
-  getCatalogProductBySlug,
-  catalogProductSlugs,
-  getHandleFromSlug,
+  getActiveCatalogProducts,
 } from "@/lib/products/catalog";
+import { getPublicCatalogProduct } from "@/lib/products/public-catalog";
+import { skuToSlug } from "@/lib/products/slug";
 import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
 
@@ -22,30 +22,23 @@ type PageProps = {
 export const dynamic = "force-dynamic";
 
 export function generateStaticParams() {
-  return catalogProductSlugs().map((slug) => ({ slug }));
-}
-
-function resolveHandle(slug: string): string | undefined {
-  const fromCatalog = getHandleFromSlug(slug);
-  if (fromCatalog) return fromCatalog;
-  if (getProduct(slug)) return slug;
-  return undefined;
+  return getActiveCatalogProducts().map((product) => ({ slug: skuToSlug(product.sku) }));
 }
 
 export async function generateMetadata({
   params,
 }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const handle = resolveHandle(slug);
-  if (!handle) return { title: "Product not found" };
+  const catalog = getPublicCatalogProduct(slug);
+  if (!catalog) return { title: "Product not found", robots: { index: false, follow: false } };
 
-  const product = getProduct(handle);
+  const product = getProduct(catalog.handle);
   if (!product) return { title: "Product not found" };
 
   return createPageMetadata({
     title: product.name,
     description: product.shortDescription,
-    path: `/products/${slug}`,
+    path: catalog.href,
   });
 }
 
@@ -65,23 +58,21 @@ function schemaAvailability(
 
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
-  const catalogEntry = getCatalogProductBySlug(slug);
-  const handle = resolveHandle(slug);
+  const catalogEntry = getPublicCatalogProduct(slug);
 
-  if (!handle) {
+  if (!catalogEntry) {
     notFound();
   }
 
+  const handle = catalogEntry.handle;
   const product = getProduct(handle);
   if (!product) {
     notFound();
   }
 
-  if (catalogEntry?.status === "coming_soon") {
-    notFound();
-  }
-
-  const otherProducts = getOtherProducts(handle);
+  const otherProducts = getOtherProducts(handle).filter(
+    (other) => getCatalogProductByHandle(other.handle)?.status === "active"
+  );
   const availability = await getProductAvailability(
     handle,
     product.stockStatus
@@ -94,7 +85,7 @@ export default async function ProductPage({ params }: PageProps) {
     status: product.stockStatus,
   }));
 
-  const productUrl = `${SITE_URL}/products/${slug}`;
+  const productUrl = `${SITE_URL}${catalogEntry.href}`;
 
   const researchPeptideHandles = new Set([
     "retatrutide",

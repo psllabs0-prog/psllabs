@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { ArrowLeft, ArrowDown, FileText } from "lucide-react";
 import type { Product } from "@/lib/products";
 import type { ProductAvailability } from "@/lib/inventory/availability";
 import { getCatalogProductByHandle } from "@/lib/products/catalog";
@@ -8,7 +10,7 @@ import { AnimateIn } from "./animate-in";
 import { MobileStickyCart } from "./mobile-sticky-cart";
 import { ProductDisclaimer } from "./product-disclaimer";
 import { ProductFaqSection } from "./product-faq-section";
-import { ProductVialImage } from "./product-vial-image";
+import { ProductShowcase } from "./product-showcase";
 import { getProductImage } from "@/lib/products/images";
 import { ProductPurchase } from "./product-purchase";
 import { ProductQuantityProvider } from "./product-quantity-provider";
@@ -32,19 +34,19 @@ export function ResearchPeptideTemplate({
   return (
     <ProductQuantityProvider unitPrice={product.price}>
       <main className="bg-paper pb-28 lg:pb-0">
-        <section className="section-surface-ice mx-auto max-w-[1440px] px-6 pb-12 pt-5 md:px-16 md:pb-16 lg:px-24 lg:pb-20">
+        <section className="section-surface-ice mx-auto max-w-[1440px] px-6 pb-12 pt-5 md:px-12 md:pb-16 lg:px-16 lg:pb-20 xl:px-20">
           <Link href="/products" className="mb-6 inline-flex items-center gap-2 text-sm text-ash underline-offset-4 hover:text-ink hover:underline">
             <ArrowLeft className="size-3.5" aria-hidden /> All products
           </Link>
-          <div className="grid grid-cols-1 gap-y-6 lg:grid-cols-2 lg:grid-rows-[auto_1fr] lg:gap-x-16 xl:gap-x-20">
+          <div className="grid grid-cols-1 gap-y-5 lg:grid-cols-[1.1fr_1fr] lg:grid-rows-[auto_1fr] lg:gap-x-12 xl:gap-x-16">
             <AnimateIn className="lg:col-start-2 lg:row-start-1">
-              <p className="mono mb-3 text-accent">For laboratory research</p>
+              <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.16em] text-ash">PSL Labs / Laboratory research</p>
               <div className="flex flex-wrap items-baseline gap-3">
-                <h1 className="font-display text-display-lg font-bold text-ink">
+                <h1 className="font-display text-[clamp(2.25rem,4.1vw,3.75rem)] font-semibold leading-[1.04] tracking-[-0.045em] text-ink">
                   {product.name}
                 </h1>
                 {catalog?.strength && (
-                  <span className="font-mono text-xl font-normal text-ash md:text-2xl">
+                  <span className="rounded-full border border-border-strong px-3 py-1 font-mono text-sm font-normal text-[#aab0b9] md:text-base">
                     {catalog.strength}
                   </span>
                 )}
@@ -53,26 +55,23 @@ export function ResearchPeptideTemplate({
             </AnimateIn>
 
             <AnimateIn y={16} className="lg:col-start-1 lg:row-span-2 lg:row-start-1">
-              <div className="mx-auto w-full max-w-[520px] overflow-hidden rounded-2xl border border-border-strong shadow-[0_18px_60px_-30px_rgba(0,0,0,0.7)] lg:sticky lg:top-24 lg:max-w-none">
-                <ProductVialImage
+              <div className="mx-auto w-full max-w-[600px] lg:sticky lg:top-24 lg:max-w-none">
+                <ProductShowcase
                   src={product.imageSrc ?? fallbackImage.src}
                   alt={product.imageAlt ?? fallbackImage.alt}
-                  context="product"
-                  priority
-                  bordered={false}
-                  rounded="none"
-                  className="aspect-[4/3] lg:aspect-[4/5]"
+                  name={product.name}
+                  strength={catalog?.strength}
                 />
               </div>
             </AnimateIn>
 
             <div className="flex flex-col gap-5 lg:col-start-2 lg:row-start-2">
               <AnimateIn delay={0.08}>
-                <p className="text-base leading-relaxed text-ash md:text-body-lg">{product.shortDescription}</p>
+                <p className="text-base leading-[1.7] text-[#aab0b9]">{product.shortDescription}</p>
               </AnimateIn>
 
               <AnimateIn delay={0.12}>
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border-strong bg-surface px-4 py-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-y border-border-strong py-3 text-sm">
                   <div className="flex items-center gap-2">
                     <FileText className="size-4 shrink-0 text-accent" aria-hidden />
                     <span className="text-ink">
@@ -103,7 +102,14 @@ export function ResearchPeptideTemplate({
           </div>
         </section>
 
-        {/* Immediately Below: Batch / Lab / Task / Date / Result with "View Original Report" & "Verify Independently" */}
+        <nav aria-label="Product details" className="border-t border-linen bg-paper px-6 md:px-12 lg:px-16 xl:px-20">
+          <div className="mx-auto flex max-w-[1280px] flex-wrap gap-x-7 gap-y-1 py-2 text-sm text-ash">
+            <a href="#batch-testing" className="inline-flex min-h-11 items-center text-ink underline-offset-4 hover:underline">Batch report</a>
+            {product.specifications && product.specifications.length > 0 && <a href="#product-specifications" className="inline-flex min-h-11 items-center underline-offset-4 hover:text-ink hover:underline">Specifications</a>}
+            <Link href="/shipping" className="inline-flex min-h-11 items-center underline-offset-4 hover:text-ink hover:underline">Shipping</Link>
+          </div>
+        </nav>
+
         <ProductTesting product={product} />
 
         <ProductFaqSection product={product} />
@@ -121,6 +127,7 @@ export function ResearchPeptideTemplate({
         {/* Deeper Specifications Table */}
         {product.specifications && product.specifications.length > 0 && (
           <SectionShell
+            id="product-specifications"
             label="SPECIFICATIONS"
             title="Product specifications"
             variant="white"
@@ -165,5 +172,3 @@ export function ResearchPeptideTemplate({
     </ProductQuantityProvider>
   );
 }
-import Link from "next/link";
-import { ArrowLeft, ArrowDown, FileText } from "lucide-react";

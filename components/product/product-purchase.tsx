@@ -1,11 +1,9 @@
 "use client";
 
-import { Check } from "lucide-react";
 import Link from "next/link";
 
 import { AddToCartButton } from "@/components/commerce/AddToCartButton";
 import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
-import { hasAvailableReport } from "@/lib/batch-reports";
 import { FLAT_SHIPPING_USD, FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 import { formatPrice } from "@/lib/cart/format";
 import type { ProductAvailability } from "@/lib/inventory/availability";
@@ -23,131 +21,43 @@ type ProductPurchaseProps = {
 
 const MAX_QUANTITY = 10;
 
-export function ProductPurchase({
-  productHandle,
-  stockStatus,
-  availability,
-  className,
-}: ProductPurchaseProps) {
+export function ProductPurchase({ productHandle, stockStatus, availability, className }: ProductPurchaseProps) {
   const { quantity, setQuantity, unitPrice, totalPrice } = useProductQuantity();
   const status = availability?.status ?? stockStatus;
   const available = availability?.available;
-  const maxQuantity =
-    available !== undefined
-      ? Math.min(MAX_QUANTITY, Math.max(0, available))
-      : MAX_QUANTITY;
+  const maxQuantity = available !== undefined
+    ? Math.min(MAX_QUANTITY, Math.max(0, available))
+    : MAX_QUANTITY;
   const isOutOfStock = status === "out_of_stock" || maxQuantity <= 0;
 
-  const purchaseTrustItems = [
-    hasAvailableReport(productHandle)
-      ? "Original laboratory report available"
-      : "Laboratory report when published",
-    hasAvailableReport(productHandle)
-      ? "COA / Batch Lookup"
-      : "COA pending",
-  ] as const;
-
   return (
-    <div
-      className={cn(
-        "flex flex-col gap-8 rounded-md border border-linen bg-surface p-6 md:p-8",
-        className
-      )}
-    >
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-baseline gap-3">
-          <span className="font-mono text-4xl font-medium tracking-tight text-ink">
-            {formatPrice(totalPrice)}
-          </span>
-          {quantity > 1 && (
-            <span className="font-mono text-sm text-ash">
-              {formatPrice(unitPrice)} each
-            </span>
-          )}
+    <div className={cn("flex flex-col gap-5 rounded-2xl border border-border-strong bg-surface p-5 sm:p-6", className)}>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="mb-2 text-xs text-ash">{quantity > 1 ? `${quantity} vials` : "Price per vial"}</p>
+          <span className="font-mono text-3xl font-medium tracking-tight text-ink sm:text-4xl">{formatPrice(totalPrice)}</span>
+          {quantity > 1 && <span className="mt-1 block font-mono text-xs text-ash">{formatPrice(unitPrice)} each</span>}
+        </div>
+        <div>
+          <span className="mb-2 block text-xs text-ash">Quantity</span>
+          <div className="inline-flex w-fit items-center overflow-hidden rounded-lg border border-border-strong bg-paper">
+            <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={isOutOfStock} className="min-h-11 min-w-10 px-3 text-lg hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40" aria-label="Decrease quantity">−</button>
+            <span className="min-w-9 px-2 text-center font-mono text-sm">{quantity}</span>
+            <button type="button" onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))} disabled={isOutOfStock || quantity >= maxQuantity} className="min-h-11 min-w-10 px-3 text-lg hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40" aria-label="Increase quantity">+</button>
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
-        <span className="mono text-ash">Quantity</span>
-        <div className="inline-flex w-fit items-center border border-linen">
-          <button
-            type="button"
-            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            disabled={isOutOfStock}
-            className="px-4 py-2 text-lg transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="Decrease quantity"
-          >
-            −
-          </button>
-          <span className="min-w-12 border-x border-linen px-4 py-2 text-center font-mono">
-            {quantity}
-          </span>
-          <button
-            type="button"
-            onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
-            disabled={isOutOfStock || quantity >= maxQuantity}
-            className="px-4 py-2 text-lg transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
-            aria-label="Increase quantity"
-          >
-            +
-          </button>
-        </div>
-      </div>
+      <StockStatusBadge status={status} available={availability?.available} />
 
-      <div className="flex flex-col gap-5 border-t border-linen pt-6">
-        <div className="flex flex-col gap-2">
-          <StockStatusBadge status={status} available={availability?.available} />
-        </div>
+      <AddToCartButton productId={productHandle} quantity={quantity} maxAvailable={availability?.tracked ? maxQuantity : undefined} disabled={isOutOfStock} className={cn("min-h-12", isOutOfStock && "opacity-60")}>
+        {isOutOfStock ? "Out of Stock" : "Add to Cart"}
+      </AddToCartButton>
 
-        <AddToCartButton
-          productId={productHandle}
-          quantity={quantity}
-          maxAvailable={availability?.tracked ? maxQuantity : undefined}
-          disabled={isOutOfStock}
-          className={cn(isOutOfStock && "opacity-60")}
-        >
-          {isOutOfStock ? "Out of Stock" : "Add to Cart"}
-        </AddToCartButton>
-
-        <div className="space-y-2 rounded-md border border-linen bg-canvas p-4 text-sm leading-relaxed text-ink">
-          <p>
-            <span className="font-medium">
-              {formatPrice(FLAT_SHIPPING_USD)} shipping
-            </span>
-            {" · Free on product subtotals of "}
-            {formatPrice(FREE_SHIPPING_THRESHOLD)} or more.
-          </p>
-          <p>
-            Usually ships within 1–2 business days after payment clears.
-            Tracked delivery to U.S. physical addresses.
-          </p>
-          <Link
-            href="/shipping"
-            className="inline-flex min-h-11 items-center underline decoration-ash underline-offset-4 transition-colors hover:text-biotech-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            Shipping policy
-          </Link>
-        </div>
-
-        <p className="text-xs leading-relaxed text-ash">
-          Items are saved to your cart for review at checkout.
-        </p>
-
-        <ul className="flex flex-col gap-2.5">
-          {purchaseTrustItems.map((item) => (
-            <li
-              key={item}
-              className="flex items-center gap-2 text-sm text-ink"
-            >
-              <Check
-                className="size-3.5 shrink-0 text-biotech-deep"
-                strokeWidth={2.5}
-                aria-hidden
-              />
-              {item}
-            </li>
-          ))}
-        </ul>
+      <div className="space-y-2 border-t border-border-strong pt-4 text-sm leading-relaxed text-[#aab0b9]">
+        <p><span className="font-medium text-ink">{formatPrice(FLAT_SHIPPING_USD)} shipping</span>{" · Free on product subtotals of "}{formatPrice(FREE_SHIPPING_THRESHOLD)} or more.</p>
+        <p>Usually ships within 1–2 business days after payment clears. Tracked delivery to U.S. physical addresses.</p>
+        <Link href="/shipping" className="inline-flex min-h-11 items-center text-xs text-ink underline decoration-ash underline-offset-4 hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">Shipping policy</Link>
       </div>
     </div>
   );

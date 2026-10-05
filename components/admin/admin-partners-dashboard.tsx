@@ -170,6 +170,14 @@ export function AdminPartnersDashboard() {
             Keep prospects, outreach drafts, follow-ups, and referred orders in one place.
             Review drafts here, then send through your email account.
           </p>
+          <a
+            href="https://chatgpt.com/space/page_be198581e8fc8191ad2fcccce508ee9f"
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`mt-3 ${buttonClass}`}
+          >
+            Open weekly prospect shortlist in ChatGPT
+          </a>
         </div>
         <button type="button" className={buttonClass} disabled={loading || busy} onClick={() => {
           setLoading(true);

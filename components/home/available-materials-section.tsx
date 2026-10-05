@@ -19,13 +19,13 @@ export function AvailableMaterialsSection({
   availabilityMap,
 }: AvailableMaterialsSectionProps) {
   return (
-    <section className="border-t border-linen bg-paper px-6 py-14 md:px-16 md:py-20 lg:px-24">
+    <section className="border-t border-linen bg-paper px-6 py-14 md:px-12 md:py-20 lg:px-16 xl:px-20">
       <div className="mx-auto max-w-[1440px]">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="flex max-w-2xl flex-col gap-2">
             <p className="mono text-accent">THE CATALOG</p>
             <h2 className="font-display text-2xl font-bold tracking-[-0.02em] text-ink md:text-3xl">
-              Find your research materials.
+              The research shelf.
             </h2>
             <p className="text-sm leading-relaxed text-ash md:text-base">
               Check the vial size, price, stock, and batch report in one place.
@@ -47,27 +47,27 @@ export function AvailableMaterialsSection({
             return (
               <article
                 key={product.handle}
-                className="premium-card flex flex-col overflow-hidden transition-all duration-200 hover:border-linen-dark"
+                className="group flex flex-col overflow-hidden rounded-2xl border border-border-strong bg-surface transition-colors duration-200 hover:border-accent/35"
               >
-                <div className="relative border-b border-linen bg-surface">
+                <Link href={product.href} aria-label={`View ${product.name}`} className="relative block border-b border-linen bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent">
                   <ProductVialImage
                     src={product.imageSrc}
                     alt={product.imageAlt}
                     context="card"
                     bordered={false}
                     rounded="none"
-                    className="rounded-none aspect-square object-contain"
+                    className="aspect-[6/5] rounded-none object-contain"
                   />
                   <div className="pointer-events-none absolute right-3 top-3 z-10">
                     <span className="badge-accent backdrop-blur-sm">
                       Research use only
                     </span>
                   </div>
-                </div>
+                </Link>
 
                 <div className="flex flex-1 flex-col justify-between p-6">
                   <div className="flex flex-col gap-3">
-                    <div className="flex items-baseline justify-between gap-2">
+                    <div className="flex flex-wrap items-baseline justify-between gap-2">
                       <h3 className="font-display text-xl font-bold text-ink">
                         {product.name}
                       </h3>
@@ -109,8 +109,8 @@ export function AvailableMaterialsSection({
 
                     <PillButton
                       href={product.href}
-                      variant="primary"
-                      className="w-full text-center"
+                      variant="secondary"
+                      className="w-full border-border-strong bg-paper/60 text-center text-sm group-hover:border-accent/40"
                     >
                       {isDocPublished ? "View product & report" : "View product details"}
                     </PillButton>

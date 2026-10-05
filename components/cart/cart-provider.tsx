@@ -9,7 +9,8 @@ import {
   useState,
 } from "react";
 
-import { resolveCartLines } from "@/lib/cart/products";
+import { normalizeCartItems } from "@/lib/cart/normalize";
+import { getCartProductMeta, resolveCartLines } from "@/lib/cart/products";
 import {
   getEstimatedTotal,
   getShippingDisplay,
@@ -58,19 +59,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
-    setItems(loadCartFromStorage());
+    // Hydrate browser storage after SSR; the save effect stays gated until this finishes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setItems(normalizeCartItems(loadCartFromStorage()));
     setIsHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!isHydrated) return;
-    saveCartToStorage(items);
+    saveCartToStorage(normalizeCartItems(items));
   }, [items, isHydrated]);
 
   const lines = useMemo(() => resolveCartLines(items), [items]);
   const totalQuantity = useMemo(
-    () => items.reduce((sum, item) => sum + item.quantity, 0),
-    [items]
+    () => lines.reduce((sum, line) => sum + line.quantity, 0),
+    [lines]
   );
   const subtotal = useMemo(() => getSubtotal(lines), [lines]);
   const shippingDisplay = useMemo(() => getShippingDisplay(subtotal), [subtotal]);
@@ -84,6 +87,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addItem = useCallback(
     (handle: string, quantity: number, maxAvailable?: number): AddItemResult => {
+      if (!getCartProductMeta(handle)) {
+        return { ok: false, error: "This product is no longer available." };
+      }
       const safeQuantity = Math.max(1, Math.floor(quantity));
 
       if (maxAvailable !== undefined && maxAvailable <= 0) {
@@ -131,6 +137,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       quantity: number,
       maxAvailable?: number
     ): AddItemResult => {
+      if (!getCartProductMeta(handle)) {
+        return { ok: false, error: "This product is no longer available." };
+      }
       const safeQuantity = Math.max(1, Math.floor(quantity));
 
       if (maxAvailable !== undefined && maxAvailable <= 0) {

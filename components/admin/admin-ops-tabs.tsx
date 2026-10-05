@@ -46,6 +46,9 @@ export function AdminOpsTabs({ initialTab }: { initialTab: AdminOpsTab }) {
         ))}
         </div>
         <div className="flex flex-wrap gap-4">
+          <Link href="/admin-acquisition" className="inline-flex min-h-11 items-center py-2 text-ash hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+            Marketing
+          </Link>
           <Link href="/admin-partners" className="inline-flex min-h-11 items-center py-2 text-ash hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
             Partners
           </Link>

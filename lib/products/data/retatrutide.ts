@@ -24,7 +24,7 @@ export const retatrutide: Product = {
   imageAlt: image.alt,
   stackRole: "Research peptide · laboratory use only",
   whyThisExists:
-    "Retatrutide (CAS 2381089-83-2) is a synthetic peptide analogue studied in vitro at GLP-1, GIP, and glucagon receptors. Molecular formula: C223H330F3N57O68. Approximate molecular weight: 4845.4 g/mol. Lot purity comes from an independent lab purity test. See Batch Testing for published numbers. The freeze dried powder is soluble in aqueous buffer at pH 7.4. Store at -20°C and avoid repeated freeze thaw cycles.\n\nIt is a reference standard for receptor-binding assays, cell-signaling studies, and pharmacokinetic research in appropriate model systems. Not for use in humans or animals.\n\nMatch your vial lot to the Certificate of Analysis in Batch Testing below.",
+    "Retatrutide is a synthetic peptide analogue studied in vitro at GLP-1, GIP, and glucagon receptors. Lot purity comes from an independent lab purity test. See Batch Testing for the published results.\n\nThis freeze dried material is for laboratory research only, not for use in humans or animals. Match your vial lot to the original laboratory report in Batch Testing below.",
   bullets: [
     "Freeze dried research peptide",
     "Independent batch documentation for published lots",
@@ -88,8 +88,6 @@ export const retatrutide: Product = {
     { label: "Alternate Name", value: "LY3437943" },
     { label: "Class", value: "Synthetic peptide analogue" },
     { label: "In vitro receptor targets", value: "GLP-1, GIP, Glucagon" },
-    { label: "Molecular formula", value: "C223H330F3N57O68" },
-    { label: "Molecular weight", value: "≈4845.4 g/mol" },
     { label: "Format", value: "Lyophilized powder" },
     { label: "Label amount", value: retatrutideSource.nominalStrength },
     {
