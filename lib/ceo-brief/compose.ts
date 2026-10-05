@@ -16,6 +16,16 @@ import type {
   CeoPartnerSnapshot,
 } from "./types";
 
+function isCoveredReconciliationRollup(
+  warning: string,
+  detailed: CeoSalesSnapshot["reconciliationWarnings"],
+): boolean {
+  if (detailed.length === 0) return false;
+  if (/^\d+ open finance reconciliation warning\(s\)$/.test(warning)) return true;
+  const ops = warning.match(/^\[Ops P[01]\] Reconciliation: ([a-z_]+)$/);
+  return !!ops && detailed.some((item) => item.type === ops[1]);
+}
+
 function buildExecutiveSummary(input: {
   sales: CeoSalesSnapshot;
   inventory: CeoInventorySnapshot;
@@ -108,8 +118,11 @@ function buildExecutiveSummary(input: {
     bullets.push(`Customer intel: ${customerIntelligence.highlights[0]}`);
   }
 
-  if (health.warnings.length > 0) {
-    bullets.push(`System: ${health.warnings[0]}`);
+  const systemWarning = health.warnings.find((warning) =>
+    !isCoveredReconciliationRollup(warning, sales.reconciliationWarnings),
+  );
+  if (systemWarning) {
+    bullets.push(`System: ${systemWarning}`);
   }
 
   return bullets.slice(0, 5);
@@ -189,6 +202,9 @@ export function buildLukeActionCandidates(input: {
   candidates.push(...buildInventoryLukeActionCandidates(input.inventory));
 
   for (const w of input.health.warnings) {
+    // The sales action already carries the order and the actionable error.
+    // Keep the health rollup visible without assigning the same work again.
+    if (isCoveredReconciliationRollup(w, input.sales.reconciliationWarnings)) continue;
     if (/finance|reconcil|sheets sync/i.test(w)) {
       candidates.push({
         priority: 4,

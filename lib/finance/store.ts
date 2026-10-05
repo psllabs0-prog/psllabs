@@ -490,6 +490,40 @@ export async function upsertReconciliationWarning(input: {
   `;
 }
 
+/**
+ * Correct the historical invalid-reference label without clearing the issue.
+ * Only the exact old classifier error is eligible, and only when its replacement
+ * lookup warning is already open. Payment/order facts and raw events are untouched.
+ */
+export async function supersedeInvalidCardReferenceWarning(orderId: string): Promise<void> {
+  await ensureFinanceSchema();
+  const sql = getSql();
+  const oldKey = `psl_paid_provider_not_settled:tagada:${orderId}`;
+  const replacementKey = `provider_lookup_failed:tagada:${orderId}`;
+  await sql`
+    UPDATE finance_reconciliation_warnings AS legacy
+    SET status = 'resolved',
+        details_json = COALESCE(legacy.details_json, '{}'::jsonb) ||
+          jsonb_build_object('supersededBy', ${replacementKey}::text,
+            'supersessionReason', 'Invalid payment reference is not evidence of an unsettled charge'),
+        updated_at = now()
+    WHERE legacy.warning_key = ${oldKey}
+      AND legacy.psl_order_id = ${orderId}
+      AND legacy.provider = 'tagada'
+      AND legacy.warning_type = 'psl_paid_provider_not_settled'
+      AND legacy.status = 'open'
+      AND legacy.message = 'Unable to verify the recorded card payment for this completed order: invalid_payment_reference'
+      AND EXISTS (
+        SELECT 1 FROM finance_reconciliation_warnings AS replacement
+        WHERE replacement.warning_key = ${replacementKey}
+          AND replacement.psl_order_id = ${orderId}
+          AND replacement.provider = 'tagada'
+          AND replacement.warning_type = 'provider_lookup_failed'
+          AND replacement.status = 'open'
+      )
+  `;
+}
+
 /** Resolve a specific warning only when its exact condition has been re-checked and cleared. */
 export async function resolveReconciliationWarning(
   warningKey: string
