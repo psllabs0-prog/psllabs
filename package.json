@@ -58,7 +58,7 @@
     "test:public-order-privacy": "tsx scripts/test-public-order-privacy.ts",
     "test:acquisition": "tsx scripts/test-acquisition.ts",
     "test:authority": "tsx scripts/test-authority.ts",
-    "test:customer-intelligence": "tsx scripts/test-customer-intelligence.ts && tsx scripts/test-customer-intelligence-smoke-offline.ts",
+    "test:customer-intelligence": "tsx scripts/test-customer-intelligence.ts && tsx scripts/test-customer-intelligence-smoke-offline.ts && tsx scripts/test-customer-intelligence-freshness.ts",
     "test:customer-intelligence-db": "tsx scripts/test-customer-intelligence-db.ts",
     "test:discord": "tsx scripts/test-discord.ts",
     "test:discord-db": "tsx scripts/test-discord-db.ts",
