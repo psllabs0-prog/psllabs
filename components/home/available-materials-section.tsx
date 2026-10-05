@@ -23,19 +23,19 @@ export function AvailableMaterialsSection({
       <div className="mx-auto max-w-[1440px]">
         <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div className="flex max-w-2xl flex-col gap-2">
-            <p className="mono text-accent">ACTIVE CATALOG</p>
+            <p className="mono text-accent">THE CATALOG</p>
             <h2 className="font-display text-2xl font-bold tracking-[-0.02em] text-ink md:text-3xl">
-              Available Research Materials
+              Find your research materials.
             </h2>
             <p className="text-sm leading-relaxed text-ash md:text-base">
-              Materials currently available for laboratory research. Each active lot has a published third-party lab report.
+              Check the vial size, price, stock, and batch report in one place.
             </p>
           </div>
           <Link
             href="/products"
             className="mono text-xs font-medium text-accent underline underline-offset-4 hover:opacity-80 md:text-sm shrink-0"
           >
-            View Full Catalog →
+            Browse all products →
           </Link>
         </div>
 
@@ -60,7 +60,7 @@ export function AvailableMaterialsSection({
                   />
                   <div className="pointer-events-none absolute right-3 top-3 z-10">
                     <span className="badge-accent backdrop-blur-sm">
-                      Research Use Only
+                      Research use only
                     </span>
                   </div>
                 </div>
@@ -87,12 +87,12 @@ export function AvailableMaterialsSection({
                         {isDocPublished ? (
                           <>
                             <CheckCircle2 className="size-3 text-verified-green" aria-hidden />
-                            <span>COA Published</span>
+                            <span>Batch report available</span>
                           </>
                         ) : (
                           <>
                             <FileText className="size-3 text-ash" aria-hidden />
-                            <span>Pending COA</span>
+                            <span>Report pending</span>
                           </>
                         )}
                       </span>
@@ -112,7 +112,7 @@ export function AvailableMaterialsSection({
                       variant="primary"
                       className="w-full text-center"
                     >
-                      View Details
+                      {isDocPublished ? "View product & report" : "View product details"}
                     </PillButton>
                   </div>
                 </div>

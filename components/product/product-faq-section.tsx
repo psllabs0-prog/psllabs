@@ -8,7 +8,7 @@ export function ProductFaqSection({ product }: { product: Product }) {
   return (
     <SectionShell
       label="FAQ"
-      title="Common questions."
+      title="Questions before you order?"
       variant="ice"
       width="prose"
     >

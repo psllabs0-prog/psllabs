@@ -21,6 +21,7 @@ function withoutOpenAIReference(state: StoredAttributionState): StoredAttributio
     firstPaid: state.firstPaid ? { ...state.firstPaid, oppref: null } : null,
     lastPaid: state.lastPaid ? { ...state.lastPaid, oppref: null } : null,
     lastEmail: state.lastEmail ? { ...state.lastEmail, oppref: null } : null,
+    ...(state.lastAffiliate ? { lastAffiliate: { ...state.lastAffiliate, oppref: null } } : {}),
   };
 }
 
@@ -49,8 +50,8 @@ function writeRaw(state: StoredAttributionState): void {
 }
 
 /**
- * Capture current URL if it is a paid landing. Direct revisits leave
- * existing paid attribution untouched for the 30-day window.
+ * Capture paid, email and affiliate landings in separate slots. Direct revisits
+ * preserve those touches for the 30-day window.
  */
 export function captureAttributionFromLocation(
   href = typeof window !== "undefined" ? window.location.href : "",
@@ -84,6 +85,7 @@ export function getOrderAttributionForCheckout(): OrderAttribution | null {
       firstPaid: attribution?.firstPaid ?? null,
       lastPaid: attribution?.lastPaid ?? null,
       lastEmail: attribution?.lastEmail ?? null,
+      lastAffiliate: attribution?.lastAffiliate ?? null,
     }),
     oppref: null,
     openaiAdsMeasurementOptOut: true,

@@ -7,6 +7,7 @@ import {
 } from "@/lib/email/shared";
 
 import type { CeoWeeklyBrief } from "./types";
+import { partnerBriefLines } from "./partners";
 
 const DEFAULT_TO = "support@psllabs.org";
 
@@ -36,6 +37,10 @@ export function formatCeoBriefEmailSubject(brief: CeoWeeklyBrief): string {
 }
 
 export function formatCeoBriefEmailHtml(brief: CeoWeeklyBrief): string {
+  const partnerLines = partnerBriefLines(brief.partners);
+  const partners = partnerLines.length
+    ? `<h2 style="margin:16px 0 8px;font-size:15px;">Partner review</h2><p>${partnerLines.slice(0, 2).map(escapeHtml).join("<br/>")}</p><p><a href="https://www.psllabs.org/admin-partners">Review partner drafts and follow-ups</a></p>`
+    : "";
   const exec = brief.executiveSummary
     .map((b) => `<li style="margin:0 0 6px;">${escapeHtml(b)}</li>`)
     .join("");
@@ -84,6 +89,7 @@ export function formatCeoBriefEmailHtml(brief: CeoWeeklyBrief): string {
     }`
         : ""
     }
+    ${partners}
     <h2 style="margin:16px 0 8px;font-size:15px;">Inventory</h2>
     ${inv}
     <h2 style="margin:16px 0 8px;font-size:15px;">Customer / Support</h2>
@@ -141,6 +147,7 @@ export async function sendCeoBriefEmail(
       `PSL Labs Weekly CEO Brief — ${brief.periodLabel}`,
       "",
       ...brief.executiveSummary.map((b) => `• ${b}`),
+      ...partnerBriefLines(brief.partners),
       "",
       "Actions:",
       ...brief.actions.map(

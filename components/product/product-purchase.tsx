@@ -1,10 +1,12 @@
 "use client";
 
 import { Check } from "lucide-react";
+import Link from "next/link";
 
 import { AddToCartButton } from "@/components/commerce/AddToCartButton";
 import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
 import { hasAvailableReport } from "@/lib/batch-reports";
+import { FLAT_SHIPPING_USD, FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 import { formatPrice } from "@/lib/cart/format";
 import type { ProductAvailability } from "@/lib/inventory/availability";
 import type { StockStatus } from "@/lib/products/stock";
@@ -106,6 +108,26 @@ export function ProductPurchase({
         >
           {isOutOfStock ? "Out of Stock" : "Add to Cart"}
         </AddToCartButton>
+
+        <div className="space-y-2 rounded-md border border-linen bg-canvas p-4 text-sm leading-relaxed text-ink">
+          <p>
+            <span className="font-medium">
+              {formatPrice(FLAT_SHIPPING_USD)} shipping
+            </span>
+            {" · Free on product subtotals of "}
+            {formatPrice(FREE_SHIPPING_THRESHOLD)} or more.
+          </p>
+          <p>
+            Usually ships within 1–2 business days after payment clears.
+            Tracked delivery to U.S. physical addresses.
+          </p>
+          <Link
+            href="/shipping"
+            className="inline-flex min-h-11 items-center underline decoration-ash underline-offset-4 transition-colors hover:text-biotech-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            Shipping policy
+          </Link>
+        </div>
 
         <p className="text-xs leading-relaxed text-ash">
           Items are saved to your cart for review at checkout.

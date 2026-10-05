@@ -25,6 +25,7 @@ import { collectSupportSnapshot } from "./support";
 import { collectFulfillmentSnapshot } from "./fulfillment";
 import { collectCustomerIntelligenceSnapshot } from "./customer-intelligence";
 import { collectDecisionSnapshot } from "./decisions";
+import { collectPartnerSnapshot } from "./partners";
 import type { CeoBriefRow, CeoWeeklyBrief } from "./types";
 
 export type GenerateCeoBriefResult = {
@@ -47,7 +48,7 @@ async function buildBrief(asOf: Date): Promise<{
   const period = getLastCompletedWeekUtc(asOf);
   const prior = previousWeekPeriod(period);
 
-  const [sales, inventory, support, acquisition, seo, fulfillment, customerIntelligence, decisions] =
+  const [sales, inventory, support, acquisition, seo, fulfillment, customerIntelligence, decisions, partners] =
     await Promise.all([
       collectSalesSnapshot(period, prior),
       collectInventorySnapshot(asOf),
@@ -57,6 +58,7 @@ async function buildBrief(asOf: Date): Promise<{
       collectFulfillmentSnapshot(),
       collectCustomerIntelligenceSnapshot(),
       collectDecisionSnapshot(),
+      collectPartnerSnapshot(period, asOf),
     ]);
   const health = await collectHealthSnapshot({ support });
 
@@ -98,6 +100,7 @@ async function buildBrief(asOf: Date): Promise<{
     fulfillment,
     customerIntelligence,
     decisions,
+    partners,
   });
 
   return {

@@ -17,8 +17,8 @@ export function ProductTesting({ product }: { product: Product }) {
   return (
     <SectionShell
       id="batch-testing"
-      label="TESTING & QUALITY"
-      title="Third-party lab report."
+      label="BATCH DOCUMENTATION"
+      title={hasReport ? "Take a look at the lab report." : "Batch report status"}
       variant="soft"
       width="prose"
     >
@@ -27,12 +27,12 @@ export function ProductTesting({ product }: { product: Product }) {
           <div className="premium-card p-6 md:p-7">
             <div className="mb-4 flex flex-wrap gap-2">
               <span className="badge-verified">
-                {hasReport ? "Report available" : "Documentation when available"}
+                {hasReport ? "Original report available" : "No published report yet"}
               </span>
             </div>
             <p className="text-base leading-[1.7] text-ash md:text-body-lg">
               {hasReport
-                ? `We publish an independent third party lab report for active batches. ${TESTING_SCOPE_STATEMENT}`
+                ? `Match the lot below to the batch you’re reviewing, then open the original report. ${TESTING_SCOPE_STATEMENT}`
                 : (product.testing.description ||
                   "A third party lab report for the batch is published when available.")}
             </p>
@@ -40,7 +40,7 @@ export function ProductTesting({ product }: { product: Product }) {
               href="/coa"
               className="mt-4 inline-flex text-sm font-medium text-petrol underline underline-offset-4 transition-opacity hover:opacity-80"
             >
-              COA / Batch Lookup →
+              Browse all batch reports →
             </Link>
           </div>
         </AnimateIn>

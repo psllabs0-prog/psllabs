@@ -3,10 +3,10 @@ import { getCatalogProductByHandle } from "@/lib/products/catalog";
 import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
 
 export const heroCopy = {
-  eyebrow: "RESEARCH USE ONLY",
-  headline: "Research peptides with batch-specific third-party testing.",
+  eyebrow: "PSL LABS · PHOENIX, ARIZONA",
+  headline: "Research peptides. Know your batch.",
   paragraph:
-    "PSL Labs sells synthetic peptides for laboratory research. We publish the lab report tied to each available batch so you can review the results yourself. Not for human or veterinary use.",
+    "Check the available stock and order directly from PSL Labs. Open the published batch reports and see what the lab measured before you buy.",
   primaryCtaLabel: "Browse Products",
   primaryCtaHref: "/products",
   secondaryCtaLabel: "View Batch Reports",
@@ -56,39 +56,21 @@ export type WhyChooseCardData = {
 export const whyChooseCards: WhyChooseCardData[] = [
   {
     illustration: "batch-coa",
-    title: "Reports match the batch",
+    title: "Check the batch before you buy",
     description:
-      "Each published report is tied to a specific lot, not a generic product claim.",
-  },
-  {
-    illustration: "hplc",
-    title: "Original lab files",
-    description:
-      "You can open the original third-party report and see what the lab measured.",
-  },
-  {
-    illustration: "quality-panel",
-    title: "Results you can read",
-    description:
-      "Published reports show identity, purity, and measured amount for the tested sample.",
+      "Open the original third-party report and match it to the lot. The report shows exactly what the lab tested and measured.",
   },
   {
     illustration: "us-fulfillment",
-    title: "Ships from within the United States",
+    title: "Shipped from Phoenix",
     description:
-      "Orders ship from Phoenix, Arizona with tracking to all 50 states.",
-  },
-  {
-    illustration: "protected-shipping",
-    title: "Packed for transit",
-    description:
-      "We pack vials carefully and send tracking when your label is created.",
+      "We ship to all 50 states and send tracking when your label is created. Shipping costs and timing are listed before checkout.",
   },
   {
     illustration: "research-support",
-    title: "Direct support",
+    title: "A place to ask questions",
     description:
-      "Questions about orders or batch docs? Email support@psllabs.org.",
+      "Need help with an order or a batch report? Email support@psllabs.org and tell us what you need.",
   },
 ];
 

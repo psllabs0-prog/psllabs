@@ -16,7 +16,7 @@ import { sellableNeverIncludesInbound, shouldCreateInventoryRiskLukeAction, buil
 import { genuineCustomerCount, countsTowardGenuineSupportMetrics } from "../lib/ceo-brief/support";
 import { collectAcquisitionSnapshot } from "../lib/ceo-brief/acquisition";
 import { collectSeoSnapshot } from "../lib/ceo-brief/seo";
-import { formatCeoBriefEmailSubject } from "../lib/ceo-brief/email";
+import { formatCeoBriefEmailHtml, formatCeoBriefEmailSubject } from "../lib/ceo-brief/email";
 import { sanitizeCeoBriefEmailError } from "../lib/ceo-brief/store";
 import { verifyCronRequest } from "../lib/cron/auth";
 import type {
@@ -413,6 +413,15 @@ function testEmailSubject() {
       "PSL Labs Weekly CEO Brief — 2026-09-06",
     "email subject date"
   );
+  assert(!formatCeoBriefEmailHtml(brief).includes("Partner review"), "legacy briefs omit unavailable partner section");
+  const withPartners = composeWeeklyBrief({
+    ...brief,
+    partners: { activePartners: 3, followUpsDue: 1, paidOrders: 2, paidOrderRevenueUsd: 89.98 },
+  });
+  const html = formatCeoBriefEmailHtml(withPartners);
+  assert(html.includes("3 active; 1 follow-ups due"), "weekly partner workload retained through compose");
+  assert(html.includes("2 referral paid orders") && html.includes("$89.98"), "completed-week referral aggregate included");
+  assert(html.includes('href="https://www.psllabs.org/admin-partners"') && html.includes("before fees or refund adjustments"), "partner review link and gross-total scope included");
 }
 
 function testCronAuth() {
