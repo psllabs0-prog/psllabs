@@ -4,6 +4,7 @@ import { isTagadaConfigured } from "@/lib/tagada";
 import { verifyTagadaCardPayment } from "@/lib/tagada/verify-payment";
 
 import { ensureFinanceTransactionForPaidOrder } from "./record";
+import { classifyCardReconciliationFailure } from "./card-reconciliation-warning";
 import { syncPendingFinanceTransactionsToSheet } from "./sheets-sync";
 import {
   finishFinanceJobRun,
@@ -11,6 +12,7 @@ import {
   getFinanceTransactionByOrderId,
   resolveReconciliationWarning,
   startFinanceJobRun,
+  supersedeInvalidCardReferenceWarning,
   upsertReconciliationWarning,
 } from "./store";
 import {
@@ -96,18 +98,17 @@ export async function runFinanceReconciliation(): Promise<ReconciliationSummary>
             if (await resolveIfOpen(key)) summary.warningsResolved += 1;
           }
         } else {
-          const kind = verification.reason.includes("amount") ? "amount" :
-            verification.reason.includes("currency") ? "currency" :
-            verification.retryable || !paymentId ? "lookup" : "status";
-          const warningType = kind === "amount" ? "amount_mismatch" :
-            kind === "currency" ? "currency_mismatch" :
-            kind === "lookup" ? "provider_lookup_failed" : "psl_paid_provider_not_settled";
+          const { kind, warningType } = classifyCardReconciliationFailure(verification);
           await upsertReconciliationWarning({
             warningKey: warningKeys[kind], warningType,
             pslOrderId: order.orderId, provider: "tagada",
             providerPaymentId: paymentId,
             message: `Unable to verify the recorded card payment for this completed order: ${verification.reason}`,
+            details: { verificationReason: verification.reason },
           });
+          if (kind === "lookup") {
+            await supersedeInvalidCardReferenceWarning(order.orderId);
+          }
           summary.warningsCreated += 1;
         }
         continue;

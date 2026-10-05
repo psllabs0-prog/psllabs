@@ -417,6 +417,8 @@ export async function runCustomerIntelligenceScan(options?: {
       status,
       recommendation: rec,
       evidenceJson: {
+        periodStart,
+        periodEnd,
         note: formatEvidenceNote({
           currentCount: b.current,
           priorCount: b.prior,
@@ -469,6 +471,7 @@ export async function runCustomerIntelligenceScan(options?: {
   const snapshot = {
     periodStart,
     periodEnd,
+    signalKeys: [...buckets.keys()],
     priorStart: priorStartStr,
     priorEnd: priorEndStr,
     evidenceHealth,

@@ -424,6 +424,44 @@ function testEmailSubject() {
   assert(html.includes('href="https://www.psllabs.org/admin-partners"') && html.includes("before fees or refund adjustments"), "partner review link and gross-total scope included");
 }
 
+function testReconciliationRollupsDoNotRepeatOwnerWork() {
+  const input = {
+    sales: emptySales({ reconciliationWarnings: [{
+      type: "psl_paid_provider_not_settled", orderId: "psl_example",
+      message: "Unable to verify recorded payment: invalid_payment_reference",
+    }] }),
+    inventory: emptyInventory(), support: emptySupport(),
+    acquisition: UNAVAILABLE_ACQUISITION, seo: PENDING_SEO,
+    health: { warnings: [
+      "1 open finance reconciliation warning(s)",
+      "[Ops P1] Reconciliation: psl_paid_provider_not_settled",
+    ] },
+  };
+  const candidates = buildLukeActionCandidates(input);
+  assert(candidates.length === 1, "one reconciliation issue produces one owner action");
+  assert(candidates[0].action.includes("psl_example"), "specific order action retained");
+  const withOtherProblems = buildLukeActionCandidates({ ...input, health: { warnings: [
+    ...input.health.warnings, "Finance reconciliation failed: timeout",
+    "Finance Sheets sync has 1+ failed row(s)",
+    "[Ops P1] Reconciliation: amount_mismatch",
+  ] } });
+  assert(withOtherProblems.length === 4, "unrelated job, Sheets, and unmatched Ops issues retained");
+  const noDetails = buildLukeActionCandidates({ ...input, sales: emptySales() });
+  assert(noDetails.length === 2, "fallback warnings retained when detailed source unavailable");
+  const twoOrders = buildLukeActionCandidates({ ...input, sales: emptySales({
+    reconciliationWarnings: [
+      ...input.sales.reconciliationWarnings,
+      { ...input.sales.reconciliationWarnings[0], orderId: "psl_other" },
+    ],
+  }) });
+  assert(twoOrders.length === 2, "different orders are separate owner actions");
+  const brief = composeWeeklyBrief({ ...input, periodStart: "2026-09-28T00:00:00Z",
+    periodEnd: "2026-10-05T00:00:00Z", periodLabel: "2026-09-28 → 2026-10-04",
+    generatedAt: "2026-10-05T15:04:25Z" });
+  assert(!brief.executiveSummary.some((line) => line.startsWith("System:")), "executive summary does not repeat finance rollup");
+  assert(brief.health.warnings.length === 2, "source health details remain visible");
+}
+
 function testCronAuth() {
   const prev = process.env.CRON_SECRET;
   process.env.CRON_SECRET = "test-secret";
@@ -461,6 +499,7 @@ async function main() {
   await testMissingSeoNotFabricated();
   testMaxThreeActionsAndRedBeatsSeo();
   testFinanceFailureSurfaced();
+  testReconciliationRollupsDoNotRepeatOwnerWork();
   testEmailSubject();
   testCronAuth();
   testSanitizeEmailError();
