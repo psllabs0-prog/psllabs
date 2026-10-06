@@ -20,5 +20,5 @@ export const ghkCu50mgReport: BatchReport = {
     "https://verify.janoshik.com/tests/226454-GHK_Cu_49HEMN9R3NZ5",
   status: "report_available",
   reportAltText:
-    "HPLC chromatogram and laboratory Certificate of Analysis for PSL Labs GHK-Cu, Batch PSL-GHKCU-50MG, Task Number 226454. Laboratory-reported identity GHK-Cu, amount 53.21 mg (GHK content 44.89 mg, copper 8.32 mg), purity 99.735%. Analysis conducted September 3, 2026.",
+    "Original Janoshik laboratory test report for PSL Labs GHK-Cu, Batch PSL-GHKCU-50MG, Task Number 226454. Laboratory-reported identity GHK-Cu, amount 53.21 mg (GHK content 44.89 mg, copper 8.32 mg), purity 99.735%. Analysis conducted September 3, 2026.",
 };

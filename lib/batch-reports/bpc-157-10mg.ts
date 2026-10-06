@@ -20,5 +20,5 @@ export const bpc15710mgReport: BatchReport = {
     "https://verify.janoshik.com/tests/226456-BPC-157_NB9TDUD8E1J3",
   status: "report_available",
   reportAltText:
-    "HPLC chromatogram and laboratory Certificate of Analysis for PSL Labs BPC-157, Batch PSL-BPC157-10MG, Task Number 226456. Laboratory-reported identity BPC-157, amount 11.75 mg, purity 99.748%. Analysis conducted September 4, 2026.",
+    "Original Janoshik laboratory test report for PSL Labs BPC-157, Batch PSL-BPC157-10MG, Task Number 226456. Laboratory-reported identity BPC-157, amount 11.75 mg, purity 99.748%. Analysis conducted September 4, 2026.",
 };
