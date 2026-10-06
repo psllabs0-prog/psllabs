@@ -168,7 +168,7 @@ export default function GuidesHubPage() {
                           </div>
 
                           <div className="mt-6 flex items-center justify-between border-t border-linen pt-4 text-xs font-mono text-stone">
-                            <span>Updated: {guide.publishedDate}</span>
+                            <span>Updated: {guide.modifiedDate || guide.publishedDate}</span>
                             <span className="flex items-center gap-1.5 font-medium text-accent transition-transform motion-safe:group-hover:translate-x-1">
                               Read Guide
                               <ArrowRight className="size-3.5" aria-hidden />

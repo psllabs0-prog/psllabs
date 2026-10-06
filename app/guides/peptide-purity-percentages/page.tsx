@@ -172,12 +172,12 @@ export default function PeptidePurityPercentagesGuidePage() {
               <p className="text-ash">
                 One option is Janoshik&apos;s tool at{" "}
                 <a
-                href="https://verify.janoshik.com"
+                  href="https://janoshik.com/verification/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-petrol underline underline-offset-4 transition-opacity hover:opacity-80"
                 >
-                  verify.janoshik.com
+                  janoshik.com/verification/
                 </a>
                 . Follow the original report&apos;s instructions and enter its
                 task number and verification key. You can confirm the purity and the rest

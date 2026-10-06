@@ -203,12 +203,12 @@ export default function VerifyPeptideCoaGuidePage() {
               <p className="text-ash">
                 One example is Janoshik&apos;s verification tool at{" "}
                 <a
-                  href="https://verify.janoshik.com"
+                  href="https://janoshik.com/verification/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-petrol underline underline-offset-4 transition-opacity hover:opacity-80"
                 >
-                  verify.janoshik.com
+                  janoshik.com/verification/
                 </a>
                 . Enter the task number and verification key as printed on the
                 original report, following the laboratory&apos;s instructions.
