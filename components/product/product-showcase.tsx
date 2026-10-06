@@ -92,7 +92,7 @@ export function ProductShowcase({ src, alt, name, strength, variant = "product" 
           <ProductArtworkDialog key={src} src={src} alt={alt} name={name} strength={strength} />
         </div>
       </div>
-      <ProductArtworkNotice imageSrc={src} className="mt-3" />
+      <ProductArtworkNotice key={src} imageSrc={src} className="mt-3" collapsed={variant === "hero"} />
     </>
   );
 }
