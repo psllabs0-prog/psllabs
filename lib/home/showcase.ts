@@ -1,5 +1,6 @@
 import { formatReportedPurity, getBatchReportsForProduct } from "@/lib/batch-reports";
 import { getActiveCatalogProducts } from "@/lib/products/catalog";
+import { homeProductCode } from "@/lib/home/product-display";
 
 export type HeroShowcaseProduct = {
   handle: string;
@@ -14,14 +15,6 @@ export type HeroShowcaseProduct = {
     href: string;
     metric: { label: string; value: string } | null;
   } | null;
-};
-
-const shortLabels: Record<string, string> = {
-  retatrutide: "Reta",
-  "ghk-cu": "GHK-Cu",
-  "bpc-157": "BPC-157",
-  tesamorelin: "Tesa",
-  "reconstitution-solution": "Solution",
 };
 
 /** Serialize only the public fields needed by the interactive hero. */
@@ -39,7 +32,7 @@ export function getHeroShowcaseProducts(): HeroShowcaseProduct[] {
     return {
       handle: product.handle,
       name: product.name,
-      shortLabel: shortLabels[product.handle] ?? product.name,
+      shortLabel: homeProductCode(product.handle),
       strength: product.strength,
       href: product.href,
       imageSrc: product.imageSrc,
