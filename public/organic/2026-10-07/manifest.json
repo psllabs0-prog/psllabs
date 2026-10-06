@@ -1,0 +1,886 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Original standalone laboratory-report literacy lessons.",
+  "startDate": "2026-10-07",
+  "endDate": "2026-11-05",
+  "ownerTimezone": "America/Phoenix",
+  "publishingTimezone": "America/New_York",
+  "publishingTime": "18:00",
+  "counts": {
+    "pieces": 30,
+    "videos": 30,
+    "posters": 30
+  },
+  "pieces": [
+    {
+      "id": "psl-doc-01",
+      "date": "2026-10-07",
+      "title": "The sample is the scope",
+      "caption": "A laboratory result belongs to a documented sample. Check the sampling record before making a bigger claim. #LabLiteracy #ScientificDocumentation",
+      "publishAtUtc": "2026-10-07T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/01-the-sample-is-the-scope.mp4",
+        "sha256": "a904dca9d6978a31b3b6718aaff8dc580289a0821c7977201109c8a6c4c0a656",
+        "bytes": 1588977,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/01-the-sample-is-the-scope-poster-4x5.jpg",
+        "sha256": "54ab262c7cd293e9d3d8732e691d8aa2d185f1c45c63568d94e528ad98fe27e0",
+        "bytes": 87274,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://eurachem.org/index.php/publications/guides/musamp"
+      ]
+    },
+    {
+      "id": "psl-doc-02",
+      "date": "2026-10-08",
+      "title": "A SKU is not a lot",
+      "caption": "A matching product name is a starting point, not sample traceability. Record the lot connection. #LabRecords #LabLiteracy",
+      "publishAtUtc": "2026-10-08T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/02-a-sku-is-not-a-lot.mp4",
+        "sha256": "8c57c00ae1e5805ab28dfcd0ad3f951fc7f1644014946e7be80b10b200f4b32f",
+        "bytes": 1676310,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/02-a-sku-is-not-a-lot-poster-4x5.jpg",
+        "sha256": "275fc5f9a153e63fac13ca1af961a7541769538f34689e658773ca651384e98f",
+        "bytes": 84346,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.eurachem.org/images/stories/workshops/2023-05_METAS/presentations/4_MRamsey_SamplingUncertainty.pdf"
+      ]
+    },
+    {
+      "id": "psl-doc-03",
+      "date": "2026-10-09",
+      "title": "A number needs a unit",
+      "caption": "The unit is part of the result. Mass, concentration, and percentage answer different questions. #MeasurementScience #LabLiteracy",
+      "publishAtUtc": "2026-10-09T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/03-a-number-needs-a-unit.mp4",
+        "sha256": "efbe966f628b4900ca65ba0825fa4854f2b73e538add030fd040bd7d27e674f6",
+        "bytes": 1699239,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/03-a-number-needs-a-unit-poster-4x5.jpg",
+        "sha256": "a3991bfd19cadb77686e4e9623aff49b0a6d74c04db9c38b77dacde66bc976d1",
+        "bytes": 88166,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.nist.gov/pml/special-publication-811/nist-guide-si-chapter-7-rules-and-style-conventions-expressing-values"
+      ]
+    },
+    {
+      "id": "psl-doc-04",
+      "date": "2026-10-10",
+      "title": "Area percent is signal share",
+      "caption": "Area percent describes an integrated signal calculation. Check the basis before calling it a mass percentage. #Chromatography #AnalyticalChemistry",
+      "publishAtUtc": "2026-10-10T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/04-area-percent-is-signal-share.mp4",
+        "sha256": "a1e8622be94622f509e256574665018a3f2457866b301d9cb252d5fe7735f476",
+        "bytes": 1866041,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/04-area-percent-is-signal-share-poster-4x5.jpg",
+        "sha256": "775d110eae9826af705723f8bd1efa0da8ef0c680d9188fe53f6315e77a9acd6",
+        "bytes": 92885,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://openlab.help.agilent.com/2.8/en/mergedProjects/Glossary/Glossary.htm"
+      ]
+    },
+    {
+      "id": "psl-doc-05",
+      "date": "2026-10-11",
+      "title": "One peak can hide company",
+      "caption": "A peak is a signal feature, not a guarantee of just one component. #Chromatography #LabLiteracy",
+      "publishAtUtc": "2026-10-11T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/05-one-peak-can-hide-company.mp4",
+        "sha256": "eec02de420957589487f04de0fe0b71654ebca5166514fab4e154e5ca5056705",
+        "bytes": 1912624,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/05-one-peak-can-hide-company-poster-4x5.jpg",
+        "sha256": "90cd0abca5527d9c6ac2491863c6868a49399c62d1fb6f9b521c9c577e730188",
+        "bytes": 97166,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.shimadzu.com/an/service-support/technical-support/analysis-basics/basics_of_lcms/ms_and_lcms.html"
+      ]
+    },
+    {
+      "id": "psl-doc-06",
+      "date": "2026-10-12",
+      "title": "Retention time needs context",
+      "caption": "A retention time is useful within its method. Keep the conditions with the number. #Chromatography #ScientificDocumentation",
+      "publishAtUtc": "2026-10-12T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/06-retention-time-needs-context.mp4",
+        "sha256": "d8e6c3c9cf368d68e0365497312e091e70d747acaf027de167b3321f12bacbfd",
+        "bytes": 1749680,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/06-retention-time-needs-context-poster-4x5.jpg",
+        "sha256": "6638feed352ec0975dafa49c02ea282495434214dea572bcdfb257765582a611",
+        "bytes": 90950,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.shimadzu.com/an/service-support/technical-support/analysis-basics/basics_of_lcms/ms_and_lcms.html"
+      ]
+    },
+    {
+      "id": "psl-doc-07",
+      "date": "2026-10-13",
+      "title": "Identity purity and content",
+      "caption": "What is it, how was purity assessed, and how much was measured? Keep these questions separate. #AnalyticalChemistry #LabLiteracy",
+      "publishAtUtc": "2026-10-13T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/07-identity-purity-and-content.mp4",
+        "sha256": "1751f541449131b1b654b3d69e512c5e90616f18cdf424dfb6cb815aa8556731",
+        "bytes": 1894735,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/07-identity-purity-and-content-poster-4x5.jpg",
+        "sha256": "726e44c812e1f443c0dfb7170b0365888e121432e33c2e4e2df2a718e2c3c8a7",
+        "bytes": 101979,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.agilent.com/cs/library/applications/5991-9085EN_OpenLab_CDS_Sample_Purity_part1_appnote.pdf"
+      ]
+    },
+    {
+      "id": "psl-doc-08",
+      "date": "2026-10-14",
+      "title": "m z is not mass alone",
+      "caption": "The mass-spectrum axis is m/z. Charge and ion assignment matter when interpreting it. #MassSpectrometry #LabLiteracy",
+      "publishAtUtc": "2026-10-14T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/08-m-z-is-not-mass-alone.mp4",
+        "sha256": "134afb5b0733526d95ee3d12ab4bdf111e7ade2dfe2d7584966a6f180cefffdc",
+        "bytes": 1741989,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/08-m-z-is-not-mass-alone-poster-4x5.jpg",
+        "sha256": "8261ad042d875df6b56404dcc5f8cb4185500459800e9f90c985669a2c7c5f4c",
+        "bytes": 89800,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.ssi.shimadzu.com/products/liquid-chromatograph-mass-spectrometry/lc-ms-software/multi-charged-ion-analysis-software/index.html"
+      ]
+    },
+    {
+      "id": "psl-doc-09",
+      "date": "2026-10-15",
+      "title": "Every detector has a scope",
+      "caption": "Detector choice shapes the evidence. Read what a method can observe, not everything a sample might contain. #AnalyticalChemistry #MeasurementScience",
+      "publishAtUtc": "2026-10-15T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/09-every-detector-has-a-scope.mp4",
+        "sha256": "6d58d67e93a9b7e4fa5ae29aa1a138d9b3eca4e0c32e8814e1632b2a6f70474f",
+        "bytes": 1799412,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/09-every-detector-has-a-scope-poster-4x5.jpg",
+        "sha256": "060eb2a150d19da61715135d34045a97e984b87a41a712589f935a028222f210",
+        "bytes": 91686,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.shimadzu.com.au/service-support/technical-support/analysis-basics/basic/overview_of_hplc_detectors.html"
+      ]
+    },
+    {
+      "id": "psl-doc-10",
+      "date": "2026-10-16",
+      "title": "Wavelength is not decoration",
+      "caption": "The wavelength helps explain a UV trace. It is part of the method, not just a chart label. #Chromatography #LabLiteracy",
+      "publishAtUtc": "2026-10-16T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/10-wavelength-is-not-decoration.mp4",
+        "sha256": "ec36c66bae72d1e213fb816df1d3c7f392dff7b181a35aa31943853f7c3a0908",
+        "bytes": 1842939,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/10-wavelength-is-not-decoration-poster-4x5.jpg",
+        "sha256": "ea6ba936b9c026f12596292c3906ae4bb7ec78a84d683ad2fbc64021b4a0d85a",
+        "bytes": 88164,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.shimadzu.com/an/service-support/technical-support/analysis-basics/basic/absorbance_detector.html"
+      ]
+    },
+    {
+      "id": "psl-doc-11",
+      "date": "2026-10-17",
+      "title": "A method is more than HPLC",
+      "caption": "A technique name is not a complete procedure. Check its reference and intended analytical question. #MethodValidation #ScientificDocumentation",
+      "publishAtUtc": "2026-10-17T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/11-a-method-is-more-than-hplc.mp4",
+        "sha256": "99585f3a0ae1e77d0a24e2394d547c334f7b11308c765a81b0ccb9fdf79979ad",
+        "bytes": 1799011,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/11-a-method-is-more-than-hplc-poster-4x5.jpg",
+        "sha256": "811d34546ef266d6bd496926dc8f837811075eca55bcb985c23f418aa838324c",
+        "bytes": 87130,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.fda.gov/regulatory-information/search-fda-guidance-documents/q14-analytical-procedure-development"
+      ]
+    },
+    {
+      "id": "psl-doc-12",
+      "date": "2026-10-18",
+      "title": "Not detected does not mean zero",
+      "caption": "Not detected describes evidence within a method's limit. It does not establish an exact zero. #MeasurementScience #LabLiteracy",
+      "publishAtUtc": "2026-10-18T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/12-not-detected-does-not-mean-zero.mp4",
+        "sha256": "a741ad609b803bc284023c9038d1209891b024f851619a385b73d2411f45d144",
+        "bytes": 1798805,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/12-not-detected-does-not-mean-zero-poster-4x5.jpg",
+        "sha256": "014ecf2009f019f5c02a2b7f6fac0e33d6433af896c58c4e6cc4634b5a495742",
+        "bytes": 93718,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://goldbook.iupac.org/terms/view/L03540"
+      ]
+    },
+    {
+      "id": "psl-doc-13",
+      "date": "2026-10-19",
+      "title": "Detection and quantitation differ",
+      "caption": "A detectable signal is not automatically a reliable quantity. Check both limits separately. #AnalyticalChemistry #MethodValidation",
+      "publishAtUtc": "2026-10-19T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/13-detection-and-quantitation-differ.mp4",
+        "sha256": "083c01a4e965d6901525a2428ed25cdf8267146a89e5625b6a6f2f0b20cdb069",
+        "bytes": 1927701,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/13-detection-and-quantitation-differ-poster-4x5.jpg",
+        "sha256": "53311b316591753c05360583ad98b0e7c5f0c5d129e808b00ff9ac135a09a95e",
+        "bytes": 104874,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.fda.gov/media/161201/download"
+      ]
+    },
+    {
+      "id": "psl-doc-14",
+      "date": "2026-10-20",
+      "title": "Accuracy is not precision",
+      "caption": "Consistent results can still share a bias. Precision and accuracy are different concepts. #MeasurementScience #LabLiteracy",
+      "publishAtUtc": "2026-10-20T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/14-accuracy-is-not-precision.mp4",
+        "sha256": "7637d20de174c52abc4db269ab3aa0672f7becfc8c54a60be04516c4a83b4fa6",
+        "bytes": 1987424,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/14-accuracy-is-not-precision-poster-4x5.jpg",
+        "sha256": "ef5899fa8131025f6f9a5a8f1e55575b17166dbdd18da7511cf1e7a1e95a31e1",
+        "bytes": 100873,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-appendix-d1-terminology"
+      ]
+    },
+    {
+      "id": "psl-doc-15",
+      "date": "2026-10-21",
+      "title": "Uncertainty is not a mistake",
+      "caption": "Read uncertainty's definition and coverage information, not just its plus-or-minus value. #Metrology #LabLiteracy",
+      "publishAtUtc": "2026-10-21T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/15-uncertainty-is-not-a-mistake.mp4",
+        "sha256": "7f021cd513f3134a70c0078337fb43748363659fb51da61188b3a843e8deb9e0",
+        "bytes": 1837768,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/15-uncertainty-is-not-a-mistake-poster-4x5.jpg",
+        "sha256": "56bc65162378a7bc8a348dbf7345c54fc8b14542c1f801f496cdc6921b552c51",
+        "bytes": 91948,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-7-reporting-uncertainty"
+      ]
+    },
+    {
+      "id": "psl-doc-16",
+      "date": "2026-10-22",
+      "title": "More decimals are not more proof",
+      "caption": "More displayed digits are not evidence of greater accuracy. Keep the original result and uncertainty together. #Metrology #ScientificDocumentation",
+      "publishAtUtc": "2026-10-22T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/16-more-decimals-are-not-more-proof.mp4",
+        "sha256": "7c8e400c4b3286dde9c18abbd0fb7c27017e952b5cbbf5caf3db49666a019628",
+        "bytes": 1825395,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/16-more-decimals-are-not-more-proof-poster-4x5.jpg",
+        "sha256": "4fda56e49888ab437409c251922cf5f907233430d9da1bb543a06ba2d9e78c2b",
+        "bytes": 96490,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-appendix-d1-terminology"
+      ]
+    },
+    {
+      "id": "psl-doc-17",
+      "date": "2026-10-23",
+      "title": "Calibration connects signal to value",
+      "caption": "Calibration connects a response with known values under specified conditions. #AnalyticalChemistry #MeasurementScience",
+      "publishAtUtc": "2026-10-23T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/17-calibration-connects-signal-to-value.mp4",
+        "sha256": "5198463338c2a99884c773a23eb4710ef56085418b52dd76e76fc57204fc2644",
+        "bytes": 1745301,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/17-calibration-connects-signal-to-value-poster-4x5.jpg",
+        "sha256": "a1f020c7017e4eea8bf60a8d142cc5c8bd974a83a1223069da20f0f691337bf5",
+        "bytes": 86975,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://goldbook.iupac.org/terms/view/C00775"
+      ]
+    },
+    {
+      "id": "psl-doc-18",
+      "date": "2026-10-24",
+      "title": "Reference materials need records",
+      "caption": "Check assigned properties, documentation, and intended purpose. Not every reference material is certified. #ReferenceMaterials #LabLiteracy",
+      "publishAtUtc": "2026-10-24T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/18-reference-materials-need-records.mp4",
+        "sha256": "804ce9d5158c99546f30b3a57890a1261b6a86c103a5278ed257c87586d896c1",
+        "bytes": 2026210,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/18-reference-materials-need-records-poster-4x5.jpg",
+        "sha256": "e1b8ad8ac051e52cdca4ca6f7595d6f18d64168bc460ee48135031b78dd32084",
+        "bytes": 104962,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.nist.gov/reference-materials"
+      ]
+    },
+    {
+      "id": "psl-doc-19",
+      "date": "2026-10-25",
+      "title": "A blank is a useful question",
+      "caption": "A blank is evidence, not a wasted run. Its preparation determines its question. #AnalyticalChemistry #LabRecords",
+      "publishAtUtc": "2026-10-25T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/19-a-blank-is-a-useful-question.mp4",
+        "sha256": "1b7574d5c58faf59fdb05052cca43e136e21c43e1a44a5b87e8697074fa82925",
+        "bytes": 1852613,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/19-a-blank-is-a-useful-question-poster-4x5.jpg",
+        "sha256": "185da7ccef7c78b6d1d6c1631374c5d8bd3d2cec68b5d898577c11c73817cc21",
+        "bytes": 95212,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.eurachem.org/images/stories/Guides/pdf/MV_Guide_Blanks_supplement_2nd_ed_EN.pdf"
+      ]
+    },
+    {
+      "id": "psl-doc-20",
+      "date": "2026-10-26",
+      "title": "System suitability is a run check",
+      "caption": "System suitability checks the system against method criteria. It differs from a sample result. #MethodValidation #LabRecords",
+      "publishAtUtc": "2026-10-26T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/20-system-suitability-is-a-run-check.mp4",
+        "sha256": "4c32703925bc395c721b3e41f595ead828898c3f27fb812841b94a87037eb3cb",
+        "bytes": 1739065,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/20-system-suitability-is-a-run-check-poster-4x5.jpg",
+        "sha256": "93d3b19c6659c4f5a17c118296847f81e48a10bf4eb049d6e1267a6d9b80292b",
+        "bytes": 86745,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.fda.gov/media/161201/download"
+      ]
+    },
+    {
+      "id": "psl-doc-21",
+      "date": "2026-10-27",
+      "title": "Pass means against a rule",
+      "caption": "A pass means meeting a stated criterion under a decision rule. Keep its scope. #Metrology #ScientificDocumentation",
+      "publishAtUtc": "2026-10-27T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/21-pass-means-against-a-rule.mp4",
+        "sha256": "d7c004e7c17081f82e6d1cfa735edcca3e312126619842de6cab9590e1351ce9",
+        "bytes": 1712903,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/21-pass-means-against-a-rule-poster-4x5.jpg",
+        "sha256": "af48c3965e511f810f325c293b59b7e1cd275fccf36e2070d248824f7ae92c1a",
+        "bytes": 88955,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://ilac.org/publications-and-resources/ilac-guidance-series/"
+      ]
+    },
+    {
+      "id": "psl-doc-22",
+      "date": "2026-10-28",
+      "title": "Accreditation has a scope",
+      "caption": "Check the current scope, not just the logo. Accreditation covers specified activities. #LaboratoryQuality #LabLiteracy",
+      "publishAtUtc": "2026-10-28T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/22-accreditation-has-a-scope.mp4",
+        "sha256": "8e9f4445adaaf8891e889342114c35743e75eb535fcdb4a8ce3c5645afe8f3fb",
+        "bytes": 1668863,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/22-accreditation-has-a-scope-poster-4x5.jpg",
+        "sha256": "e364304b0b9a6a38d9c5a206395396c5b4bc4661c37bbe9b47374018d87c1227",
+        "bytes": 79227,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://ilac.org/?ddownload=124300"
+      ]
+    },
+    {
+      "id": "psl-doc-23",
+      "date": "2026-10-29",
+      "title": "A screenshot is not the full record",
+      "caption": "A screenshot may omit metadata and processing history. Keep the complete source record. #DataIntegrity #LabRecords",
+      "publishAtUtc": "2026-10-29T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/23-a-screenshot-is-not-the-full-record.mp4",
+        "sha256": "17810204113fedd4446c1f439426545dcbd58d80e6f2437fe05722b2d1f783d3",
+        "bytes": 1944853,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/23-a-screenshot-is-not-the-full-record-poster-4x5.jpg",
+        "sha256": "9e5ac0e26b801ef288a85495dc5b45f1039ffb671a09f7e79e3efb027653f305",
+        "bytes": 104646,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.fda.gov/media/119267/download"
+      ]
+    },
+    {
+      "id": "psl-doc-24",
+      "date": "2026-10-30",
+      "title": "Verify the issuer not just the QR",
+      "caption": "Verify the source and matching details. A QR code is a route, not proof. #ScientificDocumentation #LabLiteracy",
+      "publishAtUtc": "2026-10-30T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/24-verify-the-issuer-not-just-the-qr.mp4",
+        "sha256": "973ce3f4a5e183a0ea0c54919ff0699f9c5c38681fc237ba91feeafe2eee1bd4",
+        "bytes": 1793701,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/24-verify-the-issuer-not-just-the-qr-poster-4x5.jpg",
+        "sha256": "d2b99797508d18f95086ee3359535153c98297c5006fd2efaad9a602a5835435",
+        "bytes": 89592,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.nist.gov/metrology/metrological-traceability"
+      ]
+    },
+    {
+      "id": "psl-doc-25",
+      "date": "2026-10-31",
+      "title": "Dates tell different stories",
+      "caption": "Check each date's meaning and the version history. A test date alone does not establish shelf life. #LabRecords #ScientificDocumentation",
+      "publishAtUtc": "2026-10-31T22:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/25-dates-tell-different-stories.mp4",
+        "sha256": "d0e5e6724f9adeec3cb2b39a4fae87ce46a53d9d0116b126472be06748f374f0",
+        "bytes": 1810062,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/25-dates-tell-different-stories-poster-4x5.jpg",
+        "sha256": "81e80612e5e68af8cd8e9f3e6d81ad02c6ae18b911e32149fc9a9da4bc1503d7",
+        "bytes": 100989,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.nist.gov/metrology/metrological-traceability"
+      ]
+    },
+    {
+      "id": "psl-doc-26",
+      "date": "2026-11-01",
+      "title": "Missing evidence is not a failed test",
+      "caption": "A missing result is a documentation gap, not a passing result or proof of failure. #LabLiteracy #ScientificDocumentation",
+      "publishAtUtc": "2026-11-01T23:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/26-missing-evidence-is-not-a-failed-test.mp4",
+        "sha256": "0b7c4589fd8ccf785b7fe25e016023a3dd28af267a36853b875046969ab6a4f4",
+        "bytes": 1825275,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/26-missing-evidence-is-not-a-failed-test-poster-4x5.jpg",
+        "sha256": "20f3e62d9f81a2f0273bd2a45cda0a670e820f80263211dc514df16d1acd0c04",
+        "bytes": 97046,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.eurachem.org/index.php/publications/guides/mv"
+      ]
+    },
+    {
+      "id": "psl-doc-27",
+      "date": "2026-11-02",
+      "title": "Purity is not a sterility result",
+      "caption": "Chemical purity and sterility are different questions. A purity result does not establish sterility. #LaboratoryScience #LabLiteracy",
+      "publishAtUtc": "2026-11-02T23:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/27-purity-is-not-a-sterility-result.mp4",
+        "sha256": "ad51e0281aaaefc13df18f84eced4bf60d26461097a15ed8d3d175c7ac30cf43",
+        "bytes": 1857999,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/27-purity-is-not-a-sterility-result-poster-4x5.jpg",
+        "sha256": "63889f627ef7efc158e10e12aa751e57c7c94f3f9b1ce6608e7a0eda2cdb6368",
+        "bytes": 93722,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.fda.gov/drugs/guidances-drugs/questions-and-answers-current-good-manufacturing-practice-regulations-production-and-process"
+      ]
+    },
+    {
+      "id": "psl-doc-28",
+      "date": "2026-11-03",
+      "title": "Sterility and endotoxin differ",
+      "caption": "Sterility and bacterial endotoxin results are not interchangeable. Read each on its own terms. #LaboratoryScience #AnalyticalChemistry",
+      "publishAtUtc": "2026-11-03T23:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/28-sterility-and-endotoxin-differ.mp4",
+        "sha256": "0eafcdce89e8ecd5f8f4e874337990599f2fd7cadaf3e87aeccfd294b20cdb6b",
+        "bytes": 2025791,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/28-sterility-and-endotoxin-differ-poster-4x5.jpg",
+        "sha256": "b547c4c0fcc94c1e1a0cf400dbe3f07a71fa49e59b1ea7cbeb051fc00d22bcd6",
+        "bytes": 99444,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.fda.gov/media/83477/download"
+      ]
+    },
+    {
+      "id": "psl-doc-29",
+      "date": "2026-11-04",
+      "title": "Compare the basis before the number",
+      "caption": "Compare quantities, units, methods, and uncertainty before comparing results. #MeasurementScience #LabLiteracy",
+      "publishAtUtc": "2026-11-04T23:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/29-compare-the-basis-before-the-number.mp4",
+        "sha256": "36447ef92cd5396f9407c79a4c0400ba076e5babcc569759b45c736559b461d7",
+        "bytes": 1745562,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/29-compare-the-basis-before-the-number-poster-4x5.jpg",
+        "sha256": "e3838d11cd2c07a9c0e5da0814f0c82d0ce4d503bc7931627c31767bfadf6169",
+        "bytes": 90467,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.nist.gov/pml/nist-technical-note-1297/nist-tn-1297-appendix-d4-measurand-defined-measurement-method"
+      ]
+    },
+    {
+      "id": "psl-doc-30",
+      "date": "2026-11-05",
+      "title": "Can you spot the overclaim",
+      "caption": "Check sample scope, reported tests, and measurement basis. Which unsupported leap do you notice? #LabLiteracy #ScientificDocumentation",
+      "publishAtUtc": "2026-11-05T23:00:00.000Z",
+      "video": {
+        "path": "/organic/2026-10-07/30-can-you-spot-the-overclaim.mp4",
+        "sha256": "f6c5ef1c07c230c8bf05fc0cd8d86a5f99df41c518c42bac8e26defedce44436",
+        "bytes": 1959939,
+        "durationSeconds": 20,
+        "width": 1080,
+        "height": 1920,
+        "frameRate": 30,
+        "codec": "H.264",
+        "mimeType": "video/mp4"
+      },
+      "poster": {
+        "path": "/organic/2026-10-07/30-can-you-spot-the-overclaim-poster-4x5.jpg",
+        "sha256": "f9d93a5ad1cc26f7ff6c27f2e33e0ac1dceb8b4078f3b7e1937e521c12eb1e69",
+        "bytes": 96502,
+        "width": 1080,
+        "height": 1350,
+        "mimeType": "image/jpeg"
+      },
+      "sourceUrls": [
+        "https://www.eurachem.org/index.php/publications/guides/mv"
+      ]
+    }
+  ]
+}
