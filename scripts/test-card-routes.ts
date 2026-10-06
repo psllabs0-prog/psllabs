@@ -44,6 +44,10 @@ const paidEvent = {
   id: "evt_fixture", type: "payment/succeeded",
   data: { paymentId: "pay_fixture", orderId: "order_fixture", metadata: { orderId: "psl_fixture" } },
 };
+const bitcoinInvoiceFixture = {
+  id: "invoice_fixture", storeId: "store_fixture", type: "Standard", amount: "59.99", paidAmount: "59.99",
+  currency: "USD", status: "Settled", additionalStatus: "None", metadata: { orderId: "psl_fixture" },
+};
 type LocalOrder = typeof localFixture;
 type SettlementBinding = Pick<LocalOrder, "paymentMethod" | "total" | "currency">;
 type Route = { POST: (request: Request) => Promise<Response> };
@@ -71,6 +75,8 @@ type Effects = {
   ledger: string[];
   cronReconciliations: number;
   flushLimits: Array<number | undefined>;
+  bitcoinReads: string[];
+  failedUpdates: string[];
 };
 type State = {
   configured: boolean;
@@ -85,6 +91,8 @@ type State = {
   afterFulfillmentHook: ((order: LocalOrder) => void) | undefined;
   btcpaySecret: string | undefined;
   btcpayStoreId: string | undefined;
+  bitcoinInvoice: typeof bitcoinInvoiceFixture;
+  bitcoinReadHook: (() => void) | undefined;
   cronSecret: string | undefined;
   reconcileReject: boolean;
   flushHook: (() => Promise<void>) | undefined;
@@ -101,8 +109,9 @@ function state(): State {
     payment: structuredClone(paymentFixture), providerOrder: structuredClone(providerOrderFixture),
     providerStatus: 200, fulfillmentOk: true, localOrderRead: false, providerHook: undefined, afterFulfillmentHook: undefined,
     btcpaySecret: FIXTURE_SECRET, btcpayStoreId: "store_fixture", cronSecret: "offline_fixture_cron_secret",
+    bitcoinInvoice: structuredClone(bitcoinInvoiceFixture), bitcoinReadHook: undefined,
     reconcileReject: false, flushHook: undefined,
-    effects: { fulfillment: [], bindings: [], settled: [], finance: [], events: [], processed: [], claims: [], sent: [], releases: [], analytics: [], ads: [], googleReceipts: [], forbidden: [], reads: [], upserts: [], ledger: [], cronReconciliations: 0, flushLimits: [] },
+    effects: { fulfillment: [], bindings: [], settled: [], finance: [], events: [], processed: [], claims: [], sent: [], releases: [], analytics: [], ads: [], googleReceipts: [], forbidden: [], reads: [], upserts: [], ledger: [], cronReconciliations: 0, flushLimits: [], bitcoinReads: [], failedUpdates: [] },
   };
 }
 
@@ -113,6 +122,14 @@ async function fixtureFetch(input: string | URL | Request, init?: RequestInit): 
   const url = new URL(input instanceof Request ? input.url : String(input));
   const method = init?.method ?? (input instanceof Request ? input.method : "GET");
   const headers = new Headers(init?.headers ?? (input instanceof Request ? input.headers : undefined));
+  if (url.origin === "https://btcpay.fixture.invalid" && method === "GET" &&
+      url.pathname === "/api/v1/stores/store_fixture/invoices/invoice_fixture" && !url.search) {
+    assert.equal(headers.get("authorization"), `token ${FIXTURE_KEY}`);
+    assert.equal(init?.cache, "no-store"); assert.equal(init?.redirect, "error");
+    s.effects.bitcoinReads.push(url.pathname);
+    if (s.bitcoinReadHook) { const hook = s.bitcoinReadHook; s.bitcoinReadHook = undefined; hook(); }
+    return Response.json(structuredClone(s.bitcoinInvoice));
+  }
   if (url.origin !== "https://api.tagada.io" || method !== "GET" ||
       !/^\/api\/public\/v1\/(?:payments\/pay_fixture|orders\/order_fixture)$/.test(url.pathname) || url.search) {
     s.effects.forbidden.push(`${method} ${url.origin}${url.pathname}`);
@@ -136,9 +153,10 @@ async function fixtureFetch(input: string | URL | Request, init?: RequestInit): 
 function harness(s: State, actualFinance = false) {
   const modules = new Map<string, Record<string, unknown>>();
   const context = createContext({
-    Request, Response, URL, Headers, Buffer, fetch: fixtureFetch,
+    Request, Response, URL, Headers, Buffer, AbortSignal, fetch: fixtureFetch,
     process: { env: { TAGADA_WEBHOOK_SECRET: s.secret, BTCPAY_WEBHOOK_SECRET: s.btcpaySecret,
-      BTCPAY_STORE_ID: s.btcpayStoreId, CRON_SECRET: s.cronSecret } },
+      BTCPAY_STORE_ID: s.btcpayStoreId, BTCPAY_URL: "https://btcpay.fixture.invalid", BTCPAY_API_KEY: FIXTURE_KEY,
+      CRON_SECRET: s.cronSecret } },
     console: { info() {}, warn() {}, error() {} },
   });
   const mocks: Record<string, Record<string, unknown>> = {
@@ -164,7 +182,15 @@ function harness(s: State, actualFinance = false) {
       // Unexpected legacy mutation APIs fail rather than quietly pretending success.
       setInvoiceId: async () => { throw new Error("Payment confirmation must preserve the checkout binding"); },
       setPaymentMethod: async () => { throw new Error("Payment confirmation must preserve the original payment method"); },
-      markStatusIfPending: async () => { throw new Error("Unverified webhook metadata must not cancel an order"); },
+      markStatusIfPending: async (id: string, status: string, binding?: SettlementBinding & { invoiceId: string }) => {
+        assert(binding, "failed callback must retain exact verified invoice binding");
+        assert.equal(binding.paymentMethod, "bitcoin");
+        const order = s.orders.get(id);
+        if (order?.status === "pending" && order.invoiceId === binding.invoiceId && order.paymentMethod === binding.paymentMethod &&
+            order.total === binding.total && order.currency === binding.currency) {
+          order.status = status; s.effects.failedUpdates.push(id);
+        }
+      },
     },
     "@/lib/orders/fulfill-paid-order": {
       fulfillPaidOrder: async (orderId: string, invoiceId: string, _prefix: string, binding?: SettlementBinding) => {
@@ -172,6 +198,10 @@ function harness(s: State, actualFinance = false) {
         if (_prefix !== "[btcpay-webhook]") {
           assert(binding, "card routes must pass their verified amount/currency/method snapshot to guarded settlement");
           assert.equal(binding.paymentMethod, "card");
+        } else {
+          assert(binding, "Bitcoin settlement must receive its independently verified snapshot");
+          assert.equal(binding.paymentMethod, "bitcoin");
+          assert(s.effects.bitcoinReads.length > 0, "Bitcoin must authenticate provider invoice before fulfillment");
         }
         if (binding) s.effects.bindings.push(structuredClone(binding));
         if (!s.fulfillmentOk) return { ok: false, stockDecrementFailed: false };
@@ -248,6 +278,7 @@ function harness(s: State, actualFinance = false) {
     "@/lib/tagada/verify-payment": "lib/tagada/verify-payment.ts",
     "@/lib/tagada/server": "lib/tagada/server.ts",
     "@/lib/finance/webhook-verify": "lib/finance/webhook-verify.ts",
+    "@/lib/payments/btcpay-verify": "lib/payments/btcpay-verify.ts",
     "@/lib/finance/record": "lib/finance/record.ts",
     "./sanitize": "lib/finance/sanitize.ts",
     "@/lib/cron/auth": "lib/cron/auth.ts",
@@ -308,8 +339,8 @@ function signedRequest(event: unknown, signature: "valid" | "bad" | "missing" = 
     `sha256=${crypto.createHmac("sha256", FIXTURE_SECRET).update(body, "utf8").digest("hex")}`;
   return new Request("https://fixture.invalid/api/tagada-webhook", { method: "POST", body, headers });
 }
-function signedBitcoinRequest(event: unknown, signature: "valid" | "bad" | "missing" = "valid"): Request {
-  const body = JSON.stringify(event);
+function signedBitcoinRequest(event: unknown, signature: "valid" | "bad" | "missing" = "valid", raw = false): Request {
+  const body = raw ? String(event) : JSON.stringify(event);
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (signature !== "missing") headers["btcpay-sig"] = signature === "bad" ? "sha256=00" :
     `sha256=${crypto.createHmac("sha256", FIXTURE_SECRET).update(body, "utf8").digest("hex")}`;
@@ -509,6 +540,12 @@ async function main() {
       });
     }
     for (const malformed of ["{", "null", "[]", '"string"']) {
+      await test("Bitcoin malformed signed payload makes no reads or writes", async (s, routes) => {
+        assert.equal((await routes.bitcoin.POST(signedBitcoinRequest(malformed, "valid", true))).status, 400);
+        assert.deepEqual(s.effects.bitcoinReads, []); assert.deepEqual(s.effects.events, []); assert.deepEqual(s.effects.fulfillment, []);
+      });
+    }
+    for (const malformed of ["{", "null", "[]", '"string"']) {
       await test("webhook malformed signed JSON", async (s, routes) => {
         assert.equal((await routes.webhook.POST(signedRequest(malformed, "valid", true))).status, 400); noSale(s);
       });
@@ -604,15 +641,80 @@ async function main() {
       assert.equal(s.effects.ads.length, 2, "signed settled redelivery can resume the durable queue");
       assert.equal(s.effects.analytics.length, 1, "redelivery retains existing Plausible behavior");
       assert.equal(s.effects.reads.length, 0, "signed Bitcoin evidence does not issue Tagada reads");
+      assert.equal(s.effects.bitcoinReads.length, 2, "each delivery independently reads the exact authenticated Bitcoin invoice");
     });
+    await test("Bitcoin callback metadata cannot select another order", async (s, routes) => {
+      setBitcoinOrder(s);
+      s.orders.set("psl_other", { ...localFixture, orderId: "psl_other", invoiceId: "other_invoice" });
+      const event = { ...bitcoinEvent, metadata: { orderId: "psl_other" } };
+      assert.equal((await routes.bitcoin.POST(signedBitcoinRequest(event))).status, 200);
+      assert.equal(s.orders.get("psl_other")!.status, "pending");
+      assert.equal(s.orders.get("psl_fixture")!.status, "paid");
+      assert.equal(s.effects.events[0].pslOrderId, "psl_fixture");
+      assert.equal(s.effects.finance[0].order.orderId, "psl_fixture");
+    });
+    const bitcoinMismatches: Array<[string, (value: State["bitcoinInvoice"]) => void]> = [
+      ["wrong invoice", value => { value.id = "invoice_other"; }],
+      ["wrong store", value => { value.storeId = "store_other"; }],
+      ["wrong amount", value => { value.amount = "59.98"; }],
+      ["underpaid", value => { value.paidAmount = "59.98"; }],
+      ["wrong currency", value => { value.currency = "EUR"; }],
+      ["wrong provider order", value => { value.metadata.orderId = "psl_other"; }],
+      ["not settled", value => { value.status = "Processing"; }],
+      ["manually marked", value => { value.additionalStatus = "Marked"; }],
+      ["partial", value => { value.additionalStatus = "PaidPartial"; }],
+    ];
+    for (const [name, alter] of bitcoinMismatches) {
+      await test(`Bitcoin ${name} cannot cause any local mutation`, async (s, routes) => {
+        setBitcoinOrder(s); alter(s.bitcoinInvoice);
+        assert.equal((await routes.bitcoin.POST(signedBitcoinRequest(bitcoinEvent))).status, 409);
+        assert.deepEqual(s.effects.events, []); assert.deepEqual(s.effects.fulfillment, []); assert.deepEqual(s.effects.finance, []);
+        assert.deepEqual(s.effects.failedUpdates, []); assert.equal(s.orders.get("psl_fixture")!.status, "pending");
+      });
+    }
+    for (const [name, alter] of races) {
+      await test(`Bitcoin ${name} during authenticated lookup cannot settle`, async (s, routes) => {
+        setBitcoinOrder(s);
+        s.bitcoinReadHook = () => {
+          const current = s.orders.get("psl_fixture")!;
+          if (name === "payment method changed") current.paymentMethod = "card"; else alter(current);
+        };
+        assert.equal((await routes.bitcoin.POST(signedBitcoinRequest(bitcoinEvent))).status, 503);
+        assert.deepEqual(s.effects.settled, []); assert.deepEqual(s.effects.finance, []); assert.deepEqual(s.effects.ads, []);
+        assert.deepEqual(s.effects.bindings, [{ paymentMethod: "bitcoin", total: 59.99, currency: "USD" }]);
+      });
+    }
+    for (const [type, status, localStatus] of [["InvoiceExpired", "Expired", "cancelled"], ["InvoiceInvalid", "Invalid", "failed"]]) {
+      await test(`Bitcoin ${type} only changes its independently bound pending invoice`, async (s, routes) => {
+        setBitcoinOrder(s); s.bitcoinInvoice.status = status;
+        assert.equal((await routes.bitcoin.POST(signedBitcoinRequest({ ...bitcoinEvent, type }))).status, 200);
+        assert.equal(s.orders.get("psl_fixture")!.status, localStatus); assert.deepEqual(s.effects.failedUpdates, ["psl_fixture"]);
+        assert.deepEqual(s.effects.fulfillment, []); assert.deepEqual(s.effects.finance, []);
+      });
+      await test(`Bitcoin stale ${type} cannot cancel a provider-settled invoice`, async (s, routes) => {
+        setBitcoinOrder(s);
+        assert.equal((await routes.bitcoin.POST(signedBitcoinRequest({ ...bitcoinEvent, type }))).status, 409);
+        assert.deepEqual(s.effects.events, []); assert.deepEqual(s.effects.failedUpdates, []);
+        assert.equal(s.orders.get("psl_fixture")!.status, "pending");
+      });
+      await test(`Bitcoin ${type} lookup race cannot cancel a changed invoice`, async (s, routes) => {
+        setBitcoinOrder(s); s.bitcoinInvoice.status = status;
+        s.bitcoinReadHook = () => { s.orders.get("psl_fixture")!.invoiceId = "changed_invoice"; };
+        assert.equal((await routes.bitcoin.POST(signedBitcoinRequest({ ...bitcoinEvent, type }))).status, 200);
+        assert.deepEqual(s.effects.failedUpdates, []); assert.equal(s.orders.get("psl_fixture")!.status, "pending");
+      });
+    }
     for (const change of [
       { type: "InvoiceProcessing" }, { type: "InvoiceReceivedPayment" }, { storeId: "store_other" },
       { storeId: undefined }, { invoiceId: "invoice_other" }, { invoiceId: undefined },
     ]) {
       await test("Bitcoin nonterminal, wrong store or mismatched invoice cannot deliver conversion", async (s, routes) => {
         setBitcoinOrder(s);
-        assert.equal((await routes.bitcoin.POST(signedBitcoinRequest({ ...bitcoinEvent, ...change }))).status, 200);
+        const expected = change.storeId === "store_other" || ("storeId" in change && !change.storeId) ||
+          ("invoiceId" in change && !change.invoiceId) ? 409 : 200;
+        assert.equal((await routes.bitcoin.POST(signedBitcoinRequest({ ...bitcoinEvent, ...change }))).status, expected);
         assert.deepEqual(s.effects.ads, []);
+        assert.deepEqual(s.effects.fulfillment, []); assert.deepEqual(s.effects.finance, []); assert.deepEqual(s.effects.events, []);
       });
     }
     for (const [name, alter] of races.filter(([name]) => !["cancelled", "failed"].includes(name))) {
@@ -624,19 +726,20 @@ async function main() {
     }
     await test("Bitcoin terminal invoice for local card order cannot deliver conversion", async (s, routes) => {
       s.orders.get("psl_fixture")!.invoiceId = "invoice_fixture";
-      assert.equal((await routes.bitcoin.POST(signedBitcoinRequest(bitcoinEvent))).status, 200);
+      assert.equal((await routes.bitcoin.POST(signedBitcoinRequest(bitcoinEvent))).status, 409);
       assert.deepEqual(s.effects.ads, []);
+      assert.deepEqual(s.effects.fulfillment, []); assert.deepEqual(s.effects.finance, []);
     });
     await test("Bitcoin missing configured store and undefined event store cannot deliver conversion", async (s) => {
       setBitcoinOrder(s); s.btcpayStoreId = undefined;
       const routes = harness(s);
-      assert.equal((await routes.bitcoin.POST(signedBitcoinRequest({ ...bitcoinEvent, storeId: undefined }))).status, 200);
+      assert.equal((await routes.bitcoin.POST(signedBitcoinRequest({ ...bitcoinEvent, storeId: undefined }))).status, 503);
       assert.deepEqual(s.effects.ads, [], "undefined store values must never count as configured-store proof");
     });
     await test("Bitcoin original wrong method cannot be upgraded into conversion proof", async (s, routes) => {
       s.orders.get("psl_fixture")!.invoiceId = "invoice_fixture";
       s.afterFulfillmentHook = (order) => { order.paymentMethod = "bitcoin"; };
-      assert.equal((await routes.bitcoin.POST(signedBitcoinRequest(bitcoinEvent))).status, 200);
+      assert.equal((await routes.bitcoin.POST(signedBitcoinRequest(bitcoinEvent))).status, 409);
       assert.deepEqual(s.effects.ads, [], "both original and paid order must retain Bitcoin payment method");
     });
     const unauthorizedCronHeaders: Array<Record<string, string>> = [{}, { authorization: "Bearer wrong_fixture" }, { "x-cron-secret": "wrong_fixture" }];

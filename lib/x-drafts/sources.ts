@@ -60,7 +60,7 @@ export const X_DRAFT_SOURCE_ALLOWLIST: readonly XDraftSourceSpec[] = [
           heading: "Locate the lot number",
           text: [
             "1. Find the lot or batch identifier on your vial label or packaging.",
-            "2. On psllabs.org, open the product page for your material or go to **COA / Batch Lookup** (`/coa`).",
+            "2. Open the [product catalog](/products) for your material or use [COA / Batch Lookup](/coa).",
             "3. Match your label identifier to a published report. If no report is listed for your lot, contact support@psllabs.org with your lot number.",
           ].join("\n"),
         },
@@ -70,8 +70,8 @@ export const X_DRAFT_SOURCE_ALLOWLIST: readonly XDraftSourceSpec[] = [
             "Published PSL reports are linked from:",
             "",
             "- The product page under **Testing & Quality**",
-            "- **COA / Batch Lookup** (`/coa`)",
-            "- The **Testing** section when a report is available",
+            "- [COA / Batch Lookup](/coa)",
+            "- [Testing explanations](/testing) when a report is available",
             "",
             "Open the linked image or PDF—the **original laboratory report**, not a retyped summary.",
           ].join("\n"),
@@ -121,7 +121,7 @@ export const X_DRAFT_SOURCE_ALLOWLIST: readonly XDraftSourceSpec[] = [
           heading: "Find your report on PSL",
           text: [
             "1. Note the lot or batch on your vial label.",
-            "2. Visit the product page or **COA / Batch Lookup** (`/coa`).",
+            "2. Visit the [product catalog](/products) or [COA / Batch Lookup](/coa).",
             "3. Search by task number or batch name when lookup is available.",
             "4. Open the linked report and confirm the batch and task number match your label.",
             "",

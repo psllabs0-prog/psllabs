@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, BookOpen, FileText } from "lucide-react";
 import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
+import { ProductArtworkNotice } from "@/components/product/product-artwork-notice";
 import { ScrollReveal } from "@/components/motion/scroll-reveal";
 import { formatPrice } from "@/lib/cart/format";
 import { formatReportedPurity, getBatchReportsForProduct } from "@/lib/batch-reports";
@@ -59,6 +60,7 @@ export function AvailableMaterialsSection({ products, availabilityMap }: Availab
                       <span>{report ? "Batch report available" : "Report pending"}</span>
                     </div>
                     <p className={styles.reportMetric}>{metric ?? "Check product details for documentation."}{report ? <small>Batch {report.batch} · tested sample</small> : null}</p>
+                    <ProductArtworkNotice handle={product.handle} />
                     <div className={styles.cardActions}>
                       <Link href={product.href} className={styles.cardPrimary}>View material <ArrowUpRight className="size-4" aria-hidden /></Link>
                       {report ? <a href={report.reportUrl} target="_blank" rel="noopener noreferrer" className={styles.cardSecondary} aria-label={`Open ${product.name} batch ${report.batch} lab report in a new tab`}><FileText className="size-4" aria-hidden /> Report</a> : <Link href="/coa" className={styles.cardSecondary}>Batch reports</Link>}

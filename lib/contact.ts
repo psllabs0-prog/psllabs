@@ -36,8 +36,8 @@ export const contactPage: ContactPageContent = {
     },
     {
       id: "response",
-      label: "Response time",
-      value: "Within one day",
+      label: "Support schedule",
+      value: "Messages are reviewed on business days",
     },
   ],
   topics: [

@@ -72,8 +72,8 @@ const scopeMatrixColumns = [
 const scopeMatrixRows = [
   {
     attribute: "Identity",
-    addresses: "Whether the sample matches the expected molecular weight and sequence.",
-    notEstablished: "Purity %, net vial mass, shortened sequences, salt content, or sterility.",
+    addresses: "Evidence of the reported identity within the limits of the method used.",
+    notEstablished: "Exact sequence from mass alone, purity %, net vial mass, salt content, or sterility.",
   },
   {
     attribute: "Purity",
@@ -167,7 +167,7 @@ export default function WhatPeptideTestingCanEstablishPage() {
             <strong>Question:</strong> Does the sample contain molecules matching the target formula and mass?
           </p>
           <p className="text-ash leading-relaxed">
-            Labs typically use identity testing (mass spectrometry). The test checks whether the measured weight matches the expected weight from the amino acid sequence. That confirms the expected compound is present. It does not by itself give net milligrams, purity percentage, or salt content.
+            Mass spectrometry can compare measured molecular mass with the expected mass. A matching mass supports identity, but mass alone does not establish the exact amino acid sequence or distinguish every molecule with the same mass. Read the laboratory’s stated method and identity result. This test does not by itself give net milligrams, purity percentage, or salt content.
           </p>
         </section>
 
@@ -267,7 +267,7 @@ export default function WhatPeptideTestingCanEstablishPage() {
             Lab testing uses up the sample. Results apply to that vial. They do not prove every other unit in the lot is identical.
           </AnalyticalCallout>
           <p className="text-ash leading-relaxed">
-            One third-party test confirms the submitted sample met the reported specs. It does not prove the whole lot is identical.
+            A third-party report records results for the submitted sample. Whether those results meet a specification is a separate comparison. They do not prove the whole lot is identical.
           </p>
         </section>
 
@@ -301,13 +301,13 @@ export default function WhatPeptideTestingCanEstablishPage() {
           </h2>
           <div className="rounded-xl border border-linen bg-surface p-6 space-y-3 text-sm leading-relaxed text-ash">
             <p>
-              <strong className="text-ink">1. Primary data:</strong> We publish original Janoshik reports with chromatograms, integration baselines, and mass spectra, not retyped summaries.
+              <strong className="text-ink">1. Original reports:</strong> We publish the original Janoshik laboratory reports and the results they list. The published files do not necessarily include chromatograms, integration data, or mass spectra. Request supporting method details or instrument data from the laboratory when needed.
             </p>
             <p>
               <strong className="text-ink">2. Independent verification:</strong> Each report has a Task Number and Verification Key you can check on verify.janoshik.com.
             </p>
             <p>
-              <strong className="text-ink">3. Clear scope:</strong> We state what each report covers (identity, purity %, net mass) and where the record stops.
+              <strong className="text-ink">3. Clear scope:</strong> We display identity, purity, amount, or concentration only where that result is listed in the report. These results answer different questions; none establishes human or animal safety.
             </p>
           </div>
         </section>

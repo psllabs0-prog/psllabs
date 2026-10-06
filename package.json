@@ -67,7 +67,11 @@
     "test:decision-engine-db": "tsx scripts/test-decision-engine-db.ts",
     "seed-catalog": "tsx scripts/seed-catalog-inventory.ts",
     "sync-tagada": "tsx scripts/sync-tagada.ts",
-    "sync-tagada:dry-run": "tsx scripts/sync-tagada.ts --dry-run"
+    "sync-tagada:dry-run": "tsx scripts/sync-tagada.ts --dry-run",
+    "test:request-protection": "node --require ./scripts/next-test-runtime.cjs --import tsx scripts/test-request-protection.ts",
+    "test:btcpay-verification": "tsx scripts/test-btcpay-verification.ts",
+    "migrate:request-protection": "tsx scripts/migrate-request-protection.ts",
+    "test:checkout-validation": "tsx scripts/test-checkout-validation.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -81,10 +85,10 @@
     "gray-matter": "^4.0.3",
     "imapflow": "^2.0.2",
     "lucide-react": "^1.16.0",
-    "mailparser": "^3.9.24",
-    "next": "^16.2.10",
+    "mailparser": "3.9.36",
+    "next": "16.3.8",
     "next-mdx-remote": "^6.0.0",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "10.0.15",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "tailwind-merge": "^3.6.0",
@@ -99,7 +103,7 @@
     "@types/react-dom": "^19",
     "@types/twitter-text": "3.1.10",
     "eslint": "^9",
-    "eslint-config-next": "16.2.6",
+    "eslint-config-next": "16.3.8",
     "tailwindcss": "^4",
     "tsx": "^4.20.3",
     "typescript": "^5"

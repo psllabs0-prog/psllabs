@@ -21,7 +21,7 @@ export const termsSections: ContentSection[] = [
     title: "Research use only",
     paragraphs: [
       "Products and information on this site are provided only for laboratory research, analytical work, and educational reference. They are not sold for use in people or animals and are not intended for medical, therapeutic, diagnostic, veterinary, dietary, cosmetic, food, drug, or supplement use.",
-      "Statements on this site have not been evaluated by the Food and Drug Administration. Nothing on this site is medical advice, instructions for use, or a recommendation for personal or clinical use.",
+      "Laboratory reports cover the submitted sample and the tests and results listed. They do not establish safety, efficacy, suitability for human or animal use, or regulatory approval. Nothing on this site is medical advice, instructions for use, or a recommendation for personal or clinical use.",
       `By placing an order, you confirm that you are allowed to handle the materials you purchase and that you will use them only for lawful laboratory research or reference work.`,
     ],
   },

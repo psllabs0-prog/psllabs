@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ProductVialImage } from "@/components/product/product-vial-image";
+import { ProductArtworkNotice } from "@/components/product/product-artwork-notice";
 import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
 import { PillButton } from "@/components/ui/pill-button";
 import { formatPrice } from "@/lib/cart/format";
@@ -68,6 +69,8 @@ export function ProductCatalogCard({
             {product.description}
           </p>
         </div>
+
+        <ProductArtworkNotice handle={product.handle} />
 
         {comingSoon ? (
           <PillButton href="/#newsletter" className="mt-auto w-full">

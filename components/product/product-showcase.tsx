@@ -5,6 +5,7 @@ import { useEffect, useRef, type PointerEvent } from "react";
 
 import { cn } from "@/lib/utils";
 import { ProductArtworkDialog } from "./product-artwork-dialog";
+import { ProductArtworkNotice } from "./product-artwork-notice";
 import styles from "./product-showcase.module.css";
 
 type ProductShowcaseProps = {
@@ -64,31 +65,34 @@ export function ProductShowcase({ src, alt, name, strength, variant = "product" 
   }
 
   return (
-    <div ref={stage} className={cn(styles.stage, variant === "hero" ? styles.hero : styles.product)} onPointerMove={move} onPointerLeave={reset} onPointerCancel={reset} data-product-showcase>
-      <div className={styles.grid} aria-hidden />
-      <div className={styles.glow} aria-hidden />
-      <div className={styles.topline}>
-        <span>PSL LABS</span>
-        <span>{name}{strength ? ` / ${strength}` : ""}</span>
-      </div>
-      <div className={styles.scene}>
-        <div className={styles.orbit} aria-hidden />
-        <div className={styles.wordmark} aria-hidden>PSL</div>
-        <div className={styles.platform} aria-hidden>
-          <div className={styles.platformTop} />
-          <div className={styles.platformLight} />
+    <>
+      <div ref={stage} className={cn(styles.stage, variant === "hero" ? styles.hero : styles.product)} onPointerMove={move} onPointerLeave={reset} onPointerCancel={reset} data-product-showcase>
+        <div className={styles.grid} aria-hidden />
+        <div className={styles.glow} aria-hidden />
+        <div className={styles.topline}>
+          <span>PSL LABS</span>
+          <span>{name}{strength ? ` / ${strength}` : ""}</span>
         </div>
-        <div className={styles.shadow} aria-hidden />
-        <div key={src} className={styles.artwork}>
-          <Image src={src} alt={alt} fill preload sizes="(max-width: 640px) 90vw, (max-width: 1023px) 520px, 600px" className={styles.image} />
+        <div className={styles.scene}>
+          <div className={styles.orbit} aria-hidden />
+          <div className={styles.wordmark} aria-hidden>PSL</div>
+          <div className={styles.platform} aria-hidden>
+            <div className={styles.platformTop} />
+            <div className={styles.platformLight} />
+          </div>
+          <div className={styles.shadow} aria-hidden />
+          <div key={src} className={styles.artwork}>
+            <Image src={src} alt={alt} fill preload sizes="(max-width: 640px) 90vw, (max-width: 1023px) 520px, 600px" className={styles.image} />
+          </div>
+        </div>
+        <div className={styles.caption}>
+          <span className={styles.captionMarker} aria-hidden />
+          <span>For laboratory research</span>
+          <span className={styles.captionRule} aria-hidden />
+          <ProductArtworkDialog key={src} src={src} alt={alt} name={name} strength={strength} />
         </div>
       </div>
-      <div className={styles.caption}>
-        <span className={styles.captionMarker} aria-hidden />
-        <span>For laboratory research</span>
-        <span className={styles.captionRule} aria-hidden />
-        <ProductArtworkDialog key={src} src={src} alt={alt} name={name} strength={strength} />
-      </div>
-    </div>
+      <ProductArtworkNotice imageSrc={src} className="mt-3" />
+    </>
   );
 }

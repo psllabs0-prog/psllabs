@@ -1,3 +1,5 @@
+import { randomBytes } from "node:crypto";
+
 import { computeTotals } from "@/lib/checkout/totals";
 import {
   DISCOUNT_CODES_ENABLED,
@@ -8,7 +10,7 @@ import { sanitizeAttributionFromBody } from "@/lib/attribution/logic";
 import type { OrderAttribution } from "@/lib/attribution/types";
 import { checkoutWithStockCheck } from "@/lib/inventory/store";
 import type { Order, OrderItem, PaymentMethod } from "@/lib/orders/types";
-import { getCheckoutProduct } from "@/lib/payments/products";
+import { getAllCheckoutProducts, getCheckoutProduct } from "@/lib/payments/products";
 import { getCatalogProductByHandle } from "@/lib/products/catalog";
 
 const MAX_QUANTITY = 10;
@@ -58,8 +60,14 @@ export async function prepareReservedOrder(
   body: CheckoutBody,
   options?: PrepareOrderOptions
 ): Promise<PrepareOrderResult> {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return { ok: false, error: "Invalid checkout request.", status: 400 };
+  }
   if (!Array.isArray(body.items) || body.items.length === 0) {
     return { ok: false, error: "Cart is empty.", status: 400 };
+  }
+  if (body.items.length > getAllCheckoutProducts().length) {
+    return { ok: false, error: "Cart contains too many product lines.", status: 400 };
   }
 
   const email = str(body.email);
@@ -108,10 +116,11 @@ export async function prepareReservedOrder(
       : "USD";
 
   const items: OrderItem[] = [];
+  const seenHandles = new Set<string>();
   let subtotalRaw = 0;
 
   for (const raw of body.items as RawItem[]) {
-    const handle = str(raw?.handle);
+    const handle = str(raw?.handle).toLowerCase();
     const quantity = raw?.quantity;
 
     if (!handle) {
@@ -141,6 +150,10 @@ export async function prepareReservedOrder(
         status: 404,
       };
     }
+    if (seenHandles.has(product.id)) {
+      return { ok: false, error: "Each product may appear only once in your cart.", status: 400 };
+    }
+    seenHandles.add(product.id);
 
     const qty = quantity as number;
     const lineTotal = Math.round(product.priceUsd * qty * 100) / 100;
@@ -205,7 +218,7 @@ export async function prepareReservedOrder(
     };
   }
 
-  const orderId = `psl_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  const orderId = `psl_${Date.now()}_${randomBytes(16).toString("hex")}`;
   const now = new Date().toISOString();
   const attribution: OrderAttribution | null = sanitizeAttributionFromBody(
     body.attribution

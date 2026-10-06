@@ -2,6 +2,7 @@ import { getSql } from "@/lib/db/sql";
 import type { Order } from "@/lib/orders/types";
 import { ensureOrdersSchema } from "@/lib/orders/store";
 import type { StockStatus } from "@/lib/products/stock";
+import { getActiveCatalogProducts } from "@/lib/products/catalog";
 
 import {
   availabilityToStockStatus,
@@ -139,6 +140,14 @@ export async function ensureInventorySchema(): Promise<void> {
         v_available int;
         v_name text;
       BEGIN
+        -- Duplicate lines must never check the same available units twice.
+        IF EXISTS (
+          SELECT 1 FROM jsonb_array_elements(p_items) AS elem
+          GROUP BY lower(btrim(elem->>'handle')) HAVING count(*) > 1
+        ) THEN
+          RETURN jsonb_build_object('ok', false, 'error', 'Duplicate product lines.');
+        END IF;
+
         PERFORM p.handle
         FROM products p
         WHERE p.handle IN (
@@ -276,6 +285,13 @@ export type CheckoutStockResult =
 export async function checkoutWithStockCheck(
   order: Order
 ): Promise<CheckoutStockResult> {
+  // Guard direct callers before schema or persistence, as well as HTTP checkout.
+  const handles = Array.isArray(order.items)
+    ? order.items.map(item => typeof item.handle === "string" ? item.handle.trim().toLowerCase() : "") : [];
+  if (!handles.length || handles.length > getActiveCatalogProducts().length ||
+      handles.some(handle => !handle) || new Set(handles).size !== handles.length) {
+    return { ok: false, error: "Invalid or duplicate product lines." };
+  }
   await ensureInventorySchema();
   const sql = getSql();
 
@@ -333,16 +349,18 @@ export type SettlePaidResult = {
   stockDecrementFailed: boolean;
 };
 
-export type CardSettlementBinding = {
-  paymentMethod: "card";
+export type PaymentSettlementBinding = {
+  paymentMethod: "card" | "bitcoin";
   total: number;
   currency: string;
 };
 
+export type CardSettlementBinding = PaymentSettlementBinding & { paymentMethod: "card" };
+
 export async function settlePaidOrder(
   orderId: string,
   invoiceId: string | null,
-  cardBinding?: CardSettlementBinding
+  paymentBinding?: PaymentSettlementBinding
 ): Promise<SettlePaidResult> {
   await ensureInventorySchema();
   const sql = getSql();
@@ -351,15 +369,15 @@ export async function settlePaidOrder(
   // existing settlement function. A cancellation or checkout-token change
   // during the provider lookup must not revive or fulfill a different order.
   // This guard uses the existing schema and requires no production migration.
-  const rows = (cardBinding ? await sql`
+  const rows = (paymentBinding ? await sql`
     WITH eligible AS MATERIALIZED (
       SELECT order_id, status
       FROM orders
       WHERE order_id = ${orderId}
-        AND payment_method = ${cardBinding.paymentMethod}
+        AND payment_method = ${paymentBinding.paymentMethod}
         AND invoice_id = ${invoiceId}
-        AND total = ${cardBinding.total}
-        AND currency = ${cardBinding.currency}
+        AND total = ${paymentBinding.total}
+        AND currency = ${paymentBinding.currency}
         AND status IN ('pending', 'paid', 'shipped')
       FOR UPDATE
     )

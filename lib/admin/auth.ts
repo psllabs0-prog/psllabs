@@ -9,6 +9,15 @@ function getAdminPassword(): string | null {
   return password || null;
 }
 
+export function isValidAdminPassword(password: string): boolean {
+  const expected = getAdminPassword();
+  if (!expected || !password || password.length > 1024) return false;
+  return crypto.timingSafeEqual(
+    crypto.createHash("sha256").update(password).digest(),
+    crypto.createHash("sha256").update(expected).digest(),
+  );
+}
+
 function signPayload(payload: string, secret: string): string {
   return crypto.createHmac("sha256", secret).update(payload).digest("hex");
 }

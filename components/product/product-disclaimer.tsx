@@ -13,9 +13,10 @@ export function ProductDisclaimer({ children }: ProductDisclaimerProps) {
             <>
               PSL Labs products are sold strictly for laboratory and research use
               only. They are not intended for human or animal consumption,
-              diagnosis, treatment, cure, or prevention of any disease. These
-              statements have not been evaluated by the Food and Drug
-              Administration.
+              diagnosis, treatment, cure, or prevention of any disease.
+              Laboratory reports cover only the submitted sample and tests
+              reported; they do not establish safety, efficacy, or suitability
+              for human or animal use.
             </>
           )}
         </p>
