@@ -9,11 +9,12 @@ import { getGuideBySlug } from "@/lib/content/guides-data";
 import { ghkCu50mgReport, tesamorelin10mgReport, reconstitutionSolution5mlReport } from "@/lib/batch-reports";
 import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
+import { productPathFromHandle } from "@/lib/products/catalog";
 
 const guide = getGuideBySlug("peptide-purity-vs-content")!;
 
 export const metadata: Metadata = createPageMetadata({
-  title: guide.title,
+  title: guide.seoTitle ?? guide.title,
   description: guide.description,
   path: `/guides/${guide.slug}`,
   type: "article",
@@ -320,7 +321,7 @@ export default function PeptidePurityVsContentPage() {
                 <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm">
                   <a href={report.reportUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">Open report file</a>
                   <a href={report.verificationUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">Verify with Janoshik</a>
-                  <Link href={`/products/${report.productHandle}`} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">Product details</Link>
+                  <Link href={productPathFromHandle(report.productHandle)} className="inline-flex min-h-11 items-center text-accent underline underline-offset-4">Product details</Link>
                 </div>
               </article>
             ))}

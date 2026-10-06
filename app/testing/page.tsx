@@ -11,8 +11,8 @@ import { testingPageMeta, testingSections } from "@/lib/content/testing";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Testing & Quality",
-  description: testingPageMeta.description,
+  title: "Peptide Testing: Purity, Amount and Report Limits",
+  description: "Review PSL Labs third-party peptide testing: tested-sample purity, reported amount and batch verification. See what each result establishes and what it cannot prove.",
   path: "/testing",
 });
 

@@ -7,14 +7,9 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: [
-        "/api/",
-        "/admin-inventory",
-        "/admin-ledger",
-        "/checkout",
-        "/success",
-        "/cancel",
-      ],
+      // HTML utility/admin pages publish noindex. Crawlers must be able to
+      // fetch them to see that directive; authentication still protects data.
+      disallow: ["/api/"],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };

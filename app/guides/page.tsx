@@ -9,9 +9,9 @@ import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Guides",
+  title: "Peptide Testing and COA Verification Guides",
   description:
-    "Simple guides to help you read lab reports, check batch information, and understand the testing shown on our site.",
+    "Learn to verify peptide COAs, match batch records, read HPLC purity and distinguish purity from reported amount. Practical guides for laboratory research.",
   path: "/guides",
 });
 

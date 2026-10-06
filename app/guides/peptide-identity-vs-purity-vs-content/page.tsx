@@ -13,7 +13,7 @@ import { createPageMetadata, SITE_URL } from "@/lib/seo";
 const guide = getGuideBySlug("peptide-identity-vs-purity-vs-content")!;
 
 export const metadata: Metadata = createPageMetadata({
-  title: guide.title,
+  title: guide.seoTitle ?? guide.title,
   description: guide.description,
   path: `/guides/${guide.slug}`,
   type: "article",

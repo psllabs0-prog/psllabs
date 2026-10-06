@@ -23,10 +23,10 @@ export function RelatedGuides({
 
   return (
     <section className={`flex flex-col gap-5 ${className}`}>
-      <div className="flex items-center gap-2 border-b border-linen pb-3 text-xs font-mono uppercase tracking-wider text-accent">
+      <h2 className="flex items-center gap-2 border-b border-linen pb-3 text-xs font-mono uppercase tracking-wider text-accent">
         <BookOpen className="size-4 shrink-0" aria-hidden />
         <span>Related Analytical Guides</span>
-      </div>
+      </h2>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {guides.map((guide) => (
@@ -40,9 +40,9 @@ export function RelatedGuides({
               <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-stone">
                 {guide.categoryLabel}
               </span>
-              <h4 className="font-display text-base font-bold text-ink transition-colors group-hover:text-accent">
+              <h3 className="font-display text-base font-bold text-ink transition-colors group-hover:text-accent">
                 {guide.title}
-              </h4>
+              </h3>
               <p className="line-clamp-3 text-xs leading-relaxed text-ash">
                 {guide.description}
               </p>

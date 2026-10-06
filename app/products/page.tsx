@@ -10,9 +10,9 @@ import {
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Products",
+  title: "Research Peptides and Laboratory Materials",
   description:
-    "Research peptides for laboratory use. Each active product lists specs and a published batch report when available.",
+    "Browse PSL Labs research peptides and laboratory materials. Compare vial sizes, current prices and published Janoshik batch reports. Laboratory research only.",
   path: "/products",
 });
 

@@ -6,6 +6,7 @@ export type GuideCategory =
 export type GuideMeta = {
   slug: string;
   title: string;
+  seoTitle?: string;
   shortTitle: string;
   description: string;
   category: GuideCategory;
@@ -20,6 +21,7 @@ export type GuideMeta = {
 export const ANALYTICAL_GUIDES: GuideMeta[] = [
   {
     slug: "peptide-identity-vs-purity-vs-content",
+    seoTitle: "Peptide Identity, Purity and Content Explained",
     title:
       "Peptide Identity vs Purity vs Content: What Each Analytical Result Actually Tells You",
     shortTitle: "Identity vs Purity vs Content",
@@ -35,6 +37,7 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
   },
   {
     slug: "verify-peptide-laboratory-report",
+    seoTitle: "Verify a Peptide Lab Report: Batch Checklist",
     title:
       "How to Verify a Peptide Lab Report: A Practical Batch Checklist",
     shortTitle: "Verify a Laboratory Report",
@@ -65,6 +68,7 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
   },
   {
     slug: "batch-specific-vs-generic-coa",
+    seoTitle: "Batch-Specific COAs and Lot Traceability",
     title:
       "Batch-Specific COAs vs Generic COAs: Why Lot Traceability Matters",
     shortTitle: "Batch-Specific vs Generic COAs",
@@ -74,12 +78,13 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
     categoryLabel: "Verification & Traceability",
     readTime: "7 min read",
     publishedDate: "2026-09-08",
-    modifiedDate: "2026-09-08",
+    modifiedDate: "2026-10-05",
     order: 4,
     featured: true,
   },
   {
     slug: "what-peptide-testing-can-establish",
+    seoTitle: "What Peptide Testing Can and Cannot Establish",
     title:
       "What Peptide Analytical Testing Can and Cannot Establish",
     shortTitle: "What Testing Can and Cannot Establish",
@@ -89,47 +94,49 @@ export const ANALYTICAL_GUIDES: GuideMeta[] = [
     categoryLabel: "Foundations",
     readTime: "10 min read",
     publishedDate: "2026-09-08",
-    modifiedDate: "2026-09-08",
+    modifiedDate: "2026-10-05",
     order: 5,
     featured: true,
   },
   {
     slug: "verify-peptide-coa",
+    seoTitle: "Peptide COA Checklist: Fields and Warning Signs",
     title: "How to Verify a Peptide Certificate of Analysis",
     shortTitle: "COA Verification Checklist",
     description:
-      "A checklist for reading third-party lab reports, spotting unreliable documents, and confirming results directly with the testing lab.",
+      "Check the fields on a peptide COA: laboratory, lot number, methods, reported results and verification details. Know which gaps need clarification.",
     category: "verification-traceability",
     categoryLabel: "Verification & Traceability",
     readTime: "7 min read",
     publishedDate: "2026-07-29",
-    modifiedDate: "2026-08-02",
+    modifiedDate: "2026-10-05",
     order: 6,
   },
   {
     slug: "peptide-purity-percentages",
+    seoTitle: "HPLC Purity Percentages: Reading a Chromatogram",
     title: "Peptide Purity Percentages: What Do They Actually Mean?",
     shortTitle: "Purity Percentages Explained",
     description:
-      "How to read a purity number on a lab report: what it includes, what it leaves out, and why small differences can matter when you compare batches.",
+      "Read HPLC peak area percentages, chromatograms and method limits. Learn what the remaining signal represents and why purity is not a milligram amount.",
     category: "analytical-foundations",
     categoryLabel: "Foundations",
     readTime: "6 min read",
     publishedDate: "2026-07-29",
-    modifiedDate: "2026-08-02",
+    modifiedDate: "2026-10-05",
     order: 7,
   },
   {
     slug: "peptide-storage-stability",
-    title: "Peptide Storage & Stability Guide",
+    title: "Lyophilized Peptide Storage and Stability Guide",
     shortTitle: "Storage & Stability",
     description:
-      "How to store freeze-dried research peptides to help keep them in good condition.",
+      "Review temperature, moisture, light and handling considerations for freeze-dried laboratory peptides. Check supplier-specific storage and stability records.",
     category: "handling-stability",
     categoryLabel: "Handling & Stability",
     readTime: "6 min read",
     publishedDate: "2026-07-29",
-    modifiedDate: "2026-08-02",
+    modifiedDate: "2026-10-05",
     order: 8,
   },
 ];

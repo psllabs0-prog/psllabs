@@ -4,35 +4,32 @@ import { AnimateIn } from "@/components/product/animate-in";
 import { JsonLd } from "@/components/seo/json-ld";
 import { RelatedGuides } from "@/components/guides/related-guides";
 import { BatchDocumentationCTA } from "@/components/guides/batch-documentation-cta";
-import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
-import { createPageMetadata, SITE_URL } from "@/lib/seo";
+import { getGuideBySlug } from "@/lib/content/guides-data";
+import { createPageMetadata } from "@/lib/seo";
+import { createArticleData, createBreadcrumbData } from "@/lib/structured-data";
+
+const guide = getGuideBySlug("verify-peptide-coa")!;
 
 export const metadata: Metadata = createPageMetadata({
-  title: "How to Verify a Peptide Certificate of Analysis",
-  description:
-    "Learn how to independently verify third-party peptide testing reports. Understand what a legitimate COA includes, common red flags, and how to confirm results directly with the testing laboratory.",
+  title: guide.seoTitle ?? guide.title,
+  description: guide.description,
   path: "/guides/verify-peptide-coa",
   type: "article",
 });
 
-const GUIDE_DATE = "2026-07-29";
-
-const articleLd = {
-  "@context": "https://schema.org",
-  "@type": "Article",
-  headline: "How to Verify a Peptide Certificate of Analysis",
-  author: { "@type": "Organization", name: LEGAL_ENTITY_NAME },
-  publisher: { "@type": "Organization", name: LEGAL_ENTITY_NAME },
-  datePublished: GUIDE_DATE,
-  dateModified: GUIDE_DATE,
-  url: `${SITE_URL}/guides/verify-peptide-coa`,
-};
+const articleLd = createArticleData({ ...guide, path: `/guides/${guide.slug}` });
+const breadcrumbLd = createBreadcrumbData([
+  { name: "Home", path: "" },
+  { name: "Guides", path: "/guides" },
+  { name: guide.shortTitle, path: `/guides/${guide.slug}` },
+]);
 
 export default function VerifyPeptideCoaGuidePage() {
   return (
     <main className="public-page-surface min-h-screen">
       {/* Validate Article markup: https://search.google.com/test/rich-results */}
       <JsonLd data={articleLd} />
+      <JsonLd data={breadcrumbLd} />
       <article className="mx-auto max-w-[840px] px-6 py-16 md:px-12 md:py-20 lg:py-24">
         <header className="mb-10 border-b border-linen pb-10 md:mb-12 md:pb-12">
           <AnimateIn>
@@ -106,21 +103,22 @@ export default function VerifyPeptideCoaGuidePage() {
                 </li>
                 <li>
                   <strong className="font-medium text-ink">
-                    A full test graph, not only a summary number.
+                    The full original report and supporting data when available.
                   </strong>{" "}
                   A chromatogram is the graph the instrument produces over time.
-                  It shows peaks for each detected component. A purity
-                  percentage without the graph leaves out context that trained
-                  readers use to judge whether the run looks clean and complete.
+                  It shows peaks for components the method detects and separates.
+                  If a graph or method detail is absent from a laboratory-issued
+                  summary, ask the lab what supporting information is available.
+                  Its absence alone does not prove the report is unreliable.
                 </li>
                 <li>
                   <strong className="font-medium text-ink">
                     A specific purity result.
                   </strong>{" "}
-                  Prefer a precise figure such as 99.8% over rounded ranges like
-                  &ldquo;greater than 98%&rdquo; or vague claims of
-                  &ldquo;high purity.&rdquo; Exact values are easier to compare
-                  across reports and to keep in lab records.
+                  Record the value and units exactly as the lab reports them.
+                  More decimal places do not prove greater accuracy. Compare
+                  results only with suitable method details, detection limits
+                  and measurement uncertainty when those are available.
                 </li>
                 <li>
                   <strong className="font-medium text-ink">
@@ -151,10 +149,11 @@ export default function VerifyPeptideCoaGuidePage() {
                 </li>
                 <li>
                   <strong className="font-medium text-ink">
-                    Summary-only pages with no graph
+                    A vendor summary presented as a laboratory report
                   </strong>
-                  : a purity figure without a chromatogram or other primary data
-                  is easy to fabricate and hard to evaluate.
+                  : ask for the original laboratory-issued record and confirm
+                  it at the source. An original lab summary can be genuine even
+                  when supporting chromatograms are supplied separately.
                 </li>
                 <li>
                   <strong className="font-medium text-ink">
@@ -204,15 +203,16 @@ export default function VerifyPeptideCoaGuidePage() {
               <p className="text-ash">
                 One example is Janoshik&apos;s verification tool at{" "}
                 <a
-                  href="https://janoshik.com/verify"
+                  href="https://verify.janoshik.com"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-petrol underline underline-offset-4 transition-opacity hover:opacity-80"
                 >
-                  janoshik.com/verify
+                  verify.janoshik.com
                 </a>
-                . When a Janoshik report lists a task number, enter that number
-                on the verification page. The tool pulls the original report
+                . Enter the task number and verification key as printed on the
+                original report, following the laboratory&apos;s instructions.
+                The tool pulls the original report
                 from the laboratory&apos;s server, not from a copy stored only
                 by a reseller. If the task number is valid, you see the same
                 record the lab issued, not a retyped summary.

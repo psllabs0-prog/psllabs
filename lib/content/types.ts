@@ -27,6 +27,7 @@ export type ScienceArticleMeta = {
   title: string;
   description: string;
   date: string;
+  modifiedDate?: string;
   category: string;
   readTime: string;
 };

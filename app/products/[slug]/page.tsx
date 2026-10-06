@@ -14,6 +14,7 @@ import { getPublicCatalogProduct } from "@/lib/products/public-catalog";
 import { skuToSlug } from "@/lib/products/slug";
 import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
+import { createBreadcrumbData } from "@/lib/structured-data";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -35,17 +36,15 @@ export async function generateMetadata({
   const product = getProduct(catalog.handle);
   if (!product) return { title: "Product not found" };
 
+  const strength = catalog.strength.replace(/(\d)(mg|ml)$/i, "$1 $2");
   return createPageMetadata({
-    title: product.name,
-    description: product.shortDescription,
+    title: `${product.name} ${strength} | Batch Report`,
+    description: product.handle === "reconstitution-solution"
+      ? "Reconstitution Solution 5 ml for laboratory research. View the original Janoshik batch report and reported benzyl alcohol concentration. Not for human or animal use."
+      : `${product.name} ${strength} for laboratory research. View the original Janoshik batch report, tested-sample purity and reported amount. Not for human or animal use.`,
     path: catalog.href,
+    image: { url: catalog.imageSrc, alt: catalog.imageAlt },
   });
-}
-
-function priceValidUntilOneYear(): string {
-  const d = new Date();
-  d.setFullYear(d.getFullYear() + 1);
-  return d.toISOString().slice(0, 10);
 }
 
 function schemaAvailability(
@@ -86,6 +85,11 @@ export default async function ProductPage({ params }: PageProps) {
   }));
 
   const productUrl = `${SITE_URL}${catalogEntry.href}`;
+  const breadcrumbLd = createBreadcrumbData([
+    { name: "Home", path: "" },
+    { name: "Products", path: "/products" },
+    { name: `${product.name} ${catalogEntry.strength}`, path: catalogEntry.href },
+  ]);
 
   const researchPeptideHandles = new Set([
     "retatrutide",
@@ -116,7 +120,6 @@ export default async function ProductPage({ params }: PageProps) {
         price: String(product.price),
         priceCurrency: "USD",
         availability: schemaAvailability(availability.status),
-        priceValidUntil: priceValidUntilOneYear(),
         url: productUrl,
       },
     };
@@ -124,6 +127,7 @@ export default async function ProductPage({ params }: PageProps) {
     return (
       <>
         <JsonLd data={productLd} />
+        <JsonLd data={breadcrumbLd} />
         <ResearchPeptideTemplate
           product={product}
           availability={availability}
@@ -152,7 +156,6 @@ export default async function ProductPage({ params }: PageProps) {
             price: String(product.price),
             priceCurrency: "USD",
             availability: schemaAvailability(availability.status),
-            priceValidUntil: priceValidUntilOneYear(),
             url: productUrl,
           },
         }
@@ -161,6 +164,7 @@ export default async function ProductPage({ params }: PageProps) {
   return (
     <>
       {productLd && <JsonLd data={productLd} />}
+      <JsonLd data={breadcrumbLd} />
       <ProductTemplate
         product={product}
         otherProducts={otherProducts}
