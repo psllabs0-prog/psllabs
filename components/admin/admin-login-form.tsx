@@ -22,12 +22,27 @@ export function AdminLoginForm({ redirectTo }: { redirectTo?: string }) {
       });
 
       if (!res.ok) {
-        setError("Incorrect password.");
+        if (res.status === 429) {
+          const seconds = Number(res.headers.get("Retry-After"));
+          const minutes = Number.isFinite(seconds) && seconds > 0 ? Math.ceil(seconds / 60) : null;
+          setError(`Too many sign-in attempts. ${minutes ? `Try again in ${minutes} minute${minutes === 1 ? "" : "s"}.` : "Please wait before trying again."}`);
+        } else if (res.status === 401) {
+          setError("Incorrect password.");
+        } else if (res.status === 403) {
+          setError("Sign in from this website directly. Reload this page and try again.");
+        } else {
+          setError("Sign-in protection is temporarily unavailable. Please try again later.");
+        }
         return;
       }
 
       if (redirectTo) {
-        window.location.href = redirectTo;
+        const destination = new URL(redirectTo, window.location.origin);
+        if (destination.origin === window.location.origin) {
+          window.location.href = destination.href;
+        } else {
+          window.location.reload();
+        }
       } else {
         window.location.reload();
       }

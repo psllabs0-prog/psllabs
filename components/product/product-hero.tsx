@@ -6,6 +6,7 @@ import { hasAvailableReport } from "@/lib/batch-reports";
 
 import { AnimateIn } from "./animate-in";
 import { ProductGallery } from "./product-gallery";
+import { ProductArtworkNotice } from "./product-artwork-notice";
 import { ProductPurchase } from "./product-purchase";
 
 export function ProductHero({
@@ -29,6 +30,7 @@ export function ProductHero({
                 imageAlt={product.imageAlt}
               />
             </div>
+            <ProductArtworkNotice handle={product.handle} className="mt-3" />
           </AnimateIn>
 
           <div className="flex flex-col gap-5 lg:pt-2">

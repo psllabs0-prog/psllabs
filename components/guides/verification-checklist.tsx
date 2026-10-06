@@ -38,8 +38,8 @@ const DEFAULT_CHECKLIST: ChecklistItem[] = [
     step: 4,
     title: "Match the batch number",
     description:
-      "The batch or lot on the report should match the code on the vial or package.",
-    actionHint: "If the numbers do not match, the report is not for that vial.",
+      "Compare the sampled lot on the report with the vial and inventory records. A product SKU alone does not uniquely identify a production lot.",
+    actionHint: "If identifiers differ or the lot link is unclear, ask for traceability records.",
   },
   {
     step: 5,
@@ -64,9 +64,9 @@ const DEFAULT_CHECKLIST: ChecklistItem[] = [
   },
   {
     step: 8,
-    title: "Note what was not tested",
+    title: "Note what the report does not establish",
     description:
-      "If sterility, endotoxin, or other tests are missing, treat them as untested unless another report covers them.",
+      "If sterility, endotoxin, or other results are missing, those properties are not established by this report. Look for separate documentation; a missing result does not prove that a test was never performed.",
     actionHint: "Write down what is missing for your records.",
   },
 ];

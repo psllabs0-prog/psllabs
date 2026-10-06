@@ -69,28 +69,28 @@ const batchVsGenericColumns = [
 const batchVsGenericRows = [
   {
     feature: "Lot / batch number",
-    batchSpecific: "Matches vial label and invoice (e.g. PSL-BPC157-10MG).",
+    batchSpecific: "Identifies the sampled lot and can be matched to inventory records; a SKU alone is not a unique lot number.",
     genericDoc: "Missing, blank, or placeholder (Batch: N/A or Batch: All).",
   },
   {
     feature: "Test results",
-    batchSpecific: "Specific measured numbers (e.g. 99.748% purity, 11.75 mg mass).",
+    batchSpecific: "Specific measured numbers (e.g. 99.748% purity, 11.75 mg reported amount).",
     genericDoc: "Broad ranges (e.g. ≥98.0% or Conforms).",
   },
   {
     feature: "Analysis date",
-    batchSpecific: "Exact date of lab testing for that production run.",
+    batchSpecific: "Date the submitted sample was analyzed, linked to its lot records.",
     genericDoc: "Static or missing date reused across years.",
   },
   {
     feature: "Test graphs",
-    batchSpecific: "Full chromatogram with peak data and run times.",
-    genericDoc: "Summary table only; no instrument graphs or spectra.",
+    batchSpecific: "May include graphs or a results table. Supporting instrument data can be separate.",
+    genericDoc: "Graph presence alone does not distinguish a specification sheet from a lot-specific report.",
   },
   {
     feature: "Independent verification",
-    batchSpecific: "Task number you can look up on the lab server (verify.janoshik.com).",
-    genericDoc: "No task number; cannot verify on the lab site.",
+    batchSpecific: "For published Janoshik records, verify the task number and key on verify.janoshik.com.",
+    genericDoc: "An issuing laboratory may use another verification method; check the issuer and sampled-lot link.",
   },
 ];
 
@@ -124,11 +124,11 @@ export default function BatchSpecificVsGenericCoaPage() {
             <li>The unique batch code for that production run</li>
             <li>The sample vial sent to the testing lab</li>
             <li>The analysis date</li>
-            <li>Measured results (for example, 99.805% purity and 13.03 mg net mass)</li>
-            <li>The test graphs that support those numbers</li>
+            <li>Measured results (for example, 99.805% purity and 13.03 mg reported amount)</li>
+            <li>Method details and supporting instrument data, where included or separately available</li>
           </ul>
           <p className="text-ash leading-relaxed">
-            Those results belong to that lot. They do not automatically cover earlier runs, later runs, or material from a different synthesis site.
+            Those results describe the submitted sample. Lot records must connect that sample to the inventory being supplied; results do not automatically cover earlier runs, later runs, or material from a different synthesis site.
           </p>
         </section>
 
@@ -142,18 +142,18 @@ export default function BatchSpecificVsGenericCoaPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pt-1 text-sm">
             <div className="rounded-xl border border-linen bg-surface p-5 space-y-2">
               <span className="font-mono text-xs font-semibold uppercase text-signal">
-                Tell #1: Spec targets instead of measurements
+                Tell #1: Targets presented as measured results
               </span>
               <p className="text-xs sm:text-sm text-ash leading-relaxed">
-                Instead of &ldquo;99.74%,&rdquo; you see &ldquo;Purity: &gt;98.0%&rdquo; or &ldquo;Conforms&rdquo; on every row.
+                A limit such as &ldquo;Purity: &gt;98.0%&rdquo; is not a measured percentage. A pass/fail result can be legitimate, but the document should identify the sampled lot, test method, and acceptance limit.
               </p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-5 space-y-2">
               <span className="font-mono text-xs font-semibold uppercase text-signal">
-                Tell #2: No chromatograms
+                Tell #2: No sampled-lot link
               </span>
               <p className="text-xs sm:text-sm text-ash leading-relaxed">
-                Only a typed table. No test graphs, no chromatogram, no identity spectrum.
+                No identifiable sampled lot or record connecting the sample to the supplied stock. A results table can still be batch-specific; missing graphs alone do not make a report generic.
               </p>
             </div>
           </div>
@@ -250,12 +250,12 @@ export default function BatchSpecificVsGenericCoaPage() {
             <div className="rounded-xl border border-linen bg-surface p-5 space-y-1">
               <span className="font-mono text-xs font-bold text-accent">IDENTIFIER 1</span>
               <p className="font-bold text-ink">Vial label vs report batch code</p>
-              <p className="text-xs text-ash">The batch on the vial should match the batch header on the COA.</p>
+              <p className="text-xs text-ash">Match the sampled lot to the vial and inventory records. A shared product SKU does not establish a unique lot match.</p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-5 space-y-1">
               <span className="font-mono text-xs font-bold text-accent">IDENTIFIER 2</span>
               <p className="font-bold text-ink">Task number vs lab portal</p>
-              <p className="text-xs text-ash">Enter the task number at verify.janoshik.com and confirm the original PDF.</p>
+              <p className="text-xs text-ash">For Janoshik records, use the task number and verification key to compare the original laboratory record.</p>
             </div>
             <div className="rounded-xl border border-linen bg-surface p-5 space-y-1">
               <span className="font-mono text-xs font-bold text-accent">IDENTIFIER 3</span>
@@ -299,7 +299,7 @@ export default function BatchSpecificVsGenericCoaPage() {
             What batch reports do not prove
           </h2>
           <p className="text-ash leading-relaxed">
-            The report only covers the tests shown on the original laboratory file. A batch report does not cover sterility, endotoxins, biological activity, or regulatory approval unless those tests are listed.
+            The report only covers the tests shown on the original laboratory file. Sterility, endotoxins, and biological activity require their own reported tests; a purity or identity result does not establish them. A laboratory report does not establish regulatory approval or suitability for human or animal use.
           </p>
         </section>
 
@@ -312,10 +312,10 @@ export default function BatchSpecificVsGenericCoaPage() {
           </p>
           <div className="rounded-xl border border-linen bg-surface p-6 space-y-3 text-sm leading-relaxed text-ash">
             <p>
-              <strong className="text-ink">1. Published docs for active SKUs:</strong> We do not sell under vague &ldquo;testing pending&rdquo; promises. Active catalog items ship with a published Janoshik COA.
+              <strong className="text-ink">1. Published docs for active SKUs:</strong> Active catalog listings link to the original published Janoshik reports. Read the stated sample identifiers and reported results before relying on a claim.
             </p>
             <p>
-              <strong className="text-ink">2. Batch-specific scope:</strong> We do not stretch historical data across new production runs. When a lot changes, new third-party analysis is completed and published.
+              <strong className="text-ink">2. Batch-specific scope:</strong> Results apply to the submitted sample. The product code shown in a report is not, by itself, proof of a unique production lot or a match to every vial. Ask us to clarify the link between a vial, its inventory lot, and the laboratory record when needed.
             </p>
             <p>
               <strong className="text-ink">3. Pipeline gating:</strong> &ldquo;Coming Soon&rdquo; items stay non-purchasable until verification is finalized and indexed in{" "}

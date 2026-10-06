@@ -12,7 +12,7 @@ export const disclaimerPageMeta: ContentPageMeta = {
 
 export const disclaimerParagraphs = [
   `${LEGAL_ENTITY_NAME} products are sold strictly for laboratory and research use only. They are not intended for human or animal consumption, diagnosis, treatment, cure, or prevention of any disease.`,
-  "Product descriptions, testing summaries, and Certificates of Analysis support research documentation, they do not constitute medical advice or usage guidance.",
-  "These statements have not been evaluated by the Food and Drug Administration. This product is not intended to diagnose, treat, cure, or prevent any disease.",
+  "Product descriptions, testing summaries, and Certificates of Analysis support research documentation. They do not constitute medical advice or usage guidance.",
+  "A laboratory report covers the submitted sample and the tests and results listed in that report. It does not establish safety, efficacy, suitability for human or animal use, or regulatory approval. A reported result does not guarantee that every vial in a lot is identical.",
   `${LEGAL_ENTITY_NAME}. Questions about this disclaimer: support@psllabs.org.`,
 ];

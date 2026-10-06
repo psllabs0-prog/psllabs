@@ -72,7 +72,7 @@ export const footerColumns: { title: string; links: NavLink[] }[] = [
 ];
 
 export const footerDisclaimer =
-  "These statements have not been evaluated by the Food and Drug Administration. This product is not intended to diagnose, treat, cure, or prevent any disease. For research use only.";
+  "Laboratory reports cover only the submitted sample and tests reported. They do not establish safety, efficacy, or suitability for human or animal use. For laboratory research only. Not for human or animal use.";
 
 /** Returns true when the nav item should appear active for the current path. */
 export function isNavLinkActive(pathname: string, href: string): boolean {

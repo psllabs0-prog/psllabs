@@ -13,8 +13,9 @@ Sources: `lib/content/disclaimer.ts`, `lib/content/testing-scope.ts`, `lib/conte
 - Products are sold **strictly for laboratory and research use only**.
 - Not intended for human or animal consumption, diagnosis, treatment, cure, or prevention of any disease.
 - Product descriptions, testing summaries, and COAs support research documentation — they are not medical advice or usage guidance.
-- Standard FDA disclaimer language is published on the disclaimer page:
-  > These statements have not been evaluated by the Food and Drug Administration. This product is not intended to diagnose, treat, cure, or prevent any disease.
+- The public disclaimer states the limits of laboratory reports:
+  > A laboratory report covers the submitted sample and the tests and results listed in that report. It does not establish safety, efficacy, suitability for human or animal use, or regulatory approval. A reported result does not guarantee that every vial in a lot is identical.
+- Do not frame these materials as dietary supplements or treat a laboratory result as FDA approval or evidence of safety for human or animal use.
 
 ## Testing-scope claim limit (live)
 

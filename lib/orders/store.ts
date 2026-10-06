@@ -560,10 +560,21 @@ export async function releaseTagadaWebhookClaim(
 
 export async function markStatusIfPending(
   orderId: string,
-  status: Extract<OrderStatus, "cancelled" | "failed">
+  status: Extract<OrderStatus, "cancelled" | "failed">,
+  binding?: { invoiceId: string; paymentMethod: PaymentMethod; total: number; currency: string }
 ): Promise<void> {
   await ensureOrdersSchema();
   const sql = getSql();
+  if (binding) {
+    await sql`
+      UPDATE orders SET status = ${status}, updated_at = now()
+      WHERE order_id = ${orderId} AND status = 'pending'
+        AND invoice_id = ${binding.invoiceId}
+        AND payment_method = ${binding.paymentMethod}
+        AND total = ${binding.total} AND currency = ${binding.currency}
+    `;
+    return;
+  }
   await sql`
     UPDATE orders SET status = ${status}, updated_at = now()
     WHERE order_id = ${orderId} AND status = 'pending'

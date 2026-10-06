@@ -16,6 +16,7 @@ export const privacySections: ContentSection[] = [
       "When you place an order or contact us, you may give us information such as your name, email address, shipping address, and order details. Payment information is handled by our payment provider. PSL Labs does not store your full card number.",
       "We also collect basic information about how the website is used, such as browser information, pages viewed, and referral information through the analytics tools used on the site.",
       "Advertising links may include a reference that identifies an ad click. Campaign information is retained in your browser for up to 30 days and may be saved with your order to measure which advertising leads to completed purchases.",
+      "To limit automated abuse, we use the network address supplied by our hosting provider to create a keyed, one-way identifier. Temporary request counters use that identifier rather than storing the raw address in the rate-limit table; expired counters are removed during periodic table initialization.",
     ],
   },
   {
