@@ -8,7 +8,7 @@ import { getScienceArticles } from "@/lib/content/science";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Science",
+  title: "Laboratory Report Documentation Reference",
   description: sciencePageMeta.description,
   path: "/science",
 });

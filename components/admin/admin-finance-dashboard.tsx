@@ -37,6 +37,29 @@ function money(n: number | null | undefined): string {
   }).format(n);
 }
 
+function warningExplanation(warning: ReconciliationWarningRow) {
+  if (warning.warningType !== "provider_lookup_failed") return null;
+
+  if (warning.provider === "tagada" &&
+      warning.message.endsWith(": invalid_payment_reference")) {
+    return {
+      title: "Saved payment reference needs review",
+      detail: "The saved value is not a valid provider payment ID. Compare the original checkout record with the provider's payment receipt before changing the reference.",
+    };
+  }
+  if (warning.provider === "tagada" &&
+      warning.message.endsWith(": checkout_binding_mismatch")) {
+    return {
+      title: "Checkout reference does not match",
+      detail: "The provider payment could not be tied to this order's saved checkout reference. Review both original records before changing a reference or asking the customer to pay again.",
+    };
+  }
+  return {
+    title: "Payment record could not be verified",
+    detail: "Check provider access and the saved payment and checkout references. A lookup failure alone does not show that a charge failed.",
+  };
+}
+
 export function AdminFinanceDashboard() {
   const [data, setData] = useState<FinancePayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -292,6 +315,13 @@ export function AdminFinanceDashboard() {
         <h2 className="font-display text-xl font-semibold text-ink">
           Reconciliation warnings
         </h2>
+        {data.warnings.some((warning) => warning.warningType === "provider_lookup_failed") ? (
+          <p className="max-w-3xl text-sm text-ash">
+            A lookup or reference warning does not by itself mean a payment
+            failed. It needs a record review. Provider payment success and bank
+            settlement are separate checks.
+          </p>
+        ) : null}
         {data.warnings.length === 0 ? (
           <p className="text-sm text-ash">No open warnings.</p>
         ) : (
@@ -306,16 +336,32 @@ export function AdminFinanceDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {data.warnings.map((w) => (
-                  <tr key={w.id} className="border-t border-black/10">
-                    <td className="py-2 pr-4 font-mono text-xs">{w.warningType}</td>
-                    <td className="py-2 pr-4 font-mono text-xs">
-                      {w.pslOrderId ?? "—"}
-                    </td>
-                    <td className="py-2 pr-4">{w.provider ?? "—"}</td>
-                    <td className="py-2">{w.message}</td>
-                  </tr>
-                ))}
+                {data.warnings.map((w) => {
+                  const explanation = warningExplanation(w);
+                  return (
+                    <tr key={w.id} className="border-t border-black/10 align-top">
+                      <td className="py-2 pr-4">
+                        <p className="font-mono text-xs">{w.warningType}</p>
+                        <p className="mt-1 text-xs text-ash">
+                          {w.status === "open" ? "Open" : "Resolved"}
+                        </p>
+                      </td>
+                      <td className="py-2 pr-4 font-mono text-xs">
+                        {w.pslOrderId ?? "—"}
+                      </td>
+                      <td className="py-2 pr-4">{w.provider ?? "—"}</td>
+                      <td className="py-2">
+                        {explanation ? (
+                          <>
+                            <p className="font-medium">{explanation.title}</p>
+                            <p className="mt-1 max-w-xl text-ash">{explanation.detail}</p>
+                            <p className="mt-2 text-xs text-ash">{w.message}</p>
+                          </>
+                        ) : w.message}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

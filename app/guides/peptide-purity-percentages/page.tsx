@@ -4,36 +4,32 @@ import { AnimateIn } from "@/components/product/animate-in";
 import { JsonLd } from "@/components/seo/json-ld";
 import { RelatedGuides } from "@/components/guides/related-guides";
 import { BatchDocumentationCTA } from "@/components/guides/batch-documentation-cta";
-import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
-import { createPageMetadata, SITE_URL } from "@/lib/seo";
+import { getGuideBySlug } from "@/lib/content/guides-data";
+import { createPageMetadata } from "@/lib/seo";
+import { createArticleData, createBreadcrumbData } from "@/lib/structured-data";
+
+const guide = getGuideBySlug("peptide-purity-percentages")!;
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Peptide Purity Percentages Explained",
-  description:
-    "What peptide purity percentages mean on a lab report, how a purity test works, and what the remaining percentage represents.",
+  title: guide.seoTitle ?? guide.title,
+  description: guide.description,
   path: "/guides/peptide-purity-percentages",
   type: "article",
 });
 
-const GUIDE_DATE = "2026-07-29";
-const GUIDE_MODIFIED = "2026-08-02";
-
-const articleLd = {
-  "@context": "https://schema.org",
-  "@type": "Article",
-  headline: "Peptide Purity Percentages: What Do They Actually Mean?",
-  author: { "@type": "Organization", name: LEGAL_ENTITY_NAME },
-  publisher: { "@type": "Organization", name: LEGAL_ENTITY_NAME },
-  datePublished: GUIDE_DATE,
-  dateModified: GUIDE_MODIFIED,
-  url: `${SITE_URL}/guides/peptide-purity-percentages`,
-};
+const articleLd = createArticleData({ ...guide, path: `/guides/${guide.slug}` });
+const breadcrumbLd = createBreadcrumbData([
+  { name: "Home", path: "" },
+  { name: "Guides", path: "/guides" },
+  { name: guide.shortTitle, path: `/guides/${guide.slug}` },
+]);
 
 export default function PeptidePurityPercentagesGuidePage() {
   return (
     <main className="public-page-surface min-h-screen">
       {/* Validate Article markup: https://search.google.com/test/rich-results */}
       <JsonLd data={articleLd} />
+      <JsonLd data={breadcrumbLd} />
       <article className="mx-auto max-w-[840px] px-6 py-16 md:px-12 md:py-20 lg:py-24">
         <header className="mb-10 border-b border-linen pb-10 md:mb-12 md:pb-12">
           <AnimateIn>
@@ -46,9 +42,9 @@ export default function PeptidePurityPercentagesGuidePage() {
           </AnimateIn>
           <AnimateIn delay={0.1}>
             <p className="mt-5 text-base leading-relaxed text-ash md:text-[1.0625rem]">
-              A purity percentage on a lab report tells you how much of the
-              detected material is the main peptide, compared with other peaks
-              the test picked up. It applies only to that sample and batch.
+                For an HPLC area result, purity describes the main peak&apos;s
+                share of the integrated detector signal. It is not a percentage
+                of the powder&apos;s total weight or a milligram amount.
             </p>
           </AnimateIn>
         </header>
@@ -176,15 +172,15 @@ export default function PeptidePurityPercentagesGuidePage() {
               <p className="text-ash">
                 One option is Janoshik&apos;s tool at{" "}
                 <a
-                  href="https://janoshik.com/verify"
+                  href="https://janoshik.com/verification/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="font-medium text-petrol underline underline-offset-4 transition-opacity hover:opacity-80"
                 >
-                  janoshik.com/verify
+                  janoshik.com/verification/
                 </a>
-                . Enter the task number from a Janoshik report and you will pull
-                the original lab record. You can confirm the purity and the rest
+                . Follow the original report&apos;s instructions and enter its
+                task number and verification key. You can confirm the purity and the rest
                 of the fields match what the lab actually issued.
               </p>
             </section>

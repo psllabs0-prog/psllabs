@@ -8,9 +8,9 @@ import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Batch Reports",
+  title: "Peptide COA Lookup and Original Batch Reports",
   description:
-    "Look up third party lab reports by task number or batch name. Original Janoshik Analytical files for released batches.",
+    "Find PSL Labs original Janoshik reports by task number or batch. Match your lot, review reported results and open the laboratory verification record.",
   path: "/coa",
 });
 

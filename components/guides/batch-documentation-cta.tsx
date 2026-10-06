@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FileCheck, Search, ShieldCheck } from "lucide-react";
 
 import { batchReports } from "@/lib/batch-reports";
+import { productPathFromHandle } from "@/lib/products/catalog";
 import { trackGuideCtaClick } from "@/lib/analytics/guide-events";
 
 type BatchDocumentationCTAProps = {
@@ -21,7 +22,7 @@ type BatchDocumentationCTAProps = {
 export function BatchDocumentationCTA({
   guideSlug,
   title = "Check our published batch reports",
-  description = "Every active catalog lot has a third-party Certificate of Analysis from Janoshik Analytical. You can review purity, measured amount, and check the original file yourself.",
+  description = "Every active catalog lot has a published Janoshik report. Peptide reports list tested-sample purity and reported amount; the solution report lists benzyl alcohol concentration. Open the original file and match the batch.",
   primaryLabel = "View Batch Reports",
   primaryHref = "/coa",
   secondaryLabel = "See Testing Details",
@@ -41,9 +42,9 @@ export function BatchDocumentationCTA({
             <ShieldCheck className="size-4 shrink-0" aria-hidden />
             <span>Batch reports</span>
           </div>
-          <h3 className="font-display text-xl font-bold text-ink sm:text-2xl">
+          <h2 className="font-display text-xl font-bold text-ink sm:text-2xl">
             {title}
-          </h3>
+          </h2>
           <p className="text-sm leading-relaxed text-ash sm:text-base">
             {description}
           </p>
@@ -60,9 +61,9 @@ export function BatchDocumentationCTA({
                   key={report.taskNumber}
                   className="flex flex-col gap-1 rounded border border-linen/80 bg-surface/50 p-2.5 text-xs font-mono"
                 >
-                  <span className="font-semibold text-ink truncate">
+                  <Link href={productPathFromHandle(report.productHandle)} className="font-semibold text-ink underline underline-offset-4 hover:text-accent">
                     {report.product}
-                  </span>
+                  </Link>
                   <span className="text-stone">Task #{report.taskNumber}</span>
                   <span className="text-accent font-medium">
                     {report.purityPercent

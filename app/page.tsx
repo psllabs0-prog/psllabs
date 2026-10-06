@@ -3,26 +3,26 @@ import type { Metadata } from "next";
 import { AvailableMaterialsSection } from "@/components/home/available-materials-section";
 import { HeroSection } from "@/components/home/hero-section";
 import { NewsletterSignup } from "@/components/home/newsletter-signup";
-import { WhyChooseSection } from "@/components/home/why-choose-section";
+import { ResearchGuidesSection } from "@/components/home/research-guides-section";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ScrollReveal } from "@/components/motion/scroll-reveal";
 import { getAvailabilityForCatalogHandles } from "@/lib/inventory/availability";
 import { newsletterSignupVariant } from "@/lib/newsletter/config";
 import { getNewsletterWelcomeSchemaState } from "@/lib/newsletter/schema";
 import { getActiveCatalogProducts } from "@/lib/products/catalog";
-import { whyChooseCards } from "@/lib/home/homepage";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "PSL Labs: Synthetic Peptides for Laboratory Research",
+  title: "Research Peptides & Batch COA Reports | PSL Labs",
   description:
-    "Synthetic peptides and research materials for laboratory use. Third-party lab reports available for released lots.",
+    "Compare laboratory research peptides, vial sizes, and prices. Open original batch COAs and learn how to check purity, identity, and content at PSL Labs.",
   path: "/",
 });
 
 const organizationLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
+  "@id": `${SITE_URL}/#organization`,
   name: "PSL Labs",
   legalName: "PSL Group LLC",
   url: SITE_URL,
@@ -64,7 +64,7 @@ export default async function Home({
         products={activeProducts}
         availabilityMap={availabilityMap}
       />
-      <WhyChooseSection cards={whyChooseCards} />
+      <ResearchGuidesSection />
       <ScrollReveal>
         <NewsletterSignup variant={signupVariant} />
       </ScrollReveal>

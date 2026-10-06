@@ -36,6 +36,7 @@ export function getScienceArticleMeta(
     title: (data.title as string) ?? slug,
     description: (data.description as string) ?? "",
     date: (data.date as string) ?? "",
+    modifiedDate: data.modifiedDate as string | undefined,
     category: (data.category as string) ?? "Research",
     readTime: (data.readTime as string) ?? "5 min read",
   };

@@ -119,7 +119,7 @@ export function ResearchPeptideTemplate({
           variant="ice"
           width="prose"
         >
-          <TestingScopeExplainer showPolicy={false} reportKind={product.handle === "reconstitution-solution" ? "solution" : "peptide"} />
+          <TestingScopeExplainer showPolicy={false} headingLevel={3} reportKind={product.handle === "reconstitution-solution" ? "solution" : "peptide"} />
         </SectionShell>
 
         {/* Deeper Specifications Table */}

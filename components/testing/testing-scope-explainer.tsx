@@ -7,23 +7,27 @@ type TestingScopeExplainerProps = {
   className?: string;
   showPolicy?: boolean;
   reportKind?: "peptide" | "solution";
+  headingLevel?: 2 | 3;
 };
 
 export function TestingScopeExplainer({
   className = "",
   showPolicy = true,
   reportKind = "peptide",
+  headingLevel = 2,
 }: TestingScopeExplainerProps) {
   const solution = reportKind === "solution";
+  const Heading = headingLevel === 2 ? "h2" : "h3";
+  const DetailHeading = headingLevel === 2 ? "h3" : "h4";
   return (
     <div className={`flex flex-col gap-8 ${className}`}>
       <AnimateIn>
         <section className="public-section-card p-6 md:p-8">
           <div className="flex items-center gap-2.5 text-accent">
             <FileText className="size-5 shrink-0" aria-hidden />
-            <h2 className="font-display text-lg font-bold text-ink md:text-xl">
+            <Heading className="font-display text-lg font-bold text-ink md:text-xl">
               What the lab report shows
-            </h2>
+            </Heading>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-ash md:text-base">
             {solution
@@ -39,9 +43,9 @@ export function TestingScopeExplainer({
               <p className="font-mono text-xs font-semibold uppercase tracking-wider text-accent">
                 {solution ? "Sample" : "Identity"}
               </p>
-              <h3 className="mt-1 font-display text-base font-bold text-ink">
+              <DetailHeading className="mt-1 font-display text-base font-bold text-ink">
                 {solution ? "What sample is named on the report?" : "What material did the lab identify?"}
-              </h3>
+              </DetailHeading>
               <p className="mt-2 text-sm leading-relaxed text-ash">
                 {solution ? "The sample field names bacteriostatic water. The requested test is benzyl alcohol analysis." : "The report shows whether the tested sample matches the expected compound."}
               </p>
@@ -51,9 +55,9 @@ export function TestingScopeExplainer({
               <p className="font-mono text-xs font-semibold uppercase tracking-wider text-accent">
                 {solution ? "Concentration" : "Purity"}
               </p>
-              <h3 className="mt-1 font-display text-base font-bold text-ink">
+              <DetailHeading className="mt-1 font-display text-base font-bold text-ink">
                 {solution ? "How much benzyl alcohol was measured?" : "How clean did the sample look in the lab's purity test?"}
-              </h3>
+              </DetailHeading>
               <p className="mt-2 text-sm leading-relaxed text-ash">
                 {solution ? `The reported result is ${reconstitutionSolution5mlReport.reportedResult!.value} benzyl alcohol in the tested sample. This is a concentration, not a peptide purity percentage.` : "The report gives a purity percentage for the tested sample."}
               </p>
@@ -63,9 +67,9 @@ export function TestingScopeExplainer({
               <p className="font-mono text-xs font-semibold uppercase tracking-wider text-accent">
                 {solution ? "Scope" : "Amount"}
               </p>
-              <h3 className="mt-1 font-display text-base font-bold text-ink">
+              <DetailHeading className="mt-1 font-display text-base font-bold text-ink">
                 {solution ? "What does this report not establish?" : "How much material did the lab measure?"}
-              </h3>
+              </DetailHeading>
               <p className="mt-2 text-sm leading-relaxed text-ash">
                 {solution ? "This report does not list peptide purity, sterility or endotoxin results. The sample name and concentration do not establish suitability for use in people or animals." : "The report shows how much target material was measured in the tested sample. For a solution, it may show concentration instead."}
               </p>
@@ -96,9 +100,9 @@ export function TestingScopeExplainer({
           <section className="public-section-card p-6 md:p-8">
             <div className="flex items-center gap-2.5 text-accent">
               <CheckCircle2 className="size-5 shrink-0" aria-hidden />
-              <h2 className="font-display text-lg font-bold text-ink md:text-xl">
+              <Heading className="font-display text-lg font-bold text-ink md:text-xl">
                 How we publish batch reports
-              </h2>
+              </Heading>
             </div>
             <div className="mt-4 space-y-3 text-sm leading-relaxed text-ash md:text-base">
               <p>

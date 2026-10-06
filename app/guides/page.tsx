@@ -9,9 +9,9 @@ import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Guides",
+  title: "Peptide Testing and COA Verification Guides",
   description:
-    "Simple guides to help you read lab reports, check batch information, and understand the testing shown on our site.",
+    "Learn to verify peptide COAs, match batch records, read HPLC purity and distinguish purity from reported amount. Practical guides for laboratory research.",
   path: "/guides",
 });
 
@@ -168,7 +168,7 @@ export default function GuidesHubPage() {
                           </div>
 
                           <div className="mt-6 flex items-center justify-between border-t border-linen pt-4 text-xs font-mono text-stone">
-                            <span>Updated: {guide.publishedDate}</span>
+                            <span>Updated: {guide.modifiedDate || guide.publishedDate}</span>
                             <span className="flex items-center gap-1.5 font-medium text-accent transition-transform motion-safe:group-hover:translate-x-1">
                               Read Guide
                               <ArrowRight className="size-3.5" aria-hidden />

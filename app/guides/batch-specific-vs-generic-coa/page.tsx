@@ -13,7 +13,7 @@ import { createPageMetadata, SITE_URL } from "@/lib/seo";
 const guide = getGuideBySlug("batch-specific-vs-generic-coa")!;
 
 export const metadata: Metadata = createPageMetadata({
-  title: guide.title,
+  title: guide.seoTitle ?? guide.title,
   description: guide.description,
   path: `/guides/${guide.slug}`,
   type: "article",

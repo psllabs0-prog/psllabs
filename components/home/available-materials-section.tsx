@@ -1,126 +1,82 @@
+import Image from "next/image";
 import Link from "next/link";
-import { CheckCircle2, FileText } from "lucide-react";
-
-import { ProductVialImage } from "@/components/product/product-vial-image";
+import { ArrowUpRight, BookOpen, FileText } from "lucide-react";
 import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
-import { PillButton } from "@/components/ui/pill-button";
 import { ScrollReveal } from "@/components/motion/scroll-reveal";
 import { formatPrice } from "@/lib/cart/format";
-import { hasAvailableReport } from "@/lib/batch-reports";
+import { formatReportedPurity, getBatchReportsForProduct } from "@/lib/batch-reports";
+import { homeProductCode } from "@/lib/home/product-display";
 import type { ProductAvailability } from "@/lib/inventory/availability";
 import type { CatalogProduct } from "@/lib/products/catalog";
+import styles from "./research-home.module.css";
 
 type AvailableMaterialsSectionProps = {
   products: CatalogProduct[];
   availabilityMap: Map<string, ProductAvailability>;
 };
 
-export function AvailableMaterialsSection({
-  products,
-  availabilityMap,
-}: AvailableMaterialsSectionProps) {
+export function AvailableMaterialsSection({ products, availabilityMap }: AvailableMaterialsSectionProps) {
   return (
-    <section className="border-t border-linen bg-paper px-6 py-14 md:px-12 md:py-20 lg:px-16 xl:px-20">
-      <div className="mx-auto max-w-[1440px]">
+    <section id="materials" className={styles.section}>
+      <div className={styles.container}>
         <ScrollReveal>
-          <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div className="flex max-w-2xl flex-col gap-2">
-            <p className="mono text-accent">THE CATALOG</p>
-            <h2 className="font-display text-2xl font-bold tracking-[-0.02em] text-ink md:text-3xl">
-              The research shelf.
-            </h2>
-            <p className="text-sm leading-relaxed text-ash md:text-base">
-              Check the vial size, price, stock, and batch report in one place.
-            </p>
-          </div>
-          <Link
-            href="/products"
-            className="mono text-xs font-medium text-accent underline underline-offset-4 hover:opacity-80 md:text-sm shrink-0"
-          >
-            Browse all products →
-          </Link>
+          <div className={styles.sectionHeader}>
+            <div>
+              <p className={styles.eyebrow}>THE CATALOG / LABORATORY USE ONLY</p>
+              <h2 className={styles.sectionTitle}>Find your material.</h2>
+              <p className={styles.sectionDescription}>The compound, vial size, and price are always in view. Open the report to check the tested sample.</p>
+            </div>
+            <Link href="/products" className={styles.textLink}>Full catalog <ArrowUpRight className="size-4" aria-hidden /></Link>
           </div>
         </ScrollReveal>
-
-        <div className="mt-10 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
+        <div className={styles.catalogGrid}>
           {products.map((product, index) => {
             const availability = availabilityMap.get(product.handle);
-            const isDocPublished = hasAvailableReport(product.handle);
-
+            const report = getBatchReportsForProduct(product.handle).find((candidate) => candidate.status === "report_available" && candidate.sku === product.sku && Boolean(candidate.reportUrl));
+            const metric = report?.purityPercent !== undefined
+              ? `${formatReportedPurity(report.purityPercent)} reported purity`
+              : report?.reportedResult
+                ? `${report.reportedResult.label}: ${report.reportedResult.value}`
+                : null;
             return (
               <ScrollReveal key={product.handle} className="h-full" delayMs={(index % 3) * 70}>
-                <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border-strong bg-surface transition-colors duration-200 hover:border-accent/35">
-                <Link href={product.href} aria-label={`View ${product.name}`} className="relative block border-b border-linen bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-accent">
-                  <ProductVialImage
-                    src={product.imageSrc}
-                    alt={product.imageAlt}
-                    context="card"
-                    bordered={false}
-                    rounded="none"
-                    className="aspect-[6/5] rounded-none object-contain"
-                  />
-                  <div className="pointer-events-none absolute right-3 top-3 z-10">
-                    <span className="badge-accent backdrop-blur-sm">
-                      Research use only
-                    </span>
-                  </div>
-                </Link>
-
-                <div className="flex flex-1 flex-col justify-between p-6">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex flex-wrap items-baseline justify-between gap-2">
-                      <h3 className="font-display text-xl font-bold text-ink">
-                        {product.name}
-                      </h3>
-                      <span className="font-mono text-sm font-medium text-ash shrink-0">
-                        {product.strength}
-                      </span>
+                <article className={styles.productCard}>
+                  <Link href={product.href} aria-label={`View ${product.name}, ${product.strength}`} className={`${styles.productStage} ${styles[`tone${index % 5}`]}`}>
+                    <span className={styles.stageCode} aria-hidden>{homeProductCode(product.handle)}</span>
+                    <span className={styles.stageSize}>{product.strength}</span>
+                    <div className={styles.vialImage}>
+                      <Image src={product.imageSrc} alt={product.imageAlt} fill sizes="(max-width: 639px) 85vw, (max-width: 1023px) 42vw, 380px" className="object-contain" />
                     </div>
-
-                    <div className="flex flex-wrap items-center gap-2 pt-1">
-                      {availability && (
-                        <StockStatusBadge
-                          status={availability.status}
-                          available={availability.available}
-                        />
-                      )}
-                      <span className="inline-flex items-center gap-1 rounded-full border border-border-strong bg-paper px-2.5 py-0.5 font-mono text-[0.7rem] text-ink">
-                        {isDocPublished ? (
-                          <>
-                            <CheckCircle2 className="size-3 text-verified-green" aria-hidden />
-                            <span>Batch report available</span>
-                          </>
-                        ) : (
-                          <>
-                            <FileText className="size-3 text-ash" aria-hidden />
-                            <span>Report pending</span>
-                          </>
-                        )}
-                      </span>
+                    <span className={styles.stageCaption}>Research use only <ArrowUpRight className="size-4" aria-hidden /></span>
+                  </Link>
+                  <div className={styles.productBody}>
+                    <div className={styles.productHeading}>
+                      <div><p className={styles.productCode}>{homeProductCode(product.handle)}</p><h3>{product.name}</h3></div>
+                      <p className={styles.price}>{formatPrice(product.price)}<span>USD / {product.strength}</span></p>
+                    </div>
+                    <div className={styles.productStatus}>
+                      {availability ? <StockStatusBadge status={availability.status} available={availability.available} /> : null}
+                      <span>{report ? "Batch report available" : "Report pending"}</span>
+                    </div>
+                    <p className={styles.reportMetric}>{metric ?? "Check product details for documentation."}{report ? <small>Batch {report.batch} · tested sample</small> : null}</p>
+                    <div className={styles.cardActions}>
+                      <Link href={product.href} className={styles.cardPrimary}>View material <ArrowUpRight className="size-4" aria-hidden /></Link>
+                      {report ? <a href={report.reportUrl} target="_blank" rel="noopener noreferrer" className={styles.cardSecondary} aria-label={`Open ${product.name} batch ${report.batch} lab report in a new tab`}><FileText className="size-4" aria-hidden /> Report</a> : <Link href="/coa" className={styles.cardSecondary}>Batch reports</Link>}
                     </div>
                   </div>
-
-                  <div className="mt-6 flex flex-col gap-4 border-t border-linen pt-4">
-                    <div className="flex items-baseline justify-between">
-                      <span className="mono text-xs text-ash">Price</span>
-                      <span className="font-mono text-2xl font-bold text-ink">
-                        {formatPrice(product.price)}
-                      </span>
-                    </div>
-
-                    <PillButton
-                      href={product.href}
-                      variant="secondary"
-                      className="w-full border-border-strong bg-paper/60 text-center text-sm group-hover:border-accent/40"
-                    >
-                      {isDocPublished ? "View product & report" : "View product details"}
-                    </PillButton>
-                  </div>
-                </div>
                 </article>
               </ScrollReveal>
             );
           })}
+          <ScrollReveal className="h-full" delayMs={140}>
+            <article className={styles.catalogGuide}>
+              <BookOpen className="size-9 text-accent" aria-hidden />
+              <p className={styles.eyebrow}>BEFORE YOU ORDER</p>
+              <h3>A percentage is only part of the report.</h3>
+              <p>Purity, identity, and content answer different questions. Learn what each result tells you, and what it leaves out.</p>
+              <Link href="/guides/peptide-identity-vs-purity-vs-content" className={styles.textLink}>Read the guide <ArrowUpRight className="size-4" aria-hidden /></Link>
+            </article>
+          </ScrollReveal>
         </div>
       </div>
     </section>

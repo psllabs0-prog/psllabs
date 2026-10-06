@@ -31,19 +31,27 @@ export function createPageMetadata({
   description,
   path,
   type = "website",
+  image,
 }: {
   title: string;
   description: string;
   path: string;
   type?: "website" | "article";
+  image?: { url: string; alt: string };
 }): Metadata {
   const pageTitle = title.includes(SITE_NAME)
     ? title
     : `${title} | ${SITE_NAME}`;
+  const privatePage = /^\/admin(?:-|\/|$)/.test(path);
+  const utilityPage = ["/checkout", "/success", "/cancel", "/track", "/unsubscribe", "/newsletter/confirm"].includes(path);
+  const shareImage = image ?? DEFAULT_SHARE_IMAGE;
 
   return {
     title: pageTitle,
     description,
+    ...(privatePage || utilityPage
+      ? { robots: { index: false, follow: !privatePage } }
+      : {}),
     alternates: {
       canonical: path,
     },
@@ -54,13 +62,13 @@ export function createPageMetadata({
       siteName: SITE_NAME,
       type,
       locale: "en_US",
-      images: [DEFAULT_SHARE_IMAGE],
+      images: [shareImage],
     },
     twitter: {
       card: "summary_large_image",
       title: pageTitle,
       description,
-      images: [DEFAULT_SHARE_IMAGE],
+      images: [shareImage],
     },
   };
 }

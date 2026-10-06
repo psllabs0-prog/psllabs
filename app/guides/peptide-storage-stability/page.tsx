@@ -2,35 +2,33 @@ import type { Metadata } from "next";
 
 import { AnimateIn } from "@/components/product/animate-in";
 import { JsonLd } from "@/components/seo/json-ld";
-import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
-import { createPageMetadata, SITE_URL } from "@/lib/seo";
+import { RelatedGuides } from "@/components/guides/related-guides";
+import { getGuideBySlug } from "@/lib/content/guides-data";
+import { createPageMetadata } from "@/lib/seo";
+import { createArticleData, createBreadcrumbData } from "@/lib/structured-data";
+
+const guide = getGuideBySlug("peptide-storage-stability")!;
 
 export const metadata: Metadata = createPageMetadata({
   title: "Lyophilized Peptide Storage and Stability Guide",
-  description:
-    "Research-based guidance on storing lyophilized peptides. Covers temperature, moisture, light exposure, shelf life, and best practices for maintaining compound integrity.",
+  description: guide.description,
   path: "/guides/peptide-storage-stability",
   type: "article",
 });
 
-const GUIDE_DATE = "2026-07-29";
-
-const articleLd = {
-  "@context": "https://schema.org",
-  "@type": "Article",
-  headline: "Lyophilized Peptide Storage and Stability Guide",
-  author: { "@type": "Organization", name: LEGAL_ENTITY_NAME },
-  publisher: { "@type": "Organization", name: LEGAL_ENTITY_NAME },
-  datePublished: GUIDE_DATE,
-  dateModified: GUIDE_DATE,
-  url: `${SITE_URL}/guides/peptide-storage-stability`,
-};
+const articleLd = createArticleData({ ...guide, path: `/guides/${guide.slug}` });
+const breadcrumbLd = createBreadcrumbData([
+  { name: "Home", path: "" },
+  { name: "Guides", path: "/guides" },
+  { name: guide.shortTitle, path: `/guides/${guide.slug}` },
+]);
 
 export default function PeptideStorageStabilityGuidePage() {
   return (
     <main className="public-page-surface min-h-screen">
       {/* Validate Article markup: https://search.google.com/test/rich-results */}
       <JsonLd data={articleLd} />
+      <JsonLd data={breadcrumbLd} />
       <article className="mx-auto max-w-[840px] px-6 py-16 md:px-12 md:py-20 lg:py-24">
         <header className="mb-10 border-b border-linen pb-10 md:mb-12 md:pb-12">
           <AnimateIn>
@@ -206,6 +204,9 @@ export default function PeptideStorageStabilityGuidePage() {
                 </li>
               </ul>
             </section>
+          </AnimateIn>
+          <AnimateIn>
+            <RelatedGuides currentSlug={guide.slug} />
           </AnimateIn>
         </div>
       </article>
