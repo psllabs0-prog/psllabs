@@ -9,6 +9,7 @@ import {
 import { setInvoiceId, setPaymentMethod } from "@/lib/orders/store";
 import { getTagadaIdsForHandle, isTagadaConfigured } from "@/lib/tagada";
 import { createTagadaCheckoutSession } from "@/lib/tagada/server";
+import { readRequestPrivacyConsent } from "@/lib/privacy/server";
 
 export const runtime = "nodejs";
 
@@ -34,7 +35,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const prepared = await prepareReservedOrder(body, { paymentMethod: "card" });
+  const privacyConsent = await readRequestPrivacyConsent(request).catch(() => null);
+  const prepared = await prepareReservedOrder(body, { paymentMethod: "card", privacyConsent });
   if (!prepared.ok) {
     return NextResponse.json(
       { error: prepared.error },

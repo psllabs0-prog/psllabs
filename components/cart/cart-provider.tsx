@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -18,6 +19,8 @@ import {
 } from "@/lib/cart/shipping";
 import { loadCartFromStorage, saveCartToStorage } from "@/lib/cart/storage";
 import type { CartLineItem, CartLineWithMeta } from "@/lib/cart/types";
+import { createMetaBrowserAction, dispatchMetaBrowserAction, type MetaBrowserAction } from "@/lib/meta-ads/browser";
+import { REVIEWED_META_PRODUCTS } from "@/lib/meta-ads/events";
 
 export type AddItemResult =
   | { ok: true }
@@ -57,17 +60,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartLineItem[]>([]);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const currentItems = useRef<CartLineItem[]>([]);
+  const pendingAdds = useRef<{ handle: string; minimumQuantity: number; action: MetaBrowserAction }[]>([]);
 
   useEffect(() => {
     // Hydrate browser storage after SSR; the save effect stays gated until this finishes.
+    const restored = normalizeCartItems(loadCartFromStorage());
+    currentItems.current = restored;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setItems(normalizeCartItems(loadCartFromStorage()));
+    setItems(restored);
     setIsHydrated(true);
   }, []);
 
   useEffect(() => {
     if (!isHydrated) return;
     saveCartToStorage(normalizeCartItems(items));
+    // Dispatch only after a successful addition is visible in committed state.
+    // React updater functions contain no events or other side effects.
+    const additions = pendingAdds.current.splice(0);
+    for (const addition of additions) {
+      if ((items.find((item) => item.handle === addition.handle)?.quantity ?? 0) >= addition.minimumQuantity) {
+        void dispatchMetaBrowserAction(addition.action);
+      }
+    }
   }, [items, isHydrated]);
 
   const lines = useMemo(() => resolveCartLines(items), [items]);
@@ -96,39 +111,30 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return { ok: false, error: "Out of stock" };
       }
 
-      let result: AddItemResult = { ok: true };
-
-      setItems((current) => {
-        const existing = current.find((item) => item.handle === handle);
-        const nextQuantity = (existing?.quantity ?? 0) + safeQuantity;
-
-        if (maxAvailable !== undefined && nextQuantity > maxAvailable) {
-          result = { ok: false, error: stockLimitMessage(maxAvailable) };
-          return current;
-        }
-
-        if (existing) {
-          return current.map((item) =>
-            item.handle === handle
-              ? { ...item, quantity: nextQuantity }
-              : item
-          );
-        }
-
-        return [...current, { handle, quantity: safeQuantity }];
-      });
-
-      if (result.ok) {
-        setIsOpen(true);
+      const current = currentItems.current;
+      const existing = current.find((item) => item.handle === handle);
+      const nextQuantity = (existing?.quantity ?? 0) + safeQuantity;
+      if (maxAvailable !== undefined && nextQuantity > maxAvailable) {
+        return { ok: false, error: stockLimitMessage(maxAvailable) };
       }
-
-      return result;
+      const next = existing ? current.map((item) => item.handle === handle
+        ? { ...item, quantity: nextQuantity } : item) : [...current, { handle, quantity: safeQuantity }];
+      const product = REVIEWED_META_PRODUCTS.find((entry) => entry.handle === handle);
+      const action = product && typeof window !== "undefined" && window.location.pathname === product.path
+        ? createMetaBrowserAction("AddToCart", [product.sku]) : null;
+      if (action) pendingAdds.current.push({ handle, minimumQuantity: nextQuantity, action });
+      currentItems.current = next;
+      setItems(next);
+      setIsOpen(true);
+      return { ok: true };
     },
     []
   );
 
   const removeItem = useCallback((handle: string) => {
-    setItems((current) => current.filter((item) => item.handle !== handle));
+    const next = currentItems.current.filter((item) => item.handle !== handle);
+    currentItems.current = next;
+    setItems(next);
   }, []);
 
   const setItemQuantity = useCallback(
@@ -149,11 +155,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return { ok: false, error: stockLimitMessage(maxAvailable) };
       }
 
-      setItems((current) =>
-        current.map((item) =>
+      const next = currentItems.current.map((item) =>
           item.handle === handle ? { ...item, quantity: safeQuantity } : item
-        )
-      );
+        );
+      currentItems.current = next;
+      setItems(next);
       return { ok: true };
     },
     []

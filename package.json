@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "test:privacy": "tsx scripts/test-privacy-server.ts && tsx scripts/test-privacy-client.ts && tsx scripts/test-privacy-api.ts && tsx scripts/test-application-privacy-boundary.ts",
+    "test:meta-events": "tsx scripts/test-meta-events.ts && tsx scripts/test-meta-transport.ts && tsx scripts/test-meta-api.ts && tsx scripts/test-meta-purchase.ts && tsx scripts/test-meta-browser.ts",
     "test:finance-demo": "tsx scripts/test-finance-demo.ts",
     "dev": "next dev",
     "build": "next build",

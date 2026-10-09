@@ -4,6 +4,7 @@ import type { getSql } from "../lib/db/sql";
 import type { TagadaCardReads } from "../lib/tagada/verify-payment";
 import type { OpenAIAdsSendResult } from "../lib/openai-ads/client";
 import type { OpenAIOrderCreatedEvent } from "../lib/openai-ads/events";
+import type { PrivacyConsentBinding } from "../lib/privacy/types";
 import {
   createOpenAIAdsDelivery,
   createOpenAIAdsSqlStore,
@@ -16,10 +17,12 @@ import {
 const INITIAL_TIME = Date.parse("2026-10-04T18:00:00.000Z");
 const config = { pixelId: "fixture_pixel", capiKey: "offline_fixture_key" };
 const proof: OpenAIAdsPaymentProof = { provider: "tagada", paymentId: "pay_fixture" };
+const CONSENT_BINDING: PrivacyConsentBinding = { digest: "a".repeat(64), revision: 1, version: 1 };
 const orderFixture: OpenAIAdsDeliveryOrder = {
   orderId: "psl_fixture", status: "paid", paidAt: new Date(INITIAL_TIME - 60000).toISOString(),
   total: 59.99, currency: "USD", paymentMethod: "card", invoiceId: "checkout_fixture",
   attribution: {
+    privacyConsent: CONSENT_BINDING,
     utmSource: "chatgpt", utmMedium: "paid", utmCampaign: "fixture_campaign", utmContent: "fixture",
     utmTerm: null, landingPage: "/products/fixture", referrer: null,
     gclid: null, fbclid: null, msclkid: null, ttclid: null,
@@ -65,7 +68,7 @@ function eligibleProof(order: OpenAIAdsDeliveryOrder, proof: OpenAIAdsPaymentPro
         /^[A-Za-z0-9_-]{1,256}$/.test(order.invoiceId) && proof.paymentId === order.invoiceId);
 }
 let checks = 0;
-function check(actual: unknown, expected: unknown) { checks++; assert.deepEqual(actual, expected); }
+function check(actual: unknown, expected: unknown, message?: string) { checks++; assert.deepEqual(actual, expected, message); }
 
 /** Models atomic row ownership; no actual DB or provider connections exist here. */
 function fixture() {
@@ -79,6 +82,8 @@ function fixture() {
   let sendHook: ((event: OpenAIOrderCreatedEvent) => Promise<OpenAIAdsSendResult>) | undefined;
   let confirmHook: (() => void) | undefined;
   let finishFails = false;
+  let consentGranted = true;
+  let consentRevision = 1;
   const store: OpenAIAdsDeliveryStore = {
     async claim(input) {
       effects.claims++;
@@ -155,6 +160,9 @@ function fixture() {
     getConfig: () => ({ ok: true as const, config }),
     getStore: () => { effects.stores++; return store; },
     nowMs: () => now, tagadaReads: reads,
+    isCurrentMeasurementConsent: async (binding: PrivacyConsentBinding, provider: "openai") =>
+      provider === "openai" && consentGranted && binding.digest === CONSENT_BINDING.digest &&
+      binding.version === CONSENT_BINDING.version && binding.revision === consentRevision,
     send: async (event: OpenAIOrderCreatedEvent) => {
       effects.sends.push(structuredClone(event));
       return sendHook ? sendHook(event) : sendResult;
@@ -172,6 +180,8 @@ function fixture() {
     setPayment: (value: unknown) => { providerPayment = value; },
     setProviderOrder: (value: unknown) => { providerResponse = value; },
     setFinishFails: () => { finishFails = true; },
+    setConsent: (granted: boolean) => { consentGranted = granted; },
+    reviseConsent: () => { consentRevision++; },
   };
 }
 
@@ -232,6 +242,37 @@ async function main() {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => { throw new Error("External requests are forbidden in this offline test"); };
   try {
+    {
+      const f = fixture();
+      const legacy = structuredClone(orderFixture); delete legacy.attribution!.privacyConsent;
+      check(await f.service.safeTrackVerifiedPurchase(legacy, proof), { status: "opt_out", reason: "measurement_consent_unavailable" });
+      check(f.effects.stores, 0); check(f.effects.sends.length, 0);
+      f.setConsent(false);
+      check((await f.service.safeTrackVerifiedPurchase(orderFixture, proof)).status, "opt_out");
+      f.setConsent(true); f.reviseConsent();
+      check((await f.service.safeTrackVerifiedPurchase(orderFixture, proof)).status, "opt_out");
+      check(f.effects.sends.length, 0);
+    }
+    {
+      const f = fixture(); f.setConfirmHook(() => f.setConsent(false));
+      check((await f.service.safeTrackVerifiedPurchase(orderFixture, proof)).status, "opt_out");
+      check(f.effects.sends.length, 0);
+      check(marker(f.rows.get(orderFixture.orderId)!)!.status, "rejected");
+    }
+    {
+      const f = await queued(); f.setConsent(false);
+      check((await f.service.flushOpenAIPurchases()).optOut, 1);
+      check(f.effects.providerReads, 0); check(f.effects.sends.length, 1);
+      f.setConsent(true); f.reviseConsent();
+      check((await f.service.flushOpenAIPurchases()).selected, 0);
+      check(f.effects.sends.length, 1, "a withdrawn queue event cannot revive after a new grant");
+    }
+    {
+      const f = fixture();
+      const service = createOpenAIAdsDelivery({ ...f.dependencies, isCurrentMeasurementConsent: async () => { throw new Error("offline consent DB unavailable"); } });
+      check((await service.safeTrackVerifiedPurchase(orderFixture, proof)).status, "opt_out");
+      check(f.effects.sends.length, 0); check(f.effects.stores, 0);
+    }
     {
       let calls = 0;
       const service = createOpenAIAdsDelivery({

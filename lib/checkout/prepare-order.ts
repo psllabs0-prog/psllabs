@@ -12,6 +12,7 @@ import { checkoutWithStockCheck } from "@/lib/inventory/store";
 import type { Order, OrderItem, PaymentMethod } from "@/lib/orders/types";
 import { getAllCheckoutProducts, getCheckoutProduct } from "@/lib/payments/products";
 import { getCatalogProductByHandle } from "@/lib/products/catalog";
+import type { PrivacyConsentBinding, PublicPrivacyConsent } from "@/lib/privacy/types";
 
 const MAX_QUANTITY = 10;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -32,7 +33,53 @@ export type CheckoutBody = {
 
 export type PrepareOrderOptions = {
   paymentMethod?: PaymentMethod | "btcpay" | null;
+  /** Read from the request's HttpOnly receipt by the server, never from body. */
+  privacyConsent?: { consent: PublicPrivacyConsent; binding: PrivacyConsentBinding | null } | null;
 };
+
+export function checkoutAttribution(
+  raw: unknown,
+  privacy: PrepareOrderOptions["privacyConsent"],
+): OrderAttribution | null {
+  const consent = privacy?.consent;
+  const binding = privacy?.binding;
+  if (!consent || !binding || consent.choice !== "saved" || !consent.measurement ||
+      consent.gpc || consent.admin || consent.expiresAt <= Date.now() ||
+      consent.version !== binding.version || consent.revision !== binding.revision) return null;
+  const attribution = sanitizeAttributionFromBody(raw) ?? {
+    utmSource: null, utmMedium: null, utmCampaign: null, utmContent: null,
+    utmTerm: null, landingPage: null, referrer: null, gclid: null, fbclid: null,
+    msclkid: null, ttclid: null, oppref: null, firstPaidTouchAt: null,
+    lastPaidTouchAt: null, firstPaid: null, lastPaid: null,
+  };
+  const cleanLocation = (value: string | null, referrer = false): string | null => {
+    if (!value) return null;
+    try {
+      const url = new URL(value, "https://www.psllabs.org");
+      if (!["http:", "https:"].includes(url.protocol)) return null;
+      return referrer ? `${url.origin}${url.pathname}` : url.pathname;
+    } catch { return null; }
+  };
+  const cleanTouch = <T extends { landingPage: string | null; referrer: string | null; gclid: string | null; fbclid: string | null; msclkid: string | null; ttclid: string | null; oppref?: string | null }>(touch: T): T => ({
+    ...touch,
+    landingPage: cleanLocation(touch.landingPage),
+    referrer: cleanLocation(touch.referrer, true),
+    gclid: consent.capabilities.googleMeasurement ? touch.gclid : null,
+    fbclid: consent.capabilities.metaMeasurement ? touch.fbclid : null,
+    oppref: consent.capabilities.openaiMeasurement ? touch.oppref ?? null : null,
+    ttclid: null, msclkid: null,
+  });
+  return {
+    ...cleanTouch(attribution),
+    firstPaid: attribution.firstPaid ? cleanTouch(attribution.firstPaid) : null,
+    lastPaid: attribution.lastPaid ? cleanTouch(attribution.lastPaid) : null,
+    lastEmail: attribution.lastEmail ? cleanTouch(attribution.lastEmail) : null,
+    lastAffiliate: attribution.lastAffiliate ? cleanTouch(attribution.lastAffiliate) : null,
+    googleAdsMeasurementConsent: consent.capabilities.googleMeasurement,
+    openaiAdsMeasurementOptOut: !consent.capabilities.openaiMeasurement,
+    privacyConsent: { digest: binding.digest, revision: binding.revision, version: binding.version },
+  };
+}
 
 type RawItem = { handle?: unknown; quantity?: unknown };
 type RawShipping = {
@@ -220,9 +267,7 @@ export async function prepareReservedOrder(
 
   const orderId = `psl_${Date.now()}_${randomBytes(16).toString("hex")}`;
   const now = new Date().toISOString();
-  const attribution: OrderAttribution | null = sanitizeAttributionFromBody(
-    body.attribution
-  );
+  const attribution = checkoutAttribution(body.attribution, options?.privacyConsent);
   const order: Order = {
     orderId,
     createdAt: now,

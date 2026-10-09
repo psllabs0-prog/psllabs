@@ -7,6 +7,7 @@ import type { InvoiceStatusResult } from "../payments";
 import { verifyTagadaCardPayment, type TagadaCardReads } from "../tagada/verify-payment";
 import { readGoogleAdsConfig, type GoogleAdsConfig } from "./config";
 import type { GoogleAdsPurchaseReceipt } from "./purchase-types";
+import type { PrivacyConsentBinding } from "../privacy/types";
 
 export const GOOGLE_PURCHASE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 const PROVIDER_TIMEOUT_MS = 5000;
@@ -41,6 +42,7 @@ export type GooglePurchaseDependencies = {
   tagadaReads?: TagadaCardReads;
   getInvoiceStatus?: (invoiceId: string, options: { signal: AbortSignal }) => Promise<InvoiceStatusResult>;
   providerTimeoutMs?: number;
+  isCurrentMeasurementConsent?: (binding: PrivacyConsentBinding, provider: "google") => Promise<boolean>;
 };
 
 export function isGooglePurchaseOrderId(value: unknown): value is string {
@@ -115,6 +117,7 @@ export function createGooglePurchaseSqlStore(sql: ReturnType<typeof getSql>): Go
           AND o.paid_at <= ${new Date(nowMs + FUTURE_TOLERANCE_MS).toISOString()}::timestamptz
           AND jsonb_typeof(o.attribution) = 'object'
           AND o.attribution->'googleAdsMeasurementConsent' = 'true'::jsonb
+          AND o.attribution->'privacyConsent' = ${JSON.stringify(order.attribution?.privacyConsent ?? null)}::jsonb
           AND NOT (o.attribution ? 'googleAdsVerifiedPurchase')
           AND NOT EXISTS (SELECT 1 FROM finance_transactions f
             WHERE f.psl_order_id = o.order_id AND f.reporting_excluded = true)
@@ -130,6 +133,7 @@ export function createGooglePurchaseSqlStore(sql: ReturnType<typeof getSql>): Go
         FROM orders o
         WHERE o.order_id = ${orderId} AND o.status IN ('paid', 'shipped')
           AND o.attribution->'googleAdsMeasurementConsent' = 'true'::jsonb
+          AND jsonb_typeof(o.attribution->'privacyConsent') = 'object'
           AND o.attribution->'googleAdsVerifiedPurchase' IS NOT NULL
           AND NOT EXISTS (SELECT 1 FROM finance_transactions f
             WHERE f.psl_order_id = o.order_id AND f.reporting_excluded = true)
@@ -158,6 +162,7 @@ export function createGooglePurchaseSqlStore(sql: ReturnType<typeof getSql>): Go
           AND o.paid_at >= ${new Date(nowMs - GOOGLE_PURCHASE_MAX_AGE_MS).toISOString()}::timestamptz
           AND o.paid_at <= ${new Date(nowMs + FUTURE_TOLERANCE_MS).toISOString()}::timestamptz
           AND o.attribution->'googleAdsMeasurementConsent' = 'true'::jsonb
+          AND o.attribution->'privacyConsent' = ${JSON.stringify(order.attribution?.privacyConsent ?? null)}::jsonb
           AND o.attribution->'googleAdsVerifiedPurchase' = ${JSON.stringify(marker)}::jsonb
           AND NOT EXISTS (SELECT 1 FROM finance_transactions f
             WHERE f.psl_order_id = o.order_id AND f.reporting_excluded = true)
@@ -186,6 +191,14 @@ export function createGooglePurchaseService(dependencies: GooglePurchaseDependen
   const getConfig = dependencies.getConfig ?? readGoogleAdsConfig;
   let sqlStore: GooglePurchaseStore | undefined;
   const store = () => dependencies.getStore?.() ?? (sqlStore ??= createGooglePurchaseSqlStore(getSql()));
+  async function consentCurrent(binding: PrivacyConsentBinding | undefined): Promise<boolean> {
+    if (!binding) return false;
+    try {
+      const check = dependencies.isCurrentMeasurementConsent ??
+        (await import("../privacy/server")).isCurrentMeasurementConsent;
+      return await check(binding, "google");
+    } catch { return false; }
+  }
 
   async function reverify(order: GooglePurchaseOrder, proof: GooglePurchaseProof): Promise<boolean> {
     return bounded(async signal => {
@@ -209,7 +222,8 @@ export function createGooglePurchaseService(dependencies: GooglePurchaseDependen
     try {
       const config = getConfig();
       const nowMs = now();
-      if (!config || !eligible(order, nowMs) || !validProof(order, proof)) return;
+      if (!config || !eligible(order, nowMs) || !validProof(order, proof) ||
+          !await consentCurrent(order.attribution?.privacyConsent)) return;
       const marker: GooglePurchaseMarker = {
         version: 1, transactionId: transactionId(order.orderId),
         amountCents: Math.round(order.total * 100), currency: "USD", paidAt: order.paidAt!,
@@ -222,18 +236,25 @@ export function createGooglePurchaseService(dependencies: GooglePurchaseDependen
     }
   }
 
-  async function getVerifiedGooglePurchaseReceipt(orderId: string): Promise<GoogleAdsPurchaseReceipt | null> {
+  async function getVerifiedGooglePurchaseReceipt(
+    orderId: string,
+    requestBinding: PrivacyConsentBinding | null = null,
+  ): Promise<GoogleAdsPurchaseReceipt | null> {
     try {
       const config = getConfig();
-      if (!config || !isGooglePurchaseOrderId(orderId)) return null;
+      if (!config || !isGooglePurchaseOrderId(orderId) || !requestBinding) return null;
       const database = store();
       const stored = await database.read(orderId);
       if (!stored || !eligible(stored.order, now())) return null;
+      const binding = stored.order.attribution?.privacyConsent;
+      if (!binding || binding.digest !== requestBinding.digest || binding.revision !== requestBinding.revision ||
+          binding.version !== requestBinding.version || !await consentCurrent(binding)) return null;
       const marker = matchingMarker(stored.order, stored.marker, config);
       if (!marker || !await reverify(stored.order, marker.proof)) return null;
       // Recheck after external reads: consent, exclusions and order edits may have changed meanwhile.
       if (getConfig()?.sendTo !== config.sendTo ||
-          !eligible(stored.order, now()) || !await database.confirmCurrent(stored.order, marker, now())) return null;
+          !eligible(stored.order, now()) || !await database.confirmCurrent(stored.order, marker, now()) ||
+          !await consentCurrent(binding)) return null;
       return { transactionId: marker.transactionId, value: marker.amountCents / 100, currency: "USD" };
     } catch { return null; }
   }

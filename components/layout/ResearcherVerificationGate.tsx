@@ -4,28 +4,21 @@ import { Dialog } from "@base-ui/react/dialog";
 import { useRef, useState, useSyncExternalStore } from "react";
 
 import { PSLLogo } from "@/components/branding/psl-logo";
-
-const STORAGE_KEY = "psl_researcher_verified_v1";
+import {
+  confirmResearcherVerification, readResearcherVerification,
+  serverResearcherVerification, subscribeResearcherVerification,
+} from "@/lib/privacy/researcher-verification";
 
 const subscribeToHydration = () => () => {};
 const clientSnapshot = () => true;
 const serverSnapshot = () => false;
 
-function readVerification() {
-  try {
-    return (
-      typeof window !== "undefined" &&
-      window.localStorage.getItem(STORAGE_KEY) === "1"
-    );
-  } catch {
-    return false;
-  }
-}
-
 export function ResearcherVerificationGate() {
   const [ageChecked, setAgeChecked] = useState(false);
   const [ruoChecked, setRuoChecked] = useState(false);
-  const [isVerified, setIsVerified] = useState(readVerification);
+  const isVerified = useSyncExternalStore(
+    subscribeResearcherVerification, readResearcherVerification, serverResearcherVerification
+  );
   const ageCheckbox = useRef<HTMLInputElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
   const mounted = useSyncExternalStore(
@@ -37,12 +30,7 @@ export function ResearcherVerificationGate() {
 
   function handleEnter() {
     if (!canEnter) return;
-    try {
-      window.localStorage.setItem(STORAGE_KEY, "1");
-    } catch {
-      // Ignore; in private mode localStorage may not be available.
-    }
-    setIsVerified(true);
+    confirmResearcherVerification();
   }
 
   if (!mounted) return null;

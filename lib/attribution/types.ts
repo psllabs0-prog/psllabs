@@ -1,3 +1,5 @@
+import type { PrivacyConsentBinding } from "../privacy/types";
+
 /**
  * Paid-acquisition attribution for PSL Labs.
  *
@@ -65,6 +67,8 @@ export type StoredAttributionState = {
  * firstPaid, and fall back to the latest email or affiliate touch without paid data.
  */
 export type OrderAttribution = {
+  /** Trusted consent receipt binding set by checkout server code, never checkout JSON. */
+  privacyConsent?: PrivacyConsentBinding;
   /** Explicit advertising-measurement choice at checkout; absence means no Google purchase. */
   googleAdsMeasurementConsent?: boolean;
   /** Measurement choice captured at checkout; true suppresses OpenAI events. */

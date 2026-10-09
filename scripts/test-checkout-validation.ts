@@ -5,13 +5,15 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { createContext, Script } from "node:vm";
 import ts from "typescript";
+import { NextResponse } from "next/server";
 import * as pricing from "../lib/payments/products";
 import * as catalog from "../lib/products/catalog";
 import * as totals from "../lib/checkout/totals";
 import * as countries from "../lib/checkout/us-states";
 import * as attribution from "../lib/attribution/logic";
-import type { CheckoutBody, PrepareOrderResult } from "../lib/checkout/prepare-order";
+import type { CheckoutBody, PrepareOrderOptions, PrepareOrderResult } from "../lib/checkout/prepare-order";
 import type { Order } from "../lib/orders/types";
+import { UNKNOWN_PRIVACY_CONSENT } from "../lib/privacy/types";
 
 const ROOT = resolve(__dirname, "..");
 const SHIPPING = { firstName: "Offline", lastName: "Fixture", address: "123 Fixture Street", city: "Phoenix", state: "AZ", zip: "85001", country: "US" };
@@ -27,7 +29,7 @@ function load(file: string, mocks: Record<string, unknown>): Record<string, unkn
   const compiled = ts.transpileModule(readFileSync(filename, "utf8"), {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true },
   }).outputText;
-  const context = createContext({ console: { error() {} }, Date, process: { env: {} } });
+  const context = createContext({ console: { error() {} }, Date, URL, process: { env: {} } });
   const output: Record<string, unknown> = {};
   const evaluate = new Script(`(function(require,module,exports){${compiled}\n})`, { filename }).runInContext(context);
   evaluate((id: string) => { assert(id in mocks, `Offline loader rejected ${id}`); return mocks[id]; }, { exports: output }, output);
@@ -46,7 +48,7 @@ const prepare = load("lib/checkout/prepare-order.ts", {
       return order.items.every(item => item.quantity <= 10) ? { ok: true } : { ok: false, error: "Insufficient stock" };
     },
   },
-}) as { prepareReservedOrder: (body: CheckoutBody, options?: { paymentMethod: "card" | "bitcoin" }) => Promise<PrepareOrderResult> };
+}) as { prepareReservedOrder: (body: CheckoutBody, options?: PrepareOrderOptions) => Promise<PrepareOrderResult> };
 
 const inventory = load("lib/inventory/store.ts", {
   "@/lib/db/sql": { getSql: () => { databaseCalls++; throw new Error("Database access forbidden"); } },
@@ -55,10 +57,76 @@ const inventory = load("lib/inventory/store.ts", {
   "./constants": { INVOICE_EXPIRY_MINUTES: 15, PENDING_GRACE_MINUTES: 5, LOW_STOCK_THRESHOLD: 15, availabilityToStockStatus: () => "in_stock" },
 }) as { checkoutWithStockCheck: (order: Order) => Promise<{ ok: boolean }> };
 
+async function checkoutPrivacyChecks() {
+  const binding = { digest: "a".repeat(64), version: 1, revision: 1 };
+  const privacy = { binding, consent: { ...UNKNOWN_PRIVACY_CONSENT,
+    choice: "saved" as const, measurement: true, revision: 1,
+    expiresAt: Date.now() + 600000,
+    capabilities: { ...UNKNOWN_PRIVACY_CONSENT.capabilities, googleMeasurement: true },
+  } };
+  const touch = { utmSource: "google", utmMedium: "cpc", utmCampaign: "fixture",
+    landingPage: "/products?fbclid=forbidden#private", referrer: "https://referrer.invalid/?ttclid=forbidden",
+    capturedAt: new Date().toISOString(), gclid: "google_fixture", fbclid: "meta_fixture",
+    ttclid: "tiktok_fixture", msclkid: "bing_fixture", oppref: "openai_fixture" };
+  const body = { email: "fixture@example.invalid", shipping: SHIPPING,
+    items: [{ handle: ACTIVE[0].handle, quantity: 1 }], attribution: {
+      ...touch, firstPaid: touch, lastPaid: touch,
+      googleAdsMeasurementConsent: true, openaiAdsMeasurementOptOut: false,
+      privacyConsent: { digest: "forged", revision: 99, version: 99 },
+    } };
+  for (const context of [null, undefined, { ...privacy, binding: null },
+    { ...privacy, consent: { ...privacy.consent, gpc: true } },
+    { ...privacy, consent: { ...privacy.consent, admin: true } },
+    { ...privacy, consent: { ...privacy.consent, measurement: false } },
+    { ...privacy, consent: { ...privacy.consent, expiresAt: Date.now() - 1 } },
+    { ...privacy, binding: { ...binding, revision: 2 } },
+  ]) {
+    const result = await prepare.prepareReservedOrder(body, { paymentMethod: "card", privacyConsent: context });
+    assert(result.ok, "shopping remains available without optional consent");
+    assert.equal(result.order.attribution, null, "body flags and fake receipt cannot authorize attribution"); checks += 2;
+  }
+  const result = await prepare.prepareReservedOrder(body, { paymentMethod: "card", privacyConsent: privacy });
+  assert(result.ok); const saved = result.order.attribution!;
+  assert.deepEqual(structuredClone(saved.privacyConsent), binding);
+  assert.equal(saved.googleAdsMeasurementConsent, true); assert.equal(saved.openaiAdsMeasurementOptOut, true);
+  for (const snapshot of [saved, saved.firstPaid!, saved.lastPaid!]) {
+    assert.equal(snapshot.gclid, "google_fixture");
+    for (const key of ["fbclid", "ttclid", "msclkid", "oppref"] as const) assert.equal(snapshot[key], null);
+    assert.equal(snapshot.landingPage, "/products"); assert.equal(snapshot.referrer, "https://referrer.invalid/");
+  }
+  assert(!JSON.stringify(saved).includes("forged")); assert(!JSON.stringify(saved).includes("forbidden")); checks += 27;
+
+  // Execute both actual checkout routes with consent storage failure and fixture-only payment effects.
+  for (const filename of ["app/api/checkout/route.ts", "app/api/checkout/card/session/route.ts"]) {
+    for (const consentFails of [false, true]) {
+      let reads = 0;
+      const route = load(filename, {
+        "next/server": { NextResponse }, "@/lib/checkout/prepare-order": prepare,
+        "@/lib/checkout/us-states": countries,
+        "@/lib/privacy/server": { readRequestPrivacyConsent: async (request: Request) => {
+          reads++; assert.equal(request.headers.get("Sec-GPC"), "1");
+          if (consentFails) throw new Error("offline consent storage unavailable");
+          return { ...privacy, binding: null, consent: { ...privacy.consent, gpc: true, measurement: false } };
+        } },
+        "@/lib/orders/store": { setInvoiceId: async () => {}, setPaymentMethod: async () => {} },
+        "@/lib/payments": { getPaymentProcessor: () => ({ createInvoice: async () => ({ id: "invoice_fixture", url: "https://checkout.example.invalid" }) }) },
+        "@/lib/tagada": { isTagadaConfigured: () => true, getTagadaIdsForHandle: async () => ({ tagadaVariantId: "variant_fixture" }) },
+        "@/lib/tagada/server": { createTagadaCheckoutSession: async () => ({ checkoutToken: "checkout_fixture", sessionToken: "session_fixture" }) },
+      }) as { POST: (request: Request) => Promise<Response> };
+      const response = await route.POST(new Request("https://fixture.invalid/api/checkout", {
+        method: "POST", headers: { "Content-Type": "application/json", "Sec-GPC": "1" }, body: JSON.stringify(body),
+      }));
+      assert.equal(response.status, 200); assert.equal(reads, 1);
+      assert.equal(orders.at(-1)!.attribution, null); checks += 3;
+    }
+  }
+}
+
 async function main() {
   const previousFetch = globalThis.fetch;
   globalThis.fetch = async () => { throw new Error("Network is forbidden in checkout validation tests"); };
   try {
+    await checkoutPrivacyChecks();
     for (const paymentMethod of ["card", "bitcoin"] as const) {
       for (const product of ACTIVE) {
         for (const items of [

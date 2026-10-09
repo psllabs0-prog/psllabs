@@ -12,14 +12,16 @@ import {
 } from "../lib/google-ads/purchase";
 import type { GoogleAdsConfig } from "../lib/google-ads/config";
 import type { getSql } from "../lib/db/sql";
+import { UNKNOWN_PRIVACY_CONSENT, type PrivacyConsentBinding } from "../lib/privacy/types";
 
 const NOW = Date.parse("2026-10-05T12:00:00.000Z");
 const CONFIG = { tagId: "AW-123456789", conversionLabel: "fixture_label", sendTo: "AW-123456789/fixture_label" };
 const PROOF = { provider: "tagada" as const, paymentId: "pay_fixture" };
+const BINDING: PrivacyConsentBinding = { digest: "a".repeat(64), revision: 1, version: 1 };
 const ORDER: GooglePurchaseOrder = {
   orderId: "psl_google_fixture", status: "paid", paidAt: new Date(NOW - 1000).toISOString(),
   total: 59.99, currency: "USD", invoiceId: "checkout_fixture", paymentMethod: "card",
-  attribution: { googleAdsMeasurementConsent: true } as GooglePurchaseOrder["attribution"],
+  attribution: { googleAdsMeasurementConsent: true, privacyConsent: BINDING } as GooglePurchaseOrder["attribution"],
 };
 const PAYMENT = {
   id: "pay_fixture", orderId: "order_fixture", storeId: "store_fixture", accountId: "acc_fixture",
@@ -49,6 +51,7 @@ function fixture() {
     config: CONFIG as GoogleAdsConfig | null, now: NOW, excluded: false,
     payment: structuredClone(PAYMENT), providerOrder: structuredClone(PROVIDER_ORDER),
     readCalls: 0, saves: 0, verifies: 0, confirms: 0,
+    consentGranted: true, consentRevision: 1,
     readHook: undefined as (() => void) | undefined,
   };
   const current = (order: GooglePurchaseOrder) => !state.excluded &&
@@ -76,6 +79,9 @@ function fixture() {
     getConfig: () => state.config,
     getStore: () => store,
     nowMs: () => state.now,
+    isCurrentMeasurementConsent: async (binding: PrivacyConsentBinding, provider: "google") =>
+      provider === "google" && state.consentGranted && binding.digest === BINDING.digest &&
+      binding.version === BINDING.version && binding.revision === state.consentRevision,
     tagadaReads: {
       storeId: "store_fixture",
       async retrievePayment() {
@@ -137,13 +143,19 @@ async function routeChecks() {
   }).outputText;
   let lookups = 0;
   let throws = false;
+  let consentGranted = true;
   const receipt = { transactionId: "opaque_fixture", value: 59.99, currency: "USD" };
   const mocks: Record<string, unknown> = {
     "next/server": { NextResponse },
     "@/lib/google-ads/purchase": {
       isGooglePurchaseOrderId,
-      getVerifiedGooglePurchaseReceipt: async () => { lookups++; if (throws) throw new Error("PRIVATE_PROVIDER_SECRET"); return receipt; },
+      getVerifiedGooglePurchaseReceipt: async (_id: string, binding: PrivacyConsentBinding) => {
+        check(binding, BINDING); lookups++; if (throws) throw new Error("PRIVATE_PROVIDER_SECRET"); return receipt;
+      },
     },
+    "@/lib/privacy/server": { readRequestPrivacyConsent: async () => ({ binding: consentGranted ? BINDING : null,
+      consent: { ...UNKNOWN_PRIVACY_CONSENT, choice: "saved", measurement: consentGranted,
+        capabilities: { ...UNKNOWN_PRIVACY_CONSENT.capabilities, googleMeasurement: true } } }) },
   };
   const exports: Record<string, unknown> = {};
   const loader = (id: string) => { assert(id in mocks, `Unmocked route dependency: ${id}`); return mocks[id]; };
@@ -154,10 +166,14 @@ async function routeChecks() {
   }
   const blocked = await GET(new Request(`https://fixture.invalid/api/google-ads/purchase?orderId=${ORDER.orderId}`, { headers: { "Sec-GPC": "1" } }));
   check(await blocked.json(), { purchase: null }); check(lookups, 0);
-  check(blocked.headers.get("Vary"), "Sec-GPC");
+  check(blocked.headers.get("Vary"), "Cookie, Sec-GPC");
   assert.match(blocked.headers.get("Cache-Control")!, /no-store/); checks++;
   const response = await GET(new Request(`https://fixture.invalid/api/google-ads/purchase?orderId=${ORDER.orderId}`));
   check(await response.json(), { purchase: receipt }); check(lookups, 1);
+  consentGranted = false;
+  check(await (await GET(new Request(`https://fixture.invalid/api/google-ads/purchase?orderId=${ORDER.orderId}`))).json(), { purchase: null });
+  check(lookups, 1);
+  consentGranted = true;
   assert.match(response.headers.get("Cache-Control")!, /no-store/); checks++;
   throws = true;
   check(await (await GET(new Request(`https://fixture.invalid/api/google-ads/purchase?orderId=${ORDER.orderId}`))).json(), { purchase: null });
@@ -168,9 +184,37 @@ async function main() {
   globalThis.fetch = async () => { throw new Error("Offline test blocked network access"); };
   try {
     {
+      const f = await prepared();
+      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId), null, "order ID alone cannot release an advertising receipt");
+      for (const binding of [{ ...BINDING, digest: "b".repeat(64) }, { ...BINDING, revision: 2 }, { ...BINDING, version: 2 }]) {
+        check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, binding), null);
+      }
+      check(f.state.verifies, 0, "wrong browser consent receipt stops before provider reads");
+      f.state.consentGranted = false;
+      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), null);
+      f.state.consentGranted = true; f.state.consentRevision++;
+      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), null, "regrant cannot revive the earlier order binding");
+    }
+    {
+      const f = fixture(); delete f.state.order.attribution!.privacyConsent;
+      await f.service.safeRecordVerifiedGooglePurchase(f.state.order, PROOF);
+      check(f.state.saves, 0, "legacy client consent flag does not authorize a marker");
+    }
+    {
+      const f = await prepared(); f.state.readHook = () => { f.state.consentGranted = false; };
+      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), null,
+        "withdrawal during external verification blocks the response");
+    }
+    {
+      const f = await prepared();
+      const service = createGooglePurchaseService({ ...f.dependencies, isCurrentMeasurementConsent: async () => { throw new Error("offline consent DB unavailable"); } });
+      check(await service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), null);
+      check(f.state.verifies, 0);
+    }
+    {
       const f = fixture(); f.state.config = null;
       await f.service.safeRecordVerifiedGooglePurchase(f.state.order, PROOF);
-      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId), null);
+      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), null);
       check([f.state.saves, f.state.readCalls, f.state.verifies], [0, 0, 0]);
     }
     for (const patch of [
@@ -186,12 +230,12 @@ async function main() {
       const f = fixture(); Object.assign(f.state.order, patch);
       await f.service.safeRecordVerifiedGooglePurchase(f.state.order, PROOF);
       check(f.state.marker, null);
-      check(await f.service.getVerifiedGooglePurchaseReceipt(f.state.order.orderId), null);
+      check(await f.service.getVerifiedGooglePurchaseReceipt(f.state.order.orderId, BINDING), null);
       check(f.state.verifies, 0);
     }
     {
       const f = fixture();
-      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId), null, "legacy paid state without a marker is never converted");
+      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), null, "legacy paid state without a marker is never converted");
       check(f.state.verifies, 0);
       await f.service.safeRecordVerifiedGooglePurchase(f.state.order, { provider: "tagada", paymentId: "checkout_fixture" });
       check(f.state.marker, null);
@@ -203,16 +247,16 @@ async function main() {
       await Promise.all(Array.from({ length: 5 }, () => f.service.safeRecordVerifiedGooglePurchase(f.state.order, PROOF)));
       await f.service.safeRecordVerifiedGooglePurchase(f.state.order, { ...PROOF, paymentId: "pay_changed" });
       check(f.state.marker, first, "duplicate notifications preserve the original marker and payment proof");
-      const receipt = await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId);
+      const receipt = await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING);
       check(receipt, { transactionId: first!.transactionId, value: 59.99, currency: "USD" });
       check(Object.keys(receipt!).sort(), ["currency", "transactionId", "value"]);
       assert.match(receipt!.transactionId, /^psl_[a-f0-9]{48}$/); checks++;
       assert(!JSON.stringify(receipt).includes(ORDER.orderId)); checks++;
       check(f.state.verifies, 2);
-      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId), receipt);
+      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), receipt);
       check(f.state.verifies, 4, "each public read rechecks provider status");
       f.state.order.status = "shipped";
-      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId), receipt);
+      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), receipt);
     }
     for (const edit of [
       (f: ReturnType<typeof fixture>) => { f.state.payment.status = "authorized"; },
@@ -224,7 +268,7 @@ async function main() {
       (f: ReturnType<typeof fixture>) => { f.state.payment.transactions[0].isTest = true; },
     ]) {
       const f = await prepared(); edit(f);
-      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId), null);
+      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), null);
       check(f.state.confirms, 0);
     }
     for (const change of [
@@ -233,12 +277,12 @@ async function main() {
       { attribution: { googleAdsMeasurementConsent: false } },
     ]) {
       const f = await prepared(); Object.assign(f.state.order, change);
-      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId), null);
+      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), null);
       check(f.state.verifies, 0, "changed local facts cannot reuse a verified marker");
     }
     for (const change of [{ transactionId: "invented" }, { version: 2 }, { amountCents: 1 }, { proof: { provider: "tagada", paymentId: "checkout_fixture" } }]) {
       const f = await prepared(); Object.assign(f.state.marker!, change);
-      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId), null); check(f.state.verifies, 0);
+      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), null); check(f.state.verifies, 0);
     }
     for (const mutate of [
       (f: ReturnType<typeof fixture>) => { f.state.excluded = true; },
@@ -248,27 +292,27 @@ async function main() {
       (f: ReturnType<typeof fixture>) => { f.state.now += GOOGLE_PURCHASE_MAX_AGE_MS; },
     ]) {
       const f = await prepared(); f.state.readHook = () => mutate(f);
-      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId), null,
+      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), null,
         "concurrent consent, exclusion, amount, config or freshness changes suppress the receipt");
     }
     {
       const f = fixture(); f.state.excluded = true;
       await f.service.safeRecordVerifiedGooglePurchase(f.state.order, PROOF); check(f.state.marker, null);
       const g = await prepared(); g.state.excluded = true;
-      check(await g.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId), null); check(g.state.verifies, 0);
+      check(await g.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), null); check(g.state.verifies, 0);
     }
     {
       const f = await prepared(); f.state.config = { ...CONFIG, sendTo: "AW-999999999/new_label" };
-      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId), null); check(f.state.verifies, 0);
+      check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), null); check(f.state.verifies, 0);
     }
     {
       const f = await prepared();
       const service = createGooglePurchaseService({ ...f.dependencies, getStore: () => { throw new Error("PRIVATE_DATABASE_SECRET"); } });
       check(await service.safeRecordVerifiedGooglePurchase(ORDER, PROOF), undefined);
-      check(await service.getVerifiedGooglePurchaseReceipt(ORDER.orderId), null);
+      check(await service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), null);
       const hung = createGooglePurchaseService({ ...f.dependencies,
         tagadaReads: { ...f.dependencies.tagadaReads, retrievePayment: () => new Promise(() => {}) }, providerTimeoutMs: 10 });
-      check(await hung.getVerifiedGooglePurchaseReceipt(ORDER.orderId), null);
+      check(await hung.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), null);
     }
     {
       const f = fixture(); f.state.order.paymentMethod = "bitcoin"; f.state.order.invoiceId = "invoice_fixture";
@@ -282,7 +326,7 @@ async function main() {
         { id: "invoice_fixture", processor: "btcpay", status: "settled" as const, metadata: { orderId: "different_order" } },
       ]) {
         const service = createGooglePurchaseService({ ...f.dependencies, getInvoiceStatus: async () => invoice });
-        const receipt = await service.getVerifiedGooglePurchaseReceipt(ORDER.orderId);
+        const receipt = await service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING);
         check(receipt !== null, invoice.status === "settled" && invoice.id === "invoice_fixture" && invoice.metadata.orderId === ORDER.orderId);
       }
       let aborted = false;
@@ -291,7 +335,7 @@ async function main() {
           signal.addEventListener("abort", () => { aborted = true; reject(new Error("aborted")); });
         }),
       });
-      check(await hung.getVerifiedGooglePurchaseReceipt(ORDER.orderId), null); check(aborted, true);
+      check(await hung.getVerifiedGooglePurchaseReceipt(ORDER.orderId, BINDING), null); check(aborted, true);
     }
     await sqlContract(); await routeChecks();
     console.log(`Google verified-purchase receipt offline checks passed: ${checks}`);
