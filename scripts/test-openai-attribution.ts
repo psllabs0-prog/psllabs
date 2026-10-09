@@ -8,6 +8,9 @@ import { captureAttributionFromLocation, getOrderAttributionForCheckout } from "
 import { ATTRIBUTION_STORAGE_KEY, ATTRIBUTION_WINDOW_MS, type AttributionTouch } from "../lib/attribution/types";
 import { PLAUSIBLE_TRANSFORM_REQUEST_JS, PLAUSIBLE_INIT_JS } from "../lib/plausible/redact";
 
+import { initializePrivacyConsent, requestPrivacyConsent, readPrivacyConsent } from "../lib/privacy/client";
+import { UNKNOWN_PRIVACY_CONSENT, type PublicPrivacyConsent } from "../lib/privacy/types";
+
 let checks = 0;
 const failures: string[] = [];
 function check(actual: unknown, expected: unknown, label: string) {
@@ -23,6 +26,8 @@ function noReference(value: unknown): boolean {
 
 async function main() {
   const originalFetch = globalThis.fetch;
+  const originalInterval = globalThis.setInterval;
+  const originalTimeout = globalThis.setTimeout;
   const originalGlobals = Object.fromEntries(["window", "navigator", "document"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   globalThis.fetch = async () => { throw new Error("Network is forbidden in this offline test"); };
   try {
@@ -88,15 +93,36 @@ async function main() {
       removeItem: (key: string) => { values.delete(key); },
     };
     const navigatorFixture: { globalPrivacyControl?: boolean } = {};
-    Object.defineProperty(globalThis, "window", { value: { localStorage, location: { href: "https://psllabs.org/" } }, configurable: true });
+    Object.defineProperty(globalThis, "window", { value: { localStorage, location: { href: "https://psllabs.org/", pathname: "/", hostname: "psllabs.org" },
+      dispatchEvent: () => true, addEventListener: () => {}, removeEventListener: () => {} }, configurable: true });
     Object.defineProperty(globalThis, "navigator", { value: navigatorFixture, configurable: true });
-    Object.defineProperty(globalThis, "document", { value: { referrer: "" }, configurable: true });
+    Object.defineProperty(globalThis, "document", { value: { referrer: "", cookie: "" }, configurable: true });
+    Object.defineProperty(globalThis, "setInterval", { configurable: true, value: (...args: Parameters<typeof setInterval>) => originalInterval(...args).unref() });
+    Object.defineProperty(globalThis, "setTimeout", { configurable: true, value: (...args: Parameters<typeof setTimeout>) => originalTimeout(...args).unref() });
+    let serverConsent: PublicPrivacyConsent = { ...UNKNOWN_PRIVACY_CONSENT,
+      capabilities: { metaMeasurement: false, metaPersonalization: false, googleMeasurement: true, openaiMeasurement: true } };
+    globalThis.fetch = async (url, init) => {
+      assert.equal(url, "/api/privacy/consent", "only the local fixture consent endpoint is permitted");
+      if (init?.method === "POST") {
+        const choices = JSON.parse(String(init.body));
+        serverConsent = { ...serverConsent, measurement: choices.measurement, personalization: choices.personalization,
+          revision: serverConsent.revision + 1, expiresAt: Date.now() + 86400000, choice: "saved" };
+      }
+      return Response.json({ consent: serverConsent });
+    };
+    values.set("psl_researcher_verified_v1", "1");
     const browserReference = `browser+/%2B${"fixture".repeat(90)}`;
     const browserHref = `https://psllabs.org/products/fixture?utm_source=chatgpt&utm_medium=cpc&oppref=${encodeURIComponent(browserReference)}`;
+    values.set("psl_google_ads_consent_v1", JSON.stringify({ version: 1, choice: "granted", updatedAt: now }));
+    check(noReference(captureAttributionFromLocation(browserHref, "")), true, "legacy grant and no unified choice cannot store a reference");
+    check(values.has(ATTRIBUTION_STORAGE_KEY), false, "no-choice capture leaves optional browser storage empty");
+    await initializePrivacyConsent();
+    check(readPrivacyConsent().measurement, false, "fresh unknown server receipt is not permission");
+    await requestPrivacyConsent({ measurement: true, personalization: false });
     const captured = captureAttributionFromLocation(browserHref, "");
     check(captured.lastPaid?.oppref, browserReference, "browser capture stores the original long reference");
     check(getOrderAttributionForCheckout()?.oppref, browserReference, "browser checkout preserves original reference");
-    check(getOrderAttributionForCheckout()?.openaiAdsMeasurementOptOut ?? false, false, "absent GPC keeps normal measurement choice unchanged");
+    check(getOrderAttributionForCheckout()?.openaiAdsMeasurementOptOut ?? false, false, "explicit accepted measurement permits eligible OpenAI attribution");
     captureAttributionFromLocation("https://psllabs.org/products/fixture", "");
     check(getOrderAttributionForCheckout()?.oppref, browserReference, "browser direct revisit keeps prior attribution");
     navigatorFixture.globalPrivacyControl = false;
@@ -107,7 +133,7 @@ async function main() {
     check(noReference(checkoutOnlyOptOut), true, "checkout GPC strips all previously stored nested references");
     const optedOutCapture = captureAttributionFromLocation(browserHref, "");
     check(noReference(optedOutCapture), true, "GPC capture strips all click references");
-    check(values.get(ATTRIBUTION_STORAGE_KEY)?.includes(browserReference), false, "GPC capture removes reference from persistent browser storage");
+    check((values.get(ATTRIBUTION_STORAGE_KEY)?.includes(browserReference) ?? false), false, "GPC capture removes reference from persistent browser storage");
     const optedOutCheckout = getOrderAttributionForCheckout();
     check(optedOutCheckout?.openaiAdsMeasurementOptOut, true, "GPC opt out reaches checkout");
     check(noReference(optedOutCheckout), true, "captured GPC checkout has no click references");
@@ -118,14 +144,27 @@ async function main() {
     check(directOptOut?.oppref, null, "direct GPC checkout has no opaque reference");
     check(directOptOut?.firstPaid, null, "direct GPC checkout does not invent paid touch");
     navigatorFixture.globalPrivacyControl = false;
-    check(getOrderAttributionForCheckout(), null, "normal direct checkout without attribution remains null");
+    check(getOrderAttributionForCheckout()?.firstPaid ?? null, null, "direct checkout without attribution does not invent a paid touch");
     values.set(ATTRIBUTION_STORAGE_KEY, "{invalid");
     navigatorFixture.globalPrivacyControl = true;
     check(getOrderAttributionForCheckout()?.openaiAdsMeasurementOptOut, true, "corrupt stored attribution does not lose checkout GPC choice");
     values.set(ATTRIBUTION_STORAGE_KEY, JSON.stringify({ firstPaid: expired, lastPaid: expired }));
     navigatorFixture.globalPrivacyControl = false;
-    check(getOrderAttributionForCheckout(), null, "browser checkout drops expired stored click");
+    values.set("psl_researcher_verified_v1", "1");
+    check(getOrderAttributionForCheckout()?.oppref ?? null, null, "browser checkout drops expired stored click");
     check(noReference(captureAttributionFromLocation("https://psllabs.org/", "")), true, "browser direct revisit prunes expired click");
+
+    const mixed = captureAttributionFromLocation("https://psllabs.org/?gclid=google_fixture&fbclid=meta_fixture&ttclid=tiktok_fixture&oppref=openai_fixture", "");
+    check(mixed.lastPaid?.gclid, "google_fixture", "eligible Google reference survives current granted receipt");
+    check(mixed.lastPaid?.oppref, "openai_fixture", "eligible OpenAI reference survives current granted receipt");
+    check(mixed.lastPaid?.fbclid, null, "disabled Meta context never stores click ID");
+    check(mixed.lastPaid?.ttclid, null, "disabled TikTok context never stores click ID");
+    check(JSON.stringify(mixed).includes("meta_fixture"), false, "Meta ID is removed from all stored fields");
+    check(JSON.stringify(mixed).includes("tiktok_fixture"), false, "TikTok ID is removed from all stored fields");
+    const revoke = requestPrivacyConsent({ measurement: false, personalization: false });
+    check(noReference(getOrderAttributionForCheckout()), true, "withdrawal immediately strips checkout attribution before ACK");
+    await revoke;
+    check(values.has(ATTRIBUTION_STORAGE_KEY), false, "acknowledged withdrawal clears stored click references");
 
     const transform = vm.runInNewContext(`(${PLAUSIBLE_TRANSFORM_REQUEST_JS})`, { URL }) as
       (payload: { u: string; r?: string }) => { u: string; r?: string };
@@ -146,6 +185,8 @@ async function main() {
     if (failures.length) throw new Error(`Failed checks:\n${failures.map((label) => `- ${label}`).join("\n")}`);
   } finally {
     globalThis.fetch = originalFetch;
+    globalThis.setInterval = originalInterval;
+    globalThis.setTimeout = originalTimeout;
     for (const [key, descriptor] of Object.entries(originalGlobals)) {
       if (descriptor) Object.defineProperty(globalThis, key, descriptor);
       else Reflect.deleteProperty(globalThis, key);

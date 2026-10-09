@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { CustomerFeedbackCard } from "@/components/success/customer-feedback-card";
 import { OrderResources } from "@/components/success/order-resources";
 import { GoogleAdsPurchaseConversion } from "@/components/analytics/google-ads-purchase";
+import { MetaAdsPurchaseReceipt } from "@/components/analytics/meta-ads-purchase";
 import type { PublicOrder } from "@/lib/orders/types";
 
 function money(n: number): string {
@@ -106,6 +107,7 @@ export function OrderStatus({
   return (
     <div className="mx-auto max-w-[720px] px-6 py-16 md:px-12 lg:py-20">
       <GoogleAdsPurchaseConversion orderId={orderId} paid={status === "paid" || status === "shipped"} />
+      <MetaAdsPurchaseReceipt orderId={orderId} paid={status === "paid" || status === "shipped"} />
       <p className="mono text-ash">ORDER {orderId}</p>
       <h1
         className={`mt-3 font-display text-display-md font-bold ${banner.tone}`}

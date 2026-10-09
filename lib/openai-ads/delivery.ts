@@ -4,6 +4,7 @@ import { getSql } from "../db/sql";
 import type { Order } from "../orders/types";
 import type { InvoiceStatusResult } from "../payments";
 import { verifyTagadaCardPayment, type TagadaCardReads } from "../tagada/verify-payment";
+import type { PrivacyConsentBinding } from "../privacy/types";
 import {
   buildOpenAIOrderCreatedEvent,
   prepareOpenAIOrderCreatedEvent,
@@ -113,6 +114,10 @@ export function createOpenAIAdsSqlStore(sql: ReturnType<typeof getSql>): OpenAIA
           AND date_trunc('milliseconds', paid_at) = ${order.paidAt}::timestamptz
           AND (attribution IS NULL OR jsonb_typeof(attribution) = 'object')
           AND COALESCE(attribution->>'openaiAdsMeasurementOptOut', 'false') <> 'true'
+          AND attribution->'privacyConsent' = ${JSON.stringify(order.attribution?.privacyConsent ?? null)}::jsonb
+          AND jsonb_typeof(attribution->'privacyConsent') = 'object'
+          AND NOT EXISTS (SELECT 1 FROM finance_transactions f
+            WHERE f.psl_order_id = orders.order_id AND f.reporting_excluded = true)
           AND (${existingOnly}::boolean = false OR attribution->'openaiAdsDelivery' IS NOT NULL)
           AND (
             attribution->'openaiAdsDelivery' IS NULL
@@ -138,6 +143,9 @@ export function createOpenAIAdsSqlStore(sql: ReturnType<typeof getSql>): OpenAIA
           AND total = ${order.total}::numeric AND currency = ${order.currency}
           AND date_trunc('milliseconds', paid_at) = ${order.paidAt}::timestamptz
           AND COALESCE(attribution->>'openaiAdsMeasurementOptOut', 'false') <> 'true'
+          AND attribution->'privacyConsent' = ${JSON.stringify(order.attribution?.privacyConsent ?? null)}::jsonb
+          AND NOT EXISTS (SELECT 1 FROM finance_transactions f
+            WHERE f.psl_order_id = orders.order_id AND f.reporting_excluded = true)
           AND attribution->'openaiAdsDelivery'->>'status' = 'pending'
           AND attribution->'openaiAdsDelivery'->>'claimToken' = ${token}
           AND (attribution->'openaiAdsDelivery'->>'leaseUntilMs')::bigint > ${nowMs}::bigint
@@ -195,6 +203,9 @@ export function createOpenAIAdsSqlStore(sql: ReturnType<typeof getSql>): OpenAIA
           AND COALESCE((attribution->'openaiAdsDelivery'->>'nextAttemptMs')::bigint, 0) <= ${nowMs}::bigint
           AND COALESCE(attribution->>'openaiAdsMeasurementOptOut', 'false') <> 'true'
           AND char_length(attribution->'openaiAdsDelivery'->'proof'->>'paymentId') BETWEEN 1 AND 256
+          AND jsonb_typeof(attribution->'privacyConsent') = 'object'
+          AND NOT EXISTS (SELECT 1 FROM finance_transactions f
+            WHERE f.psl_order_id = orders.order_id AND f.reporting_excluded = true)
           AND (
             (payment_method = 'card'
               AND attribution->'openaiAdsDelivery'->'proof'->>'provider' = 'tagada'
@@ -237,6 +248,7 @@ export type OpenAIAdsDeliveryDependencies = {
   tagadaReads?: TagadaCardReads;
   getInvoiceStatus?: (invoiceId: string, options?: { signal?: AbortSignal }) => Promise<InvoiceStatusResult>;
   providerTimeoutMs?: number;
+  isCurrentMeasurementConsent?: (binding: PrivacyConsentBinding, provider: "openai") => Promise<boolean>;
 };
 
 function validProof(order: OpenAIAdsDeliveryOrder, proof: OpenAIAdsPaymentProof): boolean {
@@ -281,6 +293,14 @@ export function createOpenAIAdsDelivery(dependencies: OpenAIAdsDeliveryDependenc
   let sqlStore: OpenAIAdsDeliveryStore | undefined;
   const store = () => dependencies.getStore?.() ?? (sqlStore ??= createOpenAIAdsSqlStore(getSql()));
   const providerTimeoutMs = dependencies.providerTimeoutMs ?? PROVIDER_TIMEOUT_MS;
+  async function consentCurrent(binding: PrivacyConsentBinding | undefined): Promise<boolean> {
+    if (!binding) return false;
+    try {
+      const check = dependencies.isCurrentMeasurementConsent ??
+        (await import("../privacy/server")).isCurrentMeasurementConsent;
+      return await check(binding, "openai");
+    } catch { return false; }
+  }
 
   async function reverify(order: OpenAIAdsDeliveryOrder, proof: OpenAIAdsPaymentProof): Promise<{ ok: boolean; retryable: boolean }> {
     if (!validProof(order, proof)) return { ok: false, retryable: false };
@@ -313,8 +333,12 @@ export function createOpenAIAdsDelivery(dependencies: OpenAIAdsDeliveryDependenc
     retry: boolean,
   ): Promise<OpenAIAdsDeliveryResult> {
     const { order, marker } = claimed;
-    if (order.attribution?.openaiAdsMeasurementOptOut === true) {
-      return { status: "opt_out", reason: "measurement_opt_out" };
+    if (order.attribution?.openaiAdsMeasurementOptOut === true ||
+        !await consentCurrent(order.attribution?.privacyConsent)) {
+      await database.finish(order.orderId, claimToken, {
+        status: "rejected", nextAttemptMs: null, lastReason: "measurement_consent_unavailable",
+      });
+      return { status: "opt_out", reason: "measurement_consent_unavailable" };
     }
     let completion: Completion;
     const prepared = prepareOpenAIOrderCreatedEvent(marker.event, clock());
@@ -340,6 +364,13 @@ export function createOpenAIAdsDelivery(dependencies: OpenAIAdsDeliveryDependenc
         if (!await database.confirmLease(order, claimToken, clock()) ||
             !Number.isSafeInteger(marker.leaseUntilMs) || marker.leaseUntilMs! < clock() + 5000) {
           return { status: "skipped", reason: "lease_lost" };
+        }
+        // Recheck the current receipt after provider and lease reads, immediately before transport.
+        if (!await consentCurrent(order.attribution?.privacyConsent)) {
+          await database.finish(order.orderId, claimToken, {
+            status: "rejected", nextAttemptMs: null, lastReason: "measurement_consent_unavailable",
+          });
+          return { status: "opt_out", reason: "measurement_consent_unavailable" };
         }
         let sent: OpenAIAdsSendResult;
         try {
@@ -371,6 +402,9 @@ export function createOpenAIAdsDelivery(dependencies: OpenAIAdsDeliveryDependenc
       if (!configuration.ok) return { status: "skipped", reason: configuration.reason };
       if (order.attribution?.openaiAdsMeasurementOptOut === true) {
         return { status: "opt_out", reason: "measurement_opt_out" };
+      }
+      if (!await consentCurrent(order.attribution?.privacyConsent)) {
+        return { status: "opt_out", reason: "measurement_consent_unavailable" };
       }
       if (!validProof(order, proof)) return { status: "rejected", reason: "invalid_payment_proof" };
       const nowMs = clock();

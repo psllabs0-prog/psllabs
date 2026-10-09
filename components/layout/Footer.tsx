@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { PSLLogo } from "@/components/branding/psl-logo";
-import { GoogleAdsPreferencesButton } from "@/components/analytics/google-ads-measurement";
+import { CookiePreferencesButton } from "@/components/privacy/cookie-preferences";
 import { FooterColumn } from "@/components/layout/footer-column";
 import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { footerColumns, footerDisclaimer } from "@/lib/navigation";
@@ -39,7 +39,7 @@ export function Footer() {
           <p className="font-mono text-xs text-ash" suppressHydrationWarning>
             © {new Date().getFullYear()} {LEGAL_ENTITY_NAME}. All rights reserved.
           </p>
-          <GoogleAdsPreferencesButton />
+          <CookiePreferencesButton />
         </div>
       </div>
     </footer>

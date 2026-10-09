@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { captureAttributionFromLocation } from "@/lib/attribution/storage";
+import { readPrivacyConsent, serverPrivacyConsent, subscribePrivacyConsent } from "@/lib/privacy/client";
 
 /**
  * Captures paid UTMs / click IDs into a 30-day localStorage window.
@@ -12,6 +13,7 @@ import { captureAttributionFromLocation } from "@/lib/attribution/storage";
 export function AttributionCapture() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const consent = useSyncExternalStore(subscribePrivacyConsent, readPrivacyConsent, serverPrivacyConsent);
 
   useEffect(() => {
     const search = searchParams?.toString()
@@ -19,7 +21,7 @@ export function AttributionCapture() {
       : "";
     const href = `${window.location.origin}${pathname || "/"}${search}`;
     captureAttributionFromLocation(href, document.referrer);
-  }, [pathname, searchParams]);
+  }, [pathname, searchParams, consent]);
 
   return null;
 }

@@ -6,6 +6,7 @@ import {
 } from "@/lib/checkout/prepare-order";
 import { setInvoiceId, setPaymentMethod } from "@/lib/orders/store";
 import { getPaymentProcessor } from "@/lib/payments";
+import { readRequestPrivacyConsent } from "@/lib/privacy/server";
 
 export const runtime = "nodejs";
 
@@ -20,7 +21,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const prepared = await prepareReservedOrder(body, { paymentMethod: "bitcoin" });
+  const privacyConsent = await readRequestPrivacyConsent(request).catch(() => null);
+  const prepared = await prepareReservedOrder(body, { paymentMethod: "bitcoin", privacyConsent });
   if (!prepared.ok) {
     return NextResponse.json(
       { error: prepared.error },
