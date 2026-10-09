@@ -1,5 +1,5 @@
 {
-  "scenario": "August 25–October 10, 2026 — fictional financial period",
+  "scenario": "August 25–October 9, 2026 — fictional financial period",
   "revenueTargetCents": 2274813,
   "expenseTargetCents": 791993,
   "openingCashCents": 500000,
@@ -1052,7 +1052,7 @@
     {
       "id": "DEMO-O-067",
       "customerId": "DEMO-C-067",
-      "date": "2026-10-10",
+      "date": "2026-10-09",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1152,7 +1152,7 @@
     {
       "id": "DEMO-O-077",
       "customerId": "DEMO-C-005",
-      "date": "2026-10-10",
+      "date": "2026-10-09",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1583,7 +1583,7 @@
     },
     {
       "id": "DEMO-E-02-2",
-      "date": "2026-10-10",
+      "date": "2026-10-09",
       "category": "Shipping and postage",
       "amountCents": 23602,
       "description": "Fictional fulfillment expense; no shipments created",
@@ -1679,5 +1679,5 @@
     }
   ],
   "periodStart": "2026-08-25",
-  "periodEnd": "2026-10-10"
+  "periodEnd": "2026-10-09"
 }
