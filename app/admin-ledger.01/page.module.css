@@ -46,8 +46,9 @@
 .legend span { display: flex; align-items: center; gap: 5px; }
 .legend i { width: 8px; height: 8px; border-radius: 2px; background: var(--ledger-link); }
 .legend span:last-child i { background: #94a3b8; }
-.chart { display: flex; align-items: flex-end; justify-content: space-around; gap: 12px; margin: 28px 0 18px; }
-.week { flex: 1; min-width: 0; text-align: center; font-size: 11px; color: var(--ledger-muted); }
+.chart { display: flex; align-items: flex-end; gap: 12px; margin: 28px 0 18px; overflow-x: auto; padding-bottom: 8px; }
+.chart:focus-visible { outline: 2px solid var(--ledger-link); outline-offset: 4px; }
+.week { flex: 1 0 72px; min-width: 0; text-align: center; font-size: 11px; color: var(--ledger-muted); }
 .week strong { display: block; margin: 12px 0 8px; font-size: 11px; color: var(--ledger-text); }
 .week span { display: block; margin-top: 3px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .bars { height: 190px; display: flex; gap: 5px; justify-content: center; align-items: flex-end; border-bottom: 1px solid var(--ledger-border); }
@@ -164,6 +165,8 @@
   .header, .metric, .chartGrid { break-inside: avoid; }
   .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .chartGrid, .reconcile { grid-template-columns: 1fr; }
+  .chart { overflow: visible; }
+  .week { flex: 1; }
   .panel { padding: 12px; margin-bottom: 16px; }
   .tableWrap, .details[open] > .tableWrap { max-height: none; overflow: visible; }
   .tableWrap table { font-size: 9pt; }

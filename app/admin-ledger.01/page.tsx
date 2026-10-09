@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { AdminLoginForm } from "@/components/admin/admin-login-form";
 import { isAdminAuthenticated, isAdminPasswordConfigured } from "@/lib/admin/auth";
-import { orderTotalCents } from "@/lib/finance-demo/model";
+import { formatDemoDate as dateLabel, orderTotalCents } from "@/lib/finance-demo/model";
 import { FINANCE_DEMO_PATH } from "@/lib/finance-demo/path";
 import styles from "./page.module.css";
 
@@ -13,7 +13,6 @@ export const metadata: Metadata = {
 };
 
 const money = (cents: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
-const dateLabel = (date: string) => `Nov ${Number(date.slice(-2))}`;
 
 // Presentation only. Fixture identifiers, reconciliation and isolation stay intact.
 const displayLabel = (value: string | undefined) => (value ?? "")
@@ -38,6 +37,7 @@ export default async function FinanceDemoPage() {
   // There is no fixture endpoint, database query, mutation or customer integration.
   const { getFinanceDemo } = await import("@/lib/finance-demo/data");
   const { data, summary } = getFinanceDemo();
+  const periodLabel = `${dateLabel(data.periodStart)}–${dateLabel(data.periodEnd)}, ${data.periodEnd.slice(0, 4)}`;
   const inventoryPurchaseCents = data.expenses.filter(e => e.category === "Inventory purchases").reduce((sum, e) => sum + e.amountCents, 0);
   const maxWeek = Math.max(...summary.weeks.flatMap(w => [w.revenueCents, w.expenseCents]));
   const customerById = new Map(data.customers.map(c => [c.id, c]));
@@ -49,12 +49,12 @@ export default async function FinanceDemoPage() {
     <div className={styles.container}>
       <header className={styles.header}>
         <div><p className={styles.eyebrow}>OPERATIONS</p><h1>Admin ledger</h1><p className={styles.subtitle}>Financial overview, inventory movement, and transaction log.</p></div>
-        <div className={styles.headerAside}><span className={styles.period}>November 2026 · USD</span><a href="/admin-ledger">Main ledger ↗</a></div>
+        <div className={styles.headerAside}><span className={styles.period}>{periodLabel} · USD</span><a href="/admin-ledger">Main ledger ↗</a></div>
       </header>
 
       <nav className={styles.nav} aria-label="Ledger sections"><a href="#overview">Overview</a><a href="#sales">Orders</a><a href="#expenses">Expenses</a><a href="#inventory">Inventory</a><a href="#customers">Customers</a><a href="#reconciliation">Reconciliation</a></nav>
 
-      <section id="overview" className={styles.metrics} aria-label="Month totals">
+      <section id="overview" className={styles.metrics} aria-label="Period totals">
         <article className={`${styles.metric} ${styles.revenue}`}><p>Total revenue</p><strong>{money(summary.revenueCents)}</strong><span>{data.orders.length} orders · after discounts</span></article>
         <article className={styles.metric}><p>Total expenses</p><strong>{money(summary.expenseCents)}</strong><span>Including {money(inventoryPurchaseCents)} in stock purchases</span></article>
         <article className={`${styles.metric} ${styles.profit}`}><p>Cash-basis profit</p><strong>{money(summary.profitCents)}</strong><span>{(summary.profitCents / summary.revenueCents * 100).toFixed(1)}% cash margin · before tax</span></article>
@@ -63,8 +63,8 @@ export default async function FinanceDemoPage() {
 
       <div className={styles.chartGrid}>
         <section className={styles.panel} aria-labelledby="weekly-title">
-          <div className={styles.sectionTop}><div><p className={styles.eyebrow}>MONTH AT A GLANCE</p><h2 id="weekly-title">Revenue & expenses</h2></div><div className={styles.legend}><span><i />Revenue</span><span><i />Expenses</span></div></div>
-          <div className={styles.chart} role="img" aria-label="Weekly revenue and expenses. Exact values appear below each bar pair.">
+          <div className={styles.sectionTop}><div><p className={styles.eyebrow}>PERIOD AT A GLANCE</p><h2 id="weekly-title">Revenue & expenses</h2></div><div className={styles.legend}><span><i />Revenue</span><span><i />Expenses</span></div></div>
+          <div className={styles.chart} role="img" tabIndex={0} aria-label="Weekly revenue and expenses. Exact values appear below each bar pair. Scroll horizontally to view all weeks on smaller screens.">
             {summary.weeks.map(week => <div key={week.label} className={styles.week}>
               <div className={styles.bars}><div className={styles.revenueBar} style={{ height: `${week.revenueCents / maxWeek * 100}%` }} /><div className={styles.expenseBar} style={{ height: `${week.expenseCents / maxWeek * 100}%` }} /></div>
               <strong>{week.label}</strong><span className={styles.blueText}>{money(week.revenueCents)}</span><span>{money(week.expenseCents)}</span>
@@ -98,9 +98,9 @@ export default async function FinanceDemoPage() {
         <details className={styles.details}><summary>View all {summary.customers.length} customers</summary><div className={styles.tableWrap}><table><thead><tr><th>Customer</th><th>Reference</th><th>State</th><th>Orders</th><th>Total sales</th></tr></thead><tbody>{summary.customers.map(c => <tr key={c.id}><td>{displayLabel(c.name)}</td><td>{displayLabel(c.id)}</td><td>{c.state}</td><td>{c.orderCount}</td><td>{money(c.salesCents)}</td></tr>)}</tbody><tfoot><tr><td colSpan={3}>All customers</td><td>{data.orders.length}</td><td>{money(summary.revenueCents)}</td></tr></tfoot></table></div></details>
       </section>
 
-      <section id="reconciliation" className={`${styles.panel} ${styles.reconcile}`}><div><p className={styles.eyebrow}>EVERY CENT ACCOUNTED FOR</p><h2>Reconciliation</h2><p>Orders, charts, customer totals, stock movements and cash balances reconcile to the transactions in this ledger.</p><p className={styles.note}>Cash basis, USD, before income tax. This month includes no refunds, sales tax collected or shipping revenue.</p></div><dl><div><dt>Revenue after discounts</dt><dd>{money(summary.revenueCents)}</dd></div><div><dt>Cash expenses</dt><dd>−{money(summary.expenseCents)}</dd></div><div className={styles.profitLine}><dt>Cash-basis profit</dt><dd>{money(summary.profitCents)}</dd></div><div><dt>Opening cash</dt><dd>{money(data.openingCashCents)}</dd></div><div><dt>Closing cash</dt><dd>{money(summary.closingCashCents)}</dd></div></dl></section>
+      <section id="reconciliation" className={`${styles.panel} ${styles.reconcile}`}><div><p className={styles.eyebrow}>EVERY CENT ACCOUNTED FOR</p><h2>Reconciliation</h2><p>Orders, charts, customer totals, stock movements and cash balances reconcile to the transactions in this ledger.</p><p className={styles.note}>Cash basis, USD, before income tax. This period includes no refunds, sales tax collected or shipping revenue.</p></div><dl><div><dt>Revenue after discounts</dt><dd>{money(summary.revenueCents)}</dd></div><div><dt>Cash expenses</dt><dd>−{money(summary.expenseCents)}</dd></div><div className={styles.profitLine}><dt>Cash-basis profit</dt><dd>{money(summary.profitCents)}</dd></div><div><dt>Opening cash</dt><dd>{money(data.openingCashCents)}</dd></div><div><dt>Closing cash</dt><dd>{money(summary.closingCashCents)}</dd></div></dl></section>
       <details className={`${styles.panel} ${styles.details}`}><summary>Full cash ledger · {cashLedger.length} transactions</summary><p className={styles.note}>Opening cash: {money(data.openingCashCents)}. Running balance includes every sale and expense above.</p><div className={styles.tableWrap}><table><thead><tr><th>Date / reference</th><th>Type</th><th>Description</th><th>Cash change</th><th>Running balance</th></tr></thead><tbody>{cashLedger.map(t => <tr key={t.id}><td>{t.date}<small>{displayLabel(t.id)}</small></td><td>{t.type}</td><td>{displayLabel(t.description)}</td><td>{t.amountCents < 0 ? "−" : "+"}{money(Math.abs(t.amountCents))}</td><td>{money(t.balanceCents)}</td></tr>)}</tbody><tfoot><tr><td colSpan={4}>Closing cash</td><td>{money(summary.closingCashCents)}</td></tr></tfoot></table></div></details>
-      <footer className={styles.footer}><strong>PSL Labs · Financial ledger</strong><span>November 2026 · USD · Cash basis</span><a href="/admin-ledger">Main ledger ↗</a></footer>
+      <footer className={styles.footer}><strong>PSL Labs · Financial ledger</strong><span>{periodLabel} · USD · Cash basis</span><a href="/admin-ledger">Main ledger ↗</a></footer>
     </div>
   </main>;
 }
