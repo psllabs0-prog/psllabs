@@ -40,6 +40,9 @@ export const metadata: Metadata = {
     template: "%s",
   },
   description: SITE_DESCRIPTION,
+  other: {
+    "facebook-domain-verification": "hgjjo1lsoncv50z8autv2otgn55yj6",
+  },
   openGraph: {
     title: SITE_TITLE,
     description: SITE_DESCRIPTION,
