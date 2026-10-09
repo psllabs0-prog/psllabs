@@ -115,6 +115,9 @@ function loadSdk(): Promise<boolean> {
   pixel("consent", "revoke");
   pixel("set", "autoConfig", false, PSL_META_DATASET_ID);
   pixel("init", PSL_META_DATASET_ID);
+  // Meta's SDK otherwise broadcasts PageViews on SPA navigation and BFCache
+  // restoration, separately from autoConfig. Keep only explicit trackSingle calls.
+  pixel("set", "trackSingleOnly", true, PSL_META_DATASET_ID);
   sdkReady = new Promise<boolean>((resolve) => {
     const script = document.createElement("script");
     script.id = "psl-meta-pixel";
