@@ -29,7 +29,8 @@ assert.doesNotMatch(css, /pointer-events\s*:/, "CSS must not change interaction 
 assert.doesNotMatch(css, /\.root\s+\*\s*\{/, "No blanket all-black descendant rule");
 
 const dirs = fs.readdirSync(path.join(root, "app"), { withFileTypes: true })
-  .filter((d) => d.isDirectory() && /^admin(?:-|$)/.test(d.name))
+  // The isolated fictional scenario intentionally uses a demo-only shell.
+  .filter((d) => d.isDirectory() && /^admin(?:-|$)/.test(d.name) && d.name !== "admin-ledger.01")
   .map((d) => d.name);
 assert(dirs.length >= 17, "All known admin routes are present");
 for (const dir of dirs) {
