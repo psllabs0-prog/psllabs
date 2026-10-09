@@ -137,22 +137,28 @@
 }
 
 @media print {
-  @page { margin: 24mm 12mm 18mm; }
+  @page psl-financial-synthetic {
+    margin: 24mm 12mm 18mm;
+    @top-center {
+      content: "Synthetic financial data — Not real business records";
+      color: black;
+      font: 700 11pt sans-serif;
+      text-align: center;
+      vertical-align: middle;
+    }
+  }
   .printNotice {
     display: block;
-    position: fixed;
-    top: -16mm;
-    left: 0;
-    right: 0;
-    z-index: 100;
     padding: 3mm 0;
+    margin-bottom: 6mm;
     border-bottom: 2px solid black;
     background: white;
     color: black;
     font: 700 12pt sans-serif;
     text-align: center;
+    break-inside: avoid;
   }
-  .root { background: white; color: black; font-size: 10pt; }
+  .root { page: psl-financial-synthetic; background: white; color: black; font-size: 10pt; }
   .container { max-width: none; padding: 0; }
   .headerAside a, .nav, .footer a { display: none; }
   .header, .metric, .chartGrid { break-inside: avoid; }
