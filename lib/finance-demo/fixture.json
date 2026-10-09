@@ -1,5 +1,5 @@
 {
-  "scenario": "November 2026 \u2014 fictional future month",
+  "scenario": "August 25–October 10, 2026 — fictional financial period",
   "revenueTargetCents": 2274813,
   "expenseTargetCents": 791993,
   "openingCashCents": 500000,
@@ -392,7 +392,7 @@
     {
       "id": "DEMO-O-001",
       "customerId": "DEMO-C-001",
-      "date": "2026-11-01",
+      "date": "2026-10-05",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -402,7 +402,7 @@
     {
       "id": "DEMO-O-002",
       "customerId": "DEMO-C-002",
-      "date": "2026-11-01",
+      "date": "2026-09-22",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -412,7 +412,7 @@
     {
       "id": "DEMO-O-003",
       "customerId": "DEMO-C-003",
-      "date": "2026-11-01",
+      "date": "2026-09-30",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -422,7 +422,7 @@
     {
       "id": "DEMO-O-004",
       "customerId": "DEMO-C-004",
-      "date": "2026-11-01",
+      "date": "2026-08-31",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -432,7 +432,7 @@
     {
       "id": "DEMO-O-005",
       "customerId": "DEMO-C-005",
-      "date": "2026-11-02",
+      "date": "2026-08-25",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -442,7 +442,7 @@
     {
       "id": "DEMO-O-006",
       "customerId": "DEMO-C-006",
-      "date": "2026-11-02",
+      "date": "2026-10-03",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -452,7 +452,7 @@
     {
       "id": "DEMO-O-007",
       "customerId": "DEMO-C-007",
-      "date": "2026-11-02",
+      "date": "2026-08-27",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -462,7 +462,7 @@
     {
       "id": "DEMO-O-008",
       "customerId": "DEMO-C-008",
-      "date": "2026-11-02",
+      "date": "2026-09-23",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -472,7 +472,7 @@
     {
       "id": "DEMO-O-009",
       "customerId": "DEMO-C-009",
-      "date": "2026-11-03",
+      "date": "2026-09-07",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -482,7 +482,7 @@
     {
       "id": "DEMO-O-010",
       "customerId": "DEMO-C-010",
-      "date": "2026-11-03",
+      "date": "2026-09-27",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -492,7 +492,7 @@
     {
       "id": "DEMO-O-011",
       "customerId": "DEMO-C-011",
-      "date": "2026-11-03",
+      "date": "2026-09-08",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -502,7 +502,7 @@
     {
       "id": "DEMO-O-012",
       "customerId": "DEMO-C-012",
-      "date": "2026-11-03",
+      "date": "2026-08-26",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -512,7 +512,7 @@
     {
       "id": "DEMO-O-013",
       "customerId": "DEMO-C-013",
-      "date": "2026-11-04",
+      "date": "2026-10-09",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -522,7 +522,7 @@
     {
       "id": "DEMO-O-014",
       "customerId": "DEMO-C-014",
-      "date": "2026-11-04",
+      "date": "2026-08-27",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -532,7 +532,7 @@
     {
       "id": "DEMO-O-015",
       "customerId": "DEMO-C-015",
-      "date": "2026-11-04",
+      "date": "2026-09-08",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -542,7 +542,7 @@
     {
       "id": "DEMO-O-016",
       "customerId": "DEMO-C-016",
-      "date": "2026-11-05",
+      "date": "2026-09-05",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -552,7 +552,7 @@
     {
       "id": "DEMO-O-017",
       "customerId": "DEMO-C-017",
-      "date": "2026-11-05",
+      "date": "2026-09-07",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -562,7 +562,7 @@
     {
       "id": "DEMO-O-018",
       "customerId": "DEMO-C-018",
-      "date": "2026-11-05",
+      "date": "2026-10-04",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -572,7 +572,7 @@
     {
       "id": "DEMO-O-019",
       "customerId": "DEMO-C-019",
-      "date": "2026-11-05",
+      "date": "2026-09-15",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -582,7 +582,7 @@
     {
       "id": "DEMO-O-020",
       "customerId": "DEMO-C-020",
-      "date": "2026-11-06",
+      "date": "2026-09-04",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -592,7 +592,7 @@
     {
       "id": "DEMO-O-021",
       "customerId": "DEMO-C-021",
-      "date": "2026-11-06",
+      "date": "2026-09-17",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -602,7 +602,7 @@
     {
       "id": "DEMO-O-022",
       "customerId": "DEMO-C-022",
-      "date": "2026-11-06",
+      "date": "2026-09-28",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -612,7 +612,7 @@
     {
       "id": "DEMO-O-023",
       "customerId": "DEMO-C-023",
-      "date": "2026-11-06",
+      "date": "2026-08-25",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -622,7 +622,7 @@
     {
       "id": "DEMO-O-024",
       "customerId": "DEMO-C-024",
-      "date": "2026-11-07",
+      "date": "2026-09-24",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -632,7 +632,7 @@
     {
       "id": "DEMO-O-025",
       "customerId": "DEMO-C-025",
-      "date": "2026-11-07",
+      "date": "2026-09-02",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -642,7 +642,7 @@
     {
       "id": "DEMO-O-026",
       "customerId": "DEMO-C-026",
-      "date": "2026-11-07",
+      "date": "2026-10-05",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -652,7 +652,7 @@
     {
       "id": "DEMO-O-027",
       "customerId": "DEMO-C-027",
-      "date": "2026-11-07",
+      "date": "2026-09-12",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -662,7 +662,7 @@
     {
       "id": "DEMO-O-028",
       "customerId": "DEMO-C-028",
-      "date": "2026-11-08",
+      "date": "2026-09-12",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -672,7 +672,7 @@
     {
       "id": "DEMO-O-029",
       "customerId": "DEMO-C-029",
-      "date": "2026-11-08",
+      "date": "2026-10-03",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -682,7 +682,7 @@
     {
       "id": "DEMO-O-030",
       "customerId": "DEMO-C-030",
-      "date": "2026-11-08",
+      "date": "2026-10-08",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -692,7 +692,7 @@
     {
       "id": "DEMO-O-031",
       "customerId": "DEMO-C-031",
-      "date": "2026-11-09",
+      "date": "2026-08-30",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -702,7 +702,7 @@
     {
       "id": "DEMO-O-032",
       "customerId": "DEMO-C-032",
-      "date": "2026-11-09",
+      "date": "2026-10-07",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -712,7 +712,7 @@
     {
       "id": "DEMO-O-033",
       "customerId": "DEMO-C-033",
-      "date": "2026-11-09",
+      "date": "2026-09-16",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -722,7 +722,7 @@
     {
       "id": "DEMO-O-034",
       "customerId": "DEMO-C-034",
-      "date": "2026-11-09",
+      "date": "2026-09-04",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -732,7 +732,7 @@
     {
       "id": "DEMO-O-035",
       "customerId": "DEMO-C-035",
-      "date": "2026-11-10",
+      "date": "2026-09-07",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -742,7 +742,7 @@
     {
       "id": "DEMO-O-036",
       "customerId": "DEMO-C-036",
-      "date": "2026-11-10",
+      "date": "2026-09-19",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -752,7 +752,7 @@
     {
       "id": "DEMO-O-037",
       "customerId": "DEMO-C-037",
-      "date": "2026-11-10",
+      "date": "2026-09-23",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -762,7 +762,7 @@
     {
       "id": "DEMO-O-038",
       "customerId": "DEMO-C-038",
-      "date": "2026-11-10",
+      "date": "2026-09-04",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -772,7 +772,7 @@
     {
       "id": "DEMO-O-039",
       "customerId": "DEMO-C-039",
-      "date": "2026-11-11",
+      "date": "2026-09-04",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -782,7 +782,7 @@
     {
       "id": "DEMO-O-040",
       "customerId": "DEMO-C-040",
-      "date": "2026-11-11",
+      "date": "2026-10-09",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -792,7 +792,7 @@
     {
       "id": "DEMO-O-041",
       "customerId": "DEMO-C-041",
-      "date": "2026-11-11",
+      "date": "2026-09-30",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -802,7 +802,7 @@
     {
       "id": "DEMO-O-042",
       "customerId": "DEMO-C-042",
-      "date": "2026-11-11",
+      "date": "2026-09-11",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -812,7 +812,7 @@
     {
       "id": "DEMO-O-043",
       "customerId": "DEMO-C-043",
-      "date": "2026-11-12",
+      "date": "2026-09-11",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -822,7 +822,7 @@
     {
       "id": "DEMO-O-044",
       "customerId": "DEMO-C-044",
-      "date": "2026-11-12",
+      "date": "2026-09-07",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -832,7 +832,7 @@
     {
       "id": "DEMO-O-045",
       "customerId": "DEMO-C-045",
-      "date": "2026-11-12",
+      "date": "2026-10-06",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -842,7 +842,7 @@
     {
       "id": "DEMO-O-046",
       "customerId": "DEMO-C-046",
-      "date": "2026-11-13",
+      "date": "2026-09-08",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -852,7 +852,7 @@
     {
       "id": "DEMO-O-047",
       "customerId": "DEMO-C-047",
-      "date": "2026-11-13",
+      "date": "2026-09-08",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -862,7 +862,7 @@
     {
       "id": "DEMO-O-048",
       "customerId": "DEMO-C-048",
-      "date": "2026-11-13",
+      "date": "2026-10-08",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -872,7 +872,7 @@
     {
       "id": "DEMO-O-049",
       "customerId": "DEMO-C-049",
-      "date": "2026-11-13",
+      "date": "2026-10-07",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -882,7 +882,7 @@
     {
       "id": "DEMO-O-050",
       "customerId": "DEMO-C-050",
-      "date": "2026-11-14",
+      "date": "2026-09-25",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -892,7 +892,7 @@
     {
       "id": "DEMO-O-051",
       "customerId": "DEMO-C-051",
-      "date": "2026-11-14",
+      "date": "2026-10-02",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -902,7 +902,7 @@
     {
       "id": "DEMO-O-052",
       "customerId": "DEMO-C-052",
-      "date": "2026-11-14",
+      "date": "2026-09-20",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -912,7 +912,7 @@
     {
       "id": "DEMO-O-053",
       "customerId": "DEMO-C-053",
-      "date": "2026-11-14",
+      "date": "2026-09-14",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -922,7 +922,7 @@
     {
       "id": "DEMO-O-054",
       "customerId": "DEMO-C-054",
-      "date": "2026-11-15",
+      "date": "2026-09-05",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -932,7 +932,7 @@
     {
       "id": "DEMO-O-055",
       "customerId": "DEMO-C-055",
-      "date": "2026-11-15",
+      "date": "2026-09-13",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -942,7 +942,7 @@
     {
       "id": "DEMO-O-056",
       "customerId": "DEMO-C-056",
-      "date": "2026-11-15",
+      "date": "2026-09-20",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -952,7 +952,7 @@
     {
       "id": "DEMO-O-057",
       "customerId": "DEMO-C-057",
-      "date": "2026-11-16",
+      "date": "2026-10-05",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -962,7 +962,7 @@
     {
       "id": "DEMO-O-058",
       "customerId": "DEMO-C-058",
-      "date": "2026-11-16",
+      "date": "2026-09-02",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -972,7 +972,7 @@
     {
       "id": "DEMO-O-059",
       "customerId": "DEMO-C-059",
-      "date": "2026-11-16",
+      "date": "2026-10-06",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -982,7 +982,7 @@
     {
       "id": "DEMO-O-060",
       "customerId": "DEMO-C-060",
-      "date": "2026-11-16",
+      "date": "2026-09-05",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -992,7 +992,7 @@
     {
       "id": "DEMO-O-061",
       "customerId": "DEMO-C-061",
-      "date": "2026-11-17",
+      "date": "2026-08-29",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1002,7 +1002,7 @@
     {
       "id": "DEMO-O-062",
       "customerId": "DEMO-C-062",
-      "date": "2026-11-17",
+      "date": "2026-10-01",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1012,7 +1012,7 @@
     {
       "id": "DEMO-O-063",
       "customerId": "DEMO-C-063",
-      "date": "2026-11-17",
+      "date": "2026-09-28",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1022,7 +1022,7 @@
     {
       "id": "DEMO-O-064",
       "customerId": "DEMO-C-064",
-      "date": "2026-11-17",
+      "date": "2026-09-04",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1032,7 +1032,7 @@
     {
       "id": "DEMO-O-065",
       "customerId": "DEMO-C-065",
-      "date": "2026-11-18",
+      "date": "2026-08-27",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1042,7 +1042,7 @@
     {
       "id": "DEMO-O-066",
       "customerId": "DEMO-C-066",
-      "date": "2026-11-18",
+      "date": "2026-09-06",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1052,7 +1052,7 @@
     {
       "id": "DEMO-O-067",
       "customerId": "DEMO-C-067",
-      "date": "2026-11-18",
+      "date": "2026-10-10",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1062,7 +1062,7 @@
     {
       "id": "DEMO-O-068",
       "customerId": "DEMO-C-068",
-      "date": "2026-11-18",
+      "date": "2026-09-14",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1072,7 +1072,7 @@
     {
       "id": "DEMO-O-069",
       "customerId": "DEMO-C-069",
-      "date": "2026-11-19",
+      "date": "2026-09-26",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1082,7 +1082,7 @@
     {
       "id": "DEMO-O-070",
       "customerId": "DEMO-C-070",
-      "date": "2026-11-19",
+      "date": "2026-08-27",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1092,7 +1092,7 @@
     {
       "id": "DEMO-O-071",
       "customerId": "DEMO-C-071",
-      "date": "2026-11-19",
+      "date": "2026-09-03",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1102,7 +1102,7 @@
     {
       "id": "DEMO-O-072",
       "customerId": "DEMO-C-072",
-      "date": "2026-11-20",
+      "date": "2026-10-06",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1112,7 +1112,7 @@
     {
       "id": "DEMO-O-073",
       "customerId": "DEMO-C-001",
-      "date": "2026-11-20",
+      "date": "2026-10-04",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1122,7 +1122,7 @@
     {
       "id": "DEMO-O-074",
       "customerId": "DEMO-C-002",
-      "date": "2026-11-20",
+      "date": "2026-09-28",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1132,7 +1132,7 @@
     {
       "id": "DEMO-O-075",
       "customerId": "DEMO-C-003",
-      "date": "2026-11-20",
+      "date": "2026-09-27",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1142,7 +1142,7 @@
     {
       "id": "DEMO-O-076",
       "customerId": "DEMO-C-004",
-      "date": "2026-11-21",
+      "date": "2026-09-15",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1152,7 +1152,7 @@
     {
       "id": "DEMO-O-077",
       "customerId": "DEMO-C-005",
-      "date": "2026-11-21",
+      "date": "2026-10-10",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1162,7 +1162,7 @@
     {
       "id": "DEMO-O-078",
       "customerId": "DEMO-C-006",
-      "date": "2026-11-21",
+      "date": "2026-10-03",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1172,7 +1172,7 @@
     {
       "id": "DEMO-O-079",
       "customerId": "DEMO-C-007",
-      "date": "2026-11-21",
+      "date": "2026-09-21",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1182,7 +1182,7 @@
     {
       "id": "DEMO-O-080",
       "customerId": "DEMO-C-008",
-      "date": "2026-11-22",
+      "date": "2026-09-16",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1192,7 +1192,7 @@
     {
       "id": "DEMO-O-081",
       "customerId": "DEMO-C-009",
-      "date": "2026-11-22",
+      "date": "2026-10-03",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1202,7 +1202,7 @@
     {
       "id": "DEMO-O-082",
       "customerId": "DEMO-C-010",
-      "date": "2026-11-22",
+      "date": "2026-09-09",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1212,7 +1212,7 @@
     {
       "id": "DEMO-O-083",
       "customerId": "DEMO-C-011",
-      "date": "2026-11-22",
+      "date": "2026-09-02",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1222,7 +1222,7 @@
     {
       "id": "DEMO-O-084",
       "customerId": "DEMO-C-012",
-      "date": "2026-11-23",
+      "date": "2026-09-14",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1232,7 +1232,7 @@
     {
       "id": "DEMO-O-085",
       "customerId": "DEMO-C-013",
-      "date": "2026-11-23",
+      "date": "2026-09-29",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1242,7 +1242,7 @@
     {
       "id": "DEMO-O-086",
       "customerId": "DEMO-C-014",
-      "date": "2026-11-23",
+      "date": "2026-09-08",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1252,7 +1252,7 @@
     {
       "id": "DEMO-O-087",
       "customerId": "DEMO-C-015",
-      "date": "2026-11-24",
+      "date": "2026-10-02",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1262,7 +1262,7 @@
     {
       "id": "DEMO-O-088",
       "customerId": "DEMO-C-016",
-      "date": "2026-11-24",
+      "date": "2026-09-28",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1272,7 +1272,7 @@
     {
       "id": "DEMO-O-089",
       "customerId": "DEMO-C-017",
-      "date": "2026-11-24",
+      "date": "2026-09-07",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1282,7 +1282,7 @@
     {
       "id": "DEMO-O-090",
       "customerId": "DEMO-C-018",
-      "date": "2026-11-24",
+      "date": "2026-09-24",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1292,7 +1292,7 @@
     {
       "id": "DEMO-O-091",
       "customerId": "DEMO-C-019",
-      "date": "2026-11-25",
+      "date": "2026-09-10",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1302,7 +1302,7 @@
     {
       "id": "DEMO-O-092",
       "customerId": "DEMO-C-020",
-      "date": "2026-11-25",
+      "date": "2026-09-25",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1312,7 +1312,7 @@
     {
       "id": "DEMO-O-093",
       "customerId": "DEMO-C-021",
-      "date": "2026-11-25",
+      "date": "2026-09-21",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1322,7 +1322,7 @@
     {
       "id": "DEMO-O-094",
       "customerId": "DEMO-C-022",
-      "date": "2026-11-25",
+      "date": "2026-09-26",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1332,7 +1332,7 @@
     {
       "id": "DEMO-O-095",
       "customerId": "DEMO-C-023",
-      "date": "2026-11-26",
+      "date": "2026-08-29",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1342,7 +1342,7 @@
     {
       "id": "DEMO-O-096",
       "customerId": "DEMO-C-024",
-      "date": "2026-11-26",
+      "date": "2026-08-30",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1352,7 +1352,7 @@
     {
       "id": "DEMO-O-097",
       "customerId": "DEMO-C-025",
-      "date": "2026-11-26",
+      "date": "2026-10-06",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1362,7 +1362,7 @@
     {
       "id": "DEMO-O-098",
       "customerId": "DEMO-C-026",
-      "date": "2026-11-26",
+      "date": "2026-09-22",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1372,7 +1372,7 @@
     {
       "id": "DEMO-O-099",
       "customerId": "DEMO-C-027",
-      "date": "2026-11-27",
+      "date": "2026-09-02",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1382,7 +1382,7 @@
     {
       "id": "DEMO-O-100",
       "customerId": "DEMO-C-028",
-      "date": "2026-11-27",
+      "date": "2026-09-03",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1392,7 +1392,7 @@
     {
       "id": "DEMO-O-101",
       "customerId": "DEMO-C-029",
-      "date": "2026-11-27",
+      "date": "2026-08-25",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1402,7 +1402,7 @@
     {
       "id": "DEMO-O-102",
       "customerId": "DEMO-C-030",
-      "date": "2026-11-28",
+      "date": "2026-08-28",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1412,7 +1412,7 @@
     {
       "id": "DEMO-O-103",
       "customerId": "DEMO-C-031",
-      "date": "2026-11-28",
+      "date": "2026-08-27",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1422,7 +1422,7 @@
     {
       "id": "DEMO-O-104",
       "customerId": "DEMO-C-032",
-      "date": "2026-11-28",
+      "date": "2026-09-10",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1432,7 +1432,7 @@
     {
       "id": "DEMO-O-105",
       "customerId": "DEMO-C-033",
-      "date": "2026-11-28",
+      "date": "2026-09-05",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1442,7 +1442,7 @@
     {
       "id": "DEMO-O-106",
       "customerId": "DEMO-C-034",
-      "date": "2026-11-29",
+      "date": "2026-09-14",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1452,7 +1452,7 @@
     {
       "id": "DEMO-O-107",
       "customerId": "DEMO-C-035",
-      "date": "2026-11-29",
+      "date": "2026-09-04",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1462,7 +1462,7 @@
     {
       "id": "DEMO-O-108",
       "customerId": "DEMO-C-036",
-      "date": "2026-11-29",
+      "date": "2026-09-03",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1472,7 +1472,7 @@
     {
       "id": "DEMO-O-109",
       "customerId": "DEMO-C-037",
-      "date": "2026-11-29",
+      "date": "2026-08-25",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1482,7 +1482,7 @@
     {
       "id": "DEMO-O-110",
       "customerId": "DEMO-C-038",
-      "date": "2026-11-30",
+      "date": "2026-09-23",
       "sku": "DEMO-LAB-B",
       "quantity": 2,
       "unitPriceCents": 11900,
@@ -1492,7 +1492,7 @@
     {
       "id": "DEMO-O-111",
       "customerId": "DEMO-C-039",
-      "date": "2026-11-30",
+      "date": "2026-09-16",
       "sku": "DEMO-LAB-C",
       "quantity": 2,
       "unitPriceCents": 17900,
@@ -1502,7 +1502,7 @@
     {
       "id": "DEMO-O-112",
       "customerId": "DEMO-C-040",
-      "date": "2026-11-30",
+      "date": "2026-09-12",
       "sku": "DEMO-LAB-A",
       "quantity": 1,
       "unitPriceCents": 14900,
@@ -1513,7 +1513,7 @@
   "expenses": [
     {
       "id": "DEMO-E-INV-1",
-      "date": "2026-11-03",
+      "date": "2026-09-08",
       "category": "Inventory purchases",
       "amountCents": 90000,
       "description": "100 units of DEMO-LAB-A",
@@ -1523,7 +1523,7 @@
     },
     {
       "id": "DEMO-E-INV-2",
-      "date": "2026-11-03",
+      "date": "2026-10-08",
       "category": "Inventory purchases",
       "amountCents": 125000,
       "description": "100 units of DEMO-LAB-B",
@@ -1533,7 +1533,7 @@
     },
     {
       "id": "DEMO-E-INV-3",
-      "date": "2026-11-03",
+      "date": "2026-08-27",
       "category": "Inventory purchases",
       "amountCents": 180000,
       "description": "100 units of DEMO-LAB-C",
@@ -1543,7 +1543,7 @@
     },
     {
       "id": "DEMO-E-01-1",
-      "date": "2026-11-07",
+      "date": "2026-08-25",
       "category": "Payment processing",
       "amountCents": 17332,
       "description": "Simulated processing at 2.9% plus $0.30 per order",
@@ -1551,7 +1551,7 @@
     },
     {
       "id": "DEMO-E-01-2",
-      "date": "2026-11-14",
+      "date": "2026-09-25",
       "category": "Payment processing",
       "amountCents": 17332,
       "description": "Simulated processing at 2.9% plus $0.30 per order",
@@ -1559,7 +1559,7 @@
     },
     {
       "id": "DEMO-E-01-3",
-      "date": "2026-11-21",
+      "date": "2026-08-26",
       "category": "Payment processing",
       "amountCents": 17332,
       "description": "Simulated processing at 2.9% plus $0.30 per order",
@@ -1567,7 +1567,7 @@
     },
     {
       "id": "DEMO-E-01-4",
-      "date": "2026-11-28",
+      "date": "2026-09-15",
       "category": "Payment processing",
       "amountCents": 17334,
       "description": "Simulated processing at 2.9% plus $0.30 per order",
@@ -1575,7 +1575,7 @@
     },
     {
       "id": "DEMO-E-02-1",
-      "date": "2026-11-07",
+      "date": "2026-08-29",
       "category": "Shipping and postage",
       "amountCents": 23602,
       "description": "Fictional fulfillment expense; no shipments created",
@@ -1583,7 +1583,7 @@
     },
     {
       "id": "DEMO-E-02-2",
-      "date": "2026-11-14",
+      "date": "2026-10-10",
       "category": "Shipping and postage",
       "amountCents": 23602,
       "description": "Fictional fulfillment expense; no shipments created",
@@ -1591,7 +1591,7 @@
     },
     {
       "id": "DEMO-E-02-3",
-      "date": "2026-11-21",
+      "date": "2026-10-06",
       "category": "Shipping and postage",
       "amountCents": 23602,
       "description": "Fictional fulfillment expense; no shipments created",
@@ -1599,7 +1599,7 @@
     },
     {
       "id": "DEMO-E-02-4",
-      "date": "2026-11-28",
+      "date": "2026-09-10",
       "category": "Shipping and postage",
       "amountCents": 23605,
       "description": "Fictional fulfillment expense; no shipments created",
@@ -1607,7 +1607,7 @@
     },
     {
       "id": "DEMO-E-03-1",
-      "date": "2026-11-07",
+      "date": "2026-10-01",
       "category": "Advertising",
       "amountCents": 24991,
       "description": "Fictional planning expense; no campaign or ad account activity",
@@ -1615,7 +1615,7 @@
     },
     {
       "id": "DEMO-E-03-2",
-      "date": "2026-11-14",
+      "date": "2026-10-08",
       "category": "Advertising",
       "amountCents": 24991,
       "description": "Fictional planning expense; no campaign or ad account activity",
@@ -1623,7 +1623,7 @@
     },
     {
       "id": "DEMO-E-03-3",
-      "date": "2026-11-21",
+      "date": "2026-08-26",
       "category": "Advertising",
       "amountCents": 24991,
       "description": "Fictional planning expense; no campaign or ad account activity",
@@ -1631,7 +1631,7 @@
     },
     {
       "id": "DEMO-E-03-4",
-      "date": "2026-11-28",
+      "date": "2026-08-29",
       "category": "Advertising",
       "amountCents": 24992,
       "description": "Fictional planning expense; no campaign or ad account activity",
@@ -1639,7 +1639,7 @@
     },
     {
       "id": "DEMO-E-04-1",
-      "date": "2026-11-16",
+      "date": "2026-09-19",
       "category": "Packaging",
       "amountCents": 31100,
       "description": "Mailers, boxes and labels",
@@ -1647,7 +1647,7 @@
     },
     {
       "id": "DEMO-E-05-1",
-      "date": "2026-11-17",
+      "date": "2026-09-13",
       "category": "Quality and testing",
       "amountCents": 46650,
       "description": "Fictional laboratory service invoices",
@@ -1655,7 +1655,7 @@
     },
     {
       "id": "DEMO-E-06-1",
-      "date": "2026-11-18",
+      "date": "2026-09-20",
       "category": "Software",
       "amountCents": 24436,
       "description": "Store tools and bookkeeping subscriptions",
@@ -1663,7 +1663,7 @@
     },
     {
       "id": "DEMO-E-07-1",
-      "date": "2026-11-19",
+      "date": "2026-09-15",
       "category": "Hosting and infrastructure",
       "amountCents": 11107,
       "description": "Website and infrastructure planning",
@@ -1671,11 +1671,13 @@
     },
     {
       "id": "DEMO-E-08-1",
-      "date": "2026-11-20",
+      "date": "2026-10-09",
       "category": "Professional services",
       "amountCents": 19994,
       "description": "Bookkeeping and administrative support",
       "vendor": "Demo Professional services Vendor"
     }
-  ]
+  ],
+  "periodStart": "2026-08-25",
+  "periodEnd": "2026-10-10"
 }
