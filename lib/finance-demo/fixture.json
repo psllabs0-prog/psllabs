@@ -1,0 +1,1681 @@
+{
+  "scenario": "November 2026 \u2014 fictional future month",
+  "revenueTargetCents": 2274813,
+  "expenseTargetCents": 791993,
+  "openingCashCents": 500000,
+  "products": [
+    {
+      "sku": "DEMO-LAB-A",
+      "name": "Demo reference material A",
+      "unitPriceCents": 14900,
+      "unitCostCents": 900,
+      "openingUnits": 80
+    },
+    {
+      "sku": "DEMO-LAB-B",
+      "name": "Demo analytical kit B",
+      "unitPriceCents": 11900,
+      "unitCostCents": 1250,
+      "openingUnits": 75
+    },
+    {
+      "sku": "DEMO-LAB-C",
+      "name": "Demo laboratory supplies C",
+      "unitPriceCents": 17900,
+      "unitCostCents": 1800,
+      "openingUnits": 90
+    }
+  ],
+  "customers": [
+    {
+      "id": "DEMO-C-001",
+      "name": "Demo Customer 001",
+      "state": "AZ"
+    },
+    {
+      "id": "DEMO-C-002",
+      "name": "Demo Customer 002",
+      "state": "TX"
+    },
+    {
+      "id": "DEMO-C-003",
+      "name": "Demo Customer 003",
+      "state": "NC"
+    },
+    {
+      "id": "DEMO-C-004",
+      "name": "Demo Customer 004",
+      "state": "TX"
+    },
+    {
+      "id": "DEMO-C-005",
+      "name": "Demo Customer 005",
+      "state": "FL"
+    },
+    {
+      "id": "DEMO-C-006",
+      "name": "Demo Customer 006",
+      "state": "NC"
+    },
+    {
+      "id": "DEMO-C-007",
+      "name": "Demo Customer 007",
+      "state": "NY"
+    },
+    {
+      "id": "DEMO-C-008",
+      "name": "Demo Customer 008",
+      "state": "TX"
+    },
+    {
+      "id": "DEMO-C-009",
+      "name": "Demo Customer 009",
+      "state": "CO"
+    },
+    {
+      "id": "DEMO-C-010",
+      "name": "Demo Customer 010",
+      "state": "FL"
+    },
+    {
+      "id": "DEMO-C-011",
+      "name": "Demo Customer 011",
+      "state": "NC"
+    },
+    {
+      "id": "DEMO-C-012",
+      "name": "Demo Customer 012",
+      "state": "MA"
+    },
+    {
+      "id": "DEMO-C-013",
+      "name": "Demo Customer 013",
+      "state": "MA"
+    },
+    {
+      "id": "DEMO-C-014",
+      "name": "Demo Customer 014",
+      "state": "CO"
+    },
+    {
+      "id": "DEMO-C-015",
+      "name": "Demo Customer 015",
+      "state": "NY"
+    },
+    {
+      "id": "DEMO-C-016",
+      "name": "Demo Customer 016",
+      "state": "IL"
+    },
+    {
+      "id": "DEMO-C-017",
+      "name": "Demo Customer 017",
+      "state": "NY"
+    },
+    {
+      "id": "DEMO-C-018",
+      "name": "Demo Customer 018",
+      "state": "WA"
+    },
+    {
+      "id": "DEMO-C-019",
+      "name": "Demo Customer 019",
+      "state": "IL"
+    },
+    {
+      "id": "DEMO-C-020",
+      "name": "Demo Customer 020",
+      "state": "NC"
+    },
+    {
+      "id": "DEMO-C-021",
+      "name": "Demo Customer 021",
+      "state": "TX"
+    },
+    {
+      "id": "DEMO-C-022",
+      "name": "Demo Customer 022",
+      "state": "WA"
+    },
+    {
+      "id": "DEMO-C-023",
+      "name": "Demo Customer 023",
+      "state": "NY"
+    },
+    {
+      "id": "DEMO-C-024",
+      "name": "Demo Customer 024",
+      "state": "CA"
+    },
+    {
+      "id": "DEMO-C-025",
+      "name": "Demo Customer 025",
+      "state": "AZ"
+    },
+    {
+      "id": "DEMO-C-026",
+      "name": "Demo Customer 026",
+      "state": "WA"
+    },
+    {
+      "id": "DEMO-C-027",
+      "name": "Demo Customer 027",
+      "state": "WA"
+    },
+    {
+      "id": "DEMO-C-028",
+      "name": "Demo Customer 028",
+      "state": "CA"
+    },
+    {
+      "id": "DEMO-C-029",
+      "name": "Demo Customer 029",
+      "state": "IL"
+    },
+    {
+      "id": "DEMO-C-030",
+      "name": "Demo Customer 030",
+      "state": "NC"
+    },
+    {
+      "id": "DEMO-C-031",
+      "name": "Demo Customer 031",
+      "state": "MA"
+    },
+    {
+      "id": "DEMO-C-032",
+      "name": "Demo Customer 032",
+      "state": "MA"
+    },
+    {
+      "id": "DEMO-C-033",
+      "name": "Demo Customer 033",
+      "state": "CO"
+    },
+    {
+      "id": "DEMO-C-034",
+      "name": "Demo Customer 034",
+      "state": "CO"
+    },
+    {
+      "id": "DEMO-C-035",
+      "name": "Demo Customer 035",
+      "state": "IL"
+    },
+    {
+      "id": "DEMO-C-036",
+      "name": "Demo Customer 036",
+      "state": "NY"
+    },
+    {
+      "id": "DEMO-C-037",
+      "name": "Demo Customer 037",
+      "state": "NY"
+    },
+    {
+      "id": "DEMO-C-038",
+      "name": "Demo Customer 038",
+      "state": "IL"
+    },
+    {
+      "id": "DEMO-C-039",
+      "name": "Demo Customer 039",
+      "state": "AZ"
+    },
+    {
+      "id": "DEMO-C-040",
+      "name": "Demo Customer 040",
+      "state": "NY"
+    },
+    {
+      "id": "DEMO-C-041",
+      "name": "Demo Customer 041",
+      "state": "WA"
+    },
+    {
+      "id": "DEMO-C-042",
+      "name": "Demo Customer 042",
+      "state": "TX"
+    },
+    {
+      "id": "DEMO-C-043",
+      "name": "Demo Customer 043",
+      "state": "IL"
+    },
+    {
+      "id": "DEMO-C-044",
+      "name": "Demo Customer 044",
+      "state": "FL"
+    },
+    {
+      "id": "DEMO-C-045",
+      "name": "Demo Customer 045",
+      "state": "TX"
+    },
+    {
+      "id": "DEMO-C-046",
+      "name": "Demo Customer 046",
+      "state": "NC"
+    },
+    {
+      "id": "DEMO-C-047",
+      "name": "Demo Customer 047",
+      "state": "TX"
+    },
+    {
+      "id": "DEMO-C-048",
+      "name": "Demo Customer 048",
+      "state": "MA"
+    },
+    {
+      "id": "DEMO-C-049",
+      "name": "Demo Customer 049",
+      "state": "NC"
+    },
+    {
+      "id": "DEMO-C-050",
+      "name": "Demo Customer 050",
+      "state": "CA"
+    },
+    {
+      "id": "DEMO-C-051",
+      "name": "Demo Customer 051",
+      "state": "IL"
+    },
+    {
+      "id": "DEMO-C-052",
+      "name": "Demo Customer 052",
+      "state": "NY"
+    },
+    {
+      "id": "DEMO-C-053",
+      "name": "Demo Customer 053",
+      "state": "WA"
+    },
+    {
+      "id": "DEMO-C-054",
+      "name": "Demo Customer 054",
+      "state": "IL"
+    },
+    {
+      "id": "DEMO-C-055",
+      "name": "Demo Customer 055",
+      "state": "TX"
+    },
+    {
+      "id": "DEMO-C-056",
+      "name": "Demo Customer 056",
+      "state": "NC"
+    },
+    {
+      "id": "DEMO-C-057",
+      "name": "Demo Customer 057",
+      "state": "AZ"
+    },
+    {
+      "id": "DEMO-C-058",
+      "name": "Demo Customer 058",
+      "state": "NY"
+    },
+    {
+      "id": "DEMO-C-059",
+      "name": "Demo Customer 059",
+      "state": "FL"
+    },
+    {
+      "id": "DEMO-C-060",
+      "name": "Demo Customer 060",
+      "state": "NY"
+    },
+    {
+      "id": "DEMO-C-061",
+      "name": "Demo Customer 061",
+      "state": "WA"
+    },
+    {
+      "id": "DEMO-C-062",
+      "name": "Demo Customer 062",
+      "state": "TX"
+    },
+    {
+      "id": "DEMO-C-063",
+      "name": "Demo Customer 063",
+      "state": "WA"
+    },
+    {
+      "id": "DEMO-C-064",
+      "name": "Demo Customer 064",
+      "state": "AZ"
+    },
+    {
+      "id": "DEMO-C-065",
+      "name": "Demo Customer 065",
+      "state": "WA"
+    },
+    {
+      "id": "DEMO-C-066",
+      "name": "Demo Customer 066",
+      "state": "MA"
+    },
+    {
+      "id": "DEMO-C-067",
+      "name": "Demo Customer 067",
+      "state": "AZ"
+    },
+    {
+      "id": "DEMO-C-068",
+      "name": "Demo Customer 068",
+      "state": "CA"
+    },
+    {
+      "id": "DEMO-C-069",
+      "name": "Demo Customer 069",
+      "state": "AZ"
+    },
+    {
+      "id": "DEMO-C-070",
+      "name": "Demo Customer 070",
+      "state": "MA"
+    },
+    {
+      "id": "DEMO-C-071",
+      "name": "Demo Customer 071",
+      "state": "NC"
+    },
+    {
+      "id": "DEMO-C-072",
+      "name": "Demo Customer 072",
+      "state": "AZ"
+    }
+  ],
+  "orders": [
+    {
+      "id": "DEMO-O-001",
+      "customerId": "DEMO-C-001",
+      "date": "2026-11-01",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-002",
+      "customerId": "DEMO-C-002",
+      "date": "2026-11-01",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-003",
+      "customerId": "DEMO-C-003",
+      "date": "2026-11-01",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-004",
+      "customerId": "DEMO-C-004",
+      "date": "2026-11-01",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-005",
+      "customerId": "DEMO-C-005",
+      "date": "2026-11-02",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-006",
+      "customerId": "DEMO-C-006",
+      "date": "2026-11-02",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-007",
+      "customerId": "DEMO-C-007",
+      "date": "2026-11-02",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-008",
+      "customerId": "DEMO-C-008",
+      "date": "2026-11-02",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-009",
+      "customerId": "DEMO-C-009",
+      "date": "2026-11-03",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-010",
+      "customerId": "DEMO-C-010",
+      "date": "2026-11-03",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-011",
+      "customerId": "DEMO-C-011",
+      "date": "2026-11-03",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-012",
+      "customerId": "DEMO-C-012",
+      "date": "2026-11-03",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-013",
+      "customerId": "DEMO-C-013",
+      "date": "2026-11-04",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-014",
+      "customerId": "DEMO-C-014",
+      "date": "2026-11-04",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-015",
+      "customerId": "DEMO-C-015",
+      "date": "2026-11-04",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-016",
+      "customerId": "DEMO-C-016",
+      "date": "2026-11-05",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-017",
+      "customerId": "DEMO-C-017",
+      "date": "2026-11-05",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-018",
+      "customerId": "DEMO-C-018",
+      "date": "2026-11-05",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-019",
+      "customerId": "DEMO-C-019",
+      "date": "2026-11-05",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-020",
+      "customerId": "DEMO-C-020",
+      "date": "2026-11-06",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-021",
+      "customerId": "DEMO-C-021",
+      "date": "2026-11-06",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-022",
+      "customerId": "DEMO-C-022",
+      "date": "2026-11-06",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-023",
+      "customerId": "DEMO-C-023",
+      "date": "2026-11-06",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-024",
+      "customerId": "DEMO-C-024",
+      "date": "2026-11-07",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-025",
+      "customerId": "DEMO-C-025",
+      "date": "2026-11-07",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-026",
+      "customerId": "DEMO-C-026",
+      "date": "2026-11-07",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-027",
+      "customerId": "DEMO-C-027",
+      "date": "2026-11-07",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-028",
+      "customerId": "DEMO-C-028",
+      "date": "2026-11-08",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-029",
+      "customerId": "DEMO-C-029",
+      "date": "2026-11-08",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-030",
+      "customerId": "DEMO-C-030",
+      "date": "2026-11-08",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-031",
+      "customerId": "DEMO-C-031",
+      "date": "2026-11-09",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-032",
+      "customerId": "DEMO-C-032",
+      "date": "2026-11-09",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-033",
+      "customerId": "DEMO-C-033",
+      "date": "2026-11-09",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-034",
+      "customerId": "DEMO-C-034",
+      "date": "2026-11-09",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-035",
+      "customerId": "DEMO-C-035",
+      "date": "2026-11-10",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-036",
+      "customerId": "DEMO-C-036",
+      "date": "2026-11-10",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-037",
+      "customerId": "DEMO-C-037",
+      "date": "2026-11-10",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-038",
+      "customerId": "DEMO-C-038",
+      "date": "2026-11-10",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-039",
+      "customerId": "DEMO-C-039",
+      "date": "2026-11-11",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-040",
+      "customerId": "DEMO-C-040",
+      "date": "2026-11-11",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-041",
+      "customerId": "DEMO-C-041",
+      "date": "2026-11-11",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-042",
+      "customerId": "DEMO-C-042",
+      "date": "2026-11-11",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-043",
+      "customerId": "DEMO-C-043",
+      "date": "2026-11-12",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-044",
+      "customerId": "DEMO-C-044",
+      "date": "2026-11-12",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-045",
+      "customerId": "DEMO-C-045",
+      "date": "2026-11-12",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-046",
+      "customerId": "DEMO-C-046",
+      "date": "2026-11-13",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-047",
+      "customerId": "DEMO-C-047",
+      "date": "2026-11-13",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-048",
+      "customerId": "DEMO-C-048",
+      "date": "2026-11-13",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-049",
+      "customerId": "DEMO-C-049",
+      "date": "2026-11-13",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-050",
+      "customerId": "DEMO-C-050",
+      "date": "2026-11-14",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-051",
+      "customerId": "DEMO-C-051",
+      "date": "2026-11-14",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-052",
+      "customerId": "DEMO-C-052",
+      "date": "2026-11-14",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-053",
+      "customerId": "DEMO-C-053",
+      "date": "2026-11-14",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-054",
+      "customerId": "DEMO-C-054",
+      "date": "2026-11-15",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-055",
+      "customerId": "DEMO-C-055",
+      "date": "2026-11-15",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-056",
+      "customerId": "DEMO-C-056",
+      "date": "2026-11-15",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-057",
+      "customerId": "DEMO-C-057",
+      "date": "2026-11-16",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-058",
+      "customerId": "DEMO-C-058",
+      "date": "2026-11-16",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-059",
+      "customerId": "DEMO-C-059",
+      "date": "2026-11-16",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-060",
+      "customerId": "DEMO-C-060",
+      "date": "2026-11-16",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-061",
+      "customerId": "DEMO-C-061",
+      "date": "2026-11-17",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-062",
+      "customerId": "DEMO-C-062",
+      "date": "2026-11-17",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-063",
+      "customerId": "DEMO-C-063",
+      "date": "2026-11-17",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-064",
+      "customerId": "DEMO-C-064",
+      "date": "2026-11-17",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-065",
+      "customerId": "DEMO-C-065",
+      "date": "2026-11-18",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-066",
+      "customerId": "DEMO-C-066",
+      "date": "2026-11-18",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-067",
+      "customerId": "DEMO-C-067",
+      "date": "2026-11-18",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-068",
+      "customerId": "DEMO-C-068",
+      "date": "2026-11-18",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-069",
+      "customerId": "DEMO-C-069",
+      "date": "2026-11-19",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-070",
+      "customerId": "DEMO-C-070",
+      "date": "2026-11-19",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-071",
+      "customerId": "DEMO-C-071",
+      "date": "2026-11-19",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-072",
+      "customerId": "DEMO-C-072",
+      "date": "2026-11-20",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-073",
+      "customerId": "DEMO-C-001",
+      "date": "2026-11-20",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-074",
+      "customerId": "DEMO-C-002",
+      "date": "2026-11-20",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-075",
+      "customerId": "DEMO-C-003",
+      "date": "2026-11-20",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-076",
+      "customerId": "DEMO-C-004",
+      "date": "2026-11-21",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-077",
+      "customerId": "DEMO-C-005",
+      "date": "2026-11-21",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-078",
+      "customerId": "DEMO-C-006",
+      "date": "2026-11-21",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-079",
+      "customerId": "DEMO-C-007",
+      "date": "2026-11-21",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-080",
+      "customerId": "DEMO-C-008",
+      "date": "2026-11-22",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-081",
+      "customerId": "DEMO-C-009",
+      "date": "2026-11-22",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-082",
+      "customerId": "DEMO-C-010",
+      "date": "2026-11-22",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-083",
+      "customerId": "DEMO-C-011",
+      "date": "2026-11-22",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-084",
+      "customerId": "DEMO-C-012",
+      "date": "2026-11-23",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-085",
+      "customerId": "DEMO-C-013",
+      "date": "2026-11-23",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-086",
+      "customerId": "DEMO-C-014",
+      "date": "2026-11-23",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-087",
+      "customerId": "DEMO-C-015",
+      "date": "2026-11-24",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-088",
+      "customerId": "DEMO-C-016",
+      "date": "2026-11-24",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-089",
+      "customerId": "DEMO-C-017",
+      "date": "2026-11-24",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-090",
+      "customerId": "DEMO-C-018",
+      "date": "2026-11-24",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-091",
+      "customerId": "DEMO-C-019",
+      "date": "2026-11-25",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-092",
+      "customerId": "DEMO-C-020",
+      "date": "2026-11-25",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-093",
+      "customerId": "DEMO-C-021",
+      "date": "2026-11-25",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-094",
+      "customerId": "DEMO-C-022",
+      "date": "2026-11-25",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-095",
+      "customerId": "DEMO-C-023",
+      "date": "2026-11-26",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-096",
+      "customerId": "DEMO-C-024",
+      "date": "2026-11-26",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-097",
+      "customerId": "DEMO-C-025",
+      "date": "2026-11-26",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-098",
+      "customerId": "DEMO-C-026",
+      "date": "2026-11-26",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-099",
+      "customerId": "DEMO-C-027",
+      "date": "2026-11-27",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-100",
+      "customerId": "DEMO-C-028",
+      "date": "2026-11-27",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-101",
+      "customerId": "DEMO-C-029",
+      "date": "2026-11-27",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-102",
+      "customerId": "DEMO-C-030",
+      "date": "2026-11-28",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-103",
+      "customerId": "DEMO-C-031",
+      "date": "2026-11-28",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-104",
+      "customerId": "DEMO-C-032",
+      "date": "2026-11-28",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-105",
+      "customerId": "DEMO-C-033",
+      "date": "2026-11-28",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-106",
+      "customerId": "DEMO-C-034",
+      "date": "2026-11-29",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-107",
+      "customerId": "DEMO-C-035",
+      "date": "2026-11-29",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-108",
+      "customerId": "DEMO-C-036",
+      "date": "2026-11-29",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-109",
+      "customerId": "DEMO-C-037",
+      "date": "2026-11-29",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2670,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-110",
+      "customerId": "DEMO-C-038",
+      "date": "2026-11-30",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4265,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-111",
+      "customerId": "DEMO-C-039",
+      "date": "2026-11-30",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6415,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-112",
+      "customerId": "DEMO-C-040",
+      "date": "2026-11-30",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2637,
+      "status": "Simulated paid"
+    }
+  ],
+  "expenses": [
+    {
+      "id": "DEMO-E-INV-1",
+      "date": "2026-11-03",
+      "category": "Inventory purchases",
+      "amountCents": 90000,
+      "description": "100 units of DEMO-LAB-A",
+      "vendor": "Demo Supply Company",
+      "sku": "DEMO-LAB-A",
+      "units": 100
+    },
+    {
+      "id": "DEMO-E-INV-2",
+      "date": "2026-11-03",
+      "category": "Inventory purchases",
+      "amountCents": 125000,
+      "description": "100 units of DEMO-LAB-B",
+      "vendor": "Demo Supply Company",
+      "sku": "DEMO-LAB-B",
+      "units": 100
+    },
+    {
+      "id": "DEMO-E-INV-3",
+      "date": "2026-11-03",
+      "category": "Inventory purchases",
+      "amountCents": 180000,
+      "description": "100 units of DEMO-LAB-C",
+      "vendor": "Demo Supply Company",
+      "sku": "DEMO-LAB-C",
+      "units": 100
+    },
+    {
+      "id": "DEMO-E-01-1",
+      "date": "2026-11-07",
+      "category": "Payment processing",
+      "amountCents": 17332,
+      "description": "Simulated processing at 2.9% plus $0.30 per order",
+      "vendor": "Demo Payment processing Vendor"
+    },
+    {
+      "id": "DEMO-E-01-2",
+      "date": "2026-11-14",
+      "category": "Payment processing",
+      "amountCents": 17332,
+      "description": "Simulated processing at 2.9% plus $0.30 per order",
+      "vendor": "Demo Payment processing Vendor"
+    },
+    {
+      "id": "DEMO-E-01-3",
+      "date": "2026-11-21",
+      "category": "Payment processing",
+      "amountCents": 17332,
+      "description": "Simulated processing at 2.9% plus $0.30 per order",
+      "vendor": "Demo Payment processing Vendor"
+    },
+    {
+      "id": "DEMO-E-01-4",
+      "date": "2026-11-28",
+      "category": "Payment processing",
+      "amountCents": 17334,
+      "description": "Simulated processing at 2.9% plus $0.30 per order",
+      "vendor": "Demo Payment processing Vendor"
+    },
+    {
+      "id": "DEMO-E-02-1",
+      "date": "2026-11-07",
+      "category": "Shipping and postage",
+      "amountCents": 23602,
+      "description": "Fictional fulfillment expense; no shipments created",
+      "vendor": "Demo Shipping and postage Vendor"
+    },
+    {
+      "id": "DEMO-E-02-2",
+      "date": "2026-11-14",
+      "category": "Shipping and postage",
+      "amountCents": 23602,
+      "description": "Fictional fulfillment expense; no shipments created",
+      "vendor": "Demo Shipping and postage Vendor"
+    },
+    {
+      "id": "DEMO-E-02-3",
+      "date": "2026-11-21",
+      "category": "Shipping and postage",
+      "amountCents": 23602,
+      "description": "Fictional fulfillment expense; no shipments created",
+      "vendor": "Demo Shipping and postage Vendor"
+    },
+    {
+      "id": "DEMO-E-02-4",
+      "date": "2026-11-28",
+      "category": "Shipping and postage",
+      "amountCents": 23605,
+      "description": "Fictional fulfillment expense; no shipments created",
+      "vendor": "Demo Shipping and postage Vendor"
+    },
+    {
+      "id": "DEMO-E-03-1",
+      "date": "2026-11-07",
+      "category": "Advertising",
+      "amountCents": 24991,
+      "description": "Fictional planning expense; no campaign or ad account activity",
+      "vendor": "Demo Advertising Vendor"
+    },
+    {
+      "id": "DEMO-E-03-2",
+      "date": "2026-11-14",
+      "category": "Advertising",
+      "amountCents": 24991,
+      "description": "Fictional planning expense; no campaign or ad account activity",
+      "vendor": "Demo Advertising Vendor"
+    },
+    {
+      "id": "DEMO-E-03-3",
+      "date": "2026-11-21",
+      "category": "Advertising",
+      "amountCents": 24991,
+      "description": "Fictional planning expense; no campaign or ad account activity",
+      "vendor": "Demo Advertising Vendor"
+    },
+    {
+      "id": "DEMO-E-03-4",
+      "date": "2026-11-28",
+      "category": "Advertising",
+      "amountCents": 24992,
+      "description": "Fictional planning expense; no campaign or ad account activity",
+      "vendor": "Demo Advertising Vendor"
+    },
+    {
+      "id": "DEMO-E-04-1",
+      "date": "2026-11-16",
+      "category": "Packaging",
+      "amountCents": 31100,
+      "description": "Mailers, boxes and labels",
+      "vendor": "Demo Packaging Vendor"
+    },
+    {
+      "id": "DEMO-E-05-1",
+      "date": "2026-11-17",
+      "category": "Quality and testing",
+      "amountCents": 46650,
+      "description": "Fictional laboratory service invoices",
+      "vendor": "Demo Quality and testing Vendor"
+    },
+    {
+      "id": "DEMO-E-06-1",
+      "date": "2026-11-18",
+      "category": "Software",
+      "amountCents": 24436,
+      "description": "Store tools and bookkeeping subscriptions",
+      "vendor": "Demo Software Vendor"
+    },
+    {
+      "id": "DEMO-E-07-1",
+      "date": "2026-11-19",
+      "category": "Hosting and infrastructure",
+      "amountCents": 11107,
+      "description": "Website and infrastructure planning",
+      "vendor": "Demo Hosting and infrastructure Vendor"
+    },
+    {
+      "id": "DEMO-E-08-1",
+      "date": "2026-11-20",
+      "category": "Professional services",
+      "amountCents": 19994,
+      "description": "Bookkeeping and administrative support",
+      "vendor": "Demo Professional services Vendor"
+    }
+  ]
+}
