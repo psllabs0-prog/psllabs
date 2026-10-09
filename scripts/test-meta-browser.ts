@@ -95,14 +95,19 @@ async function main() {
     const approved = createMetaBrowserAction("PageView")!;
     assert.equal(await dispatchMetaBrowserAction(approved), true);
     assert.equal(scriptLoads, 1);
-    assert.deepEqual(commands.slice(0, 3), [["consent", "revoke"], ["set", "autoConfig", false, PSL_META_DATASET_ID], ["init", PSL_META_DATASET_ID]]);
+    assert.deepEqual(commands.slice(0, 4), [["consent", "revoke"], ["set", "autoConfig", false, PSL_META_DATASET_ID],
+      ["init", PSL_META_DATASET_ID], ["set", "trackSingleOnly", true, PSL_META_DATASET_ID]],
+    "manual-only configuration follows init and precedes any consent grant or event");
     const event = commands.find((row) => row[0] === "trackSingle")!;
     assert.equal(event[1], PSL_META_DATASET_ID);assert.equal(event[2], "PageView");
     assert.deepEqual(event[4], { eventID: approved.eventId }, "browser preserves the CAPI event ID exactly");
-    assert.deepEqual(commands[3], ["consent", "grant"]);
-    assert(commands.every((row) => row[0] !== "track"), "no automatic broadcast PageView");
+    assert.deepEqual(commands[4], ["consent", "grant"]);
+    assert(commands.every((row) => row[0] !== "track" && row[0] !== "trackCustom"), "application never requests broadcast tracking");
     assert.equal(requests.at(-1)?.body.sourceUrl, location.href, "actual contextual URL is preserved");
     assert.deepEqual(Object.keys(requests.at(-1)!.body).sort(), ["eventId", "name", "sourceUrl"]);
+    const sentCommands = commands.length, sentRequests = requests.length;
+    assert.equal(await dispatchMetaBrowserAction(approved), false, "a successful manual event is not replayed");
+    assert.equal(commands.length, sentCommands); assert.equal(requests.length, sentRequests);
 
     location.href = "https://www.psllabs.org/products/psl-rt-10mg?fbclid=valid_123";
     location.pathname = "/products/psl-rt-10mg";
