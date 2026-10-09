@@ -8,12 +8,12 @@ import { PLAUSIBLE_TRANSFORM_REQUEST_JS } from "../lib/plausible/redact";
 
 const summary = summarizeDemo(fixture);
 assert.equal(fixture.periodStart, "2026-08-25");
-assert.equal(fixture.periodEnd, "2026-10-10");
+assert.equal(fixture.periodEnd, "2026-10-09");
 const dayMs = 86_400_000;
 const startTime = Date.parse(`${fixture.periodStart}T00:00:00Z`);
 const endTime = Date.parse(`${fixture.periodEnd}T00:00:00Z`);
 const dates = Array.from({ length: (endTime - startTime) / dayMs + 1 }, (_, i) => new Date(startTime + i * dayMs).toISOString().slice(0, 10));
-assert.equal(dates.length, 47);
+assert.equal(dates.length, 46);
 for (const record of [...fixture.orders, ...fixture.expenses]) {
   assert.match(record.date, /^\d{4}-\d{2}-\d{2}$/);
   assert.equal(new Date(`${record.date}T00:00:00Z`).toISOString().slice(0, 10), record.date, `Invalid calendar date: ${record.date}`);
@@ -23,10 +23,10 @@ for (const record of [...fixture.orders, ...fixture.expenses]) {
 assert.equal(summary.weeks.length, 7);
 assert.equal(summary.weeks[0].startDate, fixture.periodStart);
 assert.equal(summary.weeks.at(-1)?.endDate, fixture.periodEnd);
-assert.deepEqual(summary.weeks.map(week => week.label), ["Aug 25–31", "Sep 1–7", "Sep 8–14", "Sep 15–21", "Sep 22–28", "Sep 29–Oct 5", "Oct 6–10"]);
+assert.deepEqual(summary.weeks.map(week => week.label), ["Aug 25–31", "Sep 1–7", "Sep 8–14", "Sep 15–21", "Sep 22–28", "Sep 29–Oct 5", "Oct 6–9"]);
 for (const date of dates) assert.equal(summary.weeks.filter(week => date >= week.startDate && date <= week.endDate).length, 1);
 assert.equal(formatDemoDate("2026-08-25"), "Aug 25");
-assert.equal(formatDemoDate("2026-10-10"), "Oct 10");
+assert.equal(formatDemoDate("2026-10-09"), "Oct 9");
 const boundaryOrders = ["2026-09-28", "2026-09-29", "2026-10-05", "2026-10-06"].map((date, i) => ({ ...fixture.orders[0], id: `DEMO-BOUNDARY-${i}`, date }));
 const boundarySummary = summarizeDemo({ ...fixture, orders: boundaryOrders, expenses: [] });
 const boundaryTotal = orderTotalCents(boundaryOrders[0]);
