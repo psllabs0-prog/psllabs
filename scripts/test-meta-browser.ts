@@ -118,8 +118,22 @@ async function main() {
     release();pauseReply = null;
     assert.equal(await inFlight, false, "withdrawal cancels a server reply already in flight");
     assert.equal(commands.length, before);
+    const ownedPixel = browser.fbq!;
+    const unownedCommands: unknown[][] = [];
+    const unownedPixel = Object.assign((...args: unknown[]) => { unownedCommands.push(args); }, { queue: [] });
+    browser._fbq = unownedPixel;
+    ownedPixel.queue.push(["trackSingle", PSL_META_DATASET_ID, "PageView"]);
     stopMetaBrowserDispatch();assert.equal(hasMetaBrowserSdk(), true, "old SDK remains marked for document replacement");
-    browser.fbq?.("track", "fake");assert.equal(commands.length, before, "stopped dispatch is a no-op");
+    assert.deepEqual(commands.at(-1), ["consent", "revoke"], "withdrawal reaches the owned SDK before its wrapper is stopped");
+    assert.equal(commands.length, before + 1, "only the defensive revoke is dispatched");
+    assert.equal(ownedPixel.queue.length, 0, "pending owned commands are discarded");
+    assert.equal(browser._fbq, unownedPixel, "an unrelated replacement global is preserved");
+    assert.equal(unownedCommands.length, 0, "shutdown never invokes an unowned SDK");
+    browser.fbq?.("track", "fake");
+    ownedPixel("trackSingle", PSL_META_DATASET_ID, "PageView");
+    stopMetaBrowserDispatch();
+    assert.equal(commands.length, before + 1, "stopped globals, cached wrappers and repeated shutdown cannot dispatch");
+    assert.equal(await dispatchMetaBrowserAction(add), false, "no action is forwarded after shutdown");
     console.log("[test-meta-browser] default-off, dual consent, actual context/referrer, server gate, safe initialization, stable IDs, no replay, and withdrawal races passed offline");
   } finally {
     for (const [key, descriptor] of Object.entries(originals)) {
