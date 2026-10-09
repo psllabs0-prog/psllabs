@@ -15,6 +15,7 @@ type Pixel = ((...args: unknown[]) => void) & {
 };
 type PixelWindow = Window & { fbq?: Pixel; _fbq?: Pixel };
 let sdkOwned = false;
+let ownedPixel: Pixel | null = null;
 let sdkStopped = false;
 let sdkGranted = false;
 let sdkReady: Promise<boolean> | null = null;
@@ -46,12 +47,20 @@ export function metaBrowserPermission(): boolean {
 
 export const hasMetaBrowserSdk = () => sdkOwned;
 export function stopMetaBrowserDispatch(): void {
+  if (sdkStopped) return;
+  // Notify only the SDK instance we initialized, while its wrapper still forwards
+  // commands. Clearing globals alone cannot revoke the SDK's internal consent.
+  if (ownedPixel?.callMethod) {
+    try { ownedPixel("consent", "revoke"); } catch { /* Still disable local dispatch and replace the document. */ }
+  }
   sdkStopped = true;
+  sdkGranted = false;
   if (typeof window === "undefined" || !sdkOwned) return;
   const target = window as PixelWindow;
+  if (ownedPixel) ownedPixel.queue.length = 0;
   const stopped = Object.assign(() => {}, { queue: [] as unknown[][] });
-  target.fbq = stopped;
-  target._fbq = stopped;
+  if (target.fbq === ownedPixel) target.fbq = stopped;
+  if (target._fbq === ownedPixel) target._fbq = stopped;
 }
 
 export function createMetaBrowserAction(name: MetaBrowserEventName, productIds?: readonly string[]): MetaBrowserAction | null {
@@ -99,6 +108,7 @@ function loadSdk(): Promise<boolean> {
   }, { queue: [] as unknown[][] }) as Pixel;
   pixel.push = pixel; pixel.loaded = true; pixel.version = "2.0";
   target.fbq = pixel; target._fbq = pixel;
+  ownedPixel = pixel;
   sdkOwned = true;
   // This precedes init and the SDK request. Never pass matching fields or issue
   // an automatic PageView; only a server-approved event can be dispatched.
