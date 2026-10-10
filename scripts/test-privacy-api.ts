@@ -133,7 +133,8 @@ async function main() {
       check((await f.post(f.grant(), { "Sec-Fetch-Site": "cross-site" })).status, 403);
       check(f.state.saves, 0); check(f.state.rateChecks, 0);
       for (const body of [null, [], "bad", {}, { ...f.grant(), verifiedAdult: false },
-        { ...f.grant(), version: 99 }, { ...f.grant(), measurement: "true" },
+        { ...f.grant(), version: 99 }, { ...f.grant(), version: privacyTypes.PRIVACY_CONSENT_VERSION - 1 },
+        { ...f.grant(), measurement: "true" },
         { ...f.grant(), expectedRevision: -1 }, { ...f.grant(), expectedRevision: 1.2 },
         { ...f.grant(), expectedRevision: Number.MAX_SAFE_INTEGER + 1 },
         { ...f.grant(), measurement: false }, { ...f.grant(), binding: { digest: f.digest() } },
@@ -168,7 +169,7 @@ async function main() {
       const expired = (await (await f.get()).json()).consent;
       check(expired.choice, "unknown"); check(expired.measurement, false); check(expired.revision, 1);
       check((await f.post(f.grant(expired.revision))).status, 200, "expiry can renew through current revision");
-      f.records.get(f.digest())!.version = 99;
+      f.records.get(f.digest())!.version = privacyTypes.PRIVACY_CONSENT_VERSION - 1;
       const outdated = (await (await f.get()).json()).consent;
       check(outdated.choice, "unknown"); check(outdated.measurement, false); check(outdated.revision, 2);
       check((await f.post(f.grant(outdated.revision))).status, 200, "new policy version can collect a new choice");
@@ -177,7 +178,7 @@ async function main() {
       const f = fixture(); await f.initialize(); await f.post(f.grant()); f.state.readFails = true;
       const response = await f.get();
       check((await response.json()).consent.measurement, false);
-      check(await f.service.current({ digest: f.digest(), version: 1, revision: 1 }, "google"), false);
+      check(await f.service.current({ digest: f.digest(), version: privacyTypes.PRIVACY_CONSENT_VERSION, revision: 1 }, "google"), false);
       f.state.readFails = false; f.state.revokeFails = true;
       check((await (await f.get({ "Sec-GPC": "1" })).json()).consent.measurement, false);
       f.state.saveFails = true;

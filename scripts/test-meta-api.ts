@@ -7,6 +7,7 @@ import ts from "typescript";
 import { NextResponse } from "next/server";
 import { isSameOriginMutation } from "../lib/security/request-origin";
 import { prepareMetaEvent, REVIEWED_META_EVENT_POLICY } from "../lib/meta-ads/events";
+import { PRIVACY_CONSENT_VERSION } from "../lib/privacy/types";
 const ORIGIN = "https://www.psllabs.org";
 function fixture() {
   const state = { active: false, consent: true, personalization: true, current: true,
@@ -22,7 +23,7 @@ function fixture() {
     "@/lib/meta-ads/config": { readMetaServerConfig: () => { state.configReads++; return state.active ? { fixture: true } : null; } },
     "@/lib/privacy/server": {
       readRequestPrivacyConsent: async () => { state.receiptReads++; return {
-        binding: state.consent ? { digest: "a".repeat(64), revision: 1, version: 1 } : null,
+        binding: state.consent ? { digest: "a".repeat(64), revision: 1, version: PRIVACY_CONSENT_VERSION } : null,
         consent: { measurement: state.consent, personalization: state.personalization,
           capabilities: { metaMeasurement: true, metaPersonalization: true } },
       }; },

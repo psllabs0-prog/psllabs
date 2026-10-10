@@ -100,7 +100,7 @@ async function main() {
     Object.defineProperty(globalThis, "setInterval", { configurable: true, value: (...args: Parameters<typeof setInterval>) => originalInterval(...args).unref() });
     Object.defineProperty(globalThis, "setTimeout", { configurable: true, value: (...args: Parameters<typeof setTimeout>) => originalTimeout(...args).unref() });
     let serverConsent: PublicPrivacyConsent = { ...UNKNOWN_PRIVACY_CONSENT,
-      capabilities: { metaMeasurement: false, metaPersonalization: false, googleMeasurement: true, openaiMeasurement: true } };
+      capabilities: { tiktokMeasurement: false, tiktokPersonalization: false, metaMeasurement: false, metaPersonalization: false, googleMeasurement: true, openaiMeasurement: true } };
     globalThis.fetch = async (url, init) => {
       assert.equal(url, "/api/privacy/consent", "only the local fixture consent endpoint is permitted");
       if (init?.method === "POST") {

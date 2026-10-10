@@ -24,6 +24,8 @@ let click: ((event: Record<string, unknown>) => void) | undefined;
 let reloads = 0;
 let metaLoaded = false;
 let metaStops = 0;
+let tiktokLoaded = false;
+let tiktokStops = 0;
 let historyUpdates = 0;
 let unsubscribe: (() => void) | undefined;
 const events = new EventTarget();
@@ -68,10 +70,13 @@ runInNewContext(compiled + "\nexports.resetDocumentNavigation = () => { pendingD
     if (name.endsWith("/SiteLayout")) return { SiteLayout: "SiteLayout" };
     if (name.endsWith("/finance-demo/path")) return { isFinanceDemoPath };
     if (name.endsWith("/plausible/redact")) return { PLAUSIBLE_INIT_JS: "" };
-    if (name.endsWith("/privacy/client")) return { isPrivacyExcludedPath };
+    if (name.endsWith("/privacy/client")) return { isPrivacyExcludedPath, PRIVACY_WITHDRAWAL_EVENT: "psl-privacy-withdrawal" };
     if (name.endsWith("/meta-ads/browser")) return {
       metaBrowserContextAllowed: (url: string, referrer: string) => metaBrowserContextAllowed(url, referrer),
       hasMetaBrowserSdk: () => metaLoaded, stopMetaBrowserDispatch: () => { metaStops++; } };
+    if (name.endsWith("/tiktok-ads/browser")) return {
+      tikTokBrowserContextAllowed: (url: string, referrer: string) => metaBrowserContextAllowed(url, referrer),
+      hasTikTokBrowserSdk: () => tiktokLoaded, stopTikTokBrowserDispatch: () => { tiktokStops++; } };
     throw new Error(`Unexpected dependency: ${name}`);
   },
 });
@@ -201,5 +206,42 @@ assert.equal(assigned.length, narrowAssignments + 1, "one full navigation replac
 assert.equal(assigned.at(-1), "https://www.psllabs.org/products/psl-rt-10mg");
 pathname = "/products/psl-rt-10mg";
 assert.equal(render().tree, null, "excluded reviewed content cannot render under the old SDK");
+tiktokLoaded = true;
+freshDocument("/products/psl-rs-5ml", false).flush();
+const beforeTikTokStops = tiktokStops;
+const beforeTikTokUpdates = historyUpdates;
+browser.history.pushState({}, "", "/admin-ledger.01?orderId=private");
+assert.equal(historyUpdates, beforeTikTokUpdates, "TikTok must not observe admin SPA history");
+assert.equal(assigned.at(-1), "https://www.psllabs.org/admin-ledger.01?orderId=private");
+assert.equal(tiktokStops, beforeTikTokStops + 1, "TikTok dispatch stops before the excluded document loads");
+pathname = "/admin-ledger.01";
+assert.equal(render().tree, null, "admin children cannot mount inside a loaded TikTok document");
+tiktokLoaded = false;
+freshDocument("/products", false).flush();
+const idleReloads = reloads;
+const restored = new Event("pageshow");
+Object.defineProperty(restored, "persisted", { value: true });
+events.dispatchEvent(new Event("pagehide"));
+events.dispatchEvent(restored);
+assert.equal(reloads, idleReloads, "documents without advertising SDKs do not reload on BFCache restoration");
+
+for (const provider of ["meta", "tiktok"] as const) {
+  tiktokLoaded = provider === "tiktok";
+  freshDocument("/products", provider === "meta").flush();
+  const beforeHideMeta = metaStops, beforeHideTikTok = tiktokStops;
+  const beforeRestore: number = reloads;
+  events.dispatchEvent(new Event("psl-privacy-withdrawal"));
+  assert.ok(metaStops > beforeHideMeta && tiktokStops > beforeHideTikTok,
+    "withdrawal revokes loaded SDKs synchronously without awaiting a React effect");
+  events.dispatchEvent(new Event("pagehide"));
+  assert.ok(metaStops > beforeHideMeta && tiktokStops > beforeHideTikTok,
+    "advertising dispatch is revoked before a document enters BFCache");
+  assert.equal(reloads, beforeRestore, "pagehide itself does not disrupt document navigation");
+  events.dispatchEvent(new Event("pageshow"));
+  assert.equal(reloads, beforeRestore, "a normal pageshow does not create a reload loop");
+  events.dispatchEvent(restored);
+  assert.equal(reloads, beforeRestore + 1, `${provider} restoration requires fresh server consent in a new document`);
+}
+tiktokLoaded = false;
 unsubscribe?.();
-console.log("[test-application-privacy-boundary] public/private, Meta URL/query/referrer, links, history and fresh-document isolation checks passed offline");
+console.log("[test-application-privacy-boundary] public/private, advertising URL/query/referrer, links, history, BFCache and Meta/TikTok fresh-document isolation checks passed offline");

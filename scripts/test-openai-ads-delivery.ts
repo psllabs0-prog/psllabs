@@ -4,7 +4,7 @@ import type { getSql } from "../lib/db/sql";
 import type { TagadaCardReads } from "../lib/tagada/verify-payment";
 import type { OpenAIAdsSendResult } from "../lib/openai-ads/client";
 import type { OpenAIOrderCreatedEvent } from "../lib/openai-ads/events";
-import type { PrivacyConsentBinding } from "../lib/privacy/types";
+import { PRIVACY_CONSENT_VERSION, type PrivacyConsentBinding } from "../lib/privacy/types";
 import {
   createOpenAIAdsDelivery,
   createOpenAIAdsSqlStore,
@@ -17,7 +17,7 @@ import {
 const INITIAL_TIME = Date.parse("2026-10-04T18:00:00.000Z");
 const config = { pixelId: "fixture_pixel", capiKey: "offline_fixture_key" };
 const proof: OpenAIAdsPaymentProof = { provider: "tagada", paymentId: "pay_fixture" };
-const CONSENT_BINDING: PrivacyConsentBinding = { digest: "a".repeat(64), revision: 1, version: 1 };
+const CONSENT_BINDING: PrivacyConsentBinding = { digest: "a".repeat(64), revision: 1, version: PRIVACY_CONSENT_VERSION };
 const orderFixture: OpenAIAdsDeliveryOrder = {
   orderId: "psl_fixture", status: "paid", paidAt: new Date(INITIAL_TIME - 60000).toISOString(),
   total: 59.99, currency: "USD", paymentMethod: "card", invoiceId: "checkout_fixture",

@@ -5,22 +5,22 @@ import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { NextResponse } from "next/server";
 import { isIP } from "node:net";
-import { createMetaPurchaseService, createMetaPurchaseSqlStore, isMetaPurchaseOrderId,
-  type MetaPurchaseSnapshot } from "../lib/meta-ads/purchase";
-import { PSL_META_DATASET_ID, type MetaEventPolicy } from "../lib/meta-ads/events";
-import type { MetaServerConfig } from "../lib/meta-ads/config";
-import type { sendPreparedMetaEvent } from "../lib/meta-ads/transport";
+import { createTikTokPurchaseService, isTikTokPurchaseOrderId } from "../lib/tiktok-ads/purchase";
+import { createMetaPurchaseSqlStore, type MetaPurchaseSnapshot } from "../lib/meta-ads/purchase";
+import { PSL_TIKTOK_PIXEL_ID, type TikTokEventPolicy } from "../lib/tiktok-ads/events";
+import type { TikTokServerConfig } from "../lib/tiktok-ads/config";
+import type { sendPreparedTikTokEvent } from "../lib/tiktok-ads/transport";
 import type { getSql } from "../lib/db/sql";
 import { PRIVACY_CONSENT_VERSION, UNKNOWN_PRIVACY_CONSENT } from "../lib/privacy/types";
 import { isSameOriginMutation } from "../lib/security/request-origin";
-import { metaEventId } from "../lib/meta-ads/event-id";
+import { tikTokEventId } from "../lib/tiktok-ads/event-id";
 
 const NOW = Date.parse("2026-10-09T12:00:00Z");
 const BINDING = { digest: "a".repeat(64), revision: 1, version: PRIVACY_CONSENT_VERSION };
-const CONFIG: MetaServerConfig = { datasetId: PSL_META_DATASET_ID, accessToken: "OFFLINE_FIXTURE", apiVersion: "v26.0" };
-const POLICY: MetaEventPolicy = { approvedPaths: { Purchase: ["/success"] }, approvedProductIds: ["PSL-RT-10MG"] };
-const INPUT = { orderId: "psl_meta_fixture", binding: BINDING, sourceUrl: "https://www.psllabs.org/success",
-  technical: { client_ip_address: "192.0.2.1", client_user_agent: "Offline fixture" } };
+const CONFIG: TikTokServerConfig = { pixelId: PSL_TIKTOK_PIXEL_ID, accessToken: "OFFLINE_FIXTURE" };
+const POLICY: TikTokEventPolicy = { approvedPaths: { Purchase: ["/success"] }, approvedProductIds: ["PSL-RT-10MG"] };
+const INPUT = { orderId: "psl_tiktok_fixture", binding: BINDING, sourceUrl: "https://www.psllabs.org/success",
+  technical: { ip: "192.0.2.1", user_agent: "Offline fixture" } };
 const SNAPSHOT: MetaPurchaseSnapshot = { paymentId: "pay_fixture", order: {
   orderId: INPUT.orderId, status: "paid", paidAt: new Date(NOW - 1000).toISOString(),
   total: 69.98, currency: "USD", paymentMethod: "card", invoiceId: "checkout_fixture",
@@ -41,9 +41,9 @@ function check(actual: unknown, expected: unknown, message?: string) { assert.de
 
 function fixture() {
   const state = { snapshot: structuredClone(SNAPSHOT), payment: structuredClone(PAYMENT),
-    providerOrder: structuredClone(PROVIDER_ORDER), config: CONFIG as MetaServerConfig | null,
+    providerOrder: structuredClone(PROVIDER_ORDER), config: CONFIG as TikTokServerConfig | null,
     excluded: false, consent: true, revision: 1, reads: 0, confirms: 0, providerReads: 0,
-    now: NOW, sent: [] as Parameters<typeof sendPreparedMetaEvent>[0][],
+    now: NOW, sent: [] as Parameters<typeof sendPreparedTikTokEvent>[0][],
     afterProvider: undefined as (() => void) | undefined,
     beforeTransport: undefined as (() => void) | undefined };
   const dependencies = { getConfig: () => state.config, now: () => state.now, policy: POLICY,
@@ -59,29 +59,29 @@ function fixture() {
       async retrievePayment() { state.providerReads++; state.afterProvider?.(); return structuredClone(state.payment); },
       async retrieveOrder() { state.providerReads++; return { order: structuredClone(state.providerOrder) }; },
     },
-    send: async (input: Parameters<typeof sendPreparedMetaEvent>[0]) => {
+    send: async (input: Parameters<typeof sendPreparedTikTokEvent>[0]) => {
       state.beforeTransport?.();
       if (!await input.currentPermission()) return { ok: false, reason: "consent_unavailable" };
-      state.sent.push(input); return { ok: true, received: 1 };
+      state.sent.push(input); return { ok: true, accepted: true };
     },
   };
-  return { state, dependencies, service: createMetaPurchaseService(dependencies) };
+  return { state, dependencies, service: createTikTokPurchaseService(dependencies) };
 }
 
 async function serviceChecks() {
   const base = fixture();
-  check(await base.service.sendPurchase(INPUT), { ok: true, reason: "received" });
+  check(await base.service.sendPurchase(INPUT), { ok: true, reason: "accepted" });
   check(base.state.sent.length, 1);
   const event = base.state.sent[0].event;
-  check(event.event_name, "Purchase"); check(event.event_source_url, "https://www.psllabs.org/success");
-  check(event.custom_data, { content_ids: ["PSL-RT-10MG"], content_type: "product", value: 69.98, currency: "USD" });
+  check(event.event, "Purchase"); check(event.page.url, "https://www.psllabs.org/success");
+  check(event.properties, { content_ids: ["PSL-RT-10MG"], content_type: "product", value: 69.98, currency: "USD" });
   check(event.event_time, Math.floor((NOW - 1000) / 1000));
   check(/^[a-f0-9]{64}$/.test(event.event_id), true);
-  check(event.event_id, metaEventId("Purchase", INPUT.orderId));
+  check(event.event_id, tikTokEventId("Purchase", INPUT.orderId));
   check(JSON.stringify(event).includes(INPUT.orderId), false);
   check(JSON.stringify(event).includes("Private stored"), false);
   await base.service.sendPurchase(INPUT);
-  check(base.state.sent[1].event.event_id, event.event_id, "refresh/retry uses the same Meta deduplication key");
+  check(base.state.sent[1].event.event_id, event.event_id, "refresh/retry uses the same TikTok deduplication key");
   check(base.state.providerReads, 4, "each requested attempt re-verifies provider evidence");
 
   for (const alter of [
@@ -143,13 +143,13 @@ async function serviceChecks() {
   const inactive = fixture(); inactive.state.config = null;
   check((await inactive.service.sendPurchase(INPUT)).reason, "inactive"); check(inactive.state.reads, 0);
   const noPolicy = fixture();
-  check((await createMetaPurchaseService({ ...noPolicy.dependencies, policy: undefined }).sendPurchase(INPUT)).ok, false);
+  check((await createTikTokPurchaseService({ ...noPolicy.dependencies, policy: undefined }).sendPurchase(INPUT)).ok, false);
   check(noPolicy.state.providerReads, 0);
   const failure = fixture();
-  check(await createMetaPurchaseService({ ...failure.dependencies,
+  check(await createTikTokPurchaseService({ ...failure.dependencies,
     getStore: () => { throw new Error("PRIVATE_DB_SECRET"); } }).sendPurchase(INPUT), { ok: false, reason: "purchase_unavailable" });
   const hung = fixture();
-  check(await createMetaPurchaseService({ ...hung.dependencies, providerTimeoutMs: 5,
+  check(await createTikTokPurchaseService({ ...hung.dependencies, providerTimeoutMs: 5,
     tagadaReads: { ...hung.dependencies.tagadaReads, retrievePayment: () => new Promise(() => {}) },
   }).sendPurchase(INPUT), { ok: false, reason: "purchase_unavailable" });
   check(hung.state.sent.length, 0);
@@ -178,20 +178,20 @@ async function sqlChecks() {
 }
 
 async function routeChecks() {
-  const source = readFileSync("app/api/meta/purchase/route.ts", "utf8");
+  const source = readFileSync("app/api/tiktok/purchase/route.ts", "utf8");
   const compiled = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
   const state = { active: true, calls: 0, privacyReads: 0, limited: false,
     sent: [] as Record<string, unknown>[], consent: { ...UNKNOWN_PRIVACY_CONSENT,
       choice: "saved", measurement: true, personalization: true,
-      capabilities: { tiktokMeasurement: false, tiktokPersonalization: false, metaMeasurement: true, metaPersonalization: true, googleMeasurement: false, openaiMeasurement: false } },
+      capabilities: { tiktokMeasurement: true, tiktokPersonalization: true, metaMeasurement: false, metaPersonalization: false, googleMeasurement: false, openaiMeasurement: false } },
     binding: BINDING as typeof BINDING | null };
   const exports: { POST?: (request: Request) => Promise<Response> } = {};
   runInNewContext(compiled, { exports, URL, process: { env: { VERCEL: "1" } }, require: (name: string) => {
     if (name === "node:net") return { isIP };
     if (name === "next/server") return { NextResponse };
-    if (name.endsWith("/meta-ads/config")) return { readMetaServerConfig: () => state.active ? CONFIG : null };
-    if (name.endsWith("/meta-ads/purchase")) return { isMetaPurchaseOrderId, sendVerifiedMetaPurchase: async (input: Record<string, unknown>) => {
-      state.calls++; state.sent.push(input); return { ok: true, reason: "received" };
+    if (name.endsWith("/tiktok-ads/config")) return { readTikTokServerConfig: () => state.active ? CONFIG : null };
+    if (name.endsWith("/tiktok-ads/purchase")) return { isTikTokPurchaseOrderId, sendVerifiedTikTokPurchase: async (input: Record<string, unknown>) => {
+      state.calls++; state.sent.push(input); return { ok: true, reason: "accepted" };
     } };
     if (name.endsWith("/privacy/server")) return { readRequestPrivacyConsent: async () => {
       state.privacyReads++; return { consent: state.consent, binding: state.binding };
@@ -200,13 +200,13 @@ async function routeChecks() {
     if (name.endsWith("/security/request-rate-limit")) return { consumeRequestLimit: async () => state.limited ? NextResponse.json({}, { status: 429 }) : null };
     throw new Error(`Unexpected dependency: ${name}`);
   } });
-  const request = (body: unknown = { orderId: INPUT.orderId }, extra: Record<string, string> = {}) => new Request("https://www.psllabs.org/api/meta/purchase", {
+  const request = (body: unknown = { orderId: INPUT.orderId }, extra: Record<string, string> = {}) => new Request("https://www.psllabs.org/api/tiktok/purchase", {
     method: "POST", headers: { origin: "https://www.psllabs.org", referer: `https://www.psllabs.org/success?orderId=${INPUT.orderId}`,
       "x-vercel-forwarded-for": "192.0.2.1", "user-agent": "Offline fixture", "content-type": "application/json", ...extra },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
   const invoke = async (req: Request) => { const response = await exports.POST!(req); return { response, json: await response.json() }; };
-  const good = await invoke(request()); check(good.json, { purchase: "received" });
+  const good = await invoke(request()); check(good.json, { purchase: "accepted" });
   check(good.response.headers.get("cache-control"), "private, no-store, max-age=0");
   check(state.sent[0].sourceUrl, "https://www.psllabs.org/success");
   check(state.calls, 1);
@@ -234,13 +234,13 @@ async function routeChecks() {
 }
 
 async function receiptComponentChecks() {
-  const compiled = ts.transpileModule(readFileSync("components/analytics/meta-ads-purchase.tsx", "utf8"), {
+  const compiled = ts.transpileModule(readFileSync("components/analytics/tiktok-ads-purchase.tsx", "utf8"), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX },
   }).outputText;
   function componentFixture() {
     const state = { consent: { ...UNKNOWN_PRIVACY_CONSENT, choice: "saved", revision: 1,
       measurement: true, personalization: true, expiresAt: NOW + 86400000,
-      capabilities: { tiktokMeasurement: false, tiktokPersonalization: false, metaMeasurement: true, metaPersonalization: true, googleMeasurement: false, openaiMeasurement: false } },
+      capabilities: { metaMeasurement: false, metaPersonalization: false, tiktokMeasurement: true, tiktokPersonalization: true, googleMeasurement: false, openaiMeasurement: false } },
       calls: [] as { url: string; init: RequestInit }[], received: false,
       fetchGate: null as Promise<void> | null, failed: false };
     const refs: { current: unknown }[] = [];
@@ -248,7 +248,7 @@ async function receiptComponentChecks() {
     let effect: (() => void | (() => void)) | undefined;
     let cleanup: (() => void) | undefined;
     const timers = new Map<number, () => void>();
-    const exports: { MetaAdsPurchaseReceipt?: (props: { orderId: string; paid: boolean }) => null } = {};
+    const exports: { TikTokAdsPurchaseReceipt?: (props: { orderId: string; paid: boolean }) => null } = {};
     runInNewContext(compiled, { exports, AbortController,
       setTimeout: (callback: () => void, delay: number) => {
         check(delay, 2500); timers.set(++timerId, callback); return timerId;
@@ -257,7 +257,7 @@ async function receiptComponentChecks() {
         state.calls.push({ url, init });
         if (state.fetchGate) await state.fetchGate;
         if (state.failed) throw new Error("OFFLINE_FAILURE");
-        return { ok: true, json: async () => ({ purchase: state.received ? "received" : null }) };
+        return { ok: true, json: async () => ({ purchase: state.received ? "accepted" : null }) };
       },
       require: (name: string) => {
         if (name === "react") return {
@@ -275,7 +275,7 @@ async function receiptComponentChecks() {
     const flush = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
     const render = async (orderId = INPUT.orderId, paid = true) => {
       cleanup?.(); cleanup = undefined; refIndex = 0;
-      check(exports.MetaAdsPurchaseReceipt!({ orderId, paid }), null);
+      check(exports.TikTokAdsPurchaseReceipt!({ orderId, paid }), null);
       cleanup = effect?.() || undefined;
       await flush();
     };
@@ -284,10 +284,10 @@ async function receiptComponentChecks() {
     };
     return { state, render, tick, flush, timers, unmount: () => { cleanup?.(); cleanup = undefined; } };
   }
-  for (const change of ["measurement", "personalization", "metaMeasurement", "metaPersonalization", "gpc", "admin", "unknown"] as const) {
+  for (const change of ["measurement", "personalization", "tiktokMeasurement", "tiktokPersonalization", "gpc", "admin", "unknown"] as const) {
     const f = componentFixture();
     if (change === "measurement" || change === "personalization") f.state.consent[change] = false;
-    else if (change === "metaMeasurement" || change === "metaPersonalization") f.state.consent.capabilities[change] = false;
+    else if (change === "tiktokMeasurement" || change === "tiktokPersonalization") f.state.consent.capabilities[change] = false;
     else if (change === "unknown") f.state.consent.choice = "unknown";
     else f.state.consent[change] = true;
     await f.render(); check(f.state.calls.length, 0); check(f.timers.size, 0); f.unmount();
@@ -298,7 +298,7 @@ async function receiptComponentChecks() {
   const successful = componentFixture(); successful.state.received = true;
   await successful.render(); check(successful.state.calls.length, 1); check(successful.timers.size, 0);
   const request = successful.state.calls[0];
-  check(request.url, "/api/meta/purchase"); check(JSON.parse(String(request.init.body)), { orderId: INPUT.orderId });
+  check(request.url, "/api/tiktok/purchase"); check(JSON.parse(String(request.init.body)), { orderId: INPUT.orderId });
   check(request.init.credentials, "same-origin"); check(request.init.cache, "no-store");
   check(request.init.signal?.aborted, false);
   successful.state.consent = { ...successful.state.consent };
@@ -338,7 +338,7 @@ async function receiptComponentChecks() {
 async function main() {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () => { throw new Error("Offline suite forbids all network requests"); };
-  try { await serviceChecks(); await sqlChecks(); await routeChecks(); await receiptComponentChecks(); console.log(`Meta Purchase offline checks passed: ${checks}`); }
+  try { await serviceChecks(); await sqlChecks(); await routeChecks(); await receiptComponentChecks(); console.log(`TikTok Purchase offline checks passed: ${checks}`); }
   finally { globalThis.fetch = originalFetch; }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

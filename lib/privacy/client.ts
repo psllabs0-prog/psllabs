@@ -99,13 +99,14 @@ function scrubOptionalIdentifiers(): void {
   try {
     window.localStorage.removeItem("psl_attribution_v1");
     window.localStorage.removeItem("psl_google_ads_consent_v1");
+    window.localStorage.removeItem("ttoclid");
     for (const key of Object.keys(window.localStorage)) {
       if (key.startsWith("psl_google_purchase_v1:")) window.localStorage.removeItem(key);
     }
   } catch { /* Denial remains in memory if storage is unavailable. */ }
   // Delete only known optional advertising cookies, never shopping or login cookies.
   for (const name of document.cookie.split(";").map((part) => part.trim().split("=")[0])) {
-    if (!/^(?:_fbp|_fbc|_ttp|_tt_enable_cookie|_gcl_[A-Za-z0-9_]+)$/.test(name)) continue;
+    if (!/^(?:_fbp|_fbc|_ttp|_tt_enable_cookie|ttclid|ttcsid(?:_[A-Za-z0-9_-]+)?|_gcl_[A-Za-z0-9_]+)$/.test(name)) continue;
     document.cookie = `${name}=; Max-Age=0; Path=/; SameSite=Lax`;
     const host = window.location.hostname;
     document.cookie = `${name}=; Max-Age=0; Path=/; Domain=${host}; SameSite=Lax`;
@@ -137,7 +138,7 @@ function validateResponse(value: unknown): PublicPrivacyConsent {
       !c.capabilities || Object.values(c.capabilities).some((item) => typeof item !== "boolean")) {
     throw new Error("Invalid privacy response");
   }
-  for (const name of ["metaMeasurement", "metaPersonalization", "googleMeasurement", "openaiMeasurement"] as const) {
+  for (const name of ["metaMeasurement", "metaPersonalization", "tiktokMeasurement", "tiktokPersonalization", "googleMeasurement", "openaiMeasurement"] as const) {
     if (typeof c.capabilities[name] !== "boolean") throw new Error("Missing privacy capability");
   }
   if ((c.measurement || c.personalization) &&
@@ -244,7 +245,7 @@ export function requestPrivacyConsent(choices: PrivacyChoices): Promise<PublicPr
       try {
         window.localStorage.removeItem(PRIVACY_PENDING_DECLINE_KEY);
         // This is a cross-tab invalidation signal, not a reusable consent grant.
-        window.localStorage.setItem(PRIVACY_CHOICE_KEY, JSON.stringify({ version: 1, updatedAt: Date.now(), revision: saved.revision }));
+        window.localStorage.setItem(PRIVACY_CHOICE_KEY, JSON.stringify({ version: PRIVACY_CONSENT_VERSION, updatedAt: Date.now(), revision: saved.revision }));
       } catch { storageWorks = false; }
       scheduleExpiry();
       setStatus({ state: "ready", pendingDecline: false, error: storageWorks === false

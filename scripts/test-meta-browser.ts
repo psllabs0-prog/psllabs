@@ -69,7 +69,7 @@ async function main() {
     await requestPrivacyConsent({ measurement: true, personalization: true });
     assert.equal(createMetaBrowserAction("PageView"), null, "both Meta capabilities must be verified");
     assert.equal(requests.length, 0); assert.equal(scriptLoads, 0);
-    consent = { ...consent, capabilities: { metaMeasurement: true, metaPersonalization: true, googleMeasurement: false, openaiMeasurement: false } };
+    consent = { ...consent, capabilities: { tiktokMeasurement: false, tiktokPersonalization: false, metaMeasurement: true, metaPersonalization: true, googleMeasurement: false, openaiMeasurement: false } };
     await initializePrivacyConsent();
     await requestPrivacyConsent({ measurement: true, personalization: false });
     assert.equal(createMetaBrowserAction("PageView"), null, "measurement alone cannot authorize Meta personalization");

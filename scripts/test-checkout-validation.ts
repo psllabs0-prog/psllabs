@@ -13,7 +13,7 @@ import * as countries from "../lib/checkout/us-states";
 import * as attribution from "../lib/attribution/logic";
 import type { CheckoutBody, PrepareOrderOptions, PrepareOrderResult } from "../lib/checkout/prepare-order";
 import type { Order } from "../lib/orders/types";
-import { UNKNOWN_PRIVACY_CONSENT } from "../lib/privacy/types";
+import { PRIVACY_CONSENT_VERSION, UNKNOWN_PRIVACY_CONSENT } from "../lib/privacy/types";
 
 const ROOT = resolve(__dirname, "..");
 const SHIPPING = { firstName: "Offline", lastName: "Fixture", address: "123 Fixture Street", city: "Phoenix", state: "AZ", zip: "85001", country: "US" };
@@ -58,7 +58,7 @@ const inventory = load("lib/inventory/store.ts", {
 }) as { checkoutWithStockCheck: (order: Order) => Promise<{ ok: boolean }> };
 
 async function checkoutPrivacyChecks() {
-  const binding = { digest: "a".repeat(64), version: 1, revision: 1 };
+  const binding = { digest: "a".repeat(64), version: PRIVACY_CONSENT_VERSION, revision: 1 };
   const privacy = { binding, consent: { ...UNKNOWN_PRIVACY_CONSENT,
     choice: "saved" as const, measurement: true, revision: 1,
     expiresAt: Date.now() + 600000,
