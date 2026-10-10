@@ -50,6 +50,7 @@ export function privacyCapabilities() {
   return {
     // A new consent version and verified eligible events are required before enabling Meta.
     metaMeasurement: false, metaPersonalization: false,
+    tiktokMeasurement: false, tiktokPersonalization: false,
     googleMeasurement: Boolean(readGoogleAdsConfig()), openaiMeasurement: readOpenAIAdsConfig().ok,
   };
 }
@@ -67,6 +68,6 @@ export function readRequestPrivacyConsent(request: Request) {
   return privacyService.read(requestCookie(request, PRIVACY_CONSENT_COOKIE), requestPrivacyContext(request));
 }
 export function isCurrentMeasurementConsent(binding: PrivacyConsentBinding | null | undefined,
-  provider: "google" | "openai" | "meta") {
+  provider: "google" | "openai" | "meta" | "tiktok") {
   return privacyService.current(binding, provider);
 }
