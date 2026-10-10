@@ -1,7 +1,7 @@
 import { readPrivacyConsent } from "../privacy/client";
 import {
   browserEventArguments, metaSourceUrlAllowed, PSL_META_DATASET_ID,
-  REVIEWED_META_EVENT_POLICY, REVIEWED_META_PRODUCTS, type MetaEventName, type PreparedMetaEvent,
+  PRODUCTION_META_EVENT_POLICY, REVIEWED_META_PRODUCTS, type MetaEventName, type PreparedMetaEvent,
 } from "./events";
 
 export type MetaBrowserEventName = Exclude<MetaEventName, "Purchase">;
@@ -23,12 +23,14 @@ const attempted = new Set<string>();
 const eventNames: MetaBrowserEventName[] = ["PageView", "ViewContent", "AddToCart", "InitiateCheckout"];
 
 export function metaBrowserContextAllowed(sourceUrl: string, referrer: string): boolean {
-  if (!eventNames.some((name) => metaSourceUrlAllowed(sourceUrl, name, REVIEWED_META_EVENT_POLICY))) return false;
+  // SDK lifetime and action guards use the same approved scope as server events.
+  // A reviewed context alone never authorizes collection or SDK navigation.
+  if (!eventNames.some((name) => metaSourceUrlAllowed(sourceUrl, name, PRODUCTION_META_EVENT_POLICY))) return false;
   if (!referrer) return true;
   try {
     const url = new URL(referrer);
     if (["https://www.psllabs.org", "https://psllabs.org"].includes(url.origin)) {
-      return eventNames.some((name) => metaSourceUrlAllowed(referrer, name, REVIEWED_META_EVENT_POLICY));
+      return eventNames.some((name) => metaSourceUrlAllowed(referrer, name, PRODUCTION_META_EVENT_POLICY));
     }
     return url.protocol === "https:" && !url.username && !url.password && !url.search && !url.hash &&
       url.pathname === "/" && ["facebook.com", "www.facebook.com", "m.facebook.com", "l.facebook.com",
@@ -64,11 +66,11 @@ export function stopMetaBrowserDispatch(): void {
 }
 
 export function createMetaBrowserAction(name: MetaBrowserEventName, productIds?: readonly string[]): MetaBrowserAction | null {
-  if (!metaBrowserPermission() || !metaSourceUrlAllowed(window.location.href, name, REVIEWED_META_EVENT_POLICY)) return null;
+  if (!metaBrowserPermission() || !metaSourceUrlAllowed(window.location.href, name, PRODUCTION_META_EVENT_POLICY)) return null;
   if (!eventNames.includes(name) || !window.crypto?.randomUUID) return null;
   const ids = productIds ?? [];
   if ((name === "PageView" && ids.length) || (name !== "PageView" && (!ids.length || ids.length > 10 ||
-      ids.some((id) => !REVIEWED_META_EVENT_POLICY.approvedProductIds.includes(id))))) return null;
+      ids.some((id) => !PRODUCTION_META_EVENT_POLICY.approvedProductIds.includes(id))))) return null;
   const product = REVIEWED_META_PRODUCTS.find((entry) => entry.path === window.location.pathname);
   if ((name === "ViewContent" || name === "AddToCart") &&
       (!product || ids.length !== 1 || ids[0] !== product.sku)) return null;

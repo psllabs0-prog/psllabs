@@ -4,7 +4,11 @@ import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { isPrivacyExcludedPath } from "../lib/privacy/client";
 import { isFinanceDemoPath } from "../lib/finance-demo/path";
-import { metaBrowserContextAllowed } from "../lib/meta-ads/browser";
+import { REVIEWED_META_EVENT_POLICY } from "../lib/meta-ads/events";
+import { loadMetaBrowserFixture } from "./meta-browser-fixture";
+
+// Exercise the existing reviewed QA scope without enabling production paths.
+let { metaBrowserContextAllowed } = loadMetaBrowserFixture(REVIEWED_META_EVENT_POLICY);
 
 // Execute the real wrapper with deterministic hooks and a minimal DOM. No
 // advertising script, network request or live browser profile is involved.
@@ -65,7 +69,8 @@ runInNewContext(compiled + "\nexports.resetDocumentNavigation = () => { pendingD
     if (name.endsWith("/finance-demo/path")) return { isFinanceDemoPath };
     if (name.endsWith("/plausible/redact")) return { PLAUSIBLE_INIT_JS: "" };
     if (name.endsWith("/privacy/client")) return { isPrivacyExcludedPath };
-    if (name.endsWith("/meta-ads/browser")) return { metaBrowserContextAllowed,
+    if (name.endsWith("/meta-ads/browser")) return {
+      metaBrowserContextAllowed: (url: string, referrer: string) => metaBrowserContextAllowed(url, referrer),
       hasMetaBrowserSdk: () => metaLoaded, stopMetaBrowserDispatch: () => { metaStops++; } };
     throw new Error(`Unexpected dependency: ${name}`);
   },
@@ -179,5 +184,22 @@ assert.equal(reloads, beforeFresh);
 const freshPrivate = freshDocument("/admin-ledger.01");
 assert.notEqual(freshPrivate.tree, null); freshPrivate.flush();
 assert.equal(reloads, beforeFresh);
+
+// An approved subset must also constrain SDK lifetime, even when the excluded
+// destination is otherwise a reviewed, public product page.
+({ metaBrowserContextAllowed } = loadMetaBrowserFixture({
+  approvedPaths: { PageView: ["/", "/products/psl-rs-5ml"] }, approvedProductIds: ["PSL-RS-5ML"],
+}));
+freshDocument("/", true).flush();
+const narrowAssignments = assigned.length, narrowUpdates = historyUpdates;
+browser.history.pushState({}, "", "/products/psl-rs-5ml");
+assert.equal(historyUpdates, narrowUpdates + 1, "an approved page stays within the current document");
+assert.equal(assigned.length, narrowAssignments);
+browser.history.replaceState({}, "", "/products/psl-rt-10mg");
+assert.equal(historyUpdates, narrowUpdates + 1, "an excluded reviewed page never reaches SPA history");
+assert.equal(assigned.length, narrowAssignments + 1, "one full navigation replaces the loaded SDK document");
+assert.equal(assigned.at(-1), "https://www.psllabs.org/products/psl-rt-10mg");
+pathname = "/products/psl-rt-10mg";
+assert.equal(render().tree, null, "excluded reviewed content cannot render under the old SDK");
 unsubscribe?.();
 console.log("[test-application-privacy-boundary] public/private, Meta URL/query/referrer, links, history and fresh-document isolation checks passed offline");

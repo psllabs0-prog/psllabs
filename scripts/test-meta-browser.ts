@@ -2,13 +2,15 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { initializePrivacyConsent, requestPrivacyConsent } from "../lib/privacy/client";
 import { UNKNOWN_PRIVACY_CONSENT, type PublicPrivacyConsent } from "../lib/privacy/types";
-import {
-  createMetaBrowserAction, dispatchMetaBrowserAction, metaBrowserContextAllowed,
-  hasMetaBrowserSdk, stopMetaBrowserDispatch,
-} from "../lib/meta-ads/browser";
-import { PSL_META_DATASET_ID } from "../lib/meta-ads/events";
+import * as productionBrowser from "../lib/meta-ads/browser";
+import { PSL_META_DATASET_ID, REVIEWED_META_EVENT_POLICY, type MetaEventPolicy } from "../lib/meta-ads/events";
+import { loadMetaBrowserFixture } from "./meta-browser-fixture";
 
 async function main() {
+  // Reviewed candidates are exercised only in an isolated module, never by
+  // changing the empty production policy or exposing a runtime QA switch.
+  const { createMetaBrowserAction, dispatchMetaBrowserAction, metaBrowserContextAllowed,
+    hasMetaBrowserSdk, stopMetaBrowserDispatch } = loadMetaBrowserFixture(REVIEWED_META_EVENT_POLICY);
   const originals = Object.fromEntries(["window", "document", "navigator", "fetch", "setInterval", "setTimeout"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   const realInterval = globalThis.setInterval, realTimeout = globalThis.setTimeout;
   const values = new Map<string, string>([["psl_researcher_verified_v1", "1"]]);
@@ -72,6 +74,37 @@ async function main() {
     await requestPrivacyConsent({ measurement: true, personalization: false });
     assert.equal(createMetaBrowserAction("PageView"), null, "measurement alone cannot authorize Meta personalization");
     await requestPrivacyConsent({ measurement: true, personalization: true });
+    assert.equal(productionBrowser.metaBrowserContextAllowed(location.href, ""), false);
+    assert.equal(productionBrowser.createMetaBrowserAction("PageView"), null,
+      "actual empty production scope denies collection even with both consented capabilities");
+    assert.equal(await productionBrowser.dispatchMetaBrowserAction({ name: "PageView", eventId: randomUUID(),
+      sourceUrl: location.href, consentRevision: consent.revision, createdAt: Date.now() }), false);
+    assert.equal(requests.length, 0); assert.equal(scriptLoads, 0);
+
+    const narrowPolicy: MetaEventPolicy = {
+      approvedPaths: { PageView: ["/", "/products/psl-rs-5ml"], ViewContent: ["/products/psl-rs-5ml"],
+        InitiateCheckout: ["/checkout"] }, approvedProductIds: ["PSL-RS-5ML"],
+    };
+    const narrow = loadMetaBrowserFixture(narrowPolicy);
+    assert(narrow.metaBrowserContextAllowed(location.href, "https://www.facebook.com/"));
+    assert.equal(narrow.metaBrowserContextAllowed("https://www.psllabs.org/products/psl-rt-10mg", ""), false,
+      "a reviewed product outside the final scope is not an SDK context");
+    assert.equal(narrow.metaBrowserContextAllowed(location.href, "https://www.psllabs.org/products/psl-rt-10mg"), false,
+      "a same-site referrer must also be inside the final scope");
+    location.href = "https://www.psllabs.org/products/psl-rt-10mg"; location.pathname = "/products/psl-rt-10mg";
+    assert.equal(narrow.createMetaBrowserAction("PageView"), null);
+    assert.equal(await narrow.dispatchMetaBrowserAction({ name: "PageView", eventId: randomUUID(),
+      sourceUrl: location.href, consentRevision: consent.revision, createdAt: Date.now() }), false);
+    location.href = "https://www.psllabs.org/products/psl-rs-5ml"; location.pathname = "/products/psl-rs-5ml";
+    assert(narrow.createMetaBrowserAction("ViewContent", ["PSL-RS-5ML"]));
+    assert.equal(narrow.createMetaBrowserAction("AddToCart", ["PSL-RS-5ML"]), null,
+      "permission for one event does not authorize another on the same page");
+    location.href = "https://www.psllabs.org/checkout"; location.pathname = "/checkout";
+    assert(narrow.createMetaBrowserAction("InitiateCheckout", ["PSL-RS-5ML"]));
+    assert.equal(narrow.createMetaBrowserAction("InitiateCheckout", ["PSL-RS-5ML", "PSL-RT-10MG"]), null,
+      "mixed approved/unapproved carts are rejected before a request");
+    assert.equal(requests.length, 0); assert.equal(scriptLoads, 0);
+    location.href = "https://www.psllabs.org/"; location.pathname = "/";
     const first = createMetaBrowserAction("PageView")!;
     assert(first);
     assert.equal(await dispatchMetaBrowserAction(first), false, "off server reply never loads SDK");
