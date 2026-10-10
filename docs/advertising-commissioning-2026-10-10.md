@@ -18,6 +18,18 @@ The disconnected Meta QA dataset `2068969863735222` shows matching browser/serve
 
 Offline tests exercise the actual privacy service and API, consent blocking and revision checks, GPC, administrator and synthetic exclusions, withdrawal races, optional-identifier cleanup, private document boundaries, and browser back/forward restoration. Meta and TikTok purchase suites each check genuine settlement requirements, value/currency, mixed-cart rejection and retry IDs. These tests do not establish production platform receipt, customer matching or audience readiness.
 
+The clean Next.js 16.3.8 production build, privacy suite and both provider event suites passed. TikTok's disconnected QA pixel `DB547TBC77UAOLDV5VHG` received browser Pageview, ViewContent, AddToCart and InitiateCheckout events, plus isolated server test events. Actual SDK requests were absent before consent and stopped on withdrawal; navigation did not emit automatic events. Matching IDs were transmitted through both channels. Native browser/server deduplication remains unverified; an HTTP acknowledgement or an unchanged aggregate count is insufficient evidence.
+
+TikTok's production pixel received the sanctioned isolated server ViewContent test `c363e0c2-068f-4a62-8a42-34a2991b7623`, verified in native Test Events with its genuine product path and SKU. No ordinary production event or fictional production Purchase was sent. The source still reports "Not ready for campaign"; isolated test receipt does not establish audience collection or real production activity.
+
+## Native account and campaign readback
+
+- Meta independently approved ad `120254313408650204`. Campaign `120254313408630204` and ad set `120254313408640204` remain off; lifetime replacement budget is $81.15. Optimization is LANDING_PAGE_VIEWS and billing is IMPRESSIONS. Dataset `1407501624889556` is selected on the ad. The domain psllabs.org is verified and owned by PSL Labs.
+- TikTok phone verification is complete. Website campaign `1878669821944689`, ad group `1878669859187922` and ad `1878671783090337` remain saved, unpublished drafts. Engaged-session optimization bills by impression (oCPM); the one ad group's lifetime budget is $41.50. The native two-day minimum is $40. The production event source is not yet a usable saved optimization connection.
+- Both destinations are `https://www.psllabs.org/products`, return HTTP 200, use Learn More, and describe research materials without human-use claims. New website campaigns have no paid delivery, so website CPC and cost per landing-page view are unavailable.
+- Native lifetime spending on October 10 is Meta $18.85 and TikTok $58.50. Both original engagement/video-view campaigns remain paused. No replacement paid delivery was enabled and no original allowance was increased. Recheck delayed charges before launch.
+- Protected server credentials are staged in hosting configuration with both provider enable flags false. The candidate integration is saved in draft PR #37, not deployed. Production optional Meta/TikTok collection remains off; audience definitions are prepared but no usable matched audiences or lookalikes were created.
+
 ## Required activation gates
 
 1. Confirm ordinary ad review, dataset/pixel binding, domain/account ownership, billing eligibility, exact audience restrictions and the remaining original spending allowance from native platform records.
