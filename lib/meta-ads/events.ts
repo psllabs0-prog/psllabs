@@ -37,7 +37,8 @@ export function metaSourceUrlAllowed(sourceUrl: string, name: MetaEventName, pol
 }
 /** Advertising approval is not evidence that a particular product event is permitted. */
 export const PRODUCTION_META_EVENT_POLICY: MetaEventPolicy = Object.freeze({
-  approvedPaths: Object.freeze({}), approvedProductIds: Object.freeze([]),
+  approvedPaths: Object.freeze({ PageView: Object.freeze(["/products"]) }),
+  approvedProductIds: Object.freeze([]),
 });
 export type MetaEventInput = {
   name: MetaEventName; eventId: string; occurredAt: number; sourceUrl: string;

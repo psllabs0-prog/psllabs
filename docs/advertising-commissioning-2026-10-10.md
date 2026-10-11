@@ -8,9 +8,9 @@ This release prepares consent controls and TikTok event handling. It does not ac
 - TikTok production pixel: `DB53OTJC77U074LG2FOG`.
 - Server credentials are protected deployment secrets. Never copy them into source, browser code, logs or reports.
 - `META_ADS_ENABLED` and `TIKTOK_ADS_ENABLED` remain false.
-- Code verification flags remain false and production event policies remain empty.
+- TikTok verification flags remain false and its production event policy remains empty. The proposed Meta activation delta represents scoped QA readiness, with PageView on `/products` only. It does not claim genuine production receipt and still requires the protected deployment enable flag, which remains false.
 - Prepared TikTok measurement and purchase components are not mounted. No cart hook dispatches TikTok events.
-- Consent version 2 is a candidate release. It has not been deployed. Introducing TikTok must include accurate live disclosures, available provider controls and a fresh consent version; an earlier grant must not enable it silently.
+- Consent version 3 is the current Meta-first candidate release. It has not been deployed. Introducing TikTok later must include accurate live disclosures, available provider controls and another fresh consent version; an earlier grant must not enable it silently.
 
 ## Verified tests
 
@@ -34,11 +34,11 @@ TikTok's production pixel received the sanctioned isolated server ViewContent te
 
 1. Confirm ordinary ad review, dataset/pixel binding, domain/account ownership, billing eligibility, exact audience restrictions and the remaining original spending allowance from native platform records.
 2. Complete native TikTok event receipt and browser/server deduplication tests. Disable automatic matching, enhanced postback and automatic events, and verify SDK navigation/withdrawal behavior.
-3. Verify production receipt without adding synthetic purchases, administrator activity or other test activity to production advertising data. Meta's current official documentation explicitly says `test_event_code` events are used for targeting and ad measurement. Its fixtures must stay in the disconnected QA asset. TikTok documents an isolated server Test Event Function; require the valid current test code and never fall back to an ordinary event.
+3. Keep synthetic purchases, administrator activity and other test activity out of production advertising data. Meta's current official documentation explicitly says `test_event_code` events are used for targeting and ad measurement. Its fixtures must stay in the disconnected QA asset. TikTok documents an isolated server Test Event Function; require the valid current test code and never fall back to an ordinary event.
 4. Enable only reviewed, permissible event contexts, verified credentials, current consent and the matching live privacy disclosures. Never rename or mask a prohibited event to make it eligible. Consent does not override platform restrictions.
-5. Observe genuine, eligible, consented non-admin production activity and verify event receipt. No historic visit/order backfill or fake purchase is permitted. API acceptance alone is not a native receipt or deduplication result.
+5. Verify production receipt as ordinary, eligible, consented non-admin activity arrives after an approved rollout. This is follow-up verification, not a claimed Meta Traffic/LPV launch prerequisite. Recruitment of a laboratory researcher is not required. No historic visit/order backfill or fake purchase is permitted. Keep receipt marked unverified until observed; API acceptance alone is not a native receipt or deduplication result.
 6. Enforce withdrawal for any PSL audience use before enabling audience delivery. A platform's retention of past events does not prove a withdrawn member has been removed.
-7. Activate only after the affected gates pass. No audience-size threshold blocks otherwise verified collection.
+7. Activate only after the actual affected technical, consent, platform and budget checks pass and within current owner authorization. No audience-size threshold or superseded preactivation production-receipt requirement blocks a supported initial traffic rollout. The existing RUO entry gate records visitor age and intended-use declarations; it does not authenticate researcher credentials. The October 11 proposal awaits the owner's requested approval; no production tracking or paid activation has occurred.
 
 ## Audience and budget constraints
 

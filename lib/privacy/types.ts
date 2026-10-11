@@ -1,5 +1,5 @@
 /** Increment when providers, purposes or permitted data sharing change. */
-export const PRIVACY_CONSENT_VERSION = 2;
+export const PRIVACY_CONSENT_VERSION = 3;
 export const PRIVACY_CONSENT_TTL_MS = 180 * 24 * 60 * 60 * 1000;
 export const PRIVACY_CONSENT_COOKIE = "psl_optional_consent";
 export type PrivacyChoices = { measurement: boolean; personalization: boolean };

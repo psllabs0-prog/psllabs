@@ -6,7 +6,7 @@ import { isIP } from "node:net";
 import ts from "typescript";
 import { NextResponse } from "next/server";
 import { isSameOriginMutation } from "../lib/security/request-origin";
-import { prepareMetaEvent, REVIEWED_META_EVENT_POLICY } from "../lib/meta-ads/events";
+import { prepareMetaEvent } from "../lib/meta-ads/events";
 import { PRIVACY_CONSENT_VERSION } from "../lib/privacy/types";
 const ORIGIN = "https://www.psllabs.org";
 function fixture() {
@@ -29,8 +29,7 @@ function fixture() {
       }; },
       privacyService: { current: async () => state.current }, requestCookie: () => undefined,
     },
-    "@/lib/meta-ads/events": { prepareMetaEvent: (event: Parameters<typeof prepareMetaEvent>[0], options: Parameters<typeof prepareMetaEvent>[1]) =>
-      prepareMetaEvent(event, { ...options, policy: REVIEWED_META_EVENT_POLICY }) },
+    "@/lib/meta-ads/events": { prepareMetaEvent },
     "@/lib/meta-ads/transport": { sendPreparedMetaEvent: async (input: { currentPermission: () => Promise<boolean>; event: object; technical: object }) => {
       if (!await input.currentPermission()) return { ok: false };
       state.sends++;
@@ -43,9 +42,9 @@ function fixture() {
   const loader = (id: string) => { assert(id in mocks, `Unmocked dependency: ${id}`); return mocks[id]; };
   new Script(`(function(require,exports){${code}\n})`).runInContext(createContext({ URL, Date, process: { env: { VERCEL: "1" } } }))(loader, exports);
   const POST = exports.POST as (request: Request) => Promise<Response>;
-  const body = { name: "PageView", eventId: "b".repeat(64), sourceUrl: `${ORIGIN}/about` };
+  const body = { name: "PageView", eventId: "b".repeat(64), sourceUrl: `${ORIGIN}/products` };
   const post = (value: unknown = body, headers: Record<string, string> = {}) => POST(new Request(`${ORIGIN}/api/meta/events`, {
-    method: "POST", headers: { Origin: ORIGIN, Referer: `${ORIGIN}/about`, "User-Agent": "Offline fixture", "X-Vercel-Forwarded-For": "192.0.2.1", ...headers },
+    method: "POST", headers: { Origin: ORIGIN, Referer: `${ORIGIN}/products`, "User-Agent": "Offline fixture", "X-Vercel-Forwarded-For": "192.0.2.1", ...headers },
     body: JSON.stringify(value),
   }));
   return { state, body, post };
@@ -62,6 +61,14 @@ async function main() {
   f.state.consent = true; f.state.personalization = false;
   assert.deepEqual(await (await f.post()).json(), { event: null }); assert.equal(f.state.sends, 0);
   f.state.personalization = true;
+  for (const name of ["ViewContent", "AddToCart", "InitiateCheckout"]) {
+    assert.equal((await (await f.post({ ...f.body, name, productIds: ["PSL-RT-10MG"] })).json()).event, null,
+      `${name} stays blocked by the actual production PageView policy`);
+  }
+  for (const sourceUrl of [`${ORIGIN}/`, `${ORIGIN}/about`, `${ORIGIN}/products/psl-rt-10mg`, `${ORIGIN}/checkout`]) {
+    assert.equal((await (await f.post({ ...f.body, sourceUrl }, { Referer: sourceUrl })).json()).event, null,
+      "even a matching actual referrer cannot authorize a page outside the proposal");
+  }
   for (const body of [{ ...f.body, email: "private@example.invalid" }, { ...f.body, name: "Purchase" },
     { ...f.body, productIds: [123] }, { ...f.body, sourceUrl: `${ORIGIN}/about?medical=private` },
     { ...f.body, sourceUrl: `${ORIGIN}/admin-ledger.01` }]) {
