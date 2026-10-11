@@ -1,9 +1,7 @@
-import { getDiscordInviteUrl } from "@/lib/social";
-
 export type NavLink = {
   label: string;
   href: string;
-  /** Opens in a new tab. Use for external URLs (Discord, etc.). */
+  /** Opens external URLs in a new tab. */
   external?: boolean;
 };
 
@@ -42,11 +40,6 @@ export const footerColumns: { title: string; links: NavLink[] }[] = [
     links: [
       { label: "About", href: "/about" },
       { label: "Contact", href: "/contact" },
-      {
-        label: "Discord",
-        href: getDiscordInviteUrl(),
-        external: true,
-      },
     ],
   },
   {

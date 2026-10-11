@@ -2,7 +2,7 @@
  * Offline tests for Phase 12 Discord agent.
  * Run: npm run test:discord
  */
-import { createPrivateKey, sign, generateKeyPairSync } from "node:crypto";
+import { sign, generateKeyPairSync } from "node:crypto";
 import { verifyDiscordRequest } from "../lib/discord/verify";
 import {
   DISCORD_ALLOWED_MENTIONS,
@@ -24,6 +24,8 @@ import {
   isDiscordBotEnabled,
 } from "../lib/discord/config";
 import { hashDiscordUserId } from "../lib/discord/store";
+import { registerDiscordCommands } from "../lib/discord/register";
+import { POST as handleRetiredInteraction } from "../app/api/discord/interactions/route";
 import { canCreateContentOpportunityFromTheme } from "../lib/customer-intelligence/guardrails";
 import { createHmac } from "node:crypto";
 import { readFileSync } from "fs";
@@ -211,7 +213,9 @@ function testHashAndReadiness() {
   assert(hashDiscordUserId("12345") === null, "no hash without secret");
 
   process.env.DISCORD_ANALYTICS_HASH_SECRET = "test-secret-for-hmac";
-  assert(getDiscordConfig().ready === true, "secret present + ids => ready");
+  assert(getDiscordConfig().ready === false, "retired bot stays unavailable despite complete credentials");
+  assert(isDiscordBotEnabled() === false, "stale enabled environment flag cannot restart retired bot");
+  assert(getDiscordConfig().inviteUrl === "", "removed invite is not returned");
   assert(
     getDiscordAdminStatusSafe().analyticsHashConfigured === true,
     "admin shows hashing yes"
@@ -274,14 +278,29 @@ function testAdminAndDisabled() {
   );
   assert(/requireAdminAuth/.test(adminRoute), "command registration requires admin");
 
-  const dash = readFileSync(
-    join(process.cwd(), "components/admin/admin-discord-dashboard.tsx"),
-    "utf8"
-  );
-  assert(
-    /Analytics\/rate-limit hashing configured/.test(dash),
-    "admin UI shows hashing configured"
-  );
+}
+
+async function testRetiredIntegrationHasNoSideEffects() {
+  const originalFetch = globalThis.fetch;
+  const originalEnabled = process.env.DISCORD_BOT_ENABLED;
+  let fetches = 0;
+  let bodyReads = 0;
+  globalThis.fetch = async () => { fetches++; throw new Error("Outbound requests forbidden"); };
+  process.env.DISCORD_BOT_ENABLED = "true";
+  try {
+    const registered = await registerDiscordCommands();
+    assert(!registered.ok && registered.commandCount === 0, "retired bot cannot register commands");
+    const response = await handleRetiredInteraction({
+      text: async () => { bodyReads++; throw new Error("Retired interactions must not be processed"); },
+    } as Request);
+    assert(response.status === 503, "retired interaction endpoint refuses processing");
+    assert(bodyReads === 0, "interaction rejected before reading a user message");
+    assert(fetches === 0, "retirement makes no outbound requests");
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalEnabled === undefined) delete process.env.DISCORD_BOT_ENABLED;
+    else process.env.DISCORD_BOT_ENABLED = originalEnabled;
+  }
 }
 
 async function main() {
@@ -292,6 +311,7 @@ async function main() {
   await testProductsNoInbound();
   testHashAndReadiness();
   testAdminAndDisabled();
+  await testRetiredIntegrationHasNoSideEffects();
   console.log("[test:discord] ok");
 }
 

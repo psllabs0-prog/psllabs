@@ -27,7 +27,7 @@ Note: older README text may still mention `/api/cron/low-stock`; scheduled inven
 
 ## Admin surfaces
 
-`/admin-support`, `/admin-fulfillment`, `/admin-inventory`, `/admin-ledger`, `/admin-finance`, `/admin-ops`, `/admin-ceo`, `/admin-decisions`, `/admin-discord`, `/admin-retention`, `/admin-acquisition`, `/admin-customer-intelligence`, `/admin-data`, `/admin-attribution`, `/admin-authority`, `/admin-intelligence`.
+`/admin-support`, `/admin-fulfillment`, `/admin-inventory`, `/admin-ledger`, `/admin-finance`, `/admin-ops`, `/admin-ceo`, `/admin-decisions`, `/admin-retention`, `/admin-acquisition`, `/admin-customer-intelligence`, `/admin-data`, `/admin-attribution`, `/admin-authority`, `/admin-intelligence`.
 
 ## Major automated systems
 
@@ -38,7 +38,7 @@ Note: older README text may still mention `/api/cron/low-stock`; scheduled inven
 | Finance reconcile | `lib/finance/` | Provider vs PSL reconciliation + sheet sync |
 | Inventory monitor | `lib/inventory/monitor/` | Stock risk alerts |
 | Retention | `lib/retention/` | Post-purchase marketing email |
-| Discord | `lib/discord/` | Community Q&A within knowledge bounds |
+| Retired community integration | `lib/discord/` | Disabled; historical records retained |
 | Decision engine | `lib/decision-engine/` | Cross-business decisions + digest |
 | CEO brief | `lib/ceo-brief/` | Weekly owner brief |
 | Ops exceptions | `lib/ops/` | Aggregated exception board |

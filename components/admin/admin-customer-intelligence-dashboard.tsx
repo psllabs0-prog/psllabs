@@ -209,7 +209,7 @@ export function AdminCustomerIntelligenceDashboard() {
             Current {h.feedbackCurrent ?? 0} · Prior {h.feedbackPrior ?? 0}
           </li>
           <li className="border border-ink/10 p-3">
-            <span className="font-medium">COMMUNITY — Discord</span>
+            <span className="font-medium">COMMUNITY HISTORY</span>
             <br />
             Current {h.communityCurrent ?? 0} · Prior {h.communityPrior ?? 0}
           </li>

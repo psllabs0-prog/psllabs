@@ -1,20 +1,18 @@
 ---
 status: approved
 owner: Luke
-last_reviewed: 2026-09-23
+last_reviewed: 2026-10-11
 ---
 
 # Social policy
 
-Sources: `lib/social.ts`, `lib/discord/*`, `/admin-discord`.
+Sources: `lib/navigation.ts`, `lib/discord/config.ts`.
 
-## Discord
+## Retired community channel
 
-- Public invite URL is configured via `NEXT_PUBLIC_DISCORD_INVITE_URL`, with a coded default invite in `lib/social.ts`.
-- Discord bot / interactions are implemented under `lib/discord/` and `/api/discord/interactions`.
-- Answer behavior is constrained to approved knowledge and RUO boundaries; channel answers must not leak order PII (see Discord answer modules / tests).
-
-**NEEDS OWNER CONFIRMATION:** Whether the coded default invite remains the canonical public Discord link for all marketing surfaces.
+- The owner removed the Discord server. Do not promote, invite users to, or send messages to that channel.
+- Public invite links and the active admin tool have been removed. Legacy tool bookmarks return to `/admin`, which retains its existing authentication.
+- Bot interactions and command registration are disabled in code, regardless of old deployment environment flags. Historical records remain intact.
 
 ## Paid social acquisition
 

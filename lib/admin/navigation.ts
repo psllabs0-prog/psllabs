@@ -26,7 +26,6 @@ export const ADMIN_VIEWS = [
   { id: "customer-insights", group: "more", label: "Customer insights", legacyHref: "/admin-customer-intelligence" },
   { id: "feedback", group: "more", label: "Customer feedback", legacyHref: "/admin-intelligence" },
   { id: "data", group: "more", label: "Data connections", legacyHref: "/admin-data" },
-  { id: "discord", group: "more", label: "Discord", legacyHref: "/admin-discord" },
   { id: "automation", group: "more", label: "Automation health", legacyHref: "/admin-ops?tab=mission-control" },
 ] as const satisfies readonly {
   id: string;

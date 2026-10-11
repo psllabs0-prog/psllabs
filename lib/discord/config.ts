@@ -1,5 +1,7 @@
 export function isDiscordBotEnabled(): boolean {
-  return process.env.DISCORD_BOT_ENABLED?.trim() === "true";
+  // The owner removed the community server. Stale deployment flags must not
+  // reactivate interactions or outbound command registration.
+  return false;
 }
 
 export function isDiscordTestMode(): boolean {
@@ -26,17 +28,7 @@ export function getDiscordConfig(): {
   const botTokenConfigured = Boolean(process.env.DISCORD_BOT_TOKEN?.trim());
   const analyticsHashConfigured = isDiscordAnalyticsHashConfigured();
   const guildId = process.env.DISCORD_GUILD_ID?.trim() || null;
-  const inviteRaw =
-    process.env.DISCORD_INVITE_URL?.trim() ||
-    process.env.NEXT_PUBLIC_DISCORD_INVITE_URL?.trim() ||
-    "https://discord.gg/Jhavgx3HB4";
-  let inviteUrl = "https://discord.gg/Jhavgx3HB4";
-  try {
-    const u = new URL(inviteRaw);
-    if (u.protocol === "https:") inviteUrl = u.toString();
-  } catch {
-    // keep default
-  }
+  const inviteUrl = "";
 
   const rateLimitPerMinute = (() => {
     const n = Number(process.env.DISCORD_RATE_LIMIT_PER_MINUTE?.trim() ?? "10");
@@ -46,7 +38,8 @@ export function getDiscordConfig(): {
   const enabled = isDiscordBotEnabled();
   // Hash secret required — rate limiting must not silently disable.
   const ready = Boolean(
-    applicationId &&
+    enabled &&
+      applicationId &&
       publicKey &&
       botTokenConfigured &&
       analyticsHashConfigured

@@ -7,7 +7,6 @@ import { getSql } from "@/lib/db/sql";
 import { getBtcpostagePublicConfig } from "@/lib/btcpostage/config";
 import { fetchLatestLegitimateCustomerIntelSnapshot } from "@/lib/customer-intelligence/snapshot-validity";
 import { isLukeOwnerAttention } from "@/lib/decision-engine/owner-count";
-import { getDiscordAdminStatusSafe } from "@/lib/discord/config";
 import {
   getRetentionReadiness,
   isRetentionTestMode,
@@ -435,25 +434,6 @@ async function observeFulfillment(sql: SqlClient): Promise<WorkerObservationResu
   };
 }
 
-async function observeDiscord(sql: SqlClient): Promise<WorkerObservationResult> {
-  const status = getDiscordAdminStatusSafe();
-  const lastActivity = status.enabled
-    ? await scalarIso(sql`SELECT MAX(created_at) AS at FROM discord_interactions`)
-    : null;
-  return {
-    observation: {
-      enabled: status.enabled,
-      misconfigured: status.enabled && !status.ready ? "Enabled but bot configuration incomplete" : null,
-      latestRun: null,
-      lastSuccessAt: null,
-      lastActivityAt: lastActivity,
-      staleAfterMinutes: null,
-      waitingCount: 0,
-    },
-    testMode: status.testMode,
-  };
-}
-
 async function observeAuthority(sql: SqlClient): Promise<WorkerObservationResult> {
   const lastActivity = await scalarIso(
     sql`SELECT MAX(updated_at) AS at FROM authority_opportunities`
@@ -668,7 +648,6 @@ export async function collectWorkerCards(input?: { now?: Date }): Promise<Worker
     ["finance", observeFinance],
     ["inventory", observeInventory],
     ["fulfillment", observeFulfillment],
-    ["discord", observeDiscord],
     ["authority", observeAuthority],
     ["customer_intelligence", observeCustomerIntel],
     ["decision_engine", observeDecisionEngine],
