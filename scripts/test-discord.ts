@@ -292,7 +292,7 @@ async function testRetiredIntegrationHasNoSideEffects() {
     assert(!registered.ok && registered.commandCount === 0, "retired bot cannot register commands");
     const response = await handleRetiredInteraction({
       text: async () => { bodyReads++; throw new Error("Retired interactions must not be processed"); },
-    } as Request);
+    } as unknown as Request);
     assert(response.status === 503, "retired interaction endpoint refuses processing");
     assert(bodyReads === 0, "interaction rejected before reading a user message");
     assert(fetches === 0, "retirement makes no outbound requests");
