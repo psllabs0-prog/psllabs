@@ -4,7 +4,6 @@ import { ContactForm } from "@/components/contact/contact-form";
 import { ContactInfoPanel } from "@/components/contact/contact-info-panel";
 import { contactPage } from "@/lib/contact";
 import { createPageMetadata } from "@/lib/seo";
-import { getDiscordInviteUrl } from "@/lib/social";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Contact",
@@ -14,16 +13,11 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 export default function ContactPage() {
-  const discordInviteUrl = getDiscordInviteUrl();
-
   return (
     <main className="public-page-surface relative bg-paper">
       <div className="relative mx-auto max-w-[1440px] px-6 py-16 md:px-16 md:py-20 lg:px-24 lg:py-24">
         <div className="grid grid-cols-1 items-start gap-14 lg:grid-cols-2 lg:gap-16 xl:gap-24">
-          <ContactInfoPanel
-            content={contactPage}
-            discordInviteUrl={discordInviteUrl}
-          />
+          <ContactInfoPanel content={contactPage} />
 
           <div className="lg:sticky lg:top-28">
             <ContactForm

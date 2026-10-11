@@ -176,7 +176,8 @@ async function testReadPathNoDdlDefault() {
   assert(snap.initialized, "initialized when tables exist");
   assert(!snap.writeMode.enabled, "writes disabled by default");
   assert(snap.sync === null, "client header alone does not trigger sync");
-  assert(snap.snapshot?.workers.length === 11, "worker cards still rendered read-only");
+  assert(snap.snapshot?.workers.length === 10, "active worker cards still rendered read-only");
+  assert(snap.snapshot?.workers.every((worker) => worker.worker !== "discord"), "retired integration is absent from active tools");
   assert(snap.snapshot?.incidents === null, "shared incident collector not called read-only");
   assert(snap.snapshot?.incidentsNote, "incidents note explains read-only mode");
   assert(fake.ddl().length === 0, `read path ran DDL:\n${fake.ddl().map((c) => c.text).join("\n")}`);
@@ -234,7 +235,7 @@ async function testMissingTablesGraceful() {
     "lists missing tables"
   );
   assert(res.events.length === 0, "no events, none fabricated");
-  assert(res.snapshot?.workers.length === 11, "worker cards still available");
+  assert(res.snapshot?.workers.length === 10, "active worker cards still available");
   assert(res.snapshot?.coverage.length === 0, "sync-state table not queried");
   assert(fake.ddl().length === 0, "missing tables are never auto-created");
   assert(fake.writes().length === 0, "no writes when uninitialized");

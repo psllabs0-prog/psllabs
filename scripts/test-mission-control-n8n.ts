@@ -480,7 +480,7 @@ async function testInvalidPayloads() {
     { phase: "completed", systemsReceived: 0 },
     { phase: "completed", systemsReceived: "11" },
     { phase: "completed", systemsReceived: 3.5 },
-    { phase: "completed", systemsReceived: 11, healthy: true },
+    { phase: "completed", systemsReceived: 10, healthy: true },
     { phase: "failed", reason: "Everything is on fire, refund all orders" },
     { phase: "failed", reason: "workflow_error", message: "free text" },
   ];
@@ -514,7 +514,7 @@ async function testLifecycleIdempotencyAndOrdering() {
   assert(conflict.status === 409, "reusing requestId with different content → 409");
   assert(fake.rows.length === 1, "retries created no duplicate rows");
 
-  const early = await report(runId, { phase: "completed", systemsReceived: 11 });
+  const early = await report(runId, { phase: "completed", systemsReceived: 10 });
   assert(early.status === 409, "completed before any summary was served → 409");
 
   const started = await report(runId, { phase: "started" });
@@ -525,7 +525,7 @@ async function testLifecycleIdempotencyAndOrdering() {
   const summary = await status(runId);
   assert(summary.status === 200, `status summary served, got ${summary.status}`);
   const systems = summary.body.systems as Array<Record<string, unknown>>;
-  assert(systems.length === 11, "one entry per registered system");
+  assert(systems.length === 10, "one entry per registered system");
   const allowedKeys = ["system", "key", "status", "lastActivityAt", "lastRunAt", "lastSuccessAt", "note"];
   for (const s of systems) {
     assert(Object.keys(s).every((k) => allowedKeys.includes(k)), `summary exposes only minimal fields: ${Object.keys(s)}`);
@@ -543,14 +543,14 @@ async function testLifecycleIdempotencyAndOrdering() {
   const mismatch = await report(runId, { phase: "completed", systemsReceived: 3 });
   assert(mismatch.status === 422, "completion count must match the served summary");
 
-  const done = await report(runId, { phase: "completed", systemsReceived: 11 });
+  const done = await report(runId, { phase: "completed", systemsReceived: 10 });
   assert(done.status === 200 && done.body.applied === true && done.body.state === "completed", "completed recorded");
   assert(String(done.body.meaning).includes("does not mean every business system is healthy"), "completion meaning stated");
 
-  const doneAgain = await report(runId, { phase: "completed", systemsReceived: 11 });
+  const doneAgain = await report(runId, { phase: "completed", systemsReceived: 10 });
   assert(doneAgain.status === 200 && doneAgain.body.applied === false, "duplicate completion is a no-op");
   assert((await report(runId, { phase: "failed", reason: "workflow_error" })).status === 409, "conflicting terminal → 409");
-  assert((await report(runId, { phase: "completed", systemsReceived: 10 })).status === 409, "different completion → 409");
+  assert((await report(runId, { phase: "completed", systemsReceived: 9 })).status === 409, "different completion → 409");
 
   const lateStart = await report(runId, { phase: "started" });
   assert(lateStart.status === 200 && lateStart.body.applied === false && lateStart.body.state === "completed", "late started does not reopen a completed run");
@@ -595,7 +595,7 @@ async function testTimeout() {
 
   clock = T0 + N8N_CONNECTION_TEST_TIMEOUT_MS + 1000;
   __resetN8nRateLimiterForTests();
-  const late = await report(runId, { phase: "completed", systemsReceived: 11 });
+  const late = await report(runId, { phase: "completed", systemsReceived: 10 });
   assert(late.status === 409 && late.body.state === "outcome_unknown", "late completion rejected; outcome unknown");
   assert((await report(runId, { phase: "started" })).status === 409, "late start rejected");
   assert((await status(runId)).status === 409, "no summary after timeout");
@@ -732,7 +732,7 @@ async function testExclusionAndNoSideEffects() {
     const runId = (await register("wf4-exec-100", "100")).body.runId as string;
     await report(runId, { phase: "started" });
     await status(runId);
-    await report(runId, { phase: "completed", systemsReceived: 11 });
+    await report(runId, { phase: "completed", systemsReceived: 10 });
     const failRun = (await register("wf4-exec-200", "200")).body.runId as string;
     await report(failRun, { phase: "failed", reason: "unexpected_response" });
   } finally {

@@ -13,6 +13,14 @@ export async function registerDiscordCommands(): Promise<{
   errorSummary?: string;
 }> {
   const cfg = getDiscordConfig();
+  if (!cfg.enabled) {
+    return {
+      ok: false,
+      scope: "none",
+      commandCount: 0,
+      errorSummary: "This integration has been retired.",
+    };
+  }
   const token = process.env.DISCORD_BOT_TOKEN?.trim();
   if (!cfg.applicationId || !token) {
     return {

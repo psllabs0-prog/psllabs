@@ -63,6 +63,39 @@ async function main() {
   const expiredChoice = await service.read(accepted.token, ordinary);
   const renewed = await service.save(accepted.token, { measurement: true, personalization: false }, ordinary, expiredChoice.consent.revision);
   assert.equal(await service.current(renewed.binding, "google"), true, "explicit expiry renewal uses the current revision");
+
+  // Enabling a new provider never repurposes a previous policy's receipt or an
+  // order bound to it, even when the earlier record contained both choices.
+  const previousVersion = PRIVACY_CONSENT_VERSION - 1;
+  const previousRecord = { ...records.get(renewed.binding!.digest)!, version: previousVersion, personalization: true };
+  records.set(previousRecord.digest, previousRecord);
+  caps.metaMeasurement = true; caps.metaPersonalization = true;
+  const previousBinding = { ...renewed.binding!, version: previousVersion };
+  const needsChoice = await service.read(accepted.token, ordinary);
+  assert.equal(needsChoice.consent.choice, "unknown");
+  assert.equal(needsChoice.consent.measurement, false);
+  assert.equal(needsChoice.consent.personalization, false);
+  assert.equal(needsChoice.binding, null);
+  assert.equal(needsChoice.consent.revision, previousRecord.revision, "reconsent retains the revision needed for atomic saving");
+  for (const provider of ["google", "openai", "meta"] as const) {
+    assert.equal(await service.current(previousBinding, provider), false, "old policy bindings remain invalid");
+  }
+  const newChoice = await service.save(accepted.token, { measurement: true, personalization: true }, ordinary, needsChoice.consent.revision);
+  assert.equal(newChoice.binding!.version, PRIVACY_CONSENT_VERSION);
+  assert.equal(await service.current(newChoice.binding, "meta", true), true, "Meta requires a new current-version choice");
+  assert.equal(await service.current(previousBinding, "meta", true), false, "new consent does not backfill earlier orders");
+  const onlyMeasurement = await service.save(accepted.token, { measurement: true, personalization: false }, ordinary, newChoice.consent.revision);
+  assert.equal(await service.current(onlyMeasurement.binding, "google"), true);
+  assert.equal(await service.current(onlyMeasurement.binding, "openai"), true);
+  assert.equal(await service.current(onlyMeasurement.binding, "meta", true), false, "measurement-only choice does not satisfy Meta's dual-purpose gate");
+  assert.equal(await service.current(newChoice.binding, "tiktok", true), false, "Meta availability never authorizes TikTok");
+  caps.tiktokMeasurement = true;
+  const tiktokChoice = await service.save(accepted.token, { measurement: true, personalization: true }, ordinary, onlyMeasurement.consent.revision);
+  assert.equal(await service.current(tiktokChoice.binding, "tiktok", true), false, "TikTok personalization requires its own verified capability");
+  caps.tiktokPersonalization = true;
+  assert.equal(await service.current(tiktokChoice.binding, "tiktok", true), true);
+  await service.save(accepted.token, { measurement: false, personalization: false }, ordinary, tiktokChoice.consent.revision);
+  assert.equal(await service.current(tiktokChoice.binding, "tiktok", true), false, "withdrawal invalidates TikTok server dispatch");
   fail = true;
   assert.equal((await service.read(accepted.token, ordinary)).consent.measurement, false);
   assert.equal(await service.current(expires.binding, "google"), false);

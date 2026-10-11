@@ -31,7 +31,6 @@ const panels = {
   "customer-insights": dynamic(() => import("./admin-customer-intelligence-dashboard").then((m) => m.AdminCustomerIntelligenceDashboard), { loading: LoadingTool }),
   feedback: dynamic(() => import("./admin-customer-feedback-dashboard").then((m) => m.AdminCustomerFeedbackDashboard), { loading: LoadingTool }),
   data: dynamic(() => import("./admin-data-dashboard").then((m) => m.AdminDataDashboard), { loading: LoadingTool }),
-  discord: dynamic(() => import("./admin-discord-dashboard").then((m) => m.AdminDiscordDashboard), { loading: LoadingTool }),
   automation: dynamic(() => import("./mission-control").then((m) => m.MissionControl), { loading: LoadingTool }),
 } satisfies Record<Exclude<AdminViewId, "inventory">, unknown>;
 

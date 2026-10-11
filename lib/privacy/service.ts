@@ -57,21 +57,24 @@ export function createPrivacyService(dependencies: {
     const digest = consentDigest(currentToken)!;
     const available = capabilities();
     const permitted = !context.gpc && !context.admin && choices.measurement &&
-      (available.googleMeasurement || available.openaiMeasurement || available.metaMeasurement);
+      (available.googleMeasurement || available.openaiMeasurement || available.metaMeasurement || available.tiktokMeasurement);
     const record = await dependencies.store.save(digest, {
-      measurement: permitted, personalization: permitted && available.metaPersonalization && choices.personalization,
+      measurement: permitted, personalization: permitted &&
+        (available.metaPersonalization || available.tiktokPersonalization) && choices.personalization,
     }, now() + PRIVACY_CONSENT_TTL_MS, permitted ? expectedRevision : undefined);
     if (!record) throw new ConsentConflictError("Preferences changed in another tab. Please review your current choice.");
     return { ...present(record, context), token: currentToken };
   }
   async function current(binding: PrivacyConsentBinding | null | undefined,
-    provider: "google" | "openai" | "meta", personalization = false): Promise<boolean> {
+    provider: "google" | "openai" | "meta" | "tiktok", personalization = false): Promise<boolean> {
     if (!binding || !TOKEN_PATTERN.test(binding.digest) ||
         !Number.isSafeInteger(binding.revision) || binding.revision < 1 ||
         binding.version !== PRIVACY_CONSENT_VERSION) return false;
     const caps = capabilities();
-    if (!(provider === "google" ? caps.googleMeasurement : provider === "openai"
-      ? caps.openaiMeasurement : caps.metaMeasurement) || (personalization && !caps.metaPersonalization)) return false;
+    const measurementAvailable = provider === "google" ? caps.googleMeasurement : provider === "openai"
+      ? caps.openaiMeasurement : provider === "tiktok" ? caps.tiktokMeasurement : caps.metaMeasurement;
+    const personalizationAvailable = provider === "tiktok" ? caps.tiktokPersonalization : caps.metaPersonalization;
+    if (!measurementAvailable || (personalization && !personalizationAvailable)) return false;
     try {
       const record = await dependencies.store.read(binding.digest);
       return Boolean(record && record.version === binding.version && record.revision === binding.revision &&

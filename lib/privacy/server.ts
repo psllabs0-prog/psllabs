@@ -2,6 +2,7 @@ import { getSql } from "../db/sql";
 import { verifyAdminSessionToken } from "../admin/auth";
 import { readGoogleAdsConfig } from "../google-ads/config";
 import { readOpenAIAdsConfig } from "../openai-ads/client";
+import { readMetaServerConfig } from "../meta-ads/config";
 import { createPrivacyService, type ConsentRecord, type ConsentStore } from "./service";
 import { PRIVACY_CONSENT_COOKIE, PRIVACY_CONSENT_VERSION, type PrivacyConsentBinding } from "./types";
 
@@ -47,9 +48,12 @@ const store: ConsentStore = {
   },
 };
 export function privacyCapabilities() {
+  const metaAvailable = Boolean(readMetaServerConfig());
   return {
-    // A new consent version and verified eligible events are required before enabling Meta.
-    metaMeasurement: false, metaPersonalization: false,
+    // Both choices authorize the disclosed provider data use, not PSL audiences.
+    // The configuration still requires the explicitly enabled server flag.
+    metaMeasurement: metaAvailable, metaPersonalization: metaAvailable,
+    tiktokMeasurement: false, tiktokPersonalization: false,
     googleMeasurement: Boolean(readGoogleAdsConfig()), openaiMeasurement: readOpenAIAdsConfig().ok,
   };
 }
@@ -67,6 +71,6 @@ export function readRequestPrivacyConsent(request: Request) {
   return privacyService.read(requestCookie(request, PRIVACY_CONSENT_COOKIE), requestPrivacyContext(request));
 }
 export function isCurrentMeasurementConsent(binding: PrivacyConsentBinding | null | undefined,
-  provider: "google" | "openai" | "meta") {
+  provider: "google" | "openai" | "meta" | "tiktok") {
   return privacyService.current(binding, provider);
 }

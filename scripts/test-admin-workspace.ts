@@ -99,7 +99,8 @@ async function main() {
   assert.equal(new Set(ADMIN_VIEWS.map((view) => view.id)).size, ADMIN_VIEWS.length);
   for (const group of ADMIN_GROUPS) assert.equal(resolveAdminView(group.defaultView).group, group.id);
   const legacyPages = readdirSync(resolve(ROOT, "app"), { withFileTypes: true })
-    .filter((entry) => entry.isDirectory() && entry.name.startsWith("admin-") && existsSync(resolve(ROOT, "app", entry.name, "page.tsx")))
+    // The separate demo and retired redirect are not active administration tools.
+    .filter((entry) => entry.isDirectory() && entry.name.startsWith("admin-") && !["admin-discord", "admin-ledger.01"].includes(entry.name) && existsSync(resolve(ROOT, "app", entry.name, "page.tsx")))
     .map((entry) => `/${entry.name}`).sort();
   assert.deepEqual([...new Set(ADMIN_VIEWS.map((view) => view.legacyHref.split("?")[0]))].sort(), legacyPages, "every legacy tool remains reachable from the hub");
   for (const view of ADMIN_VIEWS) {
@@ -107,7 +108,7 @@ async function main() {
     assert.equal(url.pathname, "/admin");
     assert.equal(resolveAdminView(url.searchParams.get("view")).id, view.id, "bookmark round trip");
   }
-  for (const invalid of [undefined, null, "", "unknown", "__proto__", "constructor", "https://example.test", ["inventory"], "inventory&redirect=https://example.test"]) {
+  for (const invalid of [undefined, null, "", "unknown", "discord", "__proto__", "constructor", "https://example.test", ["inventory"], "inventory&redirect=https://example.test"]) {
     assert.equal(resolveAdminView(invalid).id, "overview");
     scenarios++;
   }

@@ -12,12 +12,12 @@ import {
 } from "../lib/google-ads/purchase";
 import type { GoogleAdsConfig } from "../lib/google-ads/config";
 import type { getSql } from "../lib/db/sql";
-import { UNKNOWN_PRIVACY_CONSENT, type PrivacyConsentBinding } from "../lib/privacy/types";
+import { PRIVACY_CONSENT_VERSION, UNKNOWN_PRIVACY_CONSENT, type PrivacyConsentBinding } from "../lib/privacy/types";
 
 const NOW = Date.parse("2026-10-05T12:00:00.000Z");
 const CONFIG = { tagId: "AW-123456789", conversionLabel: "fixture_label", sendTo: "AW-123456789/fixture_label" };
 const PROOF = { provider: "tagada" as const, paymentId: "pay_fixture" };
-const BINDING: PrivacyConsentBinding = { digest: "a".repeat(64), revision: 1, version: 1 };
+const BINDING: PrivacyConsentBinding = { digest: "a".repeat(64), revision: 1, version: PRIVACY_CONSENT_VERSION };
 const ORDER: GooglePurchaseOrder = {
   orderId: "psl_google_fixture", status: "paid", paidAt: new Date(NOW - 1000).toISOString(),
   total: 59.99, currency: "USD", invoiceId: "checkout_fixture", paymentMethod: "card",
@@ -186,7 +186,8 @@ async function main() {
     {
       const f = await prepared();
       check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId), null, "order ID alone cannot release an advertising receipt");
-      for (const binding of [{ ...BINDING, digest: "b".repeat(64) }, { ...BINDING, revision: 2 }, { ...BINDING, version: 2 }]) {
+      for (const binding of [{ ...BINDING, digest: "b".repeat(64) }, { ...BINDING, revision: 2 },
+        { ...BINDING, version: PRIVACY_CONSENT_VERSION - 1 }]) {
         check(await f.service.getVerifiedGooglePurchaseReceipt(ORDER.orderId, binding), null);
       }
       check(f.state.verifies, 0, "wrong browser consent receipt stops before provider reads");

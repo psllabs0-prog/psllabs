@@ -61,7 +61,7 @@ try {
     return Response.json({ consent: { ...UNKNOWN_PRIVACY_CONSENT, ...choices,
       choice: init.method === "POST" ? "saved" : "unknown", revision: ++revision,
       expiresAt: Date.now() + 86400000,
-      capabilities: { metaMeasurement: false, metaPersonalization: false, googleMeasurement: true, openaiMeasurement: false } } });
+      capabilities: { tiktokMeasurement: false, tiktokPersonalization: false, metaMeasurement: false, metaPersonalization: false, googleMeasurement: true, openaiMeasurement: false } } });
   } });
   storage.set("psl_researcher_verified_v1", "1");
   storage.set(GOOGLE_ADS_CONSENT_KEY, JSON.stringify({ version: 1, choice: "granted", updatedAt: Date.now() }));

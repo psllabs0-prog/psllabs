@@ -3,7 +3,6 @@
  */
 
 import { getRetentionReadiness } from "@/lib/retention/config";
-import { getDiscordAdminStatusSafe } from "@/lib/discord/config";
 import { collectOpsExceptions } from "@/lib/ops/exceptions";
 import {
   collectOpsSystemStatuses,
@@ -146,23 +145,6 @@ export async function collectSystemReadinessMatrix(): Promise<
     });
   }
 
-  const discord = getDiscordAdminStatusSafe();
-  byArea.set("Discord", {
-    area: "Discord",
-    status: !discord.enabled
-      ? "Intentionally disabled"
-      : !discord.ready
-        ? "Not configured"
-        : "Healthy",
-    detail: !discord.enabled
-      ? null
-      : !discord.ready
-        ? "Incomplete bot config"
-        : discord.testMode
-          ? "TEST MODE"
-          : null,
-  });
-
   try {
     const last = await getLatestDecisionRun();
     if (!last) {
@@ -237,7 +219,6 @@ export async function collectSystemReadinessMatrix(): Promise<
     "Paid Acquisition",
     "Authority",
     "Customer Intelligence",
-    "Discord",
     "Decision Engine",
     "CEO Brief",
   ];

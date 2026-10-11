@@ -68,14 +68,14 @@ export function ResearcherVerificationGate() {
                   <PSLLogo height={48} eager />
                 </div>
 
-                <p className="mono text-ash">RESEARCHER VERIFICATION</p>
+                <p className="mono text-ash">AGE AND RESEARCH USE</p>
                 <Dialog.Title
                   className="mt-3 font-display text-2xl font-bold text-ink md:text-3xl"
                 >
-                  Researcher Verification
+                  Age and research-use confirmation
                 </Dialog.Title>
                 <Dialog.Description className="mt-3 text-sm leading-relaxed text-ash md:text-base">
-                  Access is restricted. Confirm eligibility to enter PSL Labs.
+                  Confirm your age and intended laboratory use to enter PSL Labs.
                 </Dialog.Description>
               </div>
 

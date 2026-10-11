@@ -31,11 +31,9 @@ Derived from live kill switches and guardrails in code. Agents must not exceed t
 - Promise refunds/replacements.
 - Auto-send YELLOW/RED acknowledgments.
 
-## Discord agent
+## Retired community agent
 
-**May** answer from approved knowledge with RUO boundaries.
-
-**Must not** expose order PII in channel answers.
+The Discord server has been removed. Do not answer, register commands, send invites, or reactivate this integration. Preserve historical records.
 
 ## Decision engine / CEO brief / ops
 

@@ -129,18 +129,19 @@ function PreferencesForm({ consent, excluded, onSave }: {
   const status = useSyncExternalStore(subscribePrivacyClientStatus, readPrivacyClientStatus, serverPrivacyClientStatus);
   const [measurement, setMeasurement] = useState(consent.measurement);
   const [personalization, setPersonalization] = useState(consent.personalization);
-  const measurementAvailable = Object.entries(consent.capabilities).some(([key, active]) => key.endsWith("Measurement") && active);
-  const personalizationAvailable = consent.capabilities.metaPersonalization;
+  const metaAvailable = consent.capabilities.metaMeasurement && consent.capabilities.metaPersonalization;
+  const measurementAvailable = metaAvailable || consent.capabilities.googleMeasurement || consent.capabilities.openaiMeasurement;
+  const personalizationAvailable = metaAvailable;
   const disabled = excluded || consent.gpc || status.pendingDecline || status.state === "saving" || status.state === "checking";
   return <>
     <div className="min-h-0 space-y-5 overflow-y-auto px-5 py-5 text-sm leading-relaxed md:px-6">
-      <Dialog.Description className="text-ash">Choose which optional advertising features you allow. Shopping, login, checkout, security, and your required researcher verification work whichever option you choose.</Dialog.Description>
+      <Dialog.Description className="text-ash">Choose which optional advertising features you allow. Shopping, login, checkout, security, and your age and research-use confirmation work whichever option you choose.</Dialog.Description>
       {(excluded || consent.gpc) && <p className="rounded-lg border border-border-strong p-3 text-ink">{excluded
         ? "Advertising collection is off for administrator and test activity."
         : "Global Privacy Control is active. Optional advertising measurement and personalization stay off."}</p>}
       <section className="rounded-lg border border-border-strong p-4">
         <h3 className="font-semibold">Essential functions <span className="ml-2 font-mono text-xs text-ash">Always on</span></h3>
-        <p className="mt-2 text-ash">Essential storage keeps your cart, sign-in, consent choice, researcher verification, payment-return recovery, and security controls working. It does not depend on advertising consent.</p>
+        <p className="mt-2 text-ash">Essential storage keeps your cart, sign-in, consent choice, age and research-use confirmation, payment-return recovery, and security controls working. It does not depend on advertising consent.</p>
       </section>
       <section className="rounded-lg border border-border-strong p-4">
         <label className="flex min-h-11 items-center justify-between gap-4 font-semibold">
@@ -153,7 +154,7 @@ function PreferencesForm({ consent, excluded, onSave }: {
         </label>
         <p className="mt-1 text-ash">When an eligible integration is enabled, this allows its optional cookies and permitted website events to measure ad visits and completed actions. Advertising platforms may receive browser information, permitted event identifiers, timestamps, and eligible purchase values and currency.</p>
         <ul className="mt-3 space-y-2 text-ash">
-          <li>Meta: {consent.capabilities.metaMeasurement ? "available for permitted pages and events only." : "off; not currently available."}</li>
+          <li>Meta: {metaAvailable ? "catalog PageView measurement is available when both Advertising measurement and Personalized advertising are on. Product, cart, checkout and purchase events remain off." : "off; not currently available."}</li>
           <li>Google: {consent.capabilities.googleMeasurement ? "optional purchase measurement is available; enhanced conversions and personalized ads remain off." : "off on this website."}</li>
           <li>OpenAI: {consent.capabilities.openaiMeasurement ? "optional eligible purchase measurement is available, with personalization opted out." : "off on this website."}</li>
           <li>TikTok: off; not enabled by this consent choice.</li>
@@ -165,10 +166,11 @@ function PreferencesForm({ consent, excluded, onSave }: {
           <input type="checkbox" checked={personalization && !consent.gpc && !excluded} disabled={disabled || !measurement || !personalizationAvailable}
             onChange={(event) => setPersonalization(event.target.checked)} className="size-5 shrink-0 accent-accent" />
         </label>
-        <p className="mt-1 text-ash">Retargeting can reach eligible past visitors. Purchaser exclusions can avoid showing acquisition ads to eligible recent purchasers. Similar audiences can help platforms find new people with patterns similar to an eligible source audience.</p>
+        <p className="mt-1 text-ash">Where enabled and permitted, Meta may use consented website events to personalize advertising across Facebook and Instagram. PSL requires both Advertising measurement and Personalized advertising before sending any Meta event.</p>
         <p className="mt-2 text-ash">{personalizationAvailable
-          ? "Only permitted Meta audience uses are available. We do not upload customer contact lists or enable automatic customer matching."
-          : "Retargeting, customer matching, purchaser exclusions, and similar audiences are currently off. Accepting now does not authorize features introduced later."}</p>
+          ? "Permission applies only to catalog PageView data sharing with Meta. Meta may use these events for measurement and personalization. PSL does not upload customer contact lists or enable automatic advanced matching."
+          : "Meta personalization is currently off. Accepting now does not authorize features introduced later."}</p>
+        <p className="mt-2 text-ash">PSL’s website retargeting, purchaser exclusions, and similar-audience features are not enabled. Retargeting can reach eligible past visitors, exclusions can avoid advertising to eligible purchasers, and similar audiences can help find new people. These features require separate eligibility and withdrawal checks; allowing collection does not mean an audience campaign is running.</p>
       </section>
       <p className="text-ash">Consent does not permit sending sensitive health information, card details, or prohibited product information. Use Cookie preferences in the footer to withdraw. Withdrawal stops future collection and use through our integrations once confirmed; it does not automatically erase information a platform already received. Contact support@psllabs.org for deletion or privacy requests.</p>
       <p className="text-ash">Choices expire after 180 days. We honor applicable browser privacy opt-out signals. <Link href="/privacy" className="text-accent underline underline-offset-4">Read the privacy policy</Link>.</p>

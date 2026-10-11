@@ -8,7 +8,7 @@ import { loadMetaBrowserFixture } from "./meta-browser-fixture";
 
 async function main() {
   // Reviewed candidates are exercised only in an isolated module, never by
-  // changing the empty production policy or exposing a runtime QA switch.
+  // broadening the narrow production policy or exposing a runtime QA switch.
   const { createMetaBrowserAction, dispatchMetaBrowserAction, metaBrowserContextAllowed,
     hasMetaBrowserSdk, stopMetaBrowserDispatch } = loadMetaBrowserFixture(REVIEWED_META_EVENT_POLICY);
   const originals = Object.fromEntries(["window", "document", "navigator", "fetch", "setInterval", "setTimeout"].map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
@@ -69,17 +69,27 @@ async function main() {
     await requestPrivacyConsent({ measurement: true, personalization: true });
     assert.equal(createMetaBrowserAction("PageView"), null, "both Meta capabilities must be verified");
     assert.equal(requests.length, 0); assert.equal(scriptLoads, 0);
-    consent = { ...consent, capabilities: { metaMeasurement: true, metaPersonalization: true, googleMeasurement: false, openaiMeasurement: false } };
+    consent = { ...consent, capabilities: { tiktokMeasurement: false, tiktokPersonalization: false, metaMeasurement: true, metaPersonalization: true, googleMeasurement: false, openaiMeasurement: false } };
     await initializePrivacyConsent();
     await requestPrivacyConsent({ measurement: true, personalization: false });
     assert.equal(createMetaBrowserAction("PageView"), null, "measurement alone cannot authorize Meta personalization");
     await requestPrivacyConsent({ measurement: true, personalization: true });
     assert.equal(productionBrowser.metaBrowserContextAllowed(location.href, ""), false);
     assert.equal(productionBrowser.createMetaBrowserAction("PageView"), null,
-      "actual empty production scope denies collection even with both consented capabilities");
+      "actual production scope denies the homepage even with both consented capabilities");
     assert.equal(await productionBrowser.dispatchMetaBrowserAction({ name: "PageView", eventId: randomUUID(),
       sourceUrl: location.href, consentRevision: consent.revision, createdAt: Date.now() }), false);
     assert.equal(requests.length, 0); assert.equal(scriptLoads, 0);
+
+    location.href = "https://www.psllabs.org/products"; location.pathname = "/products";
+    assert(productionBrowser.createMetaBrowserAction("PageView"), "the scoped landing page can prepare a consented action without sending it");
+    assert.equal(productionBrowser.createMetaBrowserAction("ViewContent", ["PSL-RT-10MG"]), null);
+    assert.equal(productionBrowser.createMetaBrowserAction("AddToCart", ["PSL-RT-10MG"]), null);
+    assert.equal(productionBrowser.metaBrowserContextAllowed(location.href, "https://www.facebook.com/"), true);
+    assert.equal(productionBrowser.metaBrowserContextAllowed(location.href, "https://www.psllabs.org/"), false,
+      "same-site referrers outside the production scope remain excluded");
+    assert.equal(requests.length, 0); assert.equal(scriptLoads, 0);
+    location.href = "https://www.psllabs.org/"; location.pathname = "/";
 
     const narrowPolicy: MetaEventPolicy = {
       approvedPaths: { PageView: ["/", "/products/psl-rs-5ml"], ViewContent: ["/products/psl-rs-5ml"],

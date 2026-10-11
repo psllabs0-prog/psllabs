@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Mail, Clock, CalendarDays } from "lucide-react";
 
-import { DiscordContactLink } from "@/components/contact/discord-contact-link";
 import { AnimateIn } from "@/components/product/animate-in";
 import type { ContactPageContent } from "@/lib/contact";
 
@@ -13,13 +12,9 @@ const detailIcons = {
 
 type ContactInfoPanelProps = {
   content: ContactPageContent;
-  discordInviteUrl: string;
 };
 
-export function ContactInfoPanel({
-  content,
-  discordInviteUrl,
-}: ContactInfoPanelProps) {
+export function ContactInfoPanel({ content }: ContactInfoPanelProps) {
   return (
     <div className="flex flex-col gap-10 lg:gap-12">
       <div className="flex flex-col gap-6">
@@ -43,7 +38,6 @@ export function ContactInfoPanel({
           <div className="relative flex flex-col gap-6">
             {content.details.map((detail) => {
               const Icon = detailIcons[detail.id as keyof typeof detailIcons];
-              const showDiscord = detail.id === "email";
 
               return (
                 <div key={detail.id} className="flex items-start gap-4">
@@ -73,12 +67,6 @@ export function ContactInfoPanel({
                       </p>
                     )}
                   </div>
-                  {showDiscord ? (
-                    <DiscordContactLink
-                      href={discordInviteUrl}
-                      className="mt-0.5"
-                    />
-                  ) : null}
                 </div>
               );
             })}

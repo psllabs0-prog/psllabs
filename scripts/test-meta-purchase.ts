@@ -11,12 +11,12 @@ import { PSL_META_DATASET_ID, type MetaEventPolicy } from "../lib/meta-ads/event
 import type { MetaServerConfig } from "../lib/meta-ads/config";
 import type { sendPreparedMetaEvent } from "../lib/meta-ads/transport";
 import type { getSql } from "../lib/db/sql";
-import { UNKNOWN_PRIVACY_CONSENT } from "../lib/privacy/types";
+import { PRIVACY_CONSENT_VERSION, UNKNOWN_PRIVACY_CONSENT } from "../lib/privacy/types";
 import { isSameOriginMutation } from "../lib/security/request-origin";
 import { metaEventId } from "../lib/meta-ads/event-id";
 
 const NOW = Date.parse("2026-10-09T12:00:00Z");
-const BINDING = { digest: "a".repeat(64), revision: 1, version: 1 };
+const BINDING = { digest: "a".repeat(64), revision: 1, version: PRIVACY_CONSENT_VERSION };
 const CONFIG: MetaServerConfig = { datasetId: PSL_META_DATASET_ID, accessToken: "OFFLINE_FIXTURE", apiVersion: "v26.0" };
 const POLICY: MetaEventPolicy = { approvedPaths: { Purchase: ["/success"] }, approvedProductIds: ["PSL-RT-10MG"] };
 const INPUT = { orderId: "psl_meta_fixture", binding: BINDING, sourceUrl: "https://www.psllabs.org/success",
@@ -183,7 +183,7 @@ async function routeChecks() {
   const state = { active: true, calls: 0, privacyReads: 0, limited: false,
     sent: [] as Record<string, unknown>[], consent: { ...UNKNOWN_PRIVACY_CONSENT,
       choice: "saved", measurement: true, personalization: true,
-      capabilities: { metaMeasurement: true, metaPersonalization: true, googleMeasurement: false, openaiMeasurement: false } },
+      capabilities: { tiktokMeasurement: false, tiktokPersonalization: false, metaMeasurement: true, metaPersonalization: true, googleMeasurement: false, openaiMeasurement: false } },
     binding: BINDING as typeof BINDING | null };
   const exports: { POST?: (request: Request) => Promise<Response> } = {};
   runInNewContext(compiled, { exports, URL, process: { env: { VERCEL: "1" } }, require: (name: string) => {
@@ -240,7 +240,7 @@ async function receiptComponentChecks() {
   function componentFixture() {
     const state = { consent: { ...UNKNOWN_PRIVACY_CONSENT, choice: "saved", revision: 1,
       measurement: true, personalization: true, expiresAt: NOW + 86400000,
-      capabilities: { metaMeasurement: true, metaPersonalization: true, googleMeasurement: false, openaiMeasurement: false } },
+      capabilities: { tiktokMeasurement: false, tiktokPersonalization: false, metaMeasurement: true, metaPersonalization: true, googleMeasurement: false, openaiMeasurement: false } },
       calls: [] as { url: string; init: RequestInit }[], received: false,
       fetchGate: null as Promise<void> | null, failed: false };
     const refs: { current: unknown }[] = [];

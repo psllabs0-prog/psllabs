@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { prepareMetaEvent, browserEventArguments, type MetaEventInput, type MetaEventPolicy, META_EVENT_NAMES, REVIEWED_META_EVENT_POLICY, metaSourceUrlAllowed } from "../lib/meta-ads/events";
+import { prepareMetaEvent, browserEventArguments, type MetaEventInput, type MetaEventPolicy, META_EVENT_NAMES, REVIEWED_META_EVENT_POLICY, PRODUCTION_META_EVENT_POLICY, metaSourceUrlAllowed } from "../lib/meta-ads/events";
 import { metaEventId } from "../lib/meta-ads/event-id";
 const now = 1_800_000_000_000;
 assert.equal(metaSourceUrlAllowed("https://www.psllabs.org/products/psl-rt-10mg?fbclid=VALID_CLICK_ONLY", "ViewContent", REVIEWED_META_EVENT_POLICY), true);
@@ -28,7 +28,7 @@ if (prepared.ok) {
 }
 for (const name of META_EVENT_NAMES) {
   const event = { ...purchase, name, ...(name === "PageView" ? { productIds: [] } : {}) };
-  assert.equal(prepareMetaEvent(event, { now, currentConsent: true }).ok, false, "empty production allowlist rejects all events");
+  assert.equal(prepareMetaEvent(event, { now, currentConsent: true }).ok, false, "production scope rejects offline product fixtures");
   assert.equal(prepareMetaEvent(event, { policy, now, currentConsent: false }).ok, false);
   for (const flag of ["admin", "synthetic", "testPurchase"] as const) {
     assert.equal(prepareMetaEvent({ ...event, [flag]: true }, { policy, now, currentConsent: true }).ok, false);
@@ -42,4 +42,28 @@ for (const patch of [
   { sourceUrl: "https://www.psllabs.org/products/offline-fixture#private" },
   { sourceUrl: "https://example.com/products/offline-fixture" },
 ]) assert.equal(prepareMetaEvent({ ...purchase, ...patch }, { policy, now, currentConsent: true }).ok, false);
-console.log("Meta offline preparation: all five event gates, excluded activity, entire mixed-cart rejection, settled USD values and shared browser/server IDs passed. No platform event receipt was tested.");
+const pageView: MetaEventInput = { name: "PageView", eventId: metaEventId("PageView", "offline-action"),
+  occurredAt: now, sourceUrl: "https://www.psllabs.org/products?fbclid=VALID_CLICK_ONLY" };
+const scoped = prepareMetaEvent(pageView, { now, currentConsent: true });
+assert.equal(scoped.ok, true, "production proposal permits only the actual products landing page");
+if (scoped.ok) {
+  assert.equal(scoped.event.event_source_url, pageView.sourceUrl);
+  assert.equal(scoped.event.custom_data, undefined, "PageView has no product or purchase fields");
+}
+assert.deepEqual(PRODUCTION_META_EVENT_POLICY.approvedProductIds, []);
+for (const sourceUrl of ["https://www.psllabs.org/", "https://www.psllabs.org/about",
+  "https://www.psllabs.org/products/psl-rt-10mg", "https://www.psllabs.org/checkout",
+  "https://www.psllabs.org/success", "https://www.psllabs.org/admin-ledger.01",
+  "https://www.psllabs.org/products?email=private", "https://www.psllabs.org/products#private"]) {
+  assert.equal(prepareMetaEvent({ ...pageView, sourceUrl }, { now, currentConsent: true }).ok, false);
+}
+for (const name of META_EVENT_NAMES.filter((name) => name !== "PageView")) {
+  assert.equal(prepareMetaEvent({ ...purchase, name, sourceUrl: "https://www.psllabs.org/products" },
+    { now, currentConsent: true }).ok, false, `${name} remains disabled in the production proposal`);
+}
+for (const flag of ["admin", "synthetic", "testPurchase"] as const) {
+  assert.equal(prepareMetaEvent({ ...pageView, [flag]: true }, { now, currentConsent: true }).ok, false);
+}
+assert.equal(prepareMetaEvent(pageView, { now, currentConsent: false }).ok, false);
+assert.equal(prepareMetaEvent({ ...pageView, productIds: ["PSL-RT-10MG"] }, { now, currentConsent: true }).ok, false);
+console.log("Meta offline preparation: PageView-only /products proposal, blocked deeper/product/excluded events, mixed-cart rejection, fixture USD values and shared browser/server IDs passed. No platform event receipt was tested.");
