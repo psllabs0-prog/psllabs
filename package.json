@@ -50,7 +50,7 @@
     "test:x-drafts": "tsx scripts/x-drafts-snapshot.ts --check && tsx scripts/test-x-drafts.ts",
     "test:x-drafts-db": "tsx scripts/test-x-drafts-db.ts",
     "test:x-drafts-live-model": "tsx scripts/test-x-drafts-live-model.ts",
-    "test:retention": "tsx scripts/test-retention.ts && tsx scripts/test-retention-delivery.ts",
+    "test:retention": "tsx scripts/test-retention.ts && tsx scripts/test-retention-delivery.ts && node --require ./scripts/next-test-runtime.cjs --import tsx scripts/test-retention-transport-route.ts",
     "test:retention-db": "tsx scripts/test-retention-db.ts",
     "test:newsletter-welcome": "tsx scripts/test-newsletter-welcome.ts",
     "test:newsletter-welcome-db": "tsx scripts/test-newsletter-welcome-db.ts",

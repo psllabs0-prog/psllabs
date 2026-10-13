@@ -16,6 +16,12 @@ import {
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
+const TRANSPORT_CHECK_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const TRANSPORT_CHECK_CATEGORIES = new Set([
+  "config", "auth", "connection", "temporary", "message_build", "timeout_ambiguous",
+  "rejected_recipient", "rejected_sender", "rejected_message", "unknown", "verification_error",
+]);
+
 export async function GET() {
   const authError = await requireAdminAuth();
   if (authError) return authError;
@@ -56,6 +62,7 @@ export async function POST(request: Request) {
   let body: Record<string, unknown> = {};
   try {
     body = (await request.json()) as Record<string, unknown>;
+    if (!body || typeof body !== "object" || Array.isArray(body)) body = {};
   } catch {
     body = {};
   }
@@ -64,8 +71,23 @@ export async function POST(request: Request) {
 
   try {
     if (action === "verify_transport") {
-      const result = await verifyRetentionEmailTransport();
-      return NextResponse.json({ ok: result.verified, result, messagesSent: 0 });
+      if (body.checkId !== undefined && (typeof body.checkId !== "string" || !TRANSPORT_CHECK_ID.test(body.checkId))) {
+        return NextResponse.json({ ok: false, error: "checkId must be a valid UUID.", messagesSent: 0 },
+          { status: 400, headers: { "Cache-Control": "no-store" } });
+      }
+      const checkId = typeof body.checkId === "string" ? body.checkId.toLowerCase() : null;
+      let checked: Awaited<ReturnType<typeof verifyRetentionEmailTransport>>;
+      try { checked = await verifyRetentionEmailTransport(); }
+      catch { checked = { verified: false, category: "verification_error" }; }
+      const result = { verified: checked.verified === true, category: checked.category === null ? null :
+        TRANSPORT_CHECK_CATEGORIES.has(checked.category) ? checked.category : "unknown" };
+      // Exactly these safe fields are logged. Never log request bodies, SMTP
+      // responses/errors, server names, addresses, usernames, or credentials.
+      console.info(JSON.stringify({ event: "retention_transport_verification", checkId,
+        verified: result.verified, category: result.category, messagesSent: 0 }));
+      return NextResponse.json({ ok: result.verified, result, messagesSent: 0,
+        ...(checkId ? { checkId } : {}) },
+      { status: result.verified ? 200 : 503, headers: { "Cache-Control": "no-store" } });
     }
     if (action === "run_job") {
       const result = await runRetention30dJob();
