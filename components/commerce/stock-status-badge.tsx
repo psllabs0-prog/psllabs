@@ -19,6 +19,7 @@ export function StockStatusBadge({
   if (isOut) {
     return (
       <span
+        data-stock-status="out_of_stock"
         className={cn(
           "inline-flex w-fit items-center gap-2 rounded-pill border border-signal/50 bg-signal/10 px-3 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-ink",
           className
@@ -32,6 +33,7 @@ export function StockStatusBadge({
   if (isLow) {
     return (
       <span
+        data-stock-status="low_stock"
         className={cn(
           "inline-flex w-fit items-center gap-2 rounded-pill border border-signal/40 bg-signal/10 px-3 py-1 text-sm font-medium text-ink",
           className
@@ -44,6 +46,7 @@ export function StockStatusBadge({
 
   return (
     <span
+      data-stock-status="in_stock"
       className={cn(
         "inline-flex w-fit items-center gap-2 rounded-pill border border-accent/35 bg-accent/10 px-3 py-1 font-mono text-[0.65rem] uppercase tracking-wider text-accent",
         className

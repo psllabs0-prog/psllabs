@@ -5,13 +5,16 @@
 .storefront-theme :is(.bg-surface,.bg-lab-white,.bg-panel,.bg-porcelain,.bg-section-panel){background-color:#fff}
 .storefront-theme :is(.border-linen){border-color:var(--line)}
 .storefront-theme :is(.border-border-strong){border-color:#7f919e}
-.storefront-theme .text-accent{color:var(--teal)}
+.storefront-theme :is(.text-accent,.text-primary-blue,.text-verified-green,.text-petrol,.text-sage,.text-cyan-accent,.text-biotech-deep,.text-biotech-blue){color:var(--teal)}
 .storefront-theme .badge-accent{color:var(--teal);background:#e8f1f3;border-color:#97afb8;font-size:12px;border-radius:6px}
 .storefront-theme .bg-accent.text-page{color:#0b2731}
 .storefront-theme a:focus-visible,.storefront-theme button:focus-visible,.storefront-theme input:focus-visible,.storefront-theme select:focus-visible,.storefront-theme textarea:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
 .storefront-theme a:hover{text-underline-offset:3px}
 .storefront-theme .font-serif{font-family:var(--font-display)}
 .storefront-theme [aria-label="Cookie preferences"] button{border-radius:8px}
+.storefront-theme [aria-label="Cookie preferences"] button{border-color:var(--teal)}
+.storefront-theme [data-stock-status]{font-family:var(--font-sans);font-size:13px;line-height:1.5;text-transform:none;letter-spacing:0;border:0;border-radius:0;background:transparent;padding:0;min-height:20px;color:var(--teal)}
+.storefront-theme :is([data-stock-status="low_stock"],[data-stock-status="out_of_stock"]){color:#8e332c}
 .storefront-theme [aria-label="Cookie preferences"]{border-color:#7f919e}
 .design-preview-notice{padding:8px 20px;background:#e5edf0;color:#3f515d;text-align:center;font:12px/1.5 var(--font-sans);border-bottom:1px solid #c1cfd5}
 .storefront-theme.cookie-settings-panel{min-height:0}
