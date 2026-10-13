@@ -5,7 +5,6 @@ import {
   tesamorelin10mgReport,
 } from "@/lib/batch-reports";
 import { getProductImage } from "../images";
-import { getProductArtworkDisclosure } from "../artwork-disclosures";
 import type { Product } from "../types";
 
 const report = tesamorelin10mgReport;
@@ -61,10 +60,6 @@ export const tesamorelin: Product = {
   ],
   citations: [],
   faqs: [
-    {
-      question: "Why does the original label artwork differ from the published report?",
-      answer: `${getProductArtworkDisclosure({ handle: "tesamorelin" })} The illustrative product render is not evidence that physical packaging or labels have been changed. Review the original report and the label on the batch you receive.`,
-    },
     {
       question: "Is Tesamorelin for human consumption?",
       answer:

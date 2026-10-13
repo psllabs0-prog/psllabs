@@ -12,8 +12,6 @@ import { getProductImage } from "@/lib/products/images";
 import { getProductRender } from "@/lib/products/renders";
 
 import { MobileStickyCart } from "./mobile-sticky-cart";
-import { ProductArtworkDialog } from "./product-artwork-dialog";
-import { ProductArtworkNotice } from "./product-artwork-notice";
 import { ProductFaq } from "./product-faq";
 import { ProductPurchase } from "./product-purchase";
 import { ProductQuantityProvider } from "./product-quantity-provider";
@@ -67,14 +65,8 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
               <div className={`${styles.imageFrame}${render ? ` ${styles.renderFrame}` : ""}`}>
                 <Image src={render?.src ?? imageSrc} alt={render?.alt ?? imageAlt} fill preload sizes={render ? "(max-width: 800px) 265px, 500px" : "(max-width: 359px) 260px, (max-width: 800px) 286px, (max-width: 1100px) 340px, 390px"} className={styles.vialImage} />
               </div>
-              <div className={styles.imageCaption}>
-                <span>{render ? "Illustrative render" : "Product artwork"}</span>
-                <ProductArtworkDialog src={imageSrc} alt={imageAlt} name={product.name} strength={catalog?.strength} triggerLabel={render ? "Original artwork" : undefined} />
-              </div>
             </div>
             <div className={styles.mediaMeta}><span>For laboratory research only.</span>{" "}<span>Not for human or animal use.</span></div>
-            {render ? <p className={styles.renderNote}>Physical packaging may differ. <a href="#product-questions">Product questions</a>.</p> : null}
-            <ProductArtworkNotice handle={product.handle} className={styles.labelNotice} concise />
           </div>
 
           <div className={styles.purchaseArea}>
@@ -148,6 +140,7 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
         <section className={`${styles.container} ${styles.disclaimer}`} aria-label="Research-use notice">
           <p>{product.researchDisclaimer ?? "For laboratory research only. Not for human or animal use."}</p>
           <p>Laboratory reports cover only the submitted sample and tests reported; they do not establish safety, efficacy or suitability for human or animal use.</p>
+          <p><Link href="/disclaimer#product-label-information">Read the full product disclaimer</Link>.</p>
         </section>
 
         <MobileStickyCart productHandle={product.handle} productName={`${product.name}${strength ? ` · ${strength}` : ""}`} stockStatus={availability.status} availability={availability} />

@@ -5,6 +5,8 @@ import { AnimateIn } from "@/components/product/animate-in";
 import {
   disclaimerPageMeta,
   disclaimerParagraphs,
+  productImageDisclaimer,
+  productLabelDisclosures,
 } from "@/lib/content/disclaimer";
 import { createPageMetadata } from "@/lib/seo";
 
@@ -26,6 +28,21 @@ export default function DisclaimerPage() {
           </AnimateIn>
         ))}
       </div>
+      <section id="product-label-information" className="premium-card mt-6 scroll-mt-40 p-6 md:p-7" aria-labelledby="product-label-heading">
+        <h2 id="product-label-heading" className="font-display text-2xl font-medium text-ink md:text-3xl">Product images and label information</h2>
+        <p className="mt-4 text-base leading-[1.7] text-ash md:text-body-lg">{productImageDisclaimer}</p>
+        <div className="mt-6 flex flex-col gap-6">
+          {productLabelDisclosures.map((disclosure) => (
+            <div key={disclosure.name} className="border-t border-linen pt-6">
+              <h3 className="font-display text-xl font-medium text-ink">{disclosure.name}</h3>
+              <p className="mt-3 text-base leading-[1.7] text-ash">{disclosure.description}</p>
+              <a href={disclosure.reportUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex min-h-11 items-center text-sm text-accent underline underline-offset-4 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">
+                View original report {disclosure.taskNumber}
+              </a>
+            </div>
+          ))}
+        </div>
+      </section>
     </ContentPageLayout>
   );
 }

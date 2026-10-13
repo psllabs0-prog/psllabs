@@ -3,9 +3,6 @@
 .topline { position:absolute; z-index:3; top:22px; left:24px; right:24px; display:flex; justify-content:space-between; font:10px/1.5 var(--font-mono); letter-spacing:.12em; color:#9babb5; }
 .scene { position:absolute; inset:0; transform-style:preserve-3d; transform:perspective(1000px) rotateX(var(--turn-x)) rotateY(var(--turn-y)); transition:transform 500ms ease; }
 .grid { position:absolute; inset:0; background-image:linear-gradient(#8dcadd0a 1px,transparent 1px),linear-gradient(90deg,#8dcadd0a 1px,transparent 1px); background-size:48px 48px; mask-image:radial-gradient(ellipse at center,#000,transparent 72%); }
-.orbit { position:absolute; width:65%; aspect-ratio:1; left:17%; top:13%; border:1px solid #2fb6e026; border-radius:50%; transform:rotateY(-30deg) rotateX(10deg) translateZ(-10px); }
-.orbit::before,.orbit::after { content:""; position:absolute; width:5px; height:5px; border:1px solid #4f8595; background:#13272d; border-radius:50%; left:14%; top:12%; }
-.orbit::after { left:auto;top:auto;right:5%;bottom:20%; }
 .platform { position:absolute; bottom:12%; left:16%; width:68%; height:12%; border-radius:50%; background:linear-gradient(95deg,#111a20,#2b404d 40%,#101a20 80%); border:1px solid #334955; box-shadow:0 14px 18px #0008,inset 0 -8px 8px #0009; }
 .platform::before { content:""; position:absolute; inset:-5px 0 6px; border-radius:50%; background:radial-gradient(ellipse,#283c47,#142129 70%); border:1px solid #42616c; }
 .shadow { position:absolute; bottom:17%; left:33%; width:38%; height:4%; border-radius:50%; background:#010608; filter:blur(9px); }
@@ -14,7 +11,7 @@
 .studio { position:absolute; inset:0; animation:arrive 420ms ease both; }
 .studio img { object-fit:cover; }
 .stage[data-motion="enabled"][data-visible="true"] .vial { animation-play-state:running; }
-.stageFooter { position:absolute; left:24px; right:18px; bottom:12px; z-index:3; display:flex; align-items:center; justify-content:space-between; color:#a9b8c0; font:10px/1.5 var(--font-mono); }
+.stageFooter { position:absolute; left:24px; right:18px; bottom:12px; z-index:3; display:flex; align-items:center; justify-content:flex-end; }
 .motionButton { display:grid; place-items:center; min-width:44px; min-height:44px; border:1px solid #31434d; border-radius:6px; background:#0d151bd9; color:#dce9ed; cursor:pointer; }
 .motionButton:hover { border-color:#2fb6e0; }
 .selectionHeader { display:flex; justify-content:space-between; gap:12px; margin:18px 0 9px; color:#a1afb7; font:9px/1.5 var(--font-mono); letter-spacing:.09em; }

@@ -66,14 +66,14 @@ export function HeroVialStage({ products }: { products: FeaturedProduct[] }) {
   return (
     <div className={styles.feature}>
       <div ref={stage} id={panelId} className={styles.stage} data-hero-stage data-visible="true" data-motion="disabled" onPointerMove={move} onPointerLeave={reset} onPointerCancel={reset}>
-        <div className={styles.topline}><span>PSL / MATERIAL STUDY</span><span>{String(products.indexOf(selected)+1).padStart(2,"0")}</span></div>
+        <div className={styles.topline}><span>PSL / MATERIAL STUDY</span></div>
         <div className={styles.scene}>
-          <div className={styles.grid} aria-hidden /><div className={styles.orbit} aria-hidden /><div className={styles.platform} aria-hidden /><div className={styles.shadow} aria-hidden />
+          <div className={styles.grid} aria-hidden /><div className={styles.platform} aria-hidden /><div className={styles.shadow} aria-hidden />
           <div key={selected.handle} className={styles.vial}>
             <Image src={src} alt={alt} fill preload={selected.handle === "retatrutide"} sizes="(max-width: 800px) 92vw, 620px" />
           </div>
         </div>
-        <div className={styles.stageFooter}><span>Illustrative product render</span><button className={styles.motionButton} type="button" onClick={() => setPaused(v=>!v)} aria-label={paused ? "Resume product motion" : "Pause product motion"}>{paused ? <Play size={14} aria-hidden /> : <Pause size={14} aria-hidden />}</button></div>
+        <div className={styles.stageFooter}><button className={styles.motionButton} type="button" onClick={() => setPaused(v=>!v)} aria-label={paused ? "Resume product motion" : "Pause product motion"}>{paused ? <Play size={14} aria-hidden /> : <Pause size={14} aria-hidden />}</button></div>
       </div>
       <div className={styles.selectionHeader}><span>EXPLORE THE LINEUP</span><span>RESEARCH USE ONLY</span></div>
       <div className={styles.selector} role="group" aria-label="Choose featured product">

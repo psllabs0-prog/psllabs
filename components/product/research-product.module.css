@@ -19,12 +19,7 @@
 .vialImage { object-fit: contain; }
 .renderWell { height: 502px; min-height: 0; padding: 0; overflow: hidden; }
 .renderFrame { width: 500px; height: 500px; max-width: 100%; }
-.renderNote { margin: 0; color: var(--muted, #a1afb7); font-size: 12px; line-height: 1.65; }
-.renderNote a { color: var(--teal, #2fb6e0); text-decoration: underline; text-underline-offset: 3px; }
-.imageCaption { position: absolute; inset-inline: 20px; bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; color: var(--muted, #a1afb7); font-size: 12px; }
-.imageCaption button { border-color: #617580; border-radius: 4px; background: transparent; color: var(--ink, #e9f1f5); }
 .mediaMeta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; padding-inline: 3px; color: var(--muted, #a1afb7); font-size: 12px; line-height: 1.6; }
-.labelNotice { border: 1px solid #816445; border-radius: 4px; background: #211c16; color: #e1c39c; font-size: 14px; }
 .purchaseArea { grid-column: 2; grid-row: 2; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .batchSummary { border-block: 1px solid #26333b; background: transparent; padding-block: 20px 8px; }
 .batchHeading { display: flex; align-items: center; justify-content: space-between; gap: 15px; margin-bottom: 9px; }
@@ -65,6 +60,7 @@
 .testingScope :global(.public-section-card) { box-shadow: none; border: 0; border-radius: 0; padding-inline: 0; background: transparent; }
 .disclaimer { padding-block: 22px; border-top: 1px solid var(--line, #26333b); color: var(--muted, #a1afb7); font-size: 13px; line-height: 1.75; }
 .disclaimer p { margin: 0 0 8px; }
+.disclaimer a { color: var(--teal, #2fb6e0); text-decoration: underline; text-underline-offset: 4px; }
 @media (min-width: 1024px) { .page { padding-bottom: 0; } }
 @media (max-width: 1100px) { .container { width: calc(100% - 72px); } .productLayout { column-gap: 35px; } .detailsLayout, .informationSection { gap: 32px; } .imageFrame { width: 340px; height: 360px; } }
 @media (max-width: 800px) {
@@ -83,7 +79,6 @@
   .imageRecord { inset: 12px 14px auto; gap: 4px 12px; font-size: 10px; }
   .imageFrame { width: 286px; height: 302px; max-width: calc(100% - 24px); flex-shrink: 0; }
   .renderFrame { width: 265px; height: 265px; max-width: 100%; }
-  .imageCaption { inset-inline: 14px; bottom: 10px; font-size: 11px; }
   .mediaMeta { display: block; font-size: 12px; line-height: 1.6; }
   .purchaseArea { grid-column: 1; grid-row: 3; gap: 14px; }
   .batchSummary { padding-block: 18px 8px; }

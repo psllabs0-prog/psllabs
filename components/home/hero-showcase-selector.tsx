@@ -29,7 +29,6 @@ export function HeroShowcaseSelector({ products }: { products: HeroShowcaseProdu
 
       <div className="mb-2 mt-4 flex items-center justify-between px-1 text-[10px] uppercase tracking-[0.12em] text-ash">
         <p>Explore the lineup</p>
-        <span aria-hidden>{String(products.indexOf(selected) + 1).padStart(2, "0")} / {String(products.length).padStart(2, "0")}</span>
       </div>
       <div className="grid grid-cols-5 gap-1.5 sm:gap-2" role="group" aria-label="Choose the featured product">
         {products.map((product) => {
