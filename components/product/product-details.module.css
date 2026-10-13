@@ -1,0 +1,63 @@
+.purchase { display: flex; flex-direction: column; gap: 14px; min-width: 0; color: var(--ink, #15252d); }
+.purchasePriceRow { display: flex; align-items: end; justify-content: space-between; gap: 16px; }
+.purchasePrice { display: inline-block; font-size: 31px; font-weight: 600; letter-spacing: -.035em; }
+.purchaseMeta { margin: 3px 0 0; color: var(--muted, #53636d); font-size: 13px; line-height: 1.5; }
+.buyRow { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 14px; }
+.quantityGroup { min-width: 0; }
+.addButton > button, .stickyButton > button { min-height: 48px; padding: 11px 19px; border: 1px solid var(--teal, #006a78); border-radius: 8px; background: var(--cyan, #2fb6e0); color: #0b2731; font-size: 14px; font-weight: 600; }
+.addButton > button:hover, .stickyButton > button:hover { background: #56c5e7; opacity: 1; }
+.quantity { display: flex; align-items: center; height: 48px; border: 1px solid #7d8e98; border-radius: 8px; overflow: hidden; background: #fff; }
+.quantity button { min-width: 44px; min-height: 44px; border: none; background: transparent; color: var(--ink, #15252d); font-size: 22px; }
+.quantity button:hover { background: #eaf1f3; }
+.quantity button:disabled { cursor: not-allowed; opacity: .4; }
+.quantity button:focus-visible { outline: 3px solid var(--teal, #006a78); outline-offset: -4px; }
+.quantity span { width: 34px; text-align: center; font-family: var(--font-mono), monospace; font-size: 14px; }
+.shipping { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line, #d8dfe3); color: var(--muted, #53636d); font-size: 13px; line-height: 1.65; }
+.shipping p { margin: 0; }
+.shipping strong { color: var(--ink, #15252d); font-weight: 500; }
+.shipping a { display: inline-flex; align-items: center; min-height: 44px; width: fit-content; color: var(--teal, #006a78); text-decoration: underline; text-underline-offset: 4px; }
+.testingSection { min-width: 0; scroll-margin-top: 150px; }
+.testingSection > h2 { margin: 0 0 18px; color: var(--ink, #15252d); font-family: var(--font-display), sans-serif; font-size: 27px; font-weight: 600; line-height: 1.2; letter-spacing: -.035em; }
+.testingDescription { margin: 0 0 12px; color: var(--muted, #53636d); font-size: 14px; line-height: 1.65; }
+.documentationLink { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; color: var(--teal, #006a78); font-size: 13px; font-weight: 600; }
+.reportCard { color: var(--ink, #15252d); }
+.reportDate { margin: 18px 0 12px; color: var(--muted, #53636d); font-size: 14px; line-height: 1.65; }
+.reportFile { display: grid; grid-template-columns: 83px minmax(0, 1fr); align-items: start; gap: 18px; padding: 17px; border: 1px solid var(--line, #d8dfe3); border-radius: 10px; background: #fff; }
+.reportThumbnail { display: block; width: 83px; height: 122px; object-fit: contain; border: 1px solid #e1e5e8; }
+.reportFile h3 { margin: 0 0 7px; font-family: var(--font-display), sans-serif; font-size: 17px; font-weight: 600; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.reportFile p { margin: 0 0 6px; color: var(--muted, #53636d); font-size: 13px; line-height: 1.6; }
+.reportMetadata { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; margin: 18px 0; padding: 16px; border: 1px solid var(--line, #d8dfe3); border-radius: 8px; background: #fff; }
+.reportMetadata dt { margin: 0 0 4px; color: var(--muted, #53636d); font-size: 12px; }
+.reportMetadata dd { margin: 0; font-size: 14px; overflow-wrap: anywhere; }
+.reportActions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 18px; }
+.reportActions a { display: inline-flex; align-items: center; gap: 7px; min-height: 44px; color: var(--teal, #006a78); font-size: 13px; font-weight: 600; }
+.reportNote { margin: 10px 0 0; color: var(--muted, #53636d); font-size: 12px; line-height: 1.7; }
+.fullReport { margin-block: 16px; border: 1px solid #7d8e98; border-radius: 8px; background: #fff; }
+.fullReport summary { min-height: 44px; padding: 11px 15px; color: var(--teal, #006a78); cursor: pointer; font-size: 14px; font-weight: 500; }
+.fullReport summary:focus-visible { outline: 3px solid var(--teal, #006a78); outline-offset: 4px; }
+.fullReportImage { display: block; width: 100%; height: auto; object-fit: contain; }
+.reportGuides { display: flex; flex-wrap: wrap; align-items: center; gap: 7px 14px; border-top: 1px solid var(--line, #d8dfe3); padding-top: 12px; color: var(--muted, #53636d); font-size: 12px; }
+.reportGuides a { display: inline-flex; align-items: center; min-height: 32px; color: var(--teal, #006a78); text-decoration: underline; text-underline-offset: 4px; }
+.specifications { overflow: hidden; border: 1px solid var(--line, #d8dfe3); border-radius: 9px; background: #fff; }
+.specifications table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.specifications tr:not(:last-child) { border-bottom: 1px solid #e1e6e9; }
+.specifications th, .specifications td { padding: 12px 16px; text-align: left; vertical-align: top; overflow-wrap: anywhere; line-height: 1.55; }
+.specifications th { color: var(--muted, #53636d); font-weight: 400; width: 43%; }
+.specifications td { color: var(--ink, #15252d); font-weight: 500; }
+.mobileSticky { position: fixed; inset-inline: 0; bottom: var(--psl-cookie-banner-height, 0px); z-index: 50; border-top: 1px solid var(--line, #d8dfe3); background: #fff; padding: 11px 20px max(11px, env(safe-area-inset-bottom)); color: var(--ink, #15252d); }
+.stickyInner { display: flex; justify-content: space-between; align-items: center; gap: 16px; max-width: 1240px; margin-inline: auto; }
+.stickyName { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.4; }
+.stickyPrice { margin: 3px 0 0; color: var(--muted, #53636d); font-size: 13px; }
+.stickyButton { flex-shrink: 0; }
+.stickyButton > button { min-height: 44px; padding-inline: 20px; font-size: 13px; }
+@media (min-width: 1024px) { .mobileSticky { display: none; } }
+@media (max-width: 800px) {
+  .buyRow { gap: 10px; }
+  .purchasePrice { font-size: 25px; }
+  .shipping { font-size: 13px; }
+  .testingSection > h2 { font-size: 25px; }
+  .reportFile { gap: 14px; padding: 15px; }
+  .reportFile h3 { font-size: 15px; }
+  .specifications th, .specifications td { padding: 11px 12px; }
+}
+@media (max-width: 359px) { .stickyButton > button { padding-inline: 12px; } .stickyName { font-size: 13px; } }

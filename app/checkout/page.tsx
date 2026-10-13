@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { CheckoutPage } from "@/components/checkout/checkout-page";
 import { createPageMetadata } from "@/lib/seo";
+import { isDesignPreview } from "@/lib/design-preview";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Checkout",
@@ -11,5 +12,5 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 export default function Page() {
-  return <CheckoutPage />;
+  return <CheckoutPage visualPreview={isDesignPreview()} />;
 }

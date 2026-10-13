@@ -56,6 +56,7 @@ function fixture() {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }, fileName: filename,
   }).outputText;
   const mocks: Record<string, unknown> = {
+    "@/lib/design-preview": { isDesignPreview: () => false },
     "next/server": { NextResponse }, "@/lib/security/request-origin": { isSameOriginMutation },
     "@/lib/security/request-rate-limit": { consumeRequestLimit: async () => {
       state.rateChecks++;

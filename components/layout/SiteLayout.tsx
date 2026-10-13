@@ -10,16 +10,18 @@ import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { ResearcherVerificationGate } from "@/components/layout/ResearcherVerificationGate";
 import { CookieConsentControls } from "@/components/privacy/cookie-preferences";
+import { StorefrontTheme } from "./storefront-theme";
 
-export function SiteLayout({ children }: { children: React.ReactNode }) {
+export function SiteLayout({ children, visualPreview = false }: { children: React.ReactNode; visualPreview?: boolean }) {
   return (
     <CartProvider>
-      <Suspense fallback={null}>
+      {!visualPreview && <Suspense fallback={null}>
         <AttributionCapture />
-      </Suspense>
+      </Suspense>}
       <ResearcherVerificationGate />
-      <GoogleAdsMeasurement />
-      <Suspense fallback={null}><MetaAdsMeasurement /></Suspense>
+      {!visualPreview && <><GoogleAdsMeasurement />
+      <Suspense fallback={null}><MetaAdsMeasurement /></Suspense></>}
+      <StorefrontTheme visualPreview={visualPreview}>
       <div className="flex min-h-screen flex-col">
         <Header />
         <AnnouncementBar />
@@ -28,6 +30,7 @@ export function SiteLayout({ children }: { children: React.ReactNode }) {
       </div>
       <CartDrawer />
       <CookieConsentControls />
+      </StorefrontTheme>
     </CartProvider>
   );
 }

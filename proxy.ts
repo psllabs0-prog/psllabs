@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isSameOriginMutation } from "@/lib/security/request-origin";
 import { consumeRequestLimit } from "@/lib/security/request-rate-limit";
+import { isDesignPreview } from "@/lib/design-preview";
 
 const PUBLIC_LIMITS: Record<string, { scope: string; limit: number; seconds: number }> = {
   "/api/checkout": { scope: "checkout-create", limit: 20, seconds: 3600 },
@@ -12,6 +13,18 @@ const PUBLIC_LIMITS: Record<string, { scope: string; limit: number; seconds: num
 
 export async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname.replace(/\/$/, "");
+  if (isDesignPreview()) {
+    const consent = path === "/api/privacy/consent" && ["GET", "POST"].includes(request.method);
+    const inventory = path === "/api/inventory/availability" && ["GET", "HEAD"].includes(request.method);
+    if ((path.startsWith("/api/") && !consent && !inventory) || /^\/admin/i.test(path) ||
+        ["/success", "/unsubscribe"].includes(path)) {
+      return NextResponse.json({ error: "Design preview only. Orders, messages, private data and advertising are disabled." },
+        { status: 403, headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex, nofollow" } });
+    }
+    const response = NextResponse.next();
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return response;
+  }
   if (path.startsWith("/api/admin/") && !isSameOriginMutation(request)) {
     return NextResponse.json({ error: "Same-origin admin request required." },
       { status: 403, headers: { "Cache-Control": "no-store" } });
@@ -27,5 +40,5 @@ export async function proxy(request: NextRequest) {
 // Webhooks, payment confirmation, cron jobs and advertising receipt callbacks
 // deliberately do not pass through interactive-form throttles.
 export const config = {
-  matcher: ["/api/admin/:path*", "/api/checkout", "/api/checkout/card/session", "/api/contact", "/api/newsletter", "/api/track"],
+  matcher: ["/api/:path*", "/admin(.*)", "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|webp|avif|svg|woff2)$).*)"],
 };

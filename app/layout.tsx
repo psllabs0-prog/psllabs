@@ -5,6 +5,8 @@ import { ApplicationShell } from "@/components/layout/application-shell";
 import { DEFAULT_SHARE_IMAGE } from "@/lib/branding";
 import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from "@/lib/seo";
 import "./globals.css";
+import "./storefront.css";
+import { isDesignPreview } from "@/lib/design-preview";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -34,6 +36,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  ...(isDesignPreview() ? { robots: { index: false, follow: false } } : {}),
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_TITLE,
@@ -71,7 +74,7 @@ export default function RootLayout({
       className={`${archivo.variable} ${inter.variable} ${sourceSerif.variable} ${ibmPlexMono.variable}`}
     >
       <body className="font-sans">
-        <ApplicationShell>{children}</ApplicationShell>
+        <ApplicationShell visualPreview={isDesignPreview()}>{children}</ApplicationShell>
       </body>
     </html>
   );

@@ -16,6 +16,7 @@ import {
 import { formatPrice } from "@/lib/cart/format";
 import type { ProductAvailability } from "@/lib/inventory/availability";
 import { cn } from "@/lib/utils";
+import styles from "./cart-drawer.module.css";
 
 function CartLineRow({
   line,
@@ -39,8 +40,8 @@ function CartLineRow({
     line.quantity >= maxAvailable;
 
   return (
-    <article className="flex gap-4 border-b border-linen py-4 last:border-b-0">
-      <div className="relative size-20 shrink-0 overflow-hidden rounded-lg border border-linen bg-soft-blue/40">
+    <article className={cn("flex gap-4 border-b border-linen py-4 last:border-b-0", styles.line)}>
+      <div className={cn("relative size-20 shrink-0 overflow-hidden rounded-lg border border-linen bg-soft-blue/40", styles.productImage)}>
         <Image
           src={line.imageSrc}
           alt={line.imageAlt}
@@ -64,15 +65,15 @@ function CartLineRow({
           <button
             type="button"
             onClick={onRemove}
-            className="shrink-0 rounded-md p-1.5 text-ash transition-colors hover:bg-surface hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            className={cn("shrink-0 rounded-md p-1.5 text-ash transition-colors hover:bg-surface hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent", styles.removeButton)}
             aria-label={`Remove ${line.name} from cart`}
           >
             <Trash2 className="size-4" strokeWidth={1.5} aria-hidden />
           </button>
         </div>
 
-        <div className="flex items-center justify-between gap-3">
-          <div className="inline-flex items-center rounded-md border border-linen bg-surface">
+        <div className={cn("flex items-center justify-between gap-3", styles.lineControls)}>
+          <div className={cn("inline-flex items-center rounded-md border border-linen bg-surface", styles.quantityControl)}>
             <button
               type="button"
               onClick={() => {
@@ -100,7 +101,7 @@ function CartLineRow({
               <Plus className="size-3.5" strokeWidth={2} aria-hidden />
             </button>
           </div>
-          <p className="font-mono text-lg font-medium text-ink">
+          <p className={cn("font-mono text-lg font-medium text-ink", styles.lineTotal)}>
             {formatPrice(lineTotal)}
           </p>
         </div>
@@ -179,9 +180,9 @@ export function CartDrawer() {
         side="right"
         showCloseButton
         overlayClassName="bg-black/[0.03] backdrop-blur-none supports-backdrop-filter:backdrop-blur-none"
-        className="flex w-full flex-col border-linen bg-paper p-0 shadow-none sm:max-w-md"
+        className={cn("storefront-theme flex w-full flex-col border-linen bg-paper p-0 shadow-none sm:max-w-md", styles.drawer)}
       >
-        <SheetHeader className="border-b border-linen px-5 py-4 pr-14">
+        <SheetHeader className={cn("border-b border-linen px-5 py-4 pr-14", styles.header)}>
           <SheetTitle className="font-display text-xl font-bold text-ink">
             Cart{totalQuantity > 0 ? ` (${totalQuantity})` : ""}
           </SheetTitle>
@@ -191,7 +192,7 @@ export function CartDrawer() {
           {isEmpty ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-12 text-center">
               <p className="text-base text-ash">Your cart is empty.</p>
-              <PillButton href="/products" onClick={closeCart}>
+              <PillButton href="/products" onClick={closeCart} className={styles.checkoutButton}>
                 Browse Catalog
               </PillButton>
             </div>
@@ -231,7 +232,7 @@ export function CartDrawer() {
                 })}
               </div>
 
-              <div className="border-t border-linen bg-surface px-5 py-5">
+              <div className={cn("border-t border-linen bg-surface px-5 py-5", styles.summary)}>
                 {cartError && (
                   <p role="alert" className="mb-3 text-sm text-signal">
                     {cartError}
@@ -272,7 +273,7 @@ export function CartDrawer() {
                 <button
                   type="button"
                   onClick={handleProceedToCheckout}
-                  className="mt-5 inline-flex w-full items-center justify-center rounded-pill bg-accent px-6 py-4 text-base font-medium text-page transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className={cn("mt-5 inline-flex w-full items-center justify-center rounded-pill bg-accent px-6 py-4 text-base font-medium text-page transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent", styles.checkoutButton)}
                 >
                   Proceed to Checkout
                 </button>

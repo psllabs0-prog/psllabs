@@ -63,10 +63,12 @@ export function CookieConsentControls() {
     const spacer = spacerRef.current;
     if (!bannerVisible || !banner || !spacer) return;
     const originalPadding = document.documentElement.style.scrollPaddingBottom;
+    const originalBannerOffset = document.documentElement.style.getPropertyValue("--psl-cookie-banner-height");
     const resize = () => {
       const height = Math.ceil(banner.getBoundingClientRect().height);
       spacer.style.height = `${height}px`;
       document.documentElement.style.scrollPaddingBottom = `${height + 16}px`;
+      document.documentElement.style.setProperty("--psl-cookie-banner-height", `${height}px`);
     };
     resize();
     const observer = new ResizeObserver(resize);
@@ -75,6 +77,8 @@ export function CookieConsentControls() {
       observer.disconnect();
       spacer.style.height = "0px";
       document.documentElement.style.scrollPaddingBottom = originalPadding;
+      if (originalBannerOffset) document.documentElement.style.setProperty("--psl-cookie-banner-height", originalBannerOffset);
+      else document.documentElement.style.removeProperty("--psl-cookie-banner-height");
     };
   }, [bannerVisible]);
 
@@ -108,7 +112,7 @@ export function CookieConsentControls() {
     <Dialog.Root open={preferencesOpen && verified && !cartOpen} onOpenChange={setPreferencesOpen}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-[90] bg-black/70" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 z-[91] flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[620px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-border-strong bg-surface text-ink shadow-xl outline-none"
+        <Dialog.Popup className="storefront-theme cookie-settings-panel fixed top-1/2 left-1/2 z-[91] flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[620px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-border-strong bg-surface text-ink shadow-xl outline-none"
           finalFocus={() => previousFocus.current?.isConnected ? previousFocus.current : undefined}>
           <div className="flex items-center justify-between gap-4 border-b border-linen px-5 py-4 md:px-6">
             <Dialog.Title className="font-display text-xl font-bold">Cookie settings</Dialog.Title>

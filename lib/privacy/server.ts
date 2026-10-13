@@ -5,6 +5,9 @@ import { readOpenAIAdsConfig } from "../openai-ads/client";
 import { readMetaServerConfig } from "../meta-ads/config";
 import { createPrivacyService, type ConsentRecord, type ConsentStore } from "./service";
 import { PRIVACY_CONSENT_COOKIE, PRIVACY_CONSENT_VERSION, type PrivacyConsentBinding } from "./types";
+import { NO_PRIVACY_CAPABILITIES } from "./types";
+import { designPreviewConsentStore } from "./design-preview-store";
+import { isDesignPreview } from "@/lib/design-preview";
 
 function parseRecord(row: Record<string, unknown> | undefined): ConsentRecord | null {
   if (!row) return null;
@@ -48,6 +51,7 @@ const store: ConsentStore = {
   },
 };
 export function privacyCapabilities() {
+  if (isDesignPreview()) return NO_PRIVACY_CAPABILITIES;
   const metaAvailable = Boolean(readMetaServerConfig());
   return {
     // Both choices authorize the disclosed provider data use, not PSL audiences.
@@ -57,7 +61,8 @@ export function privacyCapabilities() {
     googleMeasurement: Boolean(readGoogleAdsConfig()), openaiMeasurement: readOpenAIAdsConfig().ok,
   };
 }
-export const privacyService = createPrivacyService({ store, capabilities: privacyCapabilities });
+export const privacyService = createPrivacyService({ store: isDesignPreview() ? designPreviewConsentStore : store,
+  capabilities: privacyCapabilities });
 export function requestCookie(request: Request, name: string): string | undefined {
   const pair = request.headers.get("cookie")?.split(";").find((part) => part.trim().startsWith(`${name}=`));
   if (!pair) return undefined;

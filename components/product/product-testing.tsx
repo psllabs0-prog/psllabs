@@ -7,12 +7,25 @@ import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 import { ScrollReveal } from "@/components/motion/scroll-reveal";
 import { BatchTestingCard } from "./batch-testing-card";
 import { SectionShell } from "./section-shell";
+import styles from "./product-details.module.css";
 
-export function ProductTesting({ product }: { product: Product }) {
+export function ProductTesting({ product, compact = false }: { product: Product; compact?: boolean }) {
   const reports = getBatchReportsForProduct(product.handle).filter(
     (report) => report.status === "report_available"
   );
   const hasReport = reports.length > 0;
+
+  if (compact) {
+    return (
+      <section id="batch-testing" className={styles.testingSection}>
+        <h2>{hasReport ? "Original laboratory report" : "Batch report status"}</h2>
+        <p className={styles.testingDescription}>{product.testing.description || TESTING_SCOPE_STATEMENT}</p>
+        <p className={styles.testingDescription}>Match your vial lot to the published report. Results apply only to the named sample and tests performed.</p>
+        {reports.map((report) => <BatchTestingCard key={`${report.batch}-${report.taskNumber}`} report={report} compact />)}
+        <Link href="/coa" className={styles.documentationLink}>Browse all batch reports →</Link>
+      </section>
+    );
+  }
 
   return (
     <SectionShell

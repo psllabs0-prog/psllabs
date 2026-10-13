@@ -15,23 +15,24 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { primaryNavLinks } from "@/lib/navigation";
+import styles from "./storefront-shell.module.css";
 
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-linen bg-paper/95 backdrop-blur-sm">
-      <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-6 lg:grid lg:grid-cols-[1fr_auto_1fr] lg:px-24">
+    <header className={styles.header}>
+      <div className={styles.inner}>
         <Link
           href="/"
-          className="inline-flex shrink-0 items-center transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+          className={styles.logo}
           aria-label="PSL Labs home"
         >
-          <PSLLogo height={32} decorative eager />
+          <PSLLogo height={56} decorative eager />
         </Link>
 
         <nav
-          className="hidden items-center justify-center gap-6 xl:gap-8 lg:flex"
+          className={styles.nav}
           aria-label="Main navigation"
         >
           {primaryNavLinks.map((link) => (
@@ -39,12 +40,12 @@ export function Header() {
           ))}
         </nav>
 
-        <div className="flex items-center justify-end gap-1 lg:col-start-3">
+        <div className={styles.tools}>
           <CartIconButton />
 
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger
-              className="inline-flex size-11 items-center justify-center rounded-lg text-ink transition-colors duration-200 ease-out hover:bg-surface focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:hidden"
+              className={styles.menuButton}
               aria-label="Open menu"
             >
               <Menu className="size-6" strokeWidth={1.35} aria-hidden />
@@ -52,7 +53,7 @@ export function Header() {
             <SheetContent
               side="right"
               showCloseButton
-              className="w-full border-linen bg-paper shadow-none sm:max-w-sm"
+              className={styles.menuPanel}
             >
               <SheetHeader className="border-b border-linen pb-4">
                 <SheetTitle className="flex items-center gap-3 font-display text-xl font-normal text-ink">

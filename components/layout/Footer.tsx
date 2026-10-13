@@ -5,13 +5,14 @@ import { CookiePreferencesButton } from "@/components/privacy/cookie-preferences
 import { FooterColumn } from "@/components/layout/footer-column";
 import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { footerColumns, footerDisclaimer } from "@/lib/navigation";
+import styles from "./storefront-shell.module.css";
 
 export function Footer() {
   return (
-    <footer className="border-t border-linen bg-paper">
-      <div className="mx-auto max-w-[1440px] px-6 py-14 md:px-16 md:py-20 lg:px-24">
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-5 lg:gap-12">
-          <div className="flex flex-col gap-4 lg:col-span-1">
+    <footer className={styles.footer}>
+      <div className={styles.footerInner}>
+        <div className={styles.footerGrid}>
+          <div className={styles.brand}>
             <Link
               href="/"
               className="inline-flex w-fit transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
@@ -35,8 +36,8 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-10 border-t border-linen pt-6 md:mt-12">
-          <p className="font-mono text-xs text-ash" suppressHydrationWarning>
+        <div className={styles.footerBottom}>
+          <p suppressHydrationWarning>
             © {new Date().getFullYear()} {LEGAL_ENTITY_NAME}. All rights reserved.
           </p>
           <CookiePreferencesButton />

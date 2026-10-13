@@ -1,33 +1,28 @@
 import Link from "next/link";
-import { ArrowRight, ArrowUpRight } from "lucide-react";
+import { ArrowRight, FileText, Grid2X2, Truck } from "lucide-react";
 import { HeroProductVisual } from "@/components/home/hero-product-visual";
-import { PillButton } from "@/components/ui/pill-button";
 import styles from "./research-home.module.css";
 
 export function HeroSection() {
   return (
     <section className={styles.hero}>
-      <div className={styles.heroGrid}>
+      <div className={`${styles.container} ${styles.heroGrid}`}>
         <div className={styles.heroCopy}>
           <p className={styles.eyebrow}>PSL LABS / RESEARCH MATERIALS</p>
           <h1 className={styles.heroTitle}>Research peptides.<br /><span>Know your batch.</span></h1>
-          <p className={styles.heroDescription}>Start with the material. Check the vial size, price, and original lab report before you order.</p>
+          <p className={styles.heroDescription}>Check the material, vial size, price and original laboratory report before you order.</p>
           <div className={styles.actions}>
-            <PillButton href="#materials" className="gap-3 text-sm">Explore the catalog <ArrowRight className="size-4" aria-hidden /></PillButton>
-            <PillButton href="/coa" variant="secondary" className="text-sm">Find a batch report</PillButton>
-          </div>
-          <div className={styles.heroNotes}>
-            <p>Ships to all 50 states.</p>
-            <Link href="/shipping">Shipping details <ArrowUpRight className="size-3.5" aria-hidden /></Link>
+            <Link href="#materials" className={`${styles.button} ${styles.buttonPrimary}`}>Explore the catalog <ArrowRight aria-hidden /></Link>
+            <Link href="/coa" className={`${styles.button} ${styles.buttonSecondary}`}>Find a batch report</Link>
           </div>
           <p className={styles.scope}>For laboratory research only. Not for human or animal use.</p>
         </div>
-        <div className={styles.heroVisual}><HeroProductVisual /></div>
+        <HeroProductVisual />
       </div>
-      <div className={styles.heroFooter} role="group" aria-label="What you can check before ordering">
-        <span><b>01</b> Clearly identified materials</span>
-        <span><b>02</b> Original batch reports</span>
-        <span><b>03</b> Prices before checkout</span>
+      <div className={`${styles.container} ${styles.heroFooter}`} role="group" aria-label="Ordering information">
+        <Link href="/coa"><FileText aria-hidden /> Original batch reports</Link>
+        <span><Grid2X2 aria-hidden /> Materials, amounts and prices in view</span>
+        <Link href="/shipping"><Truck aria-hidden /> U.S. shipping details upfront</Link>
       </div>
     </section>
   );

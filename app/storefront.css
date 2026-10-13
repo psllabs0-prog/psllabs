@@ -1,0 +1,19 @@
+.storefront-theme{--paper:#f4f6f7;--white:#fff;--ink:#15252d;--muted:#53636d;--line:#d8dfe3;--cyan:#2fb6e0;--teal:#006a78;--color-page:var(--paper);--color-paper:var(--paper);--color-ink:var(--ink);--color-ash:var(--muted);--color-graphite:var(--muted);--color-slate-muted:var(--muted);--color-stone:var(--muted);--color-linen:var(--line);--color-border-strong:#7f919e;--color-surface:#fff;--color-lab-white:#fff;--color-surface-elevated:#fff;--color-surface-section:var(--paper);--color-interactive:var(--teal);--color-border-default:var(--line);background:var(--paper);color:var(--ink);font-family:var(--font-sans);font-size:16px;line-height:1.55;min-height:100vh}
+.storefront-theme :is(.text-ink,.text-near-black){color:var(--ink)}
+.storefront-theme :is(.text-ash,.text-graphite,.text-slate-muted,.text-stone){color:var(--muted)}
+.storefront-theme :is(.bg-paper,.bg-page,.bg-canvas,.bg-section-hero,.bg-section-warm,.bg-section-cool){background-color:var(--paper)}
+.storefront-theme :is(.bg-surface,.bg-lab-white,.bg-panel,.bg-porcelain,.bg-section-panel){background-color:#fff}
+.storefront-theme :is(.border-linen){border-color:var(--line)}
+.storefront-theme :is(.border-border-strong){border-color:#7f919e}
+.storefront-theme .text-accent{color:var(--teal)}
+.storefront-theme .badge-accent{color:var(--teal);background:#e8f1f3;border-color:#97afb8;font-size:12px;border-radius:6px}
+.storefront-theme .bg-accent.text-page{color:#0b2731}
+.storefront-theme a:focus-visible,.storefront-theme button:focus-visible,.storefront-theme input:focus-visible,.storefront-theme select:focus-visible,.storefront-theme textarea:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+.storefront-theme a:hover{text-underline-offset:3px}
+.storefront-theme .font-serif{font-family:var(--font-display)}
+.storefront-theme [aria-label="Cookie preferences"] button{border-radius:8px}
+.storefront-theme [aria-label="Cookie preferences"]{border-color:#7f919e}
+.design-preview-notice{padding:8px 20px;background:#e5edf0;color:#3f515d;text-align:center;font:12px/1.5 var(--font-sans);border-bottom:1px solid #c1cfd5}
+.storefront-theme.cookie-settings-panel{min-height:0}
+.storefront-theme.cookie-settings-panel button{border-radius:8px;min-height:44px}
+@media(max-width:600px){.design-preview-notice{font-size:11px}}

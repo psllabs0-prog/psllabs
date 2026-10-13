@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { NEWSLETTER_SIGNUP_COPY } from "@/lib/newsletter/copy";
 import { trackPlausibleClientEvent } from "@/lib/plausible/client";
+import styles from "./research-home.module.css";
 
 export function NewsletterSignup({ variant = "legacy" }: { variant?: "legacy" | "welcome" }) {
   const copy = NEWSLETTER_SIGNUP_COPY[variant];
@@ -56,20 +57,18 @@ export function NewsletterSignup({ variant = "legacy" }: { variant?: "legacy" | 
   return (
     <section
       id="newsletter"
-      className="scroll-mt-24 border-t border-linen bg-gradient-to-b from-soft-blue/60 via-ice-blue to-paper px-6 py-16 md:px-16 md:py-20 lg:px-24"
+      className={styles.newsletter}
     >
-      <div className="mx-auto max-w-[640px] text-center">
-        <p className="mono text-ash">{copy.eyebrow}</p>
-        <h2 className="mt-3 font-display text-display-md font-bold text-ink">
-          {copy.heading}
-        </h2>
-        <p className="mt-3 text-sm leading-relaxed text-ash md:text-base">
-          {copy.text}
-        </p>
-
+      <div className={`${styles.container} ${styles.newsletterInner}`}>
+        <div className={styles.newsletterCopy}>
+          <p className={styles.eyebrow}>{copy.eyebrow}</p>
+          <h2>{copy.heading}</h2>
+          <p>{copy.text}</p>
+        </div>
+        <div className={styles.newsletterFormBlock}>
         <form
           onSubmit={handleSubmit}
-          className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-stretch"
+          className={styles.newsletterForm}
         >
           <label htmlFor="newsletter-email" className="sr-only">
             Email address
@@ -84,7 +83,7 @@ export function NewsletterSignup({ variant = "legacy" }: { variant?: "legacy" | 
             onChange={(e) => setEmail(e.target.value)}
             disabled={status === "loading" || status === "success"}
             placeholder="you@lab.org"
-            className="h-12 flex-1 rounded-lg border-linen bg-lab-white px-4 text-base md:text-sm"
+            className={styles.newsletterInput}
           />
           <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
             <label htmlFor="newsletter-website">Website</label>
@@ -102,7 +101,7 @@ export function NewsletterSignup({ variant = "legacy" }: { variant?: "legacy" | 
             type="submit"
             aria-describedby={copy.consent ? "newsletter-consent" : undefined}
             disabled={status === "loading" || status === "success"}
-            className="inline-flex h-12 items-center justify-center rounded-pill bg-accent px-6 text-base font-medium text-page transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`${styles.button} ${styles.buttonPrimary}`}
           >
             {status === "loading" ? "Submitting…" : copy.button}
           </button>
@@ -110,14 +109,14 @@ export function NewsletterSignup({ variant = "legacy" }: { variant?: "legacy" | 
 
         {copy.consent && (
           <>
-            <p id="newsletter-consent" className="mt-3 text-xs text-ash md:text-sm">
+            <p id="newsletter-consent" className={styles.newsletterConsent}>
               {copy.consent}
             </p>
-            <p className="mt-2 text-xs text-ash md:text-sm">
+            <p className={styles.newsletterGuide}>
               The guide is also public:{" "}
               <Link
                 href="/science/how-to-read-a-coa"
-                className="font-medium text-ink underline underline-offset-4"
+                className="font-medium"
               >
                 How to read a COA
               </Link>
@@ -129,13 +128,14 @@ export function NewsletterSignup({ variant = "legacy" }: { variant?: "legacy" | 
         {message && (
           <p
             role="status"
-            className={`mt-4 text-sm ${
-              status === "error" ? "text-signal" : "text-verified-green"
+            className={`${styles.newsletterMessage} ${
+              status === "error" ? styles.newsletterError : ""
             }`}
           >
             {message}
           </p>
         )}
+        </div>
       </div>
     </section>
   );

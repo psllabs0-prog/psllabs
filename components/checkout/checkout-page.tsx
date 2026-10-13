@@ -20,6 +20,7 @@ import { getOrderAttributionForCheckout } from "@/lib/attribution/storage";
 import { cardCartFingerprint, cardSessionMatchesCart, cardSessionStore, getCardReturnHints } from "@/lib/checkout/card-session-storage";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import styles from "./checkout-page.module.css";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -106,7 +107,7 @@ function validateForm(form: FormState): FormErrors {
 
 function CheckoutLoadingShell() {
   return (
-    <main className="public-page-surface min-h-screen bg-paper px-6 py-12 md:px-16 md:py-16 lg:px-24 lg:py-20">
+    <main className={cn("storefront-theme public-page-surface min-h-screen bg-paper px-6 py-12 md:px-16 md:py-16 lg:px-24 lg:py-20", styles.page)}>
       <div className="mx-auto max-w-[1100px]">
         <header className="public-page-header mb-8 md:mb-10">
           <p className="mono text-ash">CHECKOUT</p>
@@ -128,15 +129,17 @@ function CheckoutLoadingShell() {
   );
 }
 
-export function CheckoutPage() {
+export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolean }) {
   const { lines, isHydrated } = useCart();
 
-  const retained = useSyncExternalStore(
+  const retainedSnapshot = useSyncExternalStore(
     cardSessionStore.subscribe, cardSessionStore.getSnapshot, cardSessionStore.getServerSnapshot,
   );
+  // A design preview must never mount a real provider or resume a retained payment.
+  const retained = visualPreview ? null : retainedSnapshot;
   const search = useSyncExternalStore(subscribeToCheckoutUrl, getCheckoutSearch, getServerCheckoutSearch);
   const returnHints = useMemo(() => getCardReturnHints(search), [search]);
-  const isCardReturn = new URLSearchParams(search).get("paymentAction") === "requireAction";
+  const isCardReturn = !visualPreview && new URLSearchParams(search).get("paymentAction") === "requireAction";
   const tagadaSession = retained?.session ?? null;
   const paymentUnresolved = !!retained && retained.phase !== "ready";
   const [formOverrides, setForm] = useState<Partial<FormState>>({});
@@ -256,6 +259,7 @@ export function CheckoutPage() {
   }
 
   async function handleBtcpaySubmit() {
+    if (visualPreview) { setPayError("Design preview only. Payments and order creation are disabled."); return; }
     cardSessionStore.clear();
     setPayError(null);
     setIsSubmitting(true);
@@ -286,6 +290,7 @@ export function CheckoutPage() {
   }
 
   async function handleCardSessionStart() {
+    if (visualPreview) { setPayError("Design preview only. Payments and order creation are disabled."); return; }
     setPayError(null);
     setIsSubmitting(true);
     cardSessionStore.clear();
@@ -335,6 +340,7 @@ export function CheckoutPage() {
     setErrors(nextErrors);
     setSubmitted(true);
     if (Object.keys(nextErrors).length > 0) return;
+    if (visualPreview) { setPayError("Design preview only. Payments and order creation are disabled."); return; }
 
     if (method === "btcpay") {
       trackPlausibleClientEvent("checkout_started", { payment: "bitcoin" });
@@ -357,7 +363,7 @@ export function CheckoutPage() {
 
   if (isCardReturn && !retained) {
     return (
-      <main className="public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
+      <main className={cn("storefront-theme public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24", styles.page)}>
         <div className="mx-auto max-w-lg text-center">
           <h1 className="font-display text-display-md font-bold text-ink">Check your card payment</h1>
           <p role="alert" className="mt-4 text-ash">
@@ -371,7 +377,7 @@ export function CheckoutPage() {
 
   if (retained && !retained.session) {
     return (
-      <main className="public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
+      <main className={cn("storefront-theme public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24", styles.page)}>
         <div className="premium-card public-section-card mx-auto max-w-lg p-6">
           <ExpiredCardConfirmation orderId={retained.orderId} hints={retained.confirmation ?? returnHints}
             onError={handleCardError} onSuccessRedirect={handleCardSuccess} />
@@ -382,7 +388,7 @@ export function CheckoutPage() {
 
   if (tagadaSession && retained?.phase === "ready" && !isCardReturn && !cardSessionMatchesCart(tagadaSession, lines)) {
     return (
-      <main className="public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
+      <main className={cn("storefront-theme public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24", styles.page)}>
         <div className="premium-card public-section-card mx-auto max-w-lg p-6">
           <h1 className="font-display text-display-md font-bold text-ink">Your cart has changed</h1>
           <p className="mt-4 text-ash">Start a new checkout to review the current items and prices before paying.</p>
@@ -394,7 +400,7 @@ export function CheckoutPage() {
 
   if (lines.length === 0 && tagadaSession) {
     return (
-      <main className="public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
+      <main className={cn("storefront-theme public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24", styles.page)}>
         <div className="premium-card public-section-card mx-auto max-w-lg p-6">
           <h1 className="font-display text-display-md font-bold text-ink">Your card checkout</h1>
           <TagadaCardForm key={tagadaSession.orderId} session={tagadaSession} returnHints={returnHints}
@@ -409,7 +415,7 @@ export function CheckoutPage() {
 
   if (lines.length === 0) {
     return (
-      <main className="public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24">
+      <main className={cn("storefront-theme public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24", styles.page)}>
         <div className="mx-auto max-w-lg text-center">
           <h1 className="font-display text-display-md font-bold text-ink">
             Checkout
@@ -427,7 +433,7 @@ export function CheckoutPage() {
   }
 
   return (
-    <main className="public-page-surface min-h-screen bg-paper px-6 py-12 md:px-16 md:py-16 lg:px-24 lg:py-20">
+    <main className={cn("storefront-theme public-page-surface min-h-screen bg-paper px-6 py-12 md:px-16 md:py-16 lg:px-24 lg:py-20", styles.page)}>
       <div className="mx-auto max-w-[1100px]">
         <header className="public-page-header mb-8 md:mb-10">
           <p className="mono text-ash">CHECKOUT</p>
@@ -444,7 +450,7 @@ export function CheckoutPage() {
           <form
             onSubmit={handleSubmit}
             noValidate
-            className="flex flex-col gap-8"
+            className={cn("flex flex-col gap-8", styles.form)}
           >
             <section className="premium-card public-section-card p-5 md:p-6">
               <h2 className="font-display text-lg font-bold text-ink">
@@ -727,7 +733,7 @@ export function CheckoutPage() {
                 <button
                   type="submit"
                   disabled={isSubmitting || !method}
-                  className="mt-5 inline-flex w-full items-center justify-center rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                  className={cn("mt-5 inline-flex w-full items-center justify-center rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50", styles.primaryButton)}
                 >
                   {isSubmitting
                     ? method === "card"
@@ -896,6 +902,11 @@ function CheckoutSummary({
           </dd>
         </div>
       </dl>
+      {totals.bitcoinDiscountAmount > 0 && (
+        <p className="text-xs leading-relaxed text-ash">
+          Bitcoin is selected. The 5% subtotal discount is included in this total.
+        </p>
+      )}
       <p className="text-xs leading-relaxed text-ash">
         Free U.S. shipping over ${FREE_SHIPPING_THRESHOLD}.
       </p>

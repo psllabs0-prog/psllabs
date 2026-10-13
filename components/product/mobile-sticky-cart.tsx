@@ -7,6 +7,7 @@ import type { StockStatus } from "@/lib/products/stock";
 import { cn } from "@/lib/utils";
 
 import { useProductQuantity } from "./product-quantity-provider";
+import styles from "./product-details.module.css";
 
 type MobileStickyCartProps = {
   productHandle: string;
@@ -27,11 +28,11 @@ export function MobileStickyCart({
     stockStatus === "out_of_stock" || (maxAvailable !== undefined && maxAvailable <= 0);
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-linen bg-surface px-6 py-4 lg:hidden">
-      <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4">
+    <div className={styles.mobileSticky}>
+      <div className={styles.stickyInner}>
         <div className="min-w-0">
-          <p className="truncate text-sm text-ash">{productName}</p>
-          <p className="font-mono text-xl font-medium text-ink">
+          <p className={styles.stickyName}>{productName}</p>
+          <p className={styles.stickyPrice}>
             {formatPrice(totalPrice)}
           </p>
         </div>
@@ -41,7 +42,7 @@ export function MobileStickyCart({
           maxAvailable={maxAvailable}
           variant="compact"
           disabled={isOutOfStock}
-          className={cn(isOutOfStock && "opacity-60")}
+          className={cn(styles.stickyButton, isOutOfStock && "opacity-60")}
         >
           {isOutOfStock ? "Out of Stock" : "Add to Cart"}
         </AddToCartButton>

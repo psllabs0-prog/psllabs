@@ -9,6 +9,7 @@ import {
 } from "@/lib/batch-reports";
 import { CertificatePanel } from "@/components/ui/certificate-panel";
 import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
+import styles from "./product-details.module.css";
 
 const BATCH_REPORT_DISCLAIMER =
   "This third party lab report applies only to the sample and batch named on the report. The report only covers the tests shown on the original laboratory file.";
@@ -18,6 +19,7 @@ const BATCH_SCOPE_NOTE =
 
 type BatchTestingCardProps = {
   report: BatchReport;
+  compact?: boolean;
 };
 
 function laboratoryReportedAmount(report: BatchReport): {
@@ -43,8 +45,50 @@ function laboratoryReportedAmount(report: BatchReport): {
   };
 }
 
-export function BatchTestingCard({ report }: BatchTestingCardProps) {
+export function BatchTestingCard({ report, compact = false }: BatchTestingCardProps) {
   const amount = laboratoryReportedAmount(report);
+
+  if (compact) {
+    return (
+      <article className={styles.reportCard}>
+        <p className={styles.reportDate}>Task {report.taskNumber} · Analysis {report.analysisDate}</p>
+        <div className={styles.reportFile}>
+          <a href={report.reportUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${report.product} batch ${report.batch} original laboratory report in a new tab`}>
+            <Image src={report.reportUrl} alt={report.reportAltText} width={1600} height={2360} sizes="83px" className={styles.reportThumbnail} unoptimized />
+          </a>
+          <div>
+            <h3>{report.product} / {report.batch}</h3>
+            <p>Laboratory-reported identity: {report.identityResult}.</p>
+            <p>Label amount: {report.nominalStrength}. {amount.label}: {amount.value}.</p>
+            <a href={report.reportUrl} target="_blank" rel="noopener noreferrer" className={styles.documentationLink}>Open original report <ExternalLink size={16} aria-hidden /></a>
+          </div>
+        </div>
+        <dl className={styles.reportMetadata}>
+          {batchReportToCertificateRows(report).map((row) => <div key={row.label}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}
+        </dl>
+        <div className={styles.reportActions}>
+          <a href={report.verificationUrl} target="_blank" rel="noopener noreferrer">Verify with Janoshik <ExternalLink size={16} aria-hidden /></a>
+          <Link href="/coa">View Batch Reports</Link>
+        </div>
+        <p className={styles.reportNote}>Use the unique verification key shown on the original report.</p>
+        <details className={styles.fullReport}>
+          <summary>Preview the original report</summary>
+          <a href={report.reportUrl} target="_blank" rel="noopener noreferrer">
+            <Image src={report.reportUrl} alt={report.reportAltText} width={1600} height={2360} sizes="(max-width: 800px) 90vw, 590px" className={styles.fullReportImage} unoptimized />
+            <span className="sr-only">Open full test report in a new tab</span>
+          </a>
+        </details>
+        <div className={styles.reportGuides}>
+          <span>Guides:</span>
+          <Link href="/guides/peptide-purity-vs-content">What purity % means</Link>
+          <Link href="/guides/verify-peptide-laboratory-report">How to verify a report</Link>
+          <Link href="/guides/peptide-identity-vs-purity-vs-content">Identity vs purity vs amount</Link>
+        </div>
+        <p className={styles.reportNote}>{TESTING_SCOPE_STATEMENT} Results are batch-specific and do not apply to other lots. {BATCH_SCOPE_NOTE}</p>
+        <p className={styles.reportNote}>{BATCH_REPORT_DISCLAIMER}</p>
+      </article>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5">

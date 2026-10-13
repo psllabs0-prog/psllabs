@@ -4,6 +4,7 @@ import { consumeRequestLimit } from "@/lib/security/request-rate-limit";
 import { privacyService, readRequestPrivacyConsent, requestCookie, requestPrivacyContext } from "@/lib/privacy/server";
 import { PRIVACY_CONSENT_COOKIE, PRIVACY_CONSENT_TTL_MS, PRIVACY_CONSENT_VERSION } from "@/lib/privacy/types";
 import { consentDigest, ConsentConflictError, createConsentToken } from "@/lib/privacy/service";
+import { isDesignPreview } from "@/lib/design-preview";
 
 export const dynamic = "force-dynamic";
 const headers = { "Cache-Control": "private, no-store, max-age=0", Vary: "Cookie, Sec-GPC" };
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
   if (!consentDigest(token)) return NextResponse.json({ error: "Please reload cookie preferences and try again." }, { status: 409, headers });
   const context = requestPrivacyContext(request);
   // Revoking permission remains possible even after the grant rate limit is reached.
-  if (body.measurement && !context.gpc && !context.admin) {
+  if (!isDesignPreview() && body.measurement && !context.gpc && !context.admin) {
     const limited = await consumeRequestLimit(request, "privacy-choice", 30, 3600);
     if (limited) return limited;
   }

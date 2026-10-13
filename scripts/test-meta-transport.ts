@@ -15,6 +15,8 @@ function configurationChecks() {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
   }).outputText;
   const mocks: Record<string, unknown> = {
+    "@/lib/design-preview": { isDesignPreview: () => false },
+    "./design-preview-store": { designPreviewConsentStore: {} },
     "../db/sql": { getSql: () => { throw new Error("Offline config tests forbid database access"); } },
     "../admin/auth": { verifyAdminSessionToken: () => false },
     "../google-ads/config": { readGoogleAdsConfig: () => ({ fixture: true }) },

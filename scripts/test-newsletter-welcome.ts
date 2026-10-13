@@ -356,7 +356,9 @@ async function main() {
     assert(transform({ u: utm }).u === utm, "campaign UTMs preserved on content pages");
     assert(transform({ u: `${SITE}/`, r: `${SITE}/unsubscribe?token=nu1_SECRET` }).r === `${SITE}/unsubscribe`, "token stripped from referrers");
     const layout = readFileSync(join(ROOT, "app/layout.tsx"), "utf8");
-    assert(layout.includes("PLAUSIBLE_INIT_JS"), "layout uses the redacting Plausible init");
+    const shell = readFileSync(join(ROOT, "components/layout/application-shell.tsx"), "utf8");
+    assert(layout.includes("ApplicationShell") && shell.includes("PLAUSIBLE_INIT_JS"),
+      "layout delegates analytics to the shell using the redacting Plausible init");
   }
 
   // ---------- routes while off: no new-table statements, no mail ----------

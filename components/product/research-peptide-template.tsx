@@ -1,175 +1,141 @@
+import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ArrowDown, FileText } from "lucide-react";
-import type { Product } from "@/lib/products";
-import type { ProductAvailability } from "@/lib/inventory/availability";
-import { getCatalogProductByHandle } from "@/lib/products/catalog";
-import { hasAvailableReport } from "@/lib/batch-reports";
-import { TestingScopeExplainer } from "@/components/testing/testing-scope-explainer";
+import { ArrowUpRight, FileText } from "lucide-react";
 
-import { ScrollReveal } from "@/components/motion/scroll-reveal";
-import { MobileStickyCart } from "./mobile-sticky-cart";
-import { ProductDisclaimer } from "./product-disclaimer";
-import { ProductFaqSection } from "./product-faq-section";
-import { ProductShowcase } from "./product-showcase";
+import { TestingScopeExplainer } from "@/components/testing/testing-scope-explainer";
+import { getBatchReportsForProduct, formatReportedPurity } from "@/lib/batch-reports";
+import { formatPrice } from "@/lib/cart/format";
+import type { ProductAvailability } from "@/lib/inventory/availability";
+import type { Product } from "@/lib/products";
+import { getCatalogProductByHandle } from "@/lib/products/catalog";
 import { getProductImage } from "@/lib/products/images";
+
+import { MobileStickyCart } from "./mobile-sticky-cart";
+import { ProductArtworkDialog } from "./product-artwork-dialog";
+import { ProductArtworkNotice } from "./product-artwork-notice";
+import { ProductFaq } from "./product-faq";
 import { ProductPurchase } from "./product-purchase";
 import { ProductQuantityProvider } from "./product-quantity-provider";
 import { ProductSpecificationsTable } from "./product-specifications-table";
 import { ProductTesting } from "./product-testing";
-import { SectionShell } from "./section-shell";
+import styles from "./research-product.module.css";
 
 type ResearchPeptideTemplateProps = {
   product: Product;
   availability: ProductAvailability;
 };
 
-export function ResearchPeptideTemplate({
-  product,
-  availability,
-}: ResearchPeptideTemplateProps) {
+export function ResearchPeptideTemplate({ product, availability }: ResearchPeptideTemplateProps) {
   const catalog = getCatalogProductByHandle(product.handle);
-  const hasReport = hasAvailableReport(product.handle);
+  const report = getBatchReportsForProduct(product.handle).find(
+    (candidate) => candidate.status === "report_available" && Boolean(candidate.reportUrl) && candidate.sku === catalog?.sku,
+  );
   const fallbackImage = getProductImage(product.handle);
+  const imageSrc = product.imageSrc ?? fallbackImage.src;
+  const imageAlt = product.imageAlt ?? fallbackImage.alt;
+  const strength = catalog?.strength.replace(/(\d)(mg|ml)$/i, "$1 $2");
 
   return (
     <ProductQuantityProvider unitPrice={product.price}>
-      <main className="public-page-surface pb-28 lg:pb-0">
-        <section className="mx-auto max-w-[1440px] px-6 pb-12 pt-5 md:px-12 md:pb-16 lg:px-16 lg:pb-20 xl:px-20">
-          <Link href="/products" className="mb-6 inline-flex items-center gap-2 text-sm text-ash underline-offset-4 hover:text-ink hover:underline">
-            <ArrowLeft className="size-3.5" aria-hidden /> All products
-          </Link>
-          <div className="grid grid-cols-1 gap-y-5 lg:grid-cols-[1.1fr_1fr] lg:grid-rows-[auto_1fr] lg:gap-x-12 xl:gap-x-16">
-            <ScrollReveal className="lg:col-start-2 lg:row-start-1">
-              <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.16em] text-ash">PSL Labs / Laboratory research</p>
-              <div className="flex flex-wrap items-baseline gap-3">
-                <h1 className="font-display text-[clamp(2.25rem,4.1vw,3.75rem)] font-semibold leading-[1.04] tracking-[-0.045em] text-ink">
-                  {product.name}
-                </h1>
-                {catalog?.strength && (
-                  <span className="rounded-full border border-border-strong px-3 py-1 font-mono text-sm font-normal text-[#aab0b9] md:text-base">
-                    {catalog.strength}
-                  </span>
-                )}
-              </div>
-              <p className="mt-3 text-xs leading-relaxed text-ash">Not for human or veterinary use.</p>
-            </ScrollReveal>
+      <main className={`storefront-theme ${styles.page}`}>
+        <nav aria-label="Breadcrumb" className={`${styles.container} ${styles.breadcrumbs}`}>
+          <Link href="/">Home</Link><span aria-hidden>/</span>
+          <Link href="/products">Products</Link><span aria-hidden>/</span>
+          <span aria-current="page">{product.name}</span>
+        </nav>
 
-            <div className="lg:col-start-1 lg:row-span-2 lg:row-start-1">
-              <div className="mx-auto w-full max-w-[600px] lg:sticky lg:top-24 lg:max-w-none">
-                <ProductShowcase
-                  src={product.imageSrc ?? fallbackImage.src}
-                  alt={product.imageAlt ?? fallbackImage.alt}
-                  name={product.name}
-                  strength={catalog?.strength}
-                />
+        <section className={`${styles.container} ${styles.productLayout}`}>
+          <div className={styles.productTitle}>
+            <p className={styles.eyebrow}>PSL Labs / Laboratory research</p>
+            <h1>{product.name}{strength ? <span className={styles.strength}>{strength}</span> : null}</h1>
+            <p className={styles.shortDescription}>{product.shortDescription}</p>
+            <p className={styles.titlePrice}>{formatPrice(product.price)}<span>per vial</span></p>
+          </div>
+
+          <div className={styles.productMedia}>
+            <div className={styles.imageWell}>
+              <div className={styles.imageFrame}>
+                <Image src={imageSrc} alt={imageAlt} fill preload sizes="(max-width: 800px) 180px, 200px" className={styles.vialImage} />
+              </div>
+              <div className={styles.imageCaption}>
+                <span>Existing product artwork</span>
+                <ProductArtworkDialog src={imageSrc} alt={imageAlt} name={product.name} strength={catalog?.strength} />
               </div>
             </div>
+            <div className={styles.mediaMeta}><span>{catalog?.sku}</span><span>Not for human or animal use.</span></div>
+            <ProductArtworkNotice handle={product.handle} className={styles.labelNotice} />
+          </div>
 
-            <div className="flex flex-col gap-5 lg:col-start-2 lg:row-start-2">
-              <ScrollReveal>
-                <p className="text-base leading-[1.7] text-[#aab0b9]">{product.shortDescription}</p>
-              </ScrollReveal>
-
-              <ScrollReveal delayMs={60}>
-                <div className="flex flex-wrap items-center justify-between gap-2 border-y border-border-strong py-3 text-sm">
-                  <div className="flex items-center gap-2">
-                    <FileText className="size-4 shrink-0 text-accent" aria-hidden />
-                    <span className="text-ink">
-                      {hasReport
-                        ? "Janoshik batch report available"
-                        : "Batch report not yet published"}
-                    </span>
-                  </div>
-                  {hasReport && (
-                    <a
-                      href="#batch-testing"
-                      className="inline-flex items-center gap-1 text-accent underline underline-offset-4 hover:opacity-80"
-                    >
-                      Read the report <ArrowDown className="size-3.5" aria-hidden />
-                    </a>
-                  )}
+          <div className={styles.purchaseArea}>
+            <ProductPurchase productHandle={product.handle} stockStatus={product.stockStatus} availability={availability} />
+            {report ? (
+              <section className={styles.batchSummary} aria-label="Published batch summary">
+                <div className={styles.batchHeading}><h2>Published batch report</h2><FileText size={18} aria-hidden /></div>
+                <p className={styles.mono}>{report.batch} · {report.laboratory}</p>
+                <dl className={styles.batchMetrics}>
+                  {report.purityPercent !== undefined ? <div><dt>Reported purity</dt><dd>{formatReportedPurity(report.purityPercent)}</dd></div> : null}
+                  {report.reportedResult ? <div><dt>{report.reportedResult.label}</dt><dd>{report.reportedResult.value}</dd></div> : report.reportedAmountMg !== undefined ? <div><dt>Amount measured</dt><dd>{report.reportedAmountMg} mg</dd></div> : null}
+                </dl>
+                <p className={styles.scopeNote}>Results apply only to the tested sample and batch. Label amount: {strength ?? report.nominalStrength}.</p>
+                <div className={styles.batchActions}>
+                  <a href={report.reportUrl} target="_blank" rel="noopener noreferrer">View original report <ArrowUpRight size={16} aria-hidden /></a>
+                  <a href={report.verificationUrl} target="_blank" rel="noopener noreferrer">Verify with Janoshik <ArrowUpRight size={16} aria-hidden /></a>
                 </div>
-              </ScrollReveal>
-
-              <ProductPurchase
-                productHandle={product.handle}
-                stockStatus={product.stockStatus}
-                availability={availability}
-              />
-            </div>
+              </section>
+            ) : <p className={styles.scopeNote}>Batch report not yet published. <Link href="/coa">Check batch documentation</Link>.</p>}
           </div>
         </section>
 
-        <nav aria-label="Product details" className="border-t border-linen bg-paper px-6 md:px-12 lg:px-16 xl:px-20">
-          <div className="mx-auto flex max-w-[1280px] flex-wrap gap-x-7 gap-y-1 py-2 text-sm text-ash">
-            <a href="#batch-testing" className="inline-flex min-h-11 items-center text-ink underline-offset-4 hover:underline">Batch report</a>
-            {product.specifications && product.specifications.length > 0 && <a href="#product-specifications" className="inline-flex min-h-11 items-center underline-offset-4 hover:text-ink hover:underline">Specifications</a>}
-            <Link href="/shipping" className="inline-flex min-h-11 items-center underline-offset-4 hover:text-ink hover:underline">Shipping</Link>
+        <nav aria-label="Product details" className={styles.productTabs}>
+          <div className={styles.container}>
+            <a href="#batch-testing">Batch documentation</a>
+            {product.specifications?.length ? <a href="#product-specifications">Specifications</a> : null}
+            <a href="#product-questions">Questions</a>
+            <Link href="/shipping">Shipping</Link>
           </div>
         </nav>
 
-        <ProductTesting product={product} />
-
-        <ProductFaqSection product={product} />
-
-        {/* Decision Layer Support: Analytical Scope & Limitations */}
-        <SectionShell
-          label="LAB REPORT"
-          title="What the results mean"
-          variant="ice"
-          width="prose"
-        >
-          <TestingScopeExplainer showPolicy={false} headingLevel={3} reportKind={product.handle === "reconstitution-solution" ? "solution" : "peptide"} />
-        </SectionShell>
-
-        {/* Deeper Specifications Table */}
-        {product.specifications && product.specifications.length > 0 && (
-          <SectionShell
-            id="product-specifications"
-            label="SPECIFICATIONS"
-            title="Product specifications"
-            variant="white"
-            width="prose"
-          >
-            <ScrollReveal>
+        <div className={`${styles.container} ${styles.detailsLayout}`}>
+          <ProductTesting product={product} compact />
+          {product.specifications?.length ? (
+            <section id="product-specifications" className={styles.detailSection}>
+              <h2>Product specifications</h2>
               <ProductSpecificationsTable specifications={product.specifications} />
-            </ScrollReveal>
-          </SectionShell>
-        )}
+            </section>
+          ) : null}
+        </div>
 
-        {/* Deeper Compound Overview */}
-        <SectionShell
-          label="DESCRIPTION"
-          title={`About ${product.name}`}
-          variant="ice"
-          width="prose"
-        >
-          <ScrollReveal>
-            <div className="public-section-card flex flex-col gap-5 p-6 md:p-8">
-              {product.whyThisExists.split("\n\n").map((paragraph) => (
-                <p
-                  key={paragraph.slice(0, 40)}
-                  className="text-base leading-[1.7] text-ash md:text-body-lg"
-                >
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-          </ScrollReveal>
-        </SectionShell>
+        <section id="product-questions" className={styles.questionsSection}>
+          <div className={styles.container}>
+            <h2>Questions before you order?</h2>
+            <ProductFaq faqs={product.faqs} />
+          </div>
+        </section>
 
-        {/* Research Disclaimer */}
-        <ProductDisclaimer>
-          {product.researchDisclaimer}
-        </ProductDisclaimer>
+        <section className={`${styles.container} ${styles.informationSection}`}>
+          <div className={styles.overview}>
+            <h2>About {product.name}</h2>
+            {product.whyThisExists.split("\n\n").map((paragraph, index) => <p key={index}>{paragraph}</p>)}
+            <ul className={styles.productBullets}>{product.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}</ul>
+            {product.ingredients.length ? <dl className={styles.materialDetails}>{product.ingredients.map((ingredient) => <div key={ingredient.name}><dt>{ingredient.name}</dt><dd>{ingredient.dose}</dd><dd>{ingredient.mechanism}</dd></div>)}</dl> : null}
+          </div>
+          <div className={styles.laboratoryNotes}>
+            <h2>Review before laboratory use.</h2>
+            <ol>{product.howToUse.map((step) => <li key={step.step}><h3>{step.title}</h3><p>{step.description}</p></li>)}</ol>
+          </div>
+        </section>
 
-        {/* Mobile Sticky Add-to-Cart */}
-        <MobileStickyCart
-          productHandle={product.handle}
-          productName={product.name}
-          stockStatus={availability.status}
-          availability={availability}
-        />
+        <section className={`${styles.container} ${styles.testingScope}`}>
+          <h2>What the results mean</h2>
+          <TestingScopeExplainer showPolicy={false} headingLevel={3} reportKind={product.handle === "reconstitution-solution" ? "solution" : "peptide"} />
+        </section>
+
+        <section className={`${styles.container} ${styles.disclaimer}`} aria-label="Research-use notice">
+          <p>{product.researchDisclaimer ?? "For laboratory research only. Not for human or animal use."}</p>
+          <p>Laboratory reports cover only the submitted sample and tests reported; they do not establish safety, efficacy or suitability for human or animal use.</p>
+        </section>
+
+        <MobileStickyCart productHandle={product.handle} productName={`${product.name}${strength ? ` · ${strength}` : ""}`} stockStatus={availability.status} availability={availability} />
       </main>
     </ProductQuantityProvider>
   );

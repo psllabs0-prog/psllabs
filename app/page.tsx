@@ -5,12 +5,12 @@ import { HeroSection } from "@/components/home/hero-section";
 import { NewsletterSignup } from "@/components/home/newsletter-signup";
 import { ResearchGuidesSection } from "@/components/home/research-guides-section";
 import { JsonLd } from "@/components/seo/json-ld";
-import { ScrollReveal } from "@/components/motion/scroll-reveal";
 import { getAvailabilityForCatalogHandles } from "@/lib/inventory/availability";
 import { newsletterSignupVariant } from "@/lib/newsletter/config";
 import { getNewsletterWelcomeSchemaState } from "@/lib/newsletter/schema";
 import { getActiveCatalogProducts } from "@/lib/products/catalog";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
+import styles from "@/components/home/research-home.module.css";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Research Peptides & Batch COA Reports | PSL Labs",
@@ -56,7 +56,7 @@ export default async function Home({
   }
 
   return (
-    <main>
+    <main className={styles.home}>
       {/* Validate Organization markup: https://search.google.com/test/rich-results */}
       <JsonLd data={organizationLd} />
       <HeroSection />
@@ -65,9 +65,7 @@ export default async function Home({
         availabilityMap={availabilityMap}
       />
       <ResearchGuidesSection />
-      <ScrollReveal>
-        <NewsletterSignup variant={signupVariant} />
-      </ScrollReveal>
+      <NewsletterSignup variant={signupVariant} />
     </main>
   );
 }

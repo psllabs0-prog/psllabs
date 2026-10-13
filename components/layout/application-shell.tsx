@@ -95,7 +95,7 @@ const readDocumentUrl = () => window.location.href;
 const serverDocumentUrl = () => "";
 
 /** Demo documents never mount cart, attribution, analytics or advertising components. */
-export function ApplicationShell({ children }: { children: React.ReactNode }) {
+export function ApplicationShell({ children, visualPreview = false }: { children: React.ReactNode; visualPreview?: boolean }) {
   const pathname = usePathname();
   const actualUrl = useSyncExternalStore(subscribeDocumentUrl, readDocumentUrl, serverDocumentUrl);
   const [privateDocument] = useState(() => isPrivacyExcludedPath(pathname));
@@ -144,8 +144,8 @@ export function ApplicationShell({ children }: { children: React.ReactNode }) {
   if (isFinanceDemoPath(pathname)) return <>{children}</>;
 
   return <>
-    <Script async src="https://plausible.io/js/pa-q336_RNw0XrNwsVUzNnQN.js" strategy="afterInteractive" />
-    <Script id="plausible-init" strategy="afterInteractive">{PLAUSIBLE_INIT_JS}</Script>
-    <SiteLayout>{children}</SiteLayout>
+    {!visualPreview && <><Script async src="https://plausible.io/js/pa-q336_RNw0XrNwsVUzNnQN.js" strategy="afterInteractive" />
+    <Script id="plausible-init" strategy="afterInteractive">{PLAUSIBLE_INIT_JS}</Script></>}
+    <SiteLayout visualPreview={visualPreview}>{children}</SiteLayout>
   </>;
 }
