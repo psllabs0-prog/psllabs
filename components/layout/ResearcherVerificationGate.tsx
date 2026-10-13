@@ -4,6 +4,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { useRef, useState, useSyncExternalStore } from "react";
 
 import { PSLLogo } from "@/components/branding/psl-logo";
+import styles from "./entry-gate.module.css";
 import {
   confirmResearcherVerification, readResearcherVerification,
   serverResearcherVerification, subscribeResearcherVerification,
@@ -45,9 +46,9 @@ export function ResearcherVerificationGate() {
       }}
     >
       <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 z-[100] bg-paper/95 backdrop-blur-sm" />
+        <Dialog.Backdrop className={styles.backdrop} />
         <Dialog.Popup
-          className="fixed inset-0 z-[101] flex min-h-dvh flex-col items-center overflow-y-auto px-6 py-10 outline-none"
+          className={styles.popup}
           initialFocus={() => {
             previousFocus.current = document.activeElement instanceof HTMLElement
               ? document.activeElement
@@ -61,65 +62,66 @@ export function ResearcherVerificationGate() {
               : document.querySelector<HTMLElement>("header a[href='/']");
           }}
         >
-          <div className="my-auto w-full max-w-[560px]">
-            <div className="premium-card p-6 md:p-8">
-              <div className="flex flex-col items-center text-center">
-                <div className="mb-5 flex justify-center">
-                  <PSLLogo height={48} eager />
+          <div className={styles.wrapper}>
+            <div className={styles.panel}>
+              <div className={styles.intro}>
+                <div className={styles.brand}>
+                  <PSLLogo height={40} eager />
+                  <span>Laboratory research materials</span>
                 </div>
 
-                <p className="mono text-ash">AGE AND RESEARCH USE</p>
+                <p className={styles.eyebrow}>AGE AND RESEARCH USE</p>
                 <Dialog.Title
-                  className="mt-3 font-display text-2xl font-bold text-ink md:text-3xl"
+                  className={styles.title}
                 >
                   Age and research-use confirmation
                 </Dialog.Title>
-                <Dialog.Description className="mt-3 text-sm leading-relaxed text-ash md:text-base">
+                <Dialog.Description className={styles.description}>
                   Confirm your age and intended laboratory use to enter PSL Labs.
                 </Dialog.Description>
               </div>
 
-              <div className="mt-6 space-y-4">
-                <label className="flex items-start gap-3 rounded-xl border border-linen bg-lab-white px-4 py-3">
+              <div className={styles.choices}>
+                <label className={styles.choice}>
                   <input
                     ref={ageCheckbox}
                     type="checkbox"
                     checked={ageChecked}
                     onChange={(e) => setAgeChecked(e.target.checked)}
-                    className="mt-1 size-4 accent-primary-blue"
+                    className={styles.checkbox}
                   />
-                  <span className="text-sm leading-relaxed text-ink">
+                  <span>
                     I am at least 21 years of age
                   </span>
                 </label>
 
-                <label className="flex items-start gap-3 rounded-xl border border-linen bg-lab-white px-4 py-3">
+                <label className={styles.choice}>
                   <input
                     type="checkbox"
                     checked={ruoChecked}
                     onChange={(e) => setRuoChecked(e.target.checked)}
-                    className="mt-1 size-4 accent-primary-blue"
+                    className={styles.checkbox}
                   />
-                  <span className="text-sm leading-relaxed text-ink">
+                  <span>
                     I confirm products are for research and laboratory use only, not
                     for human or veterinary use
                   </span>
                 </label>
               </div>
 
-              <div className="mt-6 flex flex-col gap-3">
+              <div className={styles.actions}>
                 <button
                   type="button"
                   onClick={handleEnter}
                   disabled={!canEnter}
-                  className="inline-flex w-full items-center justify-center rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-45"
+                  className={styles.enter}
                 >
                   Enter Site
                 </button>
 
                 <a
                   href="https://google.com"
-                  className="text-center text-sm font-medium text-ash underline underline-offset-4 transition-opacity hover:opacity-80"
+                  className={styles.exit}
                   rel="nofollow"
                 >
                   Exit
@@ -127,7 +129,7 @@ export function ResearcherVerificationGate() {
               </div>
             </div>
 
-            <p className="mt-4 text-center text-xs leading-relaxed text-ash">
+            <p className={styles.footnote}>
               You may be asked again if you clear your site data.
             </p>
           </div>

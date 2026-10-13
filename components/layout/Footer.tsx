@@ -4,8 +4,30 @@ import { PSLLogo } from "@/components/branding/psl-logo";
 import { CookiePreferencesButton } from "@/components/privacy/cookie-preferences";
 import { FooterColumn } from "@/components/layout/footer-column";
 import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
-import { footerColumns, footerDisclaimer } from "@/lib/navigation";
-import styles from "./storefront-shell.module.css";
+import { footerDisclaimer } from "@/lib/navigation";
+import styles from "./footer.module.css";
+
+const columns = [
+  { title: "Materials & documentation", links: [
+    { label: "Product catalog", href: "/products" },
+    { label: "Batch reports", href: "/coa" },
+    { label: "Testing scope", href: "/testing" },
+    { label: "Research guides", href: "/guides" },
+  ] },
+  { title: "Order support", links: [
+    { label: "Contact", href: "/contact" },
+    { label: "Frequently asked questions", href: "/faq" },
+    { label: "Shipping", href: "/shipping" },
+    { label: "Returns", href: "/returns" },
+    { label: "Track an order", href: "/track" },
+  ] },
+  { title: "PSL Labs", links: [
+    { label: "About", href: "/about" },
+    { label: "Terms", href: "/terms" },
+    { label: "Privacy", href: "/privacy" },
+    { label: "Disclaimer", href: "/disclaimer" },
+  ] },
+];
 
 export function Footer() {
   return (
@@ -15,27 +37,25 @@ export function Footer() {
           <div className={styles.brand}>
             <Link
               href="/"
-              className="inline-flex w-fit transition-opacity duration-200 ease-out hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent"
+              className={styles.logo}
               aria-label="PSL Labs home"
             >
-              <PSLLogo height={40} decorative />
+              <PSLLogo height={44} decorative />
             </Link>
-            <p className="max-w-xs text-xs leading-relaxed text-ash">
-              {footerDisclaimer}
-            </p>
+            <p className={styles.brandDescription}>Materials for laboratory research.<br />Phoenix, Arizona · United States.</p>
             <a
               href="mailto:support@psllabs.org"
-              className="text-sm text-accent transition-opacity duration-200 hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className={styles.support}
             >
               support@psllabs.org
             </a>
           </div>
 
-          {footerColumns.map((column) => (
+          {columns.map((column) => (
             <FooterColumn key={column.title} {...column} />
           ))}
         </div>
-
+        <p className={styles.disclosure}>{footerDisclaimer}</p>
         <div className={styles.footerBottom}>
           <p suppressHydrationWarning>
             © {new Date().getFullYear()} {LEGAL_ENTITY_NAME}. All rights reserved.

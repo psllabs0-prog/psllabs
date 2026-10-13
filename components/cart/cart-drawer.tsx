@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { Minus, PackageOpen, Plus, Trash2 } from "lucide-react";
 
 import { useCart } from "@/components/cart/cart-provider";
 import { PillButton } from "@/components/ui/pill-button";
@@ -11,6 +11,7 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
+  SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet";
 import { formatPrice } from "@/lib/cart/format";
@@ -81,7 +82,7 @@ function CartLineRow({
                 onDecrease();
               }}
               className="flex size-9 items-center justify-center text-lg transition-opacity hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-              aria-label="Decrease quantity"
+              aria-label={`Decrease ${line.name} quantity`}
             >
               <Minus className="size-3.5" strokeWidth={2} aria-hidden />
             </button>
@@ -96,7 +97,7 @@ function CartLineRow({
               }}
               disabled={atMax}
               className="flex size-9 items-center justify-center text-lg transition-opacity hover:opacity-70 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Increase quantity"
+              aria-label={`Increase ${line.name} quantity`}
             >
               <Plus className="size-3.5" strokeWidth={2} aria-hidden />
             </button>
@@ -186,11 +187,13 @@ export function CartDrawer() {
           <SheetTitle className="font-display text-xl font-bold text-ink">
             Cart{totalQuantity > 0 ? ` (${totalQuantity})` : ""}
           </SheetTitle>
+          <SheetDescription className="sr-only">Review items, adjust quantities, and proceed to checkout.</SheetDescription>
         </SheetHeader>
 
         <div className="flex flex-1 flex-col overflow-hidden">
           {isEmpty ? (
             <div className="flex flex-1 flex-col items-center justify-center gap-6 px-6 py-12 text-center">
+              <div className={styles.emptyIcon}><PackageOpen aria-hidden strokeWidth={1.4} /></div>
               <p className="text-base text-ash">Your cart is empty.</p>
               <PillButton href="/products" onClick={closeCart} className={styles.checkoutButton}>
                 Browse Catalog
@@ -261,7 +264,7 @@ export function CartDrawer() {
                     <dt className="text-base font-medium text-ink">
                       Estimated total
                     </dt>
-                    <dd className="font-mono text-xl font-medium text-ink">
+                    <dd aria-live="polite" aria-atomic="true" className="font-mono text-xl font-medium text-ink">
                       {formatPrice(estimatedTotal)}
                     </dd>
                   </div>

@@ -12,7 +12,13 @@
   width: 44px;
   height: 44px;
   color: var(--color-ink, #132e3b);
-  border-radius: 8px;
+  border-radius: 4px;
+}
+
+.drawer button:focus-visible,
+.drawer a:focus-visible {
+  outline: 2px solid var(--teal, #006a78);
+  outline-offset: 3px;
 }
 
 .header {
@@ -23,7 +29,7 @@
 
 .header [data-slot="sheet-title"] {
   color: var(--color-ink, #132e3b);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.035em;
 }
@@ -42,7 +48,7 @@
 
 .productImage {
   background: #eef3f5;
-  border-radius: 8px;
+  border-radius: 4px;
 }
 
 .removeButton {
@@ -64,7 +70,7 @@
   max-width: 100%;
   background: var(--color-lab-white, #fff);
   border-color: #80939f;
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
 .quantityControl button {
@@ -106,11 +112,27 @@
 
 .checkoutButton {
   min-height: 48px;
-  border-radius: 6px;
+  border-radius: 4px;
   padding-block: 12px;
   background: var(--color-accent, #087a99);
   color: var(--color-on-accent, #fff);
   font-weight: 600;
+}
+
+.emptyIcon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border: 1px solid var(--color-linen, #dce5ea);
+  border-radius: 4px;
+  background: #f4f7f8;
+  color: var(--teal, #006a78);
+}
+
+.emptyIcon svg {
+  width: 32px;
+  height: 32px;
 }
 
 @media (max-width: 479px) {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { Bitcoin, Check, CreditCard } from "lucide-react";
 
@@ -43,6 +44,16 @@ type FormState = {
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
 type PaymentMethod = "btcpay" | "card";
+
+const FIELD_IDS: Record<keyof FormState, string> = {
+  email: "checkout-email",
+  firstName: "checkout-first-name",
+  lastName: "checkout-last-name",
+  address: "checkout-address",
+  city: "checkout-city",
+  state: "checkout-state",
+  zip: "checkout-zip",
+};
 
 const initialForm: FormState = {
   email: "",
@@ -339,7 +350,11 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
     const nextErrors = validateForm(form);
     setErrors(nextErrors);
     setSubmitted(true);
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(nextErrors).length > 0) {
+      const firstInvalidField = Object.keys(nextErrors)[0] as keyof FormState;
+      requestAnimationFrame(() => document.getElementById(FIELD_IDS[firstInvalidField])?.focus());
+      return;
+    }
     if (visualPreview) { setPayError("Design preview only. Payments and order creation are disabled."); return; }
 
     if (method === "btcpay") {
@@ -497,6 +512,8 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                     disabled={!!tagadaSession || isSubmitting}
                     value={form.firstName}
                     onChange={(e) => updateField("firstName", e.target.value)}
+                    aria-invalid={!!errors.firstName}
+                    aria-describedby={errors.firstName ? "checkout-first-name-error" : undefined}
                     className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base md:text-sm"
                   />
                 </Field>
@@ -512,6 +529,8 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                     disabled={!!tagadaSession || isSubmitting}
                     value={form.lastName}
                     onChange={(e) => updateField("lastName", e.target.value)}
+                    aria-invalid={!!errors.lastName}
+                    aria-describedby={errors.lastName ? "checkout-last-name-error" : undefined}
                     className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base md:text-sm"
                   />
                 </Field>
@@ -528,6 +547,8 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                       disabled={!!tagadaSession || isSubmitting}
                       value={form.address}
                       onChange={(e) => updateField("address", e.target.value)}
+                      aria-invalid={!!errors.address}
+                      aria-describedby={errors.address ? "checkout-address-error" : undefined}
                       className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base md:text-sm"
                     />
                   </Field>
@@ -544,6 +565,8 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                     disabled={!!tagadaSession || isSubmitting}
                     value={form.city}
                     onChange={(e) => updateField("city", e.target.value)}
+                    aria-invalid={!!errors.city}
+                    aria-describedby={errors.city ? "checkout-city-error" : undefined}
                     className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base md:text-sm"
                   />
                 </Field>
@@ -561,6 +584,7 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                     onChange={(e) => updateField("state", e.target.value)}
                     className={selectClassName}
                     aria-invalid={!!errors.state}
+                    aria-describedby={errors.state ? "checkout-state-error" : undefined}
                   >
                     <option value="">Select state</option>
                     {US_STATES.map((state) => (
@@ -582,6 +606,8 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                     disabled={!!tagadaSession || isSubmitting}
                     value={form.zip}
                     onChange={(e) => updateField("zip", e.target.value)}
+                    aria-invalid={!!errors.zip}
+                    aria-describedby={errors.zip ? "checkout-zip-error" : undefined}
                     className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base md:text-sm"
                   />
                 </Field>
@@ -793,15 +819,18 @@ function CheckoutSummary({
   showDiscount: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-5">
+    <div className={cn("flex flex-col gap-5", styles.summary)}>
       <h2 className="font-display text-lg font-bold text-ink">Order Summary</h2>
       <ul className="flex flex-col gap-3 border-b border-linen pb-4">
         {lines.map((line) => (
           <li
             key={line.handle}
-            className="flex items-start justify-between gap-3 text-sm"
+            className={cn("flex items-start justify-between gap-3 text-sm", styles.summaryLine)}
           >
-            <div className="min-w-0">
+            <div className={styles.summaryImage}>
+              <Image src={line.imageSrc} alt={line.imageAlt} width={48} height={56} className="h-full w-full object-contain" />
+            </div>
+            <div className="min-w-0 flex-1">
               <p className="font-medium text-ink">{line.name}</p>
               <p className="text-xs text-ash">
                 {line.strength} · Qty {line.quantity}

@@ -25,15 +25,17 @@ export default async function ProductsPage() {
       <section className={styles.catalogHeader}>
         <div className={styles.container}>
           <p className={styles.eyebrow}>PRODUCT CATALOG</p>
-          <h1 className={styles.catalogTitle}>Research peptides <span>with published lab reports.</span></h1>
+          <h1 className={styles.catalogTitle}>Material catalog.</h1>
           <p className={styles.catalogIntro}>Browse materials for laboratory research. Each active product lists specs and a batch report when published. Research use only.</p>
+          <p className={styles.catalogArtworkNote}>Product images are artwork.</p>
         </div>
       </section>
       <section className={styles.catalogPageSection}>
         <div className={styles.container}>
+          <div className={styles.catalogLabels} aria-hidden><span /><span>Material / nominal amount</span><span>Published batch result</span><span>Price</span><span>Documentation</span></div>
           <div data-product-catalog className={styles.catalogGrid}>
             {active.map((product) => (
-              <ProductCatalogCard key={product.handle} product={product} availability={availabilityMap.get(product.handle)} showDescription />
+              <ProductCatalogCard key={product.handle} product={product} availability={availabilityMap.get(product.handle)} />
             ))}
           </div>
           {comingSoon.length > 0 && (

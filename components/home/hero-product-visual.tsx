@@ -16,21 +16,23 @@ export function HeroProductVisual() {
   const amount = product.strength.replace(/(\d)(mg|ml)$/i, "$1 $2");
   return (
     <div className={styles.featuredProduct}>
+      <div className={styles.plateHeader}><span>{product.sku}</span><span>LABORATORY RESEARCH</span></div>
       <Link href={product.href} className={styles.featuredImage} aria-label={`View ${product.name}, ${amount}`}>
-        <Image src={product.imageSrc} alt={product.imageAlt} width={180} height={200} sizes="(max-width: 800px) 108px, (max-width: 1100px) 140px, 180px" preload />
+        <Image src={product.imageSrc} alt={product.imageAlt} width={390} height={340} sizes="(max-width: 800px) 165px, (max-width: 1100px) 285px, 390px" preload />
       </Link>
       <div className={styles.featuredDetails}>
-        <p className={styles.eyebrow}>FROM THE CATALOG</p>
+        <p className={styles.plateLabel}>CATALOG MATERIAL</p>
         <h2><Link href={product.href}>{product.name}</Link></h2>
-        <p className={styles.featuredMeta}>{amount}{report ? ` · ${report.batch} batch` : ""}</p>
+        <p className={styles.featuredMeta}>{amount} <span>nominal vial amount</span></p>
         <p className={styles.featuredPrice}>{formatPrice(product.price)} <span>/ vial</span></p>
+        {report && <p className={styles.plateReport}>Batch {report.batch}<br /><span>Report task {report.taskNumber}</span></p>}
         {report ? (
-          <a href={report.reportUrl} className={styles.textLink} target="_blank" rel="noopener noreferrer">Original batch report <ArrowUpRight aria-hidden /></a>
+          <a href={report.reportUrl} className={styles.textLink} target="_blank" rel="noopener noreferrer">Original report <ArrowUpRight aria-hidden /></a>
         ) : (
           <Link href={product.href} className={styles.textLink}>View material <ArrowUpRight aria-hidden /></Link>
         )}
-        <p className={styles.artworkCaption}>Existing product artwork</p>
       </div>
+      <p className={styles.artworkCaption}>Product artwork · material and label shown</p>
     </div>
   );
 }

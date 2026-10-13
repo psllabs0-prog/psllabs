@@ -54,7 +54,7 @@ export function BatchTestingCard({ report, compact = false }: BatchTestingCardPr
         <p className={styles.reportDate}>Task {report.taskNumber} · Analysis {report.analysisDate}</p>
         <div className={styles.reportFile}>
           <a href={report.reportUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open ${report.product} batch ${report.batch} original laboratory report in a new tab`}>
-            <Image src={report.reportUrl} alt={report.reportAltText} width={1600} height={2360} sizes="83px" className={styles.reportThumbnail} unoptimized />
+            <Image src={report.reportUrl} alt={report.reportAltText} width={1600} height={2360} sizes="(max-width: 800px) 95px, 116px" className={styles.reportThumbnail} unoptimized />
           </a>
           <div>
             <h3>{report.product} / {report.batch}</h3>

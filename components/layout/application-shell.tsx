@@ -31,6 +31,18 @@ function subscribeDocumentUrl(notify: () => void) {
   const history = window.history;
   const push = history.pushState;
   const replace = history.replaceState;
+  let active = true;
+  let notificationQueued = false;
+  const notifyAfterHistoryCommit = () => {
+    if (notificationQueued) return;
+    notificationQueued = true;
+    // Next commits public history during an insertion effect. Notify React
+    // after that commit; privacy checks and dispatch revocation stay synchronous.
+    queueMicrotask(() => {
+      notificationQueued = false;
+      if (active) notify();
+    });
+  };
   const wrap = (original: History["pushState"]): History["pushState"] => function(data, unused, url) {
     const destination = url == null ? new URL(window.location.href) : new URL(url, window.location.href);
     if (destination.origin === window.location.origin &&
@@ -40,7 +52,7 @@ function subscribeDocumentUrl(notify: () => void) {
       return;
     }
     original.call(history, data, unused, url);
-    notify();
+    notifyAfterHistoryCommit();
   };
   const wrappedPush = wrap(push);
   const wrappedReplace = wrap(replace);
@@ -82,6 +94,7 @@ function subscribeDocumentUrl(notify: () => void) {
   window.addEventListener("pageshow", onPageShow, lifecycleOptions);
   window.addEventListener(PRIVACY_WITHDRAWAL_EVENT, onWithdrawal, lifecycleOptions);
   return () => {
+    active = false;
     if (history.pushState === wrappedPush) history.pushState = push;
     if (history.replaceState === wrappedReplace) history.replaceState = replace;
     window.removeEventListener("popstate", onHistory);

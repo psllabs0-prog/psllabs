@@ -17,12 +17,14 @@ type ProductPurchaseProps = {
   productHandle: string;
   stockStatus: StockStatus;
   availability?: ProductAvailability;
+  nominalStrength?: string;
+  hideSinglePriceOnMobile?: boolean;
   className?: string;
 };
 
 const MAX_QUANTITY = 10;
 
-export function ProductPurchase({ productHandle, stockStatus, availability, className }: ProductPurchaseProps) {
+export function ProductPurchase({ productHandle, stockStatus, availability, nominalStrength, hideSinglePriceOnMobile = false, className }: ProductPurchaseProps) {
   const { quantity, setQuantity, unitPrice, totalPrice } = useProductQuantity();
   const status = availability?.status ?? stockStatus;
   const available = availability?.available;
@@ -33,7 +35,7 @@ export function ProductPurchase({ productHandle, stockStatus, availability, clas
 
   return (
     <div data-product-purchase className={cn(styles.purchase, className)}>
-      <div className={styles.purchasePriceRow}>
+      <div className={cn(styles.purchasePriceRow, hideSinglePriceOnMobile && quantity === 1 && styles.mobileDuplicatePrice)}>
         <div>
           <span className={styles.purchasePrice}>{formatPrice(totalPrice)}</span>
           <p className={styles.purchaseMeta}>{quantity > 1 ? `${quantity} vials · ${formatPrice(unitPrice)} each` : "Price per vial"}</p>
@@ -41,15 +43,18 @@ export function ProductPurchase({ productHandle, stockStatus, availability, clas
         <span className={styles.purchaseMeta}>USD</span>
       </div>
 
-      <StockStatusBadge status={status} available={availability?.available} />
+      <div className={styles.purchaseFacts}>
+        <StockStatusBadge status={status} available={availability?.available} />
+        {nominalStrength ? <span className={styles.vialSize}>Vial size <strong>{nominalStrength}</strong></span> : null}
+      </div>
 
       <div className={styles.buyRow}>
         <AddToCartButton productId={productHandle} quantity={quantity} maxAvailable={availability?.tracked ? maxQuantity : undefined} disabled={isOutOfStock} className={cn(styles.addButton, isOutOfStock && "opacity-60")}>
           {isOutOfStock ? "Out of Stock" : "Add to Cart"}
         </AddToCartButton>
         <div className={styles.quantityGroup}>
-          <span className="sr-only">Quantity</span>
-          <div className={styles.quantity}>
+          <span className={styles.quantityLabel} id={`quantity-${productHandle}`}>Quantity</span>
+          <div className={styles.quantity} role="group" aria-labelledby={`quantity-${productHandle}`}>
             <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={isOutOfStock} aria-label="Decrease quantity">−</button>
             <span aria-live="polite">{quantity}</span>
             <button type="button" onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))} disabled={isOutOfStock || quantity >= maxQuantity} aria-label="Increase quantity">+</button>

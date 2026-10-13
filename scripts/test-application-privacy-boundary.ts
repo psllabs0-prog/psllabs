@@ -27,7 +27,11 @@ let metaStops = 0;
 let tiktokLoaded = false;
 let tiktokStops = 0;
 let historyUpdates = 0;
+let notifications = 0;
+const notificationQueue: (() => void)[] = [];
+const flushNotifications = () => { while (notificationQueue.length) notificationQueue.shift()!(); };
 let unsubscribe: (() => void) | undefined;
+function cleanupSubscription() { unsubscribe?.(); unsubscribe = undefined; }
 const events = new EventTarget();
 const assigned: string[] = [];
 const location = { href: "https://www.psllabs.org/", origin: "https://www.psllabs.org",
@@ -49,6 +53,7 @@ const exports: { ApplicationShell?: (props: {children: string}) => unknown; rese
 const jsx = (type: unknown, props: unknown) => ({ type, props });
 // Simulated full documents reset module state, just as a real hard navigation does.
 runInNewContext(compiled + "\nexports.resetDocumentNavigation = () => { pendingDocumentNavigation = null; };", { exports, URL, Element: Target, window: browser,
+  queueMicrotask: (callback: () => void) => notificationQueue.push(callback),
   document: {
     referrer: "",
     addEventListener: (_name: string, handler: typeof click) => { click = handler; },
@@ -62,7 +67,7 @@ runInNewContext(compiled + "\nexports.resetDocumentNavigation = () => { pendingD
       useEffect: (fn: () => void | (() => void)) => { effects.push(fn); },
       useLayoutEffect: (fn: () => void) => { layoutEffects.push(fn); },
       useSyncExternalStore: (subscribe: (notify: () => void) => () => void, getSnapshot: () => string) => {
-        unsubscribe ??= subscribe(() => {}); return getSnapshot();
+        unsubscribe ??= subscribe(() => { notifications++; }); return getSnapshot();
       },
     };
     if (name === "next/navigation") return { usePathname: () => pathname };
@@ -134,7 +139,7 @@ for (const route of ["/admin", "/admin-ledger", "/admin-ledger.01", "/test", "/t
 }
 
 function freshDocument(path: string, loaded = false) {
-  unsubscribe?.(); unsubscribe = undefined;
+  cleanupSubscription();
   exports.resetDocumentNavigation!();
   location.href = `https://www.psllabs.org${path}`;
   pathname = new URL(location.href).pathname;
@@ -152,8 +157,17 @@ assert.equal(assigned.at(-1), "https://www.psllabs.org/products?email=private");
 browser.history.replaceState({}, "", "/success?orderId=private");
 assert.equal(historyUpdates, updates);
 assert.equal(assigned.at(-1), "https://www.psllabs.org/success?orderId=private");
+const beforeNotifications = notifications;
 browser.history.pushState({}, "", "/products?fbclid=real_click");
 assert.equal(historyUpdates, updates + 1, "reviewed public navigation remains an SPA transition");
+assert.equal(notifications, beforeNotifications, "public history must not notify React inside Next's insertion effect");
+browser.history.replaceState({}, "", "/products?fbclid=real_click");
+flushNotifications();
+assert.equal(notifications, beforeNotifications + 1, "consecutive public updates notify once after history commits");
+browser.history.pushState({}, "", "/products");
+cleanupSubscription();
+flushNotifications();
+assert.equal(notifications, beforeNotifications + 1, "a queued notification must not update an unmounted subscription");
 
 // A query-only browser-history transition and a not-yet-committed Next pathname
 // both suppress children while the original Meta SDK still exists.
@@ -243,5 +257,5 @@ for (const provider of ["meta", "tiktok"] as const) {
   assert.equal(reloads, beforeRestore + 1, `${provider} restoration requires fresh server consent in a new document`);
 }
 tiktokLoaded = false;
-unsubscribe?.();
+cleanupSubscription();
 console.log("[test-application-privacy-boundary] public/private, advertising URL/query/referrer, links, history, BFCache and Meta/TikTok fresh-document isolation checks passed offline");

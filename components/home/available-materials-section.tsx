@@ -1,38 +1,27 @@
 import Link from "next/link";
-import { ArrowUpRight, FileText } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { ProductCatalogCard } from "@/components/products/product-catalog-card";
+import { formatPrice } from "@/lib/cart/format";
 import type { ProductAvailability } from "@/lib/inventory/availability";
 import type { CatalogProduct } from "@/lib/products/catalog";
 import styles from "./research-home.module.css";
 
-type AvailableMaterialsSectionProps = {
-  products: CatalogProduct[];
-  availabilityMap: Map<string, ProductAvailability>;
-};
+type AvailableMaterialsSectionProps = { products: CatalogProduct[]; availabilityMap: Map<string, ProductAvailability> };
 
 export function AvailableMaterialsSection({ products, availabilityMap }: AvailableMaterialsSectionProps) {
+  const selected = products.slice(0, 3);
+  const remaining = products.slice(3);
   return (
     <section id="materials" className={styles.catalogSection}>
       <div className={styles.container}>
         <div className={styles.sectionHeader}>
-          <div>
-            <h2 className={styles.sectionTitle}>Find your material.</h2>
-            <p className={styles.sectionDescription}>Materials for laboratory research, with batch documentation alongside each product.</p>
-          </div>
+          <div><p className={styles.eyebrow}>THE MATERIAL INDEX</p><h2 className={styles.sectionTitle}>Selected materials.</h2><p className={styles.catalogArtworkNote}>Product images are artwork.</p></div>
           <Link href="/products" className={styles.textLink}>Full catalog <ArrowUpRight aria-hidden /></Link>
         </div>
         <div className={styles.catalogGrid}>
-          {products.map((product) => (
-            <ProductCatalogCard key={product.handle} product={product} availability={availabilityMap.get(product.handle)} headingLevel={3} />
-          ))}
-          <article className={styles.catalogGuide}>
-            <FileText aria-hidden />
-            <p className={styles.eyebrow}>BEFORE YOU ORDER</p>
-            <h3>A percentage is only part of the report.</h3>
-            <p>Purity, identity and content answer different questions. Check the original file and its testing scope.</p>
-            <Link href="/guides/peptide-identity-vs-purity-vs-content" className={styles.textLink}>Read the guide <ArrowUpRight aria-hidden /></Link>
-          </article>
+          {selected.map((product) => <ProductCatalogCard key={product.handle} product={product} availability={availabilityMap.get(product.handle)} headingLevel={3} />)}
         </div>
+        {remaining.length > 0 && <div className={styles.remainingMaterials}><p>Also in the catalog</p><div>{remaining.map((product) => <Link key={product.handle} href={product.href}>{product.name} <span>{formatPrice(product.price)}</span><ArrowUpRight aria-hidden /></Link>)}</div></div>}
       </div>
     </section>
   );

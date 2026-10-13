@@ -11,7 +11,7 @@ import { isDesignPreview } from "@/lib/design-preview";
 const archivo = Archivo({
   subsets: ["latin"],
   variable: "--font-display",
-  weight: ["600", "700"],
+  weight: ["500", "600", "700"],
   display: "swap",
 });
 

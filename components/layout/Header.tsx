@@ -11,6 +11,7 @@ import {
   Sheet,
   SheetContent,
   SheetHeader,
+  SheetDescription,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
@@ -28,15 +29,16 @@ export function Header() {
           className={styles.logo}
           aria-label="PSL Labs home"
         >
-          <PSLLogo height={56} decorative eager />
+          <PSLLogo height={40} decorative eager />
         </Link>
 
         <nav
           className={styles.nav}
           aria-label="Main navigation"
         >
-          {primaryNavLinks.map((link) => (
-            <NavLinkItem key={link.href} {...link} />
+          {primaryNavLinks.filter((link) => link.href !== "/").map((link) => (
+            <NavLinkItem key={link.href} {...link}
+              className={link.href === "/products" || link.href === "/coa" ? styles.primaryNavLink : undefined} />
           ))}
         </nav>
 
@@ -55,11 +57,12 @@ export function Header() {
               showCloseButton
               className={styles.menuPanel}
             >
-              <SheetHeader className="border-b border-linen pb-4">
+              <SheetHeader className={styles.menuHeader}>
                 <SheetTitle className="flex items-center gap-3 font-display text-xl font-normal text-ink">
                   <PSLLogo height={24} decorative />
                   <span>Menu</span>
                 </SheetTitle>
+                <SheetDescription className="sr-only">Navigate the PSL Labs catalog, batch reports and company information.</SheetDescription>
               </SheetHeader>
               <nav
                 className="flex flex-col px-4"

@@ -22,10 +22,11 @@ export function SiteLayout({ children, visualPreview = false }: { children: Reac
       {!visualPreview && <><GoogleAdsMeasurement />
       <Suspense fallback={null}><MetaAdsMeasurement /></Suspense></>}
       <StorefrontTheme visualPreview={visualPreview}>
+      <a href="#main-content" className="storefront-skip-link">Skip to content</a>
       <div className="flex min-h-screen flex-col">
         <Header />
         <AnnouncementBar />
-        <div className="flex-1">{children}</div>
+        <div id="main-content" tabIndex={-1} className="flex-1 storefront-main-content">{children}</div>
         <Footer />
       </div>
       <CartDrawer />

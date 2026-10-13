@@ -1,7 +1,9 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowUpRight, FileText, FlaskConical, Truck } from "lucide-react";
 import { formatPrice } from "@/lib/cart/format";
 import { FLAT_SHIPPING_USD, FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
+import { getBatchReportsForProduct } from "@/lib/batch-reports";
 import styles from "./research-home.module.css";
 
 const guides = [
@@ -10,15 +12,19 @@ const guides = [
 ];
 
 export function ResearchGuidesSection() {
+  const report = getBatchReportsForProduct("retatrutide").find((candidate) => candidate.status === "report_available" && Boolean(candidate.reportUrl));
   return (
     <section id="documentation" className={styles.documentationSection}>
       <div className={styles.container}>
         <div className={styles.documentationGrid}>
           <div className={styles.documentationCopy}>
-            <p className={styles.eyebrow}>BATCH DOCUMENTATION</p>
-            <h2 className={styles.sectionTitle}>Read the original.</h2>
-            <p className={styles.documentationDescription}>Match your vial lot to the published report. Results apply only to the named sample and tests performed.</p>
-            <Link href="/guides" className={styles.textLink}>All research guides <ArrowUpRight aria-hidden /></Link>
+            {report && <a href={report.reportUrl} target="_blank" rel="noopener noreferrer" aria-label={`Open original ${report.product} report, task ${report.taskNumber}`}><Image src={report.reportUrl} alt={report.reportAltText} width={148} height={197} sizes="(max-width: 359px) 83px, (max-width: 800px) 102px, (max-width: 1100px) 118px, 148px" className={styles.reportThumbnail} /></a>}
+            <div>
+              <p className={styles.eyebrow}>BATCH DOCUMENTATION</p>
+              <h2 className={styles.sectionTitle}>Read the original.</h2>
+              <p className={styles.documentationDescription}>Match your vial lot to the published report. Results apply only to the named sample and tests performed.</p>
+              {report && <a href={report.reportUrl} target="_blank" rel="noopener noreferrer" className={styles.textLink}>Task {report.taskNumber} <ArrowUpRight aria-hidden /></a>}
+            </div>
           </div>
           <div className={styles.documentationLinks}>
             <Link href="/coa" className={styles.documentLink}>

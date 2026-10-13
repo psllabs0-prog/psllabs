@@ -34,6 +34,10 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
   const imageSrc = product.imageSrc ?? fallbackImage.src;
   const imageAlt = product.imageAlt ?? fallbackImage.alt;
   const strength = catalog?.strength.replace(/(\d)(mg|ml)$/i, "$1 $2");
+  const firstSentenceEnd = product.shortDescription.indexOf(".");
+  const leadDescription = firstSentenceEnd >= 0
+    ? product.shortDescription.slice(0, firstSentenceEnd + 1)
+    : product.shortDescription;
 
   return (
     <ProductQuantityProvider unitPrice={product.price}>
@@ -48,30 +52,35 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
           <div className={styles.productTitle}>
             <p className={styles.eyebrow}>PSL Labs / Laboratory research</p>
             <h1>{product.name}{strength ? <span className={styles.strength}>{strength}</span> : null}</h1>
-            <p className={styles.shortDescription}>{product.shortDescription}</p>
+            <p className={styles.shortDescription}>{leadDescription}</p>
             <p className={styles.titlePrice}>{formatPrice(product.price)}<span>per vial</span></p>
           </div>
 
           <div className={styles.productMedia}>
             <div className={styles.imageWell}>
+              <div className={styles.imageRecord}>
+                <span>{catalog?.sku}</span>
+                <span>{strength} label amount</span>
+              </div>
               <div className={styles.imageFrame}>
-                <Image src={imageSrc} alt={imageAlt} fill preload sizes="(max-width: 800px) 180px, 200px" className={styles.vialImage} />
+                <Image src={imageSrc} alt={imageAlt} fill preload sizes="(max-width: 359px) 260px, (max-width: 800px) 286px, (max-width: 1100px) 340px, 390px" className={styles.vialImage} />
               </div>
               <div className={styles.imageCaption}>
-                <span>Existing product artwork</span>
+                <span>Product artwork</span>
                 <ProductArtworkDialog src={imageSrc} alt={imageAlt} name={product.name} strength={catalog?.strength} />
               </div>
             </div>
-            <div className={styles.mediaMeta}><span>{catalog?.sku}</span><span>Not for human or animal use.</span></div>
+            <div className={styles.mediaMeta}><span>For laboratory research only.</span>{" "}<span>Not for human or animal use.</span></div>
             <ProductArtworkNotice handle={product.handle} className={styles.labelNotice} />
           </div>
 
           <div className={styles.purchaseArea}>
-            <ProductPurchase productHandle={product.handle} stockStatus={product.stockStatus} availability={availability} />
+            <ProductPurchase productHandle={product.handle} stockStatus={product.stockStatus} availability={availability} nominalStrength={strength} hideSinglePriceOnMobile />
             {report ? (
               <section className={styles.batchSummary} aria-label="Published batch summary">
-                <div className={styles.batchHeading}><h2>Published batch report</h2><FileText size={18} aria-hidden /></div>
-                <p className={styles.mono}>{report.batch} · {report.laboratory}</p>
+                <div className={styles.batchHeading}><h2>Published batch record</h2><FileText size={18} aria-hidden /></div>
+                <p className={styles.mono}>{report.laboratory} · Task {report.taskNumber} · {report.analysisDate}</p>
+                <p className={styles.batchIdentifier}>Batch {report.batch}</p>
                 <dl className={styles.batchMetrics}>
                   {report.purityPercent !== undefined ? <div><dt>Reported purity</dt><dd>{formatReportedPurity(report.purityPercent)}</dd></div> : null}
                   {report.reportedResult ? <div><dt>{report.reportedResult.label}</dt><dd>{report.reportedResult.value}</dd></div> : report.reportedAmountMg !== undefined ? <div><dt>Amount measured</dt><dd>{report.reportedAmountMg} mg</dd></div> : null}
@@ -115,6 +124,7 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
         <section className={`${styles.container} ${styles.informationSection}`}>
           <div className={styles.overview}>
             <h2>About {product.name}</h2>
+            <p>{product.shortDescription}</p>
             {product.whyThisExists.split("\n\n").map((paragraph, index) => <p key={index}>{paragraph}</p>)}
             <ul className={styles.productBullets}>{product.bullets.map((bullet) => <li key={bullet}>{bullet}</li>)}</ul>
             {product.ingredients.length ? <dl className={styles.materialDetails}>{product.ingredients.map((ingredient) => <div key={ingredient.name}><dt>{ingredient.name}</dt><dd>{ingredient.dose}</dd><dd>{ingredient.mechanism}</dd></div>)}</dl> : null}
@@ -126,8 +136,10 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
         </section>
 
         <section className={`${styles.container} ${styles.testingScope}`}>
-          <h2>What the results mean</h2>
-          <TestingScopeExplainer showPolicy={false} headingLevel={3} reportKind={product.handle === "reconstitution-solution" ? "solution" : "peptide"} />
+          <details>
+            <summary>What the results mean</summary>
+            <TestingScopeExplainer showPolicy={false} headingLevel={3} reportKind={product.handle === "reconstitution-solution" ? "solution" : "peptide"} />
+          </details>
         </section>
 
         <section className={`${styles.container} ${styles.disclaimer}`} aria-label="Research-use notice">
