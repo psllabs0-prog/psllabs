@@ -31,4 +31,5 @@ export type PartnersDashboard = {
   partners: PartnerDashboardRow[];
   summary: PartnerMetrics & { partners: number; active: number; followUpsDue: number };
   outboundSendingEnabled: false;
+  referralPilot?: Awaited<ReturnType<typeof import("./referral-store").loadReferralPilotDashboard>>;
 };

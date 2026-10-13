@@ -461,7 +461,13 @@ async function main() {
     for (const f of files) {
       const src = readFileSync(f, "utf8");
       const rel = f.slice(ROOT.length + 1).replace(/\\/g, "/");
-      assert(!/marketing_eligible|setMarketingEligible/.test(src), `${rel}: never touches retention eligibility`);
+      if (rel !== "lib/newsletter/welcome-store.ts") {
+        assert(!/marketing_eligible|setMarketingEligible/.test(src), `${rel}: retention permission is changed only during an atomic enrollment`);
+      } else {
+        assert((src.match(/FROM sub WHERE NOT is_test/g) ?? []).length === 2, "single and double opt-in retention permission excludes TEST records");
+        assert((src.match(/WHERE customer_marketing_preferences\.unsubscribed_at IS NULL/g) ?? []).length === 2, "neither enrollment path clears an unsubscribe");
+        assert(src.includes("'newsletter_signup_v2'") && src.includes("'newsletter_double_opt_in'"), "retention permission records the explicit opt-in source");
+      }
       assert(!/openai|anthropic|@ai-sdk|generateText/i.test(src), `${rel}: no model calls`);
       assert(!/SUPPORT_SMTP|SUPPORT_IMAP/.test(src), `${rel}: does not use the support mailbox transport`);
       // lib/newsletter/store.ts is the unchanged legacy signup path (its own pre-existing table).

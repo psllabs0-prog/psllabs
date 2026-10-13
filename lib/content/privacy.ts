@@ -4,7 +4,7 @@ export const privacyPageMeta: ContentPageMeta = {
   label: "LEGAL",
   title: "Privacy Policy",
   description: "How PSL Labs collects, uses, and protects your personal information.",
-  intro: ["Last updated: October 11, 2026."],
+  intro: ["Last updated: October 13, 2026."],
 };
 
 export const privacySections: ContentSection[] = [
@@ -57,6 +57,16 @@ export const privacySections: ContentSection[] = [
       "To withdraw, open Cookie preferences and choose Decline optional, or turn off a purpose and save. Browser advertising permission is removed immediately and we request server-side revocation. If the server cannot confirm the change, the controls show that withdrawal is pending and retry when the connection returns; optional browser advertising remains off. Previously saved grants are not restored while a withdrawal is pending.",
       "Our browser and server integrations check current permission, including the relevant consent revision, before eligible collection or transmission. Withdrawal stops future permitted collection and use through those integrations after confirmation. Granting permission again does not authorize old orders or queued historical events. Global Privacy Control and applicable opt-out signals override optional advertising choices.",
       "Withdrawal does not automatically erase data an advertising platform already received or guarantee immediate removal from an existing platform audience. Audience features remain unavailable until their consent, eligibility, and withdrawal requirements can be enforced. Contact support@psllabs.org for access, deletion, or other privacy requests concerning data already shared.",
+    ],
+  },
+  {
+    id: "partners",
+    title: "Partner applications, sign-in and referrals",
+    paragraphs: [
+      "When you apply to the partner program, we collect your name or organization, email, optional public website, proposed research audience and agreement to the pilot terms. We use this information to review applications, administer partner accounts and respond about the partnership. Applying does not subscribe you to marketing messages or authorize advertising data sharing.",
+      "Partner sign-in uses a short-lived, one-time email link and an essential first-party account session lasting up to seven days. Sign-in links expire after 15 minutes. We store hashes of the sign-in and session tokens, not the original tokens. Sign out to revoke a session. Partner account pages and sign-in endpoints do not load storefront analytics or advertising tools.",
+      "An approved referral code entered explicitly at checkout is part of the requested transaction. It may be recorded with the eligible order to validate the discount, prevent self-referrals and duplicate use, and calculate the partner commission. It does not enable optional advertising cookies. Optional referral-link attribution remains subject to measurement consent, withdrawal and applicable privacy opt-out signals.",
+      "Partners see only their own application, code, eligible referral totals and commission status. They do not receive customer contact details, addresses, payment-card information or private medical information through their portal. We do not send partner applications, sign-in tokens or commission records to advertising platforms. Contact support@psllabs.org to request access, correction, closure or deletion of partner information, subject to required transaction records.",
     ],
   },
   {

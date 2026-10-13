@@ -5,7 +5,6 @@ import { useEffect, useRef, type PointerEvent } from "react";
 
 import { cn } from "@/lib/utils";
 import { ProductArtworkDialog } from "./product-artwork-dialog";
-import { ProductArtworkNotice } from "./product-artwork-notice";
 import styles from "./product-showcase.module.css";
 
 type ProductShowcaseProps = {
@@ -92,7 +91,6 @@ export function ProductShowcase({ src, alt, name, strength, variant = "product" 
           <ProductArtworkDialog key={src} src={src} alt={alt} name={name} strength={strength} />
         </div>
       </div>
-      <ProductArtworkNotice key={src} imageSrc={src} className="mt-3" collapsed={variant === "hero"} />
     </>
   );
 }

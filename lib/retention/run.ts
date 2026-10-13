@@ -1,9 +1,10 @@
-import { getRetentionReadiness } from "./config";
-import { sendRetention30dEmail } from "./email";
+import { getRetentionReadiness, isRetentionTestMode } from "./config";
+import { RetentionDeliveryError, sendRetention30dEmail } from "./email";
 import {
   claimRetentionSend,
   listRetentionCandidates,
   markRetentionSendFailed,
+  markRetentionSendHeld,
   markRetentionSendSent,
   recordRetentionJobRun,
 } from "./store";
@@ -28,6 +29,10 @@ export async function runRetention30dJob(options?: {
   limit?: number;
 }): Promise<RetentionJobSummary> {
   const readiness = getRetentionReadiness();
+  // Shared production credentials must never be consumed by a simulated run.
+  if (isRetentionTestMode()) {
+    return { ok: true, candidates: 0, sent: 0, skipped: 0, failed: 0, errors: [], notReady: true, readinessReasons: ["Test mode — no production send records are consumed"] };
+  }
   if (!readiness.ready && !options?.force) {
     const summary: RetentionJobSummary = {
       ok: true,
@@ -74,7 +79,9 @@ export async function runRetention30dJob(options?: {
     errors: [],
   };
 
+  const started = Date.now();
   for (const c of candidates) {
+    if (Date.now() - started > 35_000) break;
     const claim = await claimRetentionSend({
       orderId: c.orderId,
       email: c.email,
@@ -83,15 +90,23 @@ export async function runRetention30dJob(options?: {
       summary.skipped += 1;
       continue;
     }
+    let acceptedBySmtp = false;
     try {
-      await sendRetention30dEmail({ to: c.email });
+      await sendRetention30dEmail({ to: c.email, sendId: claim.id });
+      acceptedBySmtp = true;
       const marked = await markRetentionSendSent(claim.id);
       if (marked) summary.sent += 1;
       else summary.skipped += 1;
     } catch (error) {
       const msg =
         error instanceof Error ? error.message.slice(0, 400) : "send failed";
-      await markRetentionSendFailed(claim.id, msg);
+      if (acceptedBySmtp) {
+        await markRetentionSendHeld(claim.id, "unknown", "SMTP accepted; confirmation write did not complete");
+      } else if (error instanceof RetentionDeliveryError && error.outcome !== "failed") {
+        await markRetentionSendHeld(claim.id, error.outcome, msg);
+      } else {
+        await markRetentionSendFailed(claim.id, msg);
+      }
       summary.failed += 1;
       summary.errors.push(msg);
       summary.ok = false;

@@ -49,8 +49,9 @@ export type EnrollResult =
   | { outcome: "already_subscribed" };
 
 /**
- * Single opt-in: records the subscription and its three step rows, timed from
- * the submission, in one locked transaction. Refuses any address with a
+ * Single opt-in: records the subscription, its three step rows, and explicit
+ * availability-email permission for live records in one locked transaction.
+ * Steps are timed from submission. Refuses any address with a
  * suppression or unsubscribe of any reason (an unauthenticated signup never
  * re-subscribes an opt-out) or an active subscription in either partition, so
  * retries and concurrent submissions enroll once. confirmed_at stays NULL:
@@ -90,6 +91,15 @@ export async function enrollSingleOptIn(input: {
         FROM flags WHERE NOT blocked AND NOT already
         ON CONFLICT (email, is_test) DO NOTHING
         RETURNING id, email, is_test
+      ),
+      preferences AS (
+        INSERT INTO customer_marketing_preferences (email, marketing_eligible, source, consented_at, updated_at)
+        SELECT email, true, 'newsletter_signup_v2', ${now}::timestamptz, ${now}::timestamptz
+        FROM sub WHERE NOT is_test
+        ON CONFLICT (email) DO UPDATE SET marketing_eligible = true,
+          source = EXCLUDED.source, consented_at = EXCLUDED.consented_at, updated_at = EXCLUDED.updated_at
+        WHERE customer_marketing_preferences.unsubscribed_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM marketing_suppressions WHERE email = EXCLUDED.email)
       ),
       steps AS (
         INSERT INTO newsletter_email_sends (kind, email, is_test, subscription_id, status, due_at, created_at, updated_at)
@@ -150,7 +160,8 @@ export type ConfirmResult =
  * Confirms exactly one current request. Refuses expired, superseded, or
  * replayed tokens and any address with an unsubscribe or suppression of any
  * reason — an old link can never undo an opt-out. Creates the subscription
- * and its three step rows atomically; repeat confirmation is idempotent.
+ * its three step rows, and live availability-email permission atomically;
+ * repeat confirmation is idempotent. Pending requests gain no permission.
  */
 export async function confirmConsentRequest(input: {
   tokenHash: string;
@@ -186,6 +197,15 @@ export async function confirmConsentRequest(input: {
         FROM req
         ON CONFLICT (email, is_test) DO NOTHING
         RETURNING id, email, is_test
+      ),
+      preferences AS (
+        INSERT INTO customer_marketing_preferences (email, marketing_eligible, source, consented_at, updated_at)
+        SELECT email, true, 'newsletter_double_opt_in', ${now}::timestamptz, ${now}::timestamptz
+        FROM sub WHERE NOT is_test
+        ON CONFLICT (email) DO UPDATE SET marketing_eligible = true,
+          source = EXCLUDED.source, consented_at = EXCLUDED.consented_at, updated_at = EXCLUDED.updated_at
+        WHERE customer_marketing_preferences.unsubscribed_at IS NULL
+          AND NOT EXISTS (SELECT 1 FROM marketing_suppressions WHERE email = EXCLUDED.email)
       ),
       steps AS (
         INSERT INTO newsletter_email_sends (kind, email, is_test, subscription_id, status, due_at, created_at, updated_at)

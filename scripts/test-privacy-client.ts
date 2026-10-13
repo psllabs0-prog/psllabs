@@ -133,7 +133,7 @@ async function main() {
     server = { ...server, admin: false };
     await initializePrivacyConsent();
     await requestPrivacyConsent({ measurement: true, personalization: false });
-    for (const path of ["/admin", "/admin-ledger.01", "/test", "/api/orders"]) {
+    for (const path of ["/admin", "/admin-ledger.01", "/test", "/api/orders", "/partners/account", "/partners/auth/verify"]) {
       location.pathname = path;
       assert.equal(readPrivacyConsent().measurement, false, `excluded ${path}`);
     }

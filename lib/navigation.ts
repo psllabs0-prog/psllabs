@@ -11,6 +11,7 @@ export const primaryNavLinks: NavLink[] = [
   { label: "Batch Reports", href: "/coa" },
   { label: "Testing", href: "/testing" },
   { label: "FAQ", href: "/faq" },
+  { label: "Partners", href: "/partners" },
   { label: "Contact", href: "/contact" },
 ];
 

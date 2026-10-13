@@ -10,6 +10,7 @@ import {
   releaseCustomerOrderEmail,
   releaseOrderEmail,
 } from "@/lib/orders/store";
+import { recordSettledReferralOrder } from "@/lib/partners/referral-store";
 
 /**
  * Mark the order paid, decrement stock, and send merchant + customer emails.
@@ -38,6 +39,10 @@ export async function fulfillPaidOrder(
       stockDecrementFailed: settled.stockDecrementFailed,
     };
   }
+
+  // Held candidate only, never a payout. The read path recovers claims after errors.
+  try { await recordSettledReferralOrder(orderId); }
+  catch { console.error("[referrals] Referral review candidate was not persisted; owner review can recover it."); }
 
   // Support notification and customer confirmation are independent:
   // failure or claim-skip on one must not block the other.

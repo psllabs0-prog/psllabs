@@ -14,6 +14,7 @@ import { useCart } from "@/components/cart/cart-provider";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 import { formatPrice } from "@/lib/cart/format";
 import { DISCOUNT_CODES_ENABLED } from "@/lib/checkout/discount-codes";
+import { REFERRAL_CODE_FIELD_VISIBLE } from "@/lib/partners/referral-logic";
 import { computeTotals, type OrderTotals } from "@/lib/checkout/totals";
 import { trackPlausibleClientEvent } from "@/lib/plausible/client";
 import { US_COUNTRY, US_COUNTRY_LABEL, US_STATES } from "@/lib/checkout/us-states";
@@ -175,6 +176,7 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
   const [appliedDiscount, setAppliedDiscount] = useState<{
     code: string;
     percent: number;
+    exclusive?: boolean;
   } | null>(null);
   const [discountError, setDiscountError] = useState<string | null>(null);
   const [discountApplying, setDiscountApplying] = useState(false);
@@ -189,6 +191,7 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+    if (key === "email") setAppliedDiscount(null);
     if (errors[key]) {
       setErrors((current) => ({ ...current, [key]: undefined }));
     }
@@ -225,6 +228,8 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
 
   async function handleApplyDiscount() {
     setDiscountError(null);
+    if (visualPreview) { setDiscountError("Referral code checks are available on the live site."); return; }
+    if (method === "card") { setDiscountError("Referral codes currently support Bitcoin checkout. Card checkout remains available at the regular price."); return; }
     const code = discountInput.trim();
     if (!code) {
       setDiscountError("Enter a discount code.");
@@ -236,11 +241,12 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
       const res = await fetch("/api/checkout/apply-discount", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, subtotal: subtotalRaw }),
+        body: JSON.stringify({ code, subtotal: subtotalRaw, email: form.email }),
       });
       const data = (await res.json()) as {
         code?: string;
         discountPercent?: number;
+        exclusive?: boolean;
         error?: string;
       };
 
@@ -253,6 +259,7 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
       setAppliedDiscount({
         code: data.code,
         percent: data.discountPercent,
+        exclusive: data.exclusive === true,
       });
       setDiscountInput(data.code);
       setDiscountError(null);
@@ -640,7 +647,7 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                 discountApplying={discountApplying}
                 discountError={discountError}
                 applied={!!appliedDiscount}
-                showDiscount={DISCOUNT_CODES_ENABLED}
+                showDiscount={DISCOUNT_CODES_ENABLED || REFERRAL_CODE_FIELD_VISIBLE}
               />
             </div>}
 
@@ -699,6 +706,7 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                   type="button"
                   onClick={() => {
                     setMethod("card");
+                    if (appliedDiscount?.exclusive) { setAppliedDiscount(null); setDiscountError("Referral discount removed: card promotion setup is not yet verified."); }
                     setPayError(null);
                     cardSessionStore.clear();
                   }}
@@ -785,7 +793,7 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                 discountApplying={discountApplying}
                 discountError={discountError}
                 applied={!!appliedDiscount}
-                showDiscount={DISCOUNT_CODES_ENABLED}
+                showDiscount={DISCOUNT_CODES_ENABLED || REFERRAL_CODE_FIELD_VISIBLE}
               />
             </div>
           </aside>}

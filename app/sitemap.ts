@@ -10,7 +10,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // lastmod: it is not evidence that a page's content changed.
   const staticPaths = [
     "", "/products", "/coa", "/testing", "/guides", "/about", "/shipping",
-    "/faq", "/contact", "/returns", "/science", "/terms", "/privacy", "/disclaimer",
+    "/faq", "/contact", "/returns", "/science", "/terms", "/privacy", "/disclaimer", "/partners", "/partners/terms",
   ];
 
   const staticRoutes = staticPaths.map((path) => ({ url: `${SITE_URL}${path}` }));

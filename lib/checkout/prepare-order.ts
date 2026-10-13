@@ -8,11 +8,14 @@ import {
 import { normalizeCountryCode, US_COUNTRY, US_STATES } from "@/lib/checkout/us-states";
 import { sanitizeAttributionFromBody } from "@/lib/attribution/logic";
 import type { OrderAttribution } from "@/lib/attribution/types";
-import { checkoutWithStockCheck } from "@/lib/inventory/store";
+import { checkoutWithStockCheck, ensureInventorySchema } from "@/lib/inventory/store";
 import type { Order, OrderItem, PaymentMethod } from "@/lib/orders/types";
 import { getAllCheckoutProducts, getCheckoutProduct } from "@/lib/payments/products";
 import { getCatalogProductByHandle } from "@/lib/products/catalog";
 import type { PrivacyConsentBinding, PublicPrivacyConsent } from "@/lib/privacy/types";
+import { lookupReferralDiscount, reserveReferralOrder } from "@/lib/partners/referral-store";
+import { normalizeReferralCode } from "@/lib/partners/referral-logic";
+import { referralCodesEnabled } from "@/lib/partners/referral-config";
 
 const MAX_QUANTITY = 10;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -216,9 +219,22 @@ export async function prepareReservedOrder(
   }
 
   // Re-validate promo on the server — never trust client discount amounts.
-  let appliedDiscount: { code: string; percent: number } | null = null;
+  let appliedDiscount: { code: string; percent: number; exclusive?: boolean } | null = null;
+  let referralDiscount = false;
   const requestedCode = str(body.discountCode);
   if (requestedCode) {
+    if (normalizeReferralCode(requestedCode)) {
+      if (!referralCodesEnabled()) return { ok: false, error: "Referral discounts are temporarily unavailable.", status: 503 };
+      try {
+        if (options?.privacyConsent?.consent.admin) return { ok: false, error: "Referral discounts are unavailable in admin sessions.", status: 400 };
+        const discount = await lookupReferralDiscount(requestedCode, email);
+        if (!discount) return { ok: false, error: "This referral code is not eligible for this order.", status: 400 };
+        appliedDiscount = { ...discount, exclusive: true };
+        referralDiscount = true;
+      } catch {
+        return { ok: false, error: "Unable to validate the referral code. Please try again later.", status: 503 };
+      }
+    } else
     if (DISCOUNT_CODES_ENABLED) {
       try {
         const discount = await lookupActiveDiscountCode(requestedCode);
@@ -241,7 +257,7 @@ export async function prepareReservedOrder(
           status: 500,
         };
       }
-    }
+    } else return { ok: false, error: "Invalid or unavailable code.", status: 400 };
   }
 
   const rawMethod =
@@ -253,6 +269,12 @@ export async function prepareReservedOrder(
       : rawMethod === "card"
         ? "card"
         : null;
+
+  // Headless card sessions use provider catalog prices. The pilot must not show
+  // a local discount until a matching provider promotion is configured/verified.
+  if (referralDiscount && paymentMethod !== "bitcoin") return {
+    ok: false, error: "Referral discounts currently support Bitcoin checkout only. Card payments remain available at the regular price.", status: 409,
+  };
 
   const totals = computeTotals(subtotalRaw, shipping.state, appliedDiscount, {
     paymentMethod,
@@ -304,7 +326,9 @@ export async function prepareReservedOrder(
   };
 
   try {
-    const stockCheck = await checkoutWithStockCheck(order);
+    // The wrapper uses the same reservation function after a locked first-customer recheck.
+    if (referralDiscount) await ensureInventorySchema();
+    const stockCheck = referralDiscount ? await reserveReferralOrder(order) : await checkoutWithStockCheck(order);
     if (!stockCheck.ok) {
       return { ok: false, error: stockCheck.error, status: 409 };
     }

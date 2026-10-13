@@ -243,7 +243,7 @@ async function main() {
   const reqsFor = async (email: string) =>
     (await sql`SELECT confirmed_at, invalidated_at FROM newsletter_consent_requests WHERE email = ${email} ORDER BY id`) as Row[];
   const prefsFor = async (email: string) =>
-    (await sql`SELECT marketing_eligible, unsubscribed_at FROM customer_marketing_preferences WHERE email = ${email}`) as Row[];
+    (await sql`SELECT marketing_eligible, unsubscribed_at, source, consented_at FROM customer_marketing_preferences WHERE email = ${email}`) as Row[];
   /** An older double-opt-in request (issued before single opt-in); no email is sent for it here. */
   const seedPendingRequest = async (email: string, at: number, isTest = false) => {
     const { token, hash } = createConfirmationToken();
@@ -379,7 +379,8 @@ async function main() {
       const w1Row = s.find((x) => x.kind === "welcome_1")!;
       assert(w1Row.status === "accepted" && String(w1Row.provider_queue_id).startsWith("TQ"), "Welcome 1 accepted with provider queue id");
       assert(due("welcome_1") === t0 && due("welcome_2") === t0 + 48 * H && due("welcome_3") === t0 + 120 * H, "sequence timed from the signup");
-      assert((await prefsFor(a)).length === 0, "signup never sets marketing_eligible");
+      const [signupPreference] = await prefsFor(a);
+      assert(signupPreference?.marketing_eligible === true && signupPreference.source === "newsletter_signup_v2" && signupPreference.consented_at !== null, "fresh live explicit signup records availability-email permission atomically");
 
       const get = await confirmGET();
       assert(get.status === 405, "GET on the confirm API never confirms");
@@ -714,6 +715,7 @@ async function main() {
       await signup(testAddr, t0 + 4 * H, allow);
       const [ts] = await subsFor(testAddr);
       assert(ts.is_test === true && ts.consent_method === "single_opt_in" && subjectsTo(testAddr).join("|") === SUBJECT.welcome_1, "allowlisted address: TEST single-opt-in record and Welcome 1");
+      assert((await prefsFor(testAddr)).length === 0, "allowlisted TEST signup never creates production retention permission");
       assert((await sendsFor(testAddr)).every((r) => r.is_test === true), "TEST sends");
       await job(t0 + 4 * H + 48.5 * H, allow);
       assert((await sendOf(live, "welcome_2"))!.status === "queued", "allowlist mode never dispatches live rows");
@@ -739,6 +741,7 @@ async function main() {
         const [sx] = await subsFor(x);
         const w1 = (await sendOf(x, "welcome_1"))!;
         assert(sx.is_test === true && w1.status === "simulated" && w1.is_test === true && w1.accepted_at === null && w1.simulated_at !== null, `${x.split(".")[0]}: simulation is a TEST record and not accepted`);
+        assert((await prefsFor(x)).length === 0, "simulated signup never creates production retention permission");
       }
       assert(outbox.length === mailsBefore, "simulation sends nothing");
       await closeScenario([v, live, testAddr, liveSim, sim, simSignup, addr("obsoletefalse"), addr("obsoletetrue")]);
@@ -787,7 +790,9 @@ async function main() {
       assert(view.previews.length === 3 && view.previews.every((p) => p.kind !== ("confirmation" as string)), "three welcome previews, no confirmation preview");
       for (const x of journeyAddresses) {
         const prefs = await prefsFor(x);
-        assert(prefs.every((p) => p.marketing_eligible === false), `${x.split(".")[0]}: never marketing_eligible`);
+        const activeLive = (await subsFor(x)).some((s) => s.is_test === false && (s.status === "subscribed" || s.status === "confirmed"));
+        if (activeLive) assert(prefs.some((p) => p.marketing_eligible === true && p.unsubscribed_at === null), `${x.split(".")[0]}: active live opt-in has recorded availability-email permission`);
+        else assert(prefs.every((p) => p.marketing_eligible === false), `${x.split(".")[0]}: tests, non-enrollments and opt-outs are not retention eligible`);
       }
       const [rs] = (await sql`SELECT COUNT(*)::int AS n FROM retention_email_sends WHERE email LIKE ${like}`) as Row[];
       assert(Number(rs.n) === 0, "the journey never writes retention sends");

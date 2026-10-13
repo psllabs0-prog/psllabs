@@ -132,7 +132,7 @@ const publicTransition = render();
 assert.equal(publicTransition.tree, null); publicTransition.flush();
 assert.equal(reloads, 0);
 
-for (const route of ["/admin", "/admin-ledger", "/admin-ledger.01", "/test", "/tests/check", "/demo", "/api/orders"]) {
+for (const route of ["/admin", "/admin-ledger", "/admin-ledger.01", "/test", "/tests/check", "/demo", "/api/orders", "/partners/account", "/partners/auth/verify"]) {
   pathname = "/"; initialScope = undefined; render().flush();
   pathname = route;
   assert.equal(render().tree, null, `private route must not mount in the old SDK document: ${route}`);

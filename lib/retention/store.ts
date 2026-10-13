@@ -200,7 +200,8 @@ export type RetentionCandidate = {
 
 /**
  * Eligible paid orders due for 30d retention.
- * Requires explicit marketing_eligible; excludes suppressions, QA finance rows, already-sent.
+ * Requires explicit marketing_eligible; excludes suppressions, QA finance
+ * rows, accepted messages, and held ambiguous/permanent-refusal attempts.
  */
 export async function listRetentionCandidates(
   limit = 50
@@ -231,7 +232,7 @@ export async function listRetentionCandidates(
         SELECT 1 FROM retention_email_sends r
         WHERE r.campaign = ${RETENTION_CAMPAIGN_30D}
           AND r.order_id = o.order_id
-          AND r.sent_at IS NOT NULL
+          AND (r.sent_at IS NOT NULL OR r.status IN ('unknown', 'rejected'))
       )
     ORDER BY o.paid_at ASC
     LIMIT ${limit}
@@ -261,6 +262,16 @@ export async function claimRetentionSend(input: {
     ON CONFLICT (campaign, order_id) DO NOTHING
   `;
 
+  // A stale in-flight SMTP attempt may already have been accepted. Hold it
+  // for review rather than retrying a message with an unknown outcome.
+  await sql`
+    UPDATE retention_email_sends SET status = 'unknown',
+      last_error = 'Interrupted SMTP attempt; acceptance unknown', updated_at = now()
+    WHERE campaign = ${campaign} AND order_id = ${input.orderId}
+      AND status = 'sending' AND sent_at IS NULL
+      AND claimed_at < now() - interval '15 minutes'
+  `;
+
   const rows = (await sql`
     UPDATE retention_email_sends
     SET
@@ -271,10 +282,16 @@ export async function claimRetentionSend(input: {
     WHERE campaign = ${campaign}
       AND order_id = ${input.orderId}
       AND sent_at IS NULL
-      AND (
-        claimed_at IS NULL
-        OR claimed_at < now() - interval '15 minutes'
-        OR status IN ('pending', 'failed')
+      AND status IN ('pending', 'failed')
+      AND EXISTS (
+        SELECT 1 FROM customer_marketing_preferences p
+        WHERE lower(p.email) = lower(${email}) AND p.marketing_eligible = true AND p.unsubscribed_at IS NULL
+      )
+      AND NOT EXISTS (SELECT 1 FROM marketing_suppressions s WHERE lower(s.email) = lower(${email}))
+      AND EXISTS (
+        SELECT 1 FROM orders o WHERE o.order_id = ${input.orderId}
+          AND lower(o.email) = lower(${email}) AND o.status IN ('paid', 'shipped')
+          AND NOT EXISTS (SELECT 1 FROM finance_transactions ft WHERE ft.psl_order_id = o.order_id AND ft.reporting_excluded = true)
       )
     RETURNING id
   `) as Array<{ id: number }>;
@@ -327,16 +344,28 @@ export async function markRetentionSendFailed(
   `;
 }
 
+/** Permanent refusal or ambiguous acceptance never retries automatically. */
+export async function markRetentionSendHeld(id: number, status: "rejected" | "unknown", error: string): Promise<void> {
+  await ensureRetentionSchema();
+  const sql = getSql();
+  await sql`
+    UPDATE retention_email_sends SET status = ${status}, claimed_at = NULL,
+      last_error = ${error.slice(0, 500)}, updated_at = now()
+    WHERE id = ${id} AND sent_at IS NULL
+  `;
+}
+
 export async function countRetentionStats(): Promise<{
   eligibleContacts: number;
   sendsDue: number;
   sent: number;
   suppressed: number;
   failed: number;
+  held: number;
 }> {
   await ensureRetentionSchema();
   const sql = getSql();
-  const [eligible, sent, suppressed, failed] = await Promise.all([
+  const [eligible, sent, suppressed, failed, held] = await Promise.all([
     sql`SELECT COUNT(*)::int AS n FROM customer_marketing_preferences
         WHERE marketing_eligible = true AND unsubscribed_at IS NULL` as Promise<
       Array<Record<string, unknown>>
@@ -350,6 +379,9 @@ export async function countRetentionStats(): Promise<{
     sql`SELECT COUNT(*)::int AS n FROM retention_email_sends WHERE status = 'failed'` as Promise<
       Array<Record<string, unknown>>
     >,
+    sql`SELECT COUNT(*)::int AS n FROM retention_email_sends WHERE status IN ('unknown', 'rejected')` as Promise<
+      Array<Record<string, unknown>>
+    >,
   ]);
   const due = await listRetentionCandidates(500);
   return {
@@ -358,6 +390,7 @@ export async function countRetentionStats(): Promise<{
     sent: Number(sent[0]?.n ?? 0),
     suppressed: Number(suppressed[0]?.n ?? 0),
     failed: Number(failed[0]?.n ?? 0),
+    held: Number(held[0]?.n ?? 0),
   };
 }
 

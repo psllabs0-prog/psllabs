@@ -11,6 +11,7 @@ import * as catalog from "../lib/products/catalog";
 import * as totals from "../lib/checkout/totals";
 import * as countries from "../lib/checkout/us-states";
 import * as attribution from "../lib/attribution/logic";
+import * as referralLogic from "../lib/partners/referral-logic";
 import type { CheckoutBody, PrepareOrderOptions, PrepareOrderResult } from "../lib/checkout/prepare-order";
 import type { Order } from "../lib/orders/types";
 import { PRIVACY_CONSENT_VERSION, UNKNOWN_PRIVACY_CONSENT } from "../lib/privacy/types";
@@ -22,6 +23,7 @@ let checks = 0;
 let reservations = 0;
 let schemaCalls = 0;
 let databaseCalls = 0;
+let referralCalls = 0;
 const orders: Order[] = [];
 
 function load(file: string, mocks: Record<string, unknown>): Record<string, unknown> {
@@ -40,7 +42,14 @@ const prepare = load("lib/checkout/prepare-order.ts", {
   "node:crypto": crypto, "@/lib/checkout/totals": totals, "@/lib/checkout/us-states": countries,
   "@/lib/attribution/logic": attribution, "@/lib/payments/products": pricing, "@/lib/products/catalog": catalog,
   "@/lib/checkout/discount-codes": { DISCOUNT_CODES_ENABLED: false, lookupActiveDiscountCode: async () => { throw new Error("Unexpected discount lookup"); } },
+  "@/lib/partners/referral-logic": referralLogic,
+  "@/lib/partners/referral-config": { referralCodesEnabled: () => { referralCalls++; throw new Error("Unexpected referral configuration lookup in ordinary checkout"); } },
+  "@/lib/partners/referral-store": {
+    lookupReferralDiscount: async () => { referralCalls++; throw new Error("Unexpected referral lookup in ordinary checkout"); },
+    reserveReferralOrder: async () => { referralCalls++; throw new Error("Unexpected referral reservation in ordinary checkout"); },
+  },
   "@/lib/inventory/store": {
+    ensureInventorySchema: async () => { schemaCalls++; throw new Error("Unexpected schema bootstrap in ordinary checkout fixture"); },
     checkoutWithStockCheck: async (order: Order) => {
       reservations++; orders.push(structuredClone(order));
       // Ten units exist for each product. The old per-line stock check would
@@ -173,6 +182,7 @@ async function main() {
     assert(guard > functionStart);
     assert(guard < source.indexOf("PERFORM p.handle", functionStart));
     assert(guard < source.indexOf("INSERT INTO orders", functionStart)); checks += 3;
+    assert.equal(referralCalls, 0, "ordinary card/Bitcoin checkout never enters referral configuration, lookup, or reservation"); checks++;
     console.log(`PASS: Checkout validation (${checks} checks; valid card/Bitcoin totals preserved; duplicate 20-vs-10 carts rejected before writes; no database/provider calls).`);
   } finally { globalThis.fetch = previousFetch; }
 }

@@ -40,7 +40,8 @@ export function globalPrivacyControl(): boolean {
 export function isPrivacyExcludedPath(pathname: string): boolean {
   try {
     const decoded = decodeURIComponent(pathname);
-    return /%|\\/.test(decoded) || /^\/(?:admin[^/]*|api|test(?:s)?|demo)(?:\/|$)/i.test(decoded);
+    return /%|\\/.test(decoded) || /^\/(?:admin[^/]*|api|test(?:s)?|demo)(?:\/|$)/i.test(decoded) ||
+      /^\/partners\/(?:account|auth)(?:\/|$)/i.test(decoded);
   } catch { return true; }
 }
 

@@ -29,6 +29,8 @@ export function calculateArizonaTpt(subtotal: number): number {
 export type AppliedDiscount = {
   code: string;
   percent: number;
+  /** Referral pilot must not stack with the existing Bitcoin discount. */
+  exclusive?: boolean;
 };
 
 export type PaymentMethodOption = "bitcoin" | "btcpay" | "card" | string | null;
@@ -84,8 +86,8 @@ export function computeTotals(
     promoPercent > 0 ? roundMoney(subtotal * (promoPercent / 100)) : 0;
 
   // 2. Bitcoin 5% discount
-  const bitcoinDiscountPercent = isBitcoin ? BITCOIN_DISCOUNT_PERCENT : 0;
-  const bitcoinDiscountAmount = isBitcoin
+  const bitcoinDiscountPercent = isBitcoin && !discount?.exclusive ? BITCOIN_DISCOUNT_PERCENT : 0;
+  const bitcoinDiscountAmount = isBitcoin && !discount?.exclusive
     ? roundMoney(subtotal * (BITCOIN_DISCOUNT_PERCENT / 100))
     : 0;
 
@@ -97,7 +99,7 @@ export function computeTotals(
   let discountCode: string | null = null;
   let discountPercent = 0;
 
-  if (promoCode && isBitcoin) {
+  if (promoCode && bitcoinDiscountPercent > 0) {
     discountCode = `${promoCode}+BTC`;
     discountPercent = promoPercent + bitcoinDiscountPercent;
   } else if (promoCode) {

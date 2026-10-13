@@ -1,4 +1,7 @@
+import crypto from "node:crypto";
+import type { SendMailOptions } from "nodemailer";
 import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
+import { classifySmtpError, type NewsletterTransportResult } from "@/lib/newsletter/send";
 import {
   createSmtpTransport,
   emailPageWrapper,
@@ -94,12 +97,56 @@ export function buildRetention30dEmail(input: {
   };
 }
 
+export type RetentionTransport = (mail: SendMailOptions) => Promise<NewsletterTransportResult>;
+let transportOverride: RetentionTransport | null = null;
+
+export function __setRetentionTransportForTests(transport: RetentionTransport | null): void {
+  transportOverride = transport;
+}
+
+export class RetentionDeliveryError extends Error {
+  constructor(public readonly outcome: "failed" | "rejected" | "unknown", public readonly category: string) {
+    super(`Retention SMTP ${outcome}: ${category}`);
+    this.name = "RetentionDeliveryError";
+  }
+}
+
+const RETENTION_SMTP_TIMEOUTS = { connectionTimeout: 10_000, greetingTimeout: 10_000, socketTimeout: 20_000 };
+
+async function deliverRetentionMail(mail: SendMailOptions): Promise<NewsletterTransportResult> {
+  if (transportOverride) return transportOverride(mail);
+  const transporter = createSmtpTransport(RETENTION_SMTP_TIMEOUTS);
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      transporter.sendMail(mail) as Promise<NewsletterTransportResult>,
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          transporter.close();
+          reject(new RetentionDeliveryError("unknown", "submission_deadline"));
+        }, 20_000);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timeout);
+    transporter.close();
+  }
+}
+
+/** Authenticates the existing SMTP connection; does not submit any message. */
+export async function verifyRetentionEmailTransport(): Promise<{ verified: boolean; category: string | null }> {
+  const transporter = createSmtpTransport(RETENTION_SMTP_TIMEOUTS);
+  try { return { verified: await transporter.verify(), category: null }; }
+  catch (error) { return { verified: false, category: classifySmtpError(error).errorCategory }; }
+  finally { transporter.close(); }
+}
+
 export async function sendRetention30dEmail(input: {
   to: string;
-}): Promise<{ sent: boolean }> {
+  sendId: number;
+}): Promise<{ sent: boolean; simulated: boolean }> {
   if (isRetentionTestMode()) {
-    console.log("[retention] TEST MODE skip send");
-    return { sent: true };
+    return { sent: false, simulated: true };
   }
 
   const from = getMarketingFromEmail();
@@ -109,18 +156,33 @@ export async function sendRetention30dEmail(input: {
   }
 
   const built = buildRetention30dEmail({ email: input.to });
-  const transporter = createSmtpTransport();
-  await transporter.sendMail({
+  const domain = from.split("@")[1]?.replace(/[^A-Za-z0-9.-]/g, "") || "psllabs.org";
+  const messageKey = crypto.createHash("sha256").update(`post_purchase_30d_v1:${input.sendId}`).digest("hex").slice(0, 24);
+  const mail: SendMailOptions = {
     from: `PSL Labs <${from}>`,
     to: input.to,
     replyTo: SUPPORT_EMAIL,
     subject: built.subject,
     text: built.text,
     html: built.html,
+    messageId: `<retention.${messageKey}@${domain}>`,
     headers: {
       "List-Unsubscribe": `<${built.listUnsubscribeUrl}>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     },
-  });
-  return { sent: true };
+  };
+  try {
+    const result = await deliverRetentionMail(mail);
+    const addresses = (list: NewsletterTransportResult["accepted"]) => (list ?? []).map((address) => (typeof address === "string" ? address : address.address).toLowerCase());
+    const recipient = input.to.trim().toLowerCase();
+    if (addresses(result.rejected).includes(recipient)) throw new RetentionDeliveryError("rejected", "rejected_recipient");
+    if (!addresses(result.accepted).includes(recipient)) throw new RetentionDeliveryError("unknown", "no_acceptance_reported");
+    // SMTP acceptance confirms submission to the mail server, not inbox delivery.
+    return { sent: true, simulated: false };
+  } catch (error) {
+    if (error instanceof RetentionDeliveryError) throw error;
+    const classified = classifySmtpError(error);
+    const outcome = classified.status === "failed" || classified.status === "rejected" ? classified.status : "unknown";
+    throw new RetentionDeliveryError(outcome, classified.errorCategory ?? "unknown");
+  }
 }

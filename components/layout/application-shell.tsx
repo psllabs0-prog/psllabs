@@ -155,6 +155,9 @@ export function ApplicationShell({ children, visualPreview = false }: { children
   }, [requiresFreshDocument, pathname, actualUrl]);
   if (requiresFreshDocument) return null;
   if (isFinanceDemoPath(pathname)) return <>{children}</>;
+  // Partner sign-in and account records belong in a fresh private document.
+  // Never mount storefront attribution, advertising SDKs or analytics here.
+  if (/^\/partners\/(?:account|auth)(?:\/|$)/i.test(pathname)) return <>{children}</>;
 
   return <>
     {!visualPreview && <><Script async src="https://plausible.io/js/pa-q336_RNw0XrNwsVUzNnQN.js" strategy="afterInteractive" />

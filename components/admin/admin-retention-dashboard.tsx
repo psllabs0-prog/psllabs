@@ -16,6 +16,7 @@ type Payload = {
     sent: number;
     suppressed: number;
     failed: number;
+    held?: number;
   };
   lastJob: {
     finishedAt: string | null;
@@ -47,7 +48,8 @@ export function AdminRetentionDashboard() {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    const initialLoad = window.setTimeout(() => void refresh(), 0);
+    return () => window.clearTimeout(initialLoad);
   }, [refresh]);
 
   async function post(action: string, extra: Record<string, unknown> = {}) {
@@ -113,7 +115,11 @@ export function AdminRetentionDashboard() {
           {data?.stats.sendsDue ?? "—"} · Sent: {data?.stats.sent ?? "—"} ·
           Suppressed: {data?.stats.suppressed ?? "—"} · Failed:{" "}
           {data?.stats.failed ?? "—"}
+          {" "}· Held for review: {data?.stats.held ?? "—"}
         </p>
+        {(data?.stats.held ?? 0) > 0 && (
+          <p className="mt-2 text-ash">Held messages were refused or have an unknown acceptance result. They will not be retried automatically.</p>
+        )}
         <p className="mt-2 text-ash">
           Last job:{" "}
           {data?.lastJob

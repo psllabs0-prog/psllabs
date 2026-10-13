@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireAdminAuth } from "@/lib/admin/require-auth";
 import { getRetentionReadiness } from "@/lib/retention/config";
-import { buildRetention30dEmail } from "@/lib/retention/email";
+import { buildRetention30dEmail, verifyRetentionEmailTransport } from "@/lib/retention/email";
 import { runRetention30dJob } from "@/lib/retention/run";
 import { ensureRetentionSchema } from "@/lib/retention/schema";
 import {
@@ -63,6 +63,10 @@ export async function POST(request: Request) {
   const action = typeof body.action === "string" ? body.action : "";
 
   try {
+    if (action === "verify_transport") {
+      const result = await verifyRetentionEmailTransport();
+      return NextResponse.json({ ok: result.verified, result, messagesSent: 0 });
+    }
     if (action === "run_job") {
       const result = await runRetention30dJob();
       return NextResponse.json({ ok: true, result });

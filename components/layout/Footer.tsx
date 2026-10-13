@@ -23,6 +23,7 @@ const columns = [
   ] },
   { title: "PSL Labs", links: [
     { label: "About", href: "/about" },
+    { label: "Partner program", href: "/partners" },
     { label: "Terms", href: "/terms" },
     { label: "Privacy", href: "/privacy" },
     { label: "Disclaimer", href: "/disclaimer" },

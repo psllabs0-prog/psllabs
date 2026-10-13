@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { isAffiliateTouch, isPaidTouch, mergePaidTouch, parseTouchFromSearchParams, pruneStoredAttribution, sanitizeAttributionFromBody, toOrderAttribution } from "../lib/attribution/logic";
 import { captureAttributionFromLocation, getOrderAttributionForCheckout } from "../lib/attribution/storage";
 import { ATTRIBUTION_WINDOW_MS } from "../lib/attribution/types";
+import { initializePrivacyConsent } from "../lib/privacy/client";
+import { PRIVACY_CONSENT_VERSION } from "../lib/privacy/types";
 
 let checks = 0;
 function check(actual: unknown, expected: unknown) { assert.deepEqual(actual, expected); checks++; }
@@ -61,28 +63,46 @@ check(sanitizeAttributionFromBody({ ...upper, lastAffiliateTouchAt: new Date(now
 check(sanitizeAttributionFromBody({ lastPaid: { ...paid, capturedAt: undefined } })?.lastPaid?.oppref, "paid-reference");
 check(sanitizeAttributionFromBody({ lastEmail: { ...email, capturedAt: "invalid-legacy-date" } })?.lastEmail?.utmMedium, "email");
 
-const globals = Object.fromEntries(["window", "navigator", "document"].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+async function testBrowserConsent() {
+const globals = Object.fromEntries(["window", "navigator", "document", "fetch", "setTimeout", "setInterval"].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
 const values = new Map<string, string>();
 const navigatorFixture = { globalPrivacyControl: false };
+const events = new EventTarget();
+const originalTimeout = globalThis.setTimeout;
+const originalInterval = globalThis.setInterval;
 try {
-  Object.defineProperty(globalThis, "window", { configurable: true, value: { localStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value) }, location: { href: "https://psllabs.org/" } } });
+  Object.defineProperty(globalThis, "window", { configurable: true, value: { localStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) }, location: { href: "https://psllabs.org/", pathname: "/", hostname: "psllabs.org", origin: "https://psllabs.org" },
+    addEventListener: events.addEventListener.bind(events), removeEventListener: events.removeEventListener.bind(events), dispatchEvent: events.dispatchEvent.bind(events) } });
   Object.defineProperty(globalThis, "navigator", { configurable: true, value: navigatorFixture });
-  Object.defineProperty(globalThis, "document", { configurable: true, value: { referrer: "" } });
+  Object.defineProperty(globalThis, "document", { configurable: true, value: { referrer: "", cookie: "" } });
+  Object.defineProperty(globalThis, "setTimeout", { configurable: true, value: (...args: Parameters<typeof setTimeout>) => originalTimeout(...args).unref() });
+  Object.defineProperty(globalThis, "setInterval", { configurable: true, value: (...args: Parameters<typeof setInterval>) => originalInterval(...args).unref() });
+  Object.defineProperty(globalThis, "fetch", { configurable: true, value: async () => Response.json({ consent: {
+    version: PRIVACY_CONSENT_VERSION, choice: "saved", revision: 1, expiresAt: Date.now() + 86400000,
+    measurement: true, personalization: false, gpc: false, admin: false,
+    capabilities: { googleMeasurement: true, openaiMeasurement: true, metaMeasurement: false, metaPersonalization: false, tiktokMeasurement: false, tiktokPersonalization: false },
+  } }) });
+  captureAttributionFromLocation("https://psllabs.org/products?utm_source=affiliate&utm_medium=affiliate&utm_campaign=partners&utm_content=scoop-ab1234", "");
+  check(getOrderAttributionForCheckout()?.lastAffiliate ?? null, null);
+  check(getOrderAttributionForCheckout()?.utmContent, null);
+  check(values.has("psl_attribution_v1"), false);
+  values.set("psl_researcher_verified_v1", "1");
+  await initializePrivacyConsent();
   captureAttributionFromLocation("https://psllabs.org/products?utm_source=affiliate&utm_medium=affiliate&utm_campaign=partners&utm_content=scoop-ab1234", "");
   captureAttributionFromLocation("https://psllabs.org/cart", "");
   check(getOrderAttributionForCheckout()?.lastAffiliate?.utmContent, "scoop-ab1234");
   captureAttributionFromLocation("https://psllabs.org/products?utm_source=chatgpt&utm_medium=cpc&oppref=paid-reference", "");
   navigatorFixture.globalPrivacyControl = true;
   const checkout = getOrderAttributionForCheckout();
+  check(checkout?.lastAffiliate ?? null, null);
+  check(checkout?.utmContent, null);
   check(checkout?.openaiAdsMeasurementOptOut, true);
-  check(checkout?.oppref, null);
-  check(checkout?.lastPaid?.oppref, null);
-  check(checkout?.lastAffiliate?.utmContent, "scoop-ab1234");
-  check(sanitizeAttributionFromBody(checkout)?.lastAffiliate?.utmContent, "scoop-ab1234");
+  check(values.has("psl_attribution_v1"), false);
 } finally {
   for (const [key, descriptor] of Object.entries(globals)) {
     if (descriptor) Object.defineProperty(globalThis, key, descriptor);
     else Reflect.deleteProperty(globalThis, key);
   }
 }
-console.log(`Affiliate attribution: ${checks} lifecycle, checkout, cross-channel and privacy checks passed.`);
+}
+testBrowserConsent().then(() => console.log(`Affiliate attribution: ${checks} lifecycle, checkout, cross-channel and consent/GPC checks passed.`)).catch(error => { console.error(error); process.exitCode = 1; });

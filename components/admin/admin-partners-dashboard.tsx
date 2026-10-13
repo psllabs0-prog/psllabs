@@ -36,6 +36,12 @@ function dateLabel(value: string | null) {
       });
 }
 
+function localDateTime(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
 function isFollowUpDue(partner: Partner) {
   return (
     !["paused", "declined"].includes(partner.status) &&
@@ -208,10 +214,47 @@ export function AdminPartnersDashboard() {
             ))}
           </section>
           <p className="text-sm text-ash">
-            Tracking codes do not change prices. Sales shown are referrals, not commissions owed.
+            General tracking totals are directional referrals, not commissions owed.
             Paid order totals include shipping and are before fees and refunds.
             Outreach drafts are generated here for review; changing a partner’s status does not send an email.
           </p>
+          {data.referralPilot ? (
+            <section aria-labelledby="referral-pilot-heading" className="space-y-4 rounded-xl border border-linen bg-surface p-5 sm:p-6">
+              <h2 id="referral-pilot-heading" className="font-display text-xl font-semibold text-ink">Referral pilot · {data.referralPilot.activePartners}/10 partners</h2>
+              {!data.referralPilot.codesEnabled && <p role="status" className="text-sm text-ash">Referral code redemption is disabled. Existing commission review remains available.</p>}
+              <p className="text-sm leading-relaxed text-ash">Reviewed partners receive a unique code for 10% off a new customer’s first eligible order. Commission is 10% of discounted product value, excluding shipping, tax, and refunded products. No stacking, self-referrals, tiers, or lifetime commissions. No payment transfers are automated.</p>
+              <p className="text-sm leading-relaxed text-ash">Referral discount redemption initially supports Bitcoin checkout. Card promotion setup is not verified; ordinary card checkout remains available at regular prices.</p>
+              <p className="text-sm leading-relaxed text-ash">Commissions remain held until payment is verified, delivery is confirmed, 30 days have passed, and refund/fraud review is complete. After review, pay manually through your agreed monthly process and retain the payout record. These amounts do not establish profitability.</p>
+              {data.referralPilot.commissions.length === 0 ? <p className="text-sm text-ash">No referral checkout claims yet.</p> : data.referralPilot.commissions.map((row) => (
+                <details key={row.orderId} className="border-t border-linen pt-4">
+                  <summary className="cursor-pointer break-words text-sm font-medium text-ink">{row.orderId} · {row.code} · {money(row.amount)} · {row.status}</summary>
+                  <p className="mt-3 text-sm text-ash">{row.reason} · Eligible product base: {money(row.eligibleProductSubtotal)} · Earliest payout: {dateLabel(row.payableAfter)}</p>
+                  {row.orderStatus === "shipped" && <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => {
+                    event.preventDefault();
+                    const form = new FormData(event.currentTarget);
+                    void save({ action: "review_referral_commission", orderId: row.orderId,
+                      deliveredAt: new Date(String(form.get("deliveredAt"))).toISOString(), refundedProductAmount: Number(form.get("refundedProductAmount")),
+                      refundReviewConfirmed: form.get("refundReviewConfirmed") === "on", fraudCleared: form.get("fraudCleared") === "on" }, "Referral review saved. No payout was sent.");
+                  }}>
+                    <label className="space-y-1.5 text-sm text-ink">Confirmed delivery time (your local time)<input required type="datetime-local" name="deliveredAt" defaultValue={localDateTime(row.deliveredAt)} className={fieldClass} disabled={busy} /></label>
+                    <label className="space-y-1.5 text-sm text-ink">Refunded product amount (USD)<input required type="number" min="0" step="0.01" name="refundedProductAmount" defaultValue={row.refundedProductAmount} className={fieldClass} disabled={busy} /></label>
+                    <label className="flex items-start gap-2 text-sm text-ink"><input type="checkbox" name="refundReviewConfirmed" defaultChecked={row.refundReviewConfirmed} disabled={busy} className="mt-1" />I checked the actual payment provider and refund records.</label>
+                    <label className="flex items-start gap-2 text-sm text-ink"><input type="checkbox" name="fraudCleared" defaultChecked={row.fraudCleared} disabled={busy} className="mt-1" />I reviewed self-referrals, fraud, and excluded test activity.</label>
+                    <button type="submit" disabled={busy} className={buttonClass}>Save delivery and refund review</button>
+                  </form>}
+                  {row.orderStatus === "pending" && <form className="mt-4 space-y-3" onSubmit={(event) => {
+                    event.preventDefault();
+                    const form = new FormData(event.currentTarget);
+                    void save({ action: "release_unpaid_referral", orderId: row.orderId, providerUnpaidConfirmed: form.get("providerUnpaidConfirmed") === "on" }, "Expired unpaid checkout released. No payment or refund was initiated.");
+                  }}>
+                    <p className="text-sm text-ash">An abandoned discounted checkout keeps its claim until payment failure is verified. A timestamp alone does not prove the invoice was unpaid.</p>
+                    <label className="flex items-start gap-2 text-sm text-ink"><input required type="checkbox" name="providerUnpaidConfirmed" disabled={busy} className="mt-1" />The provider confirms this expired invoice has no settled or pending payment.</label>
+                    <button type="submit" disabled={busy} className={buttonClass}>Release confirmed unpaid checkout</button>
+                  </form>}
+                </details>
+              ))}
+            </section>
+          ) : <p className="text-sm text-ash">Referral pilot database setup is not complete. General partner tracking continues without discount or commission terms.</p>}
 
           <details className="rounded-xl border border-linen bg-surface p-5" open={data.partners.length === 0}>
             <summary className="cursor-pointer text-base font-semibold text-ink">Add a partner</summary>
@@ -309,6 +352,16 @@ export function AdminPartnersDashboard() {
                   </div>
                   {partner.status !== "active" && <p className="text-xs text-ash">Confirm the partnership and set its status to Active before sharing this link.</p>}
                 </div>
+                {data.referralPilot && (data.referralPilot.terms[partner.id]?.active ? (
+                  <p className="text-sm text-ink">Referral pilot approved · 10% customer discount / 10% first-order commission. {partner.status !== "active" && "Partner is paused or inactive; code is unavailable."}</p>
+                ) : <form className="space-y-3 border-t border-linen pt-4" onSubmit={(event) => {
+                  event.preventDefault();
+                  const form = new FormData(event.currentTarget);
+                  void save({ action: "approve_referral_pilot", id: partner.id, reviewConfirmed: form.get("reviewConfirmed") === "on" }, "Partner approved for the referral pilot. No email or payout was sent.");
+                }}>
+                  <label className="flex items-start gap-2 text-sm text-ink"><input required type="checkbox" name="reviewConfirmed" disabled={busy} className="mt-1" />I reviewed this partner’s laboratory-research audience, proposed content, affiliate disclosure, and acceptance of the 10% / 10% pilot terms.</label>
+                  <button type="submit" disabled={busy || partner.status === "paused" || partner.status === "declined"} className={buttonClass}>Approve referral pilot</button>
+                </form>)}
 
                 <div className="grid gap-3 text-xs text-ash sm:grid-cols-3">
                   <p>Last contacted: {dateLabel(partner.lastContactedAt)}</p>

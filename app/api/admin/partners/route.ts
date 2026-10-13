@@ -2,14 +2,19 @@ import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin/require-auth";
 import { checkPartnerOrigin, PartnerInputError, transitionPartner, validPartnerId, validatePartnerInput, validateStatus } from "@/lib/partners/logic";
 import { assertPartnersAvailable, createPartner, getPartner, loadPartnerDashboard, PartnersUnavailableError, savePartner } from "@/lib/partners/store";
+import { approveReferralPartner, loadReferralPilotDashboard, migrateReferralPilot, releaseUnpaidReferralClaim, reviewReferralCommission, verifyReferralPilotSchema } from "@/lib/partners/referral-store";
+import { REFERRAL_PILOT } from "@/lib/partners/referral-logic";
+import { readPartnerAuthReadiness } from "@/lib/partners/auth";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 const noStore = { "Cache-Control": "no-store" };
 function json(body: unknown, status = 200) { return NextResponse.json(body, { status, headers: noStore }); }
 function failed(error: unknown) {
   if (error instanceof PartnerInputError) return json({ error: error.message }, 400);
   if (error instanceof PartnersUnavailableError) return json({ available: false, code: "PARTNERS_NOT_MIGRATED", error: error.message }, 503);
   if (error && typeof error === "object" && "code" in error && error.code === "23505") return json({ error: "A partner with this email already exists. Refresh and edit that record." }, 409);
+  if (error && typeof error === "object" && "code" in error && error.code === "23514") return json({ error: "The 10-partner referral pilot limit has been reached. Pause a current pilot partner before activating another." }, 409);
   // Database errors can include contact data; never expose or log the raw error.
   console.error("[admin/partners] Partner request failed.");
   return json({ error: "Unable to load or save partners. Try again." }, 500);
@@ -17,7 +22,13 @@ function failed(error: unknown) {
 export async function GET() {
   const authError = await requireAdminAuth();
   if (authError) { authError.headers.set("Cache-Control", "no-store"); return authError; }
-  try { await assertPartnersAvailable(); return json(await loadPartnerDashboard()); } catch (error) { return failed(error); }
+  try {
+    await assertPartnersAvailable();
+    const dashboard = await loadPartnerDashboard();
+    try { dashboard.referralPilot = await loadReferralPilotDashboard(); }
+    catch (error) { if (!(error instanceof PartnersUnavailableError)) throw error; }
+    return json(dashboard);
+  } catch (error) { return failed(error); }
 }
 
 export async function POST(request: Request) {
@@ -33,6 +44,23 @@ export async function POST(request: Request) {
     try { body = JSON.parse(text); } catch { throw new PartnerInputError("Invalid JSON."); }
     if (!body || typeof body !== "object" || Array.isArray(body)) throw new PartnerInputError("Invalid request.");
     await assertPartnersAvailable();
+    if (body.action === "initialize_referral_pilot") {
+      if (body.setupVersion !== REFERRAL_PILOT.version || Object.keys(body).some(key => !["action", "setupVersion"].includes(key))) {
+        throw new PartnerInputError("Choose the exact supported referral-pilot setup version without additional settings.");
+      }
+      await migrateReferralPilot();
+      await verifyReferralPilotSchema();
+      return json({ ok: true, setup: { version: REFERRAL_PILOT.version, schemaVerified: true,
+        partnerAuth: await readPartnerAuthReadiness(), partnerApprovalPerformed: false,
+        outboundEmailSent: false, paymentOrPayoutPerformed: false, trackingActivated: false } });
+    }
+    if (body.action === "approve_referral_pilot") {
+      if (!validPartnerId(body.id)) throw new PartnerInputError("Invalid partner ID.");
+      await approveReferralPartner(body.id, body.reviewConfirmed);
+      return json({ ok: true, outboundSendingEnabled: false });
+    }
+    if (body.action === "review_referral_commission") { await reviewReferralCommission(body); return json({ ok: true }); }
+    if (body.action === "release_unpaid_referral") { await releaseUnpaidReferralClaim(body); return json({ ok: true }); }
     if (body.action === "create") return json({ partner: await createPartner(validatePartnerInput(body)), outboundSendingEnabled: false }, 201);
     if (!["update", "mark_contacted", "mark_replied", "pause"].includes(String(body.action))) throw new PartnerInputError("Unknown partner action.");
     if (!validPartnerId(body.id)) throw new PartnerInputError("Invalid partner ID.");

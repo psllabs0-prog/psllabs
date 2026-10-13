@@ -2,7 +2,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, FileText } from "lucide-react";
 import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
-import { ProductArtworkNotice } from "@/components/product/product-artwork-notice";
 import { formatReportedPurity, getBatchReportsForProduct } from "@/lib/batch-reports";
 import { formatPrice } from "@/lib/cart/format";
 import type { ProductAvailability } from "@/lib/inventory/availability";
@@ -53,7 +52,6 @@ export function ProductCatalogCard({ product, availability, className, headingLe
           {report && <p className={styles.batchLabel}>Batch {report.batch} · Task {report.taskNumber}</p>}
           {report && <p className={styles.testedSample}>Results apply only to the sample tested.</p>}
         </div>}
-        {!render && <ProductArtworkNotice handle={product.handle} className={styles.labelAlert} />}
         <div className={styles.cardActions}>
           {comingSoon ? <Link href="/#newsletter" className={styles.buttonSecondary}>Notify me <ArrowUpRight aria-hidden /></Link> : <>
             <Link href={product.href} className={styles.buttonPrimary}>View product <ArrowUpRight aria-hidden /></Link>

@@ -4,7 +4,6 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Expand, X } from "lucide-react";
 import Image from "next/image";
 import { useRef } from "react";
-import { ProductArtworkNotice } from "./product-artwork-notice";
 
 import styles from "./product-artwork-dialog.module.css";
 
@@ -58,7 +57,6 @@ export function ProductArtworkDialog({ src, alt, name, strength, triggerLabel }:
           <Dialog.Description className={styles.zoomDescription}>
             For laboratory research only. Not for human or veterinary use.
           </Dialog.Description>
-          <ProductArtworkNotice imageSrc={src} className={styles.labelNotice} />
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>

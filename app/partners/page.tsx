@@ -1,0 +1,16 @@
+import Link from "next/link";
+import { createPageMetadata } from "@/lib/seo";
+import { PartnerApplicationForm } from "@/components/partners/partner-application-form";
+import styles from "@/components/partners/partner-program.module.css";
+
+export const metadata = createPageMetadata({title:"PSL Labs Partner Program",description:"Apply to refer laboratory research customers to PSL Labs. A reviewed, single-level referral pilot with clear terms.",path:"/partners"});
+export default function PartnersPage() {
+  return <main className={`storefront-theme ${styles.page}`}><div className={styles.inner}>
+    <section className={styles.hero}>
+      <div><p className={styles.kicker}>PSL Labs / Partner pilot</p><h1>Introduce researchers to documented materials.</h1><p className={styles.lead}>Refer laboratories and research teams to PSL Labs. Approved partners receive a personal referral code and earn a commission on eligible first orders.</p><div className={styles.actions}><a href="#apply" className={styles.primary}>Apply to join</a><Link href="/partners/account" className={styles.secondary}>Partner sign-in</Link></div><p className={styles.muted}>Free to apply. We’re starting with up to 10 reviewed partners.</p><p className={styles.scope}>For laboratory research only. Not for human or animal use.</p></div>
+      <div className={styles.rates} aria-label="Pilot referral benefits"><div className={styles.rate}><strong>10%</strong><span>Off the referred customer’s first eligible order</span><p>Bitcoin checkout only during this pilot. A valid approved code is required; it replaces the standard Bitcoin discount and does not stack with other offers.</p></div><div className={styles.rate}><strong>10%</strong><span>Commission on eligible first-order merchandise</span><p>Calculated after the customer’s discount, excluding shipping, tax and refunded amounts.</p></div><p className={styles.muted}>Single-level referrals. No commission for recruiting partners and no lifetime commission promise. <Link href="/partners/terms">Read the full terms</Link>.</p></div>
+    </section>
+    <section className={styles.section}><h2>A straightforward partnership.</h2><div className={styles.steps}><div><h3>Apply with your audience.</h3><p>Tell us who you reach and show how you would describe PSL’s laboratory materials and batch documentation.</p></div><div><h3>Share your approved code.</h3><p>Once approved, use your code or referral link and clearly disclose that you may earn a commission.</p></div><div><h3>Review eligible earnings.</h3><p>View recorded referrals in your partner account. Commissions are held for delivery, returns and fraud review before manual payout.</p></div></div></section>
+    <section id="apply" className={styles.application}><div><p className={styles.kicker}>Join the pilot</p><h2>Relevant partners. Clear information.</h2><p className={styles.lead}>We look for a useful connection with laboratory research audiences.</p><ul><li>Accurate product and batch-report information.</li><li>No medical, treatment or transformation claims.</li><li>No dosing or human-use demonstrations.</li><li>No invented reviews or endorsements.</li></ul><p className={styles.muted}>Approval is required before a code can be used. Applying creates a partner application, not a store-admin account.</p></div><PartnerApplicationForm/></section>
+  </div></main>;
+}
