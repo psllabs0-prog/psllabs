@@ -37,7 +37,11 @@ export function CookieConsentControls() {
   const spacerRef = useRef<HTMLDivElement>(null);
   const previousFocus = useRef<HTMLElement | null>(null);
   const excluded = isPrivacyExcludedPath(pathname) || consent.admin;
+  // Wait for the saved choice before reserving banner space on a returning visit.
+  // Failed checks and pending withdrawal still expose the existing controls.
+  const bannerReady = status.state !== "checking" || status.pendingDecline;
   const bannerVisible = verified && !excluded && !cartOpen && !preferencesOpen &&
+    bannerReady &&
     (consent.choice === "unknown" || status.pendingDecline);
 
   useEffect(() => {

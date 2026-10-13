@@ -13,6 +13,7 @@ Object.assign(globalThis, { AsyncLocalStorage });
 
 process.env.ADMIN_PASSWORD = "offline_fixture_admin_password_not_a_real_secret";
 process.env.VERCEL = "1";
+process.env.PSL_VISUAL_PREVIEW = "0";
 const origin = "https://www.psllabs.org";
 let sqlCalls = 0;
 let counter = 0;
@@ -56,9 +57,28 @@ async function main() {
   for (const path of ["/api/admin/login", "/api/admin/partners", "/api/admin/inventory/update", "/api/admin/future-feature"]) {
     assert.equal(matchesProxy({ config, nextConfig: {}, url: `${origin}${path}` }), true);
   }
-  for (const path of ["/api/tagada-webhook", "/api/btcpay-webhook", "/api/checkout/card", "/api/cron/finance-reconcile", "/_next/static/app.js", "/"]) {
+  const providerAndRecoveryPaths = ["/api/tagada-webhook", "/api/btcpay-webhook", "/api/checkout/card", "/api/cron/finance-reconcile"];
+  for (const path of [...providerAndRecoveryPaths, "/"]) {
+    assert.equal(matchesProxy({ config, nextConfig: {}, url: `${origin}${path}` }), true,
+      "the isolation proxy covers these routes but production must pass them through");
+  }
+  for (const previewFlag of [undefined, "0"]) {
+    if (previewFlag === undefined) delete process.env.PSL_VISUAL_PREVIEW;
+    else process.env.PSL_VISUAL_PREVIEW = previewFlag;
+    for (const path of [...providerAndRecoveryPaths, "/", "/api/meta/events", "/api/tiktok/events", "/api/inventory/availability", "/api/privacy/consent"]) {
+      for (const method of ["GET", "POST"]) {
+        const before = sqlCalls;
+        const response = await proxy(new NextRequest(`${origin}${path}`, { method }));
+        assert.equal(response.headers.get("x-middleware-next"), "1", `${method} ${path} passes through with preview flag ${previewFlag ?? "absent"}`);
+        assert.equal(response.headers.get("X-Robots-Tag"), null, "production responses must not receive preview noindex headers");
+        assert.equal(sqlCalls, before, "provider, recovery and non-form requests must not consume a rate limit or access SQL in the proxy");
+      }
+    }
+  }
+  process.env.PSL_VISUAL_PREVIEW = "0";
+  for (const path of ["/_next/static/app.js", "/_next/image?url=%2Fproducts%2Fghk-cu-transparent.png&w=640&q=75", "/favicon.ico", "/coas/PSL-GHKCU%2050mg%20coa.png"]) {
     assert.equal(matchesProxy({ config, nextConfig: {}, url: `${origin}${path}` }), false,
-      "form throttles must not interrupt provider/recovery or static flows");
+      "static assets do not need the isolation proxy");
   }
   assert.equal(isValidAdminPassword(process.env.ADMIN_PASSWORD!), true);
   for (const value of ["", "wrong", "x".repeat(1025)]) assert.equal(isValidAdminPassword(value), false);
@@ -99,7 +119,7 @@ async function main() {
     assert.equal((await proxy(request(path))).status, 429);
   }
   __setSqlClientForTests(null);
-  console.log("PASS: same-origin admin guards, login throttling, fail-closed storage, session validation and form/provider boundaries. Offline fixtures only.");
+  console.log("PASS: same-origin admin guards, login throttling, fail-closed storage, session validation and production form/provider boundaries with preview flag absent/0. Provider pass-through used zero SQL/rate-limit calls. Offline fixtures only.");
 }
 
 main().catch((error) => { console.error("Request protection regression failed:", error); process.exitCode = 1; });

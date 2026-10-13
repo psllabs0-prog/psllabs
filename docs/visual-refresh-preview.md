@@ -4,7 +4,7 @@ Approved October 13, 2026. Implemented on `codex/visual-refresh-20261013`, based
 
 ## Design scope
 
-Dark PSL brand shell, off-white catalog pages, white information panels, Archivo/Inter typography, restrained corners and consistent controls. Static original vial artwork replaces the animated hero scene. Homepage and catalog share product cards. All five released product pages retain actual data, batch documents, label discrepancies, storage information and FAQs. Mobile cart line totals are visible; checkout field boundaries are stronger.
+Dark PSL brand shell, off-white catalog pages, Archivo/Inter typography, restrained corners and consistent controls. Static original vial artwork replaces the animated hero scene. The second pass uses a larger Retatrutide composition, ruled material comparison records, original report imagery, larger product artwork and clearer purchase/batch hierarchy. All five released product pages retain actual data, batch documents, label discrepancies, storage information and FAQs. Mobile cart line totals are visible; checkout field boundaries, field-error associations and initial error focus are stronger.
 
 Original products, prices, reports, labels and URLs are unchanged. No invented photography, certifications, endorsements or customer reviews. Inventory, order, payment, consent and advertising rules retain their production behavior when the preview flag is absent.
 
@@ -20,7 +20,11 @@ Set `PSL_VISUAL_PREVIEW=1` at both build and runtime for this design preview onl
 - Public inventory availability is explicitly marked `previewOnly` and uses untracked source fallback; it is not operational stock.
 - Preview responses and metadata are noindex. The banner states that orders, messages and advertising are disabled.
 
-Production domain aliases, payment methods, database settings, advertising campaigns/budgets, Google/OpenAI channels and organic publishing are unchanged. This preview is not a production release.
+Preview deployments do not change production domain aliases, payment methods, database settings, advertising campaigns/budgets, Google/OpenAI channels or organic publishing.
+
+## Production release
+
+The user authorized publishing the completed design on October 13, 2026, after preview review. Production must build and run with `PSL_VISUAL_PREVIEW` absent or `0`; never promote a design-isolated build as the working store. Verify the production commit, absence of the preview banner/noindex override, real inventory read path and preserved consent capabilities without placing an order or enabling optional cookies in QA. Keep the preceding production deployment available for rollback.
 
 ## Validation
 
