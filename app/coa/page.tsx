@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { BatchLookup } from "@/components/coa/batch-lookup";
+import { SiteBreadcrumbs } from "@/components/seo/site-breadcrumbs";
 import { AnimateIn } from "@/components/product/animate-in";
 import { TestingScopeExplainer } from "@/components/testing/testing-scope-explainer";
 import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
@@ -18,6 +19,7 @@ export default function CoaPage() {
   return (
     <main className="public-page-surface">
       <div className="mx-auto max-w-[960px] px-6 py-16 md:px-16 md:py-20 lg:px-24 lg:py-24">
+        <SiteBreadcrumbs items={[{ name: "Home", path: "/" }, { name: "Batch reports", path: "/coa" }]} />
         <header className="public-page-header mb-10 flex max-w-3xl flex-col gap-5 md:mb-12">
           <AnimateIn>
             <p className="mono text-accent">BATCH REPORTS</p>

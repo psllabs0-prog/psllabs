@@ -1,215 +1,53 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
-import { AnimateIn } from "@/components/product/animate-in";
 import { JsonLd } from "@/components/seo/json-ld";
-import { RelatedGuides } from "@/components/guides/related-guides";
+import { GuideLayout } from "@/components/guides/guide-layout";
 import { getGuideBySlug } from "@/lib/content/guides-data";
 import { createPageMetadata } from "@/lib/seo";
 import { createArticleData, createBreadcrumbData } from "@/lib/structured-data";
 
 const guide = getGuideBySlug("peptide-storage-stability")!;
-
-export const metadata: Metadata = createPageMetadata({
-  title: "Lyophilized Peptide Storage and Stability Guide",
-  description: guide.description,
-  path: "/guides/peptide-storage-stability",
-  type: "article",
-});
-
-const articleLd = createArticleData({ ...guide, path: `/guides/${guide.slug}` });
-const breadcrumbLd = createBreadcrumbData([
-  { name: "Home", path: "" },
-  { name: "Guides", path: "/guides" },
-  { name: guide.shortTitle, path: `/guides/${guide.slug}` },
-]);
+export const metadata: Metadata = createPageMetadata({ title: guide.seoTitle ?? guide.title, description: guide.description, path: `/guides/${guide.slug}`, type: "article" });
 
 export default function PeptideStorageStabilityGuidePage() {
   return (
-    <main className="public-page-surface min-h-screen">
-      {/* Validate Article markup: https://search.google.com/test/rich-results */}
-      <JsonLd data={articleLd} />
-      <JsonLd data={breadcrumbLd} />
-      <article className="mx-auto max-w-[840px] px-6 py-16 md:px-12 md:py-20 lg:py-24">
-        <header className="mb-10 border-b border-linen pb-10 md:mb-12 md:pb-12">
-          <AnimateIn>
-            <p className="mono text-ash">GUIDE</p>
-          </AnimateIn>
-          <AnimateIn delay={0.06}>
-            <h1 className="mt-4 font-[family-name:var(--font-display)] text-[clamp(2rem,4vw,2.5rem)] leading-[1.15] tracking-[-0.02em] text-ink">
-              Lyophilized Peptide Storage and Stability Guide
-            </h1>
-          </AnimateIn>
-          <AnimateIn delay={0.1}>
-            <p className="mt-5 text-base leading-relaxed text-ash md:text-[1.0625rem]">
-              Store freeze-dried peptides cold, dry, and out of light. This
-              guide covers temperature, moisture, shelf life, and a short
-              checklist for keeping solid material in good condition.
-            </p>
-          </AnimateIn>
-        </header>
-
-        <div className="flex flex-col gap-10 text-base leading-relaxed text-ink md:gap-12 md:text-[1.0625rem]">
-          <AnimateIn delay={0.12}>
-            <section className="flex flex-col gap-4">
-              <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
-                What freeze drying means
-              </h2>
-              <p className="text-ash">
-                Lyophilized means freeze dried. The peptide solution is frozen,
-                then water is removed under vacuum. What remains is a dry solid,
-                often a powder or cake in the vial. Without bulk water, many
-                chemical pathways that break peptides down run more slowly than
-                they do in liquid.
-              </p>
-              <p className="text-ash">
-                Research peptides are commonly sold freeze dried because dry
-                material is easier to ship and store than liquid. How you store
-                it after arrival still affects how well it holds up over time.
-              </p>
-            </section>
-          </AnimateIn>
-
-          <AnimateIn delay={0.14}>
-            <section className="flex flex-col gap-4">
-              <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
-                How temperature affects peptide stability
-              </h2>
-              <p className="text-ash">
-                Lower temperatures generally slow breakdown. For freeze-dried
-                peptides, cold storage is common. Many labs keep unopened vials
-                in a freezer for longer holding. A refrigerator works for
-                shorter periods. Room temperature is fine for brief handling,
-                not long-term storage. When in doubt, colder and drier is the
-                safer default for unopened solid material.
-              </p>
-              <p className="text-ash">
-                Freezer, refrigerator, and room temperature are a spectrum of
-                risk, not one rule for every peptide. Always follow any
-                temperature range on the vial label or batch documentation for
-                that product.
-              </p>
-              <p className="text-ash">
-                Repeated warming and refreezing can harm dry solids. Condensation
-                can form as vials warm in humid air. Moisture that reaches the
-                powder can speed breakdown. Temperature swings also stress
-                packaging seals. Take out only what you need so the rest stays
-                cold and sealed.
-              </p>
-              <p className="text-ash">
-                Moisture is a major cause of peptide breakdown. Keep caps tight,
-                minimize open-vial time, and avoid damp storage areas or spots
-                near frost-heavy freezer walls where condensation is common when
-                doors open.
-              </p>
-            </section>
-          </AnimateIn>
-
-          <AnimateIn delay={0.16}>
-            <section className="flex flex-col gap-4">
-              <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
-                Light sensitivity
-              </h2>
-              <p className="text-ash">
-                Some peptide sequences absorb light. That energy can trigger
-                chemical changes that alter the molecule or create new
-                byproducts. Storing vials away from direct sunlight and strong
-                lab lighting reduces that exposure.
-              </p>
-              <p className="text-ash">
-                Keep vials in their outer carton or an opaque container. Avoid
-                windowsills and limit time under intense bench lamps. Light
-                sensitivity varies by sequence, but light protection is a
-                low-cost step that supports overall material quality.
-              </p>
-            </section>
-          </AnimateIn>
-
-          <AnimateIn delay={0.18}>
-            <section className="flex flex-col gap-4">
-              <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
-                Shelf life expectations
-              </h2>
-              <p className="text-ash">
-                Freeze-dried peptides can stay in good condition for extended
-                periods when kept dry, cold, and protected from light. But
-                &ldquo;extended&rdquo; is not forever. Sequence chemistry,
-                residual moisture, packaging, and storage history all affect how
-                long a lot stays close to its original profile.
-              </p>
-              <p className="text-ash">
-                Purity can still decline even under good storage. Slow changes
-                may build up over months or years. A Certificate of Analysis
-                (COA) describes the tested sample at the time of analysis. It
-                does not guarantee that purity will stay the same after shipping
-                and storage.
-              </p>
-              <p className="text-ash">
-                Treat the COA as a snapshot tied to a batch and test date. Pair
-                it with storage records. If storage conditions were unknown or
-                interrupted during transit, note that in your records alongside
-                the original COA.
-              </p>
-            </section>
-          </AnimateIn>
-
-          <AnimateIn delay={0.2}>
-            <section className="flex flex-col gap-4">
-              <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
-                After reconstitution
-              </h2>
-              <p className="text-ash">
-                Once a freeze-dried peptide is dissolved for lab use, stability
-                usually changes. Breakdown, surface adsorption, and microbial
-                risk become more relevant than for the dry solid. Solution
-                storage is a separate topic from freeze-dried storage.
-              </p>
-            </section>
-          </AnimateIn>
-
-          <AnimateIn delay={0.22}>
-            <section className="flex flex-col gap-4">
-              <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
-                Practical summary
-              </h2>
-              <p className="text-ash">
-                Use this checklist for freeze-dried material:
-              </p>
-              <ul className="list-disc space-y-3 pl-5 text-ash">
-                <li>
-                  Store sealed freeze-dried vials cold. Prefer a freezer for
-                  longer holding when documentation allows.
-                </li>
-                <li>
-                  Limit room-temperature exposure to brief handling periods.
-                </li>
-                <li>
-                  Avoid repeated warming and refreezing of the same vial. Remove
-                  only what you need.
-                </li>
-                <li>
-                  Keep caps tight and protect powder from moisture and
-                  condensation.
-                </li>
-                <li>
-                  Keep vials away from direct sunlight and strong continuous
-                  light.
-                </li>
-                <li>
-                  Treat COA purity results as time-of-test data, not a permanent
-                  guarantee after long storage.
-                </li>
-                <li>
-                  Treat dissolved solutions as a separate stability question with
-                  stricter time and temperature controls.
-                </li>
-              </ul>
-            </section>
-          </AnimateIn>
-          <AnimateIn>
-            <RelatedGuides currentSlug={guide.slug} />
-          </AnimateIn>
-        </div>
-      </article>
-    </main>
+    <>
+      <JsonLd data={createArticleData({ ...guide, path: `/guides/${guide.slug}` })} />
+      <JsonLd data={createBreadcrumbData([{ name: "Home", path: "" }, { name: "Guides", path: "/guides" }, { name: guide.shortTitle, path: `/guides/${guide.slug}` }])} />
+      <GuideLayout guide={guide} tocItems={[{ id: "instructions", label: "Start with material-specific instructions" }, { id: "handling", label: "Moisture and handling context" }, { id: "records", label: "A receiving and storage record" }, { id: "shelf-life", label: "What establishes shelf life" }]}>
+        <section className="space-y-4 text-ash">
+          <p>A storage record should tell you which material was received, which instructions apply, and what happened to it afterward. A high purity percentage or a test date does not supply those answers.</p>
+          <p>This is a documentation guide for laboratory materials. It does not set a universal storage temperature, expiry date, or stability period for PSL’s products.</p>
+        </section>
+        <section id="instructions" className="scroll-mt-24 space-y-4 text-ash">
+          <h2 className="font-display text-2xl font-bold text-ink">Start with material-specific instructions</h2>
+          <p>Check the supplied label and applicable supplier documentation for physical form, storage conditions, and any stated expiry or retest date. A lyophilized powder and a solution are different forms; do not transfer instructions between them.</p>
+          <p>If the needed conditions or stability records are not provided, <Link href="/contact" className="text-accent underline underline-offset-4">ask PSL support</Link> with the product and batch identifier. Keep the answer with your laboratory’s own handling procedure.</p>
+          <p>General manufacturer guidance is useful context, not evidence that PSL completed a stability study or validated a shipping temperature range.</p>
+        </section>
+        <section id="handling" className="scroll-mt-24 space-y-4 text-ash">
+          <h2 className="font-display text-2xl font-bold text-ink">Moisture and handling context</h2>
+          <p>Bachem’s handling guidance discusses moisture uptake in lyophilized peptides and allowing a closed container to reach ambient temperature before opening to reduce condensation. It also distinguishes dry-material storage from solution storage and notes that peptide-specific properties matter.</p>
+          <p className="text-sm">Reference: <a href="https://www.bachem.com/knowledge-center/handling-and-storage-guidelines-for-peptides/" target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-4">Bachem’s handling and storage guide</a>. Follow your material-specific instructions and laboratory procedures; this reference does not validate PSL shelf life.</p>
+        </section>
+        <section id="records" className="scroll-mt-24 space-y-4 text-ash">
+          <h2 className="font-display text-2xl font-bold text-ink">A receiving and storage record</h2>
+          <ul className="list-disc space-y-3 pl-5">
+            <li><strong className="text-ink">Identity of the material:</strong> product, SKU, supplied batch code, nominal label amount, and physical form.</li>
+            <li><strong className="text-ink">Receiving check:</strong> date, package condition, and any visible damage or discrepancy.</li>
+            <li><strong className="text-ink">Instructions:</strong> source and version of the applicable storage information, with any unanswered question.</li>
+            <li><strong className="text-ink">Location and handling:</strong> storage location, handling dates, and relevant temperature records under your lab’s procedure.</li>
+            <li><strong className="text-ink">Exceptions:</strong> any suspected exposure or condition departure and how it was assessed. Do not silently reset a storage clock.</li>
+          </ul>
+          <p>Use the <Link href="/science/how-to-read-a-coa" className="text-accent underline underline-offset-4">report-field worksheet</Link> for analytical documentation. Our <Link href="/shipping" className="text-accent underline underline-offset-4">shipping page</Link> describes fulfillment; it should not be read as a stability study.</p>
+        </section>
+        <section id="shelf-life" className="scroll-mt-24 space-y-4 text-ash">
+          <h2 className="font-display text-2xl font-bold text-ink">What establishes shelf life?</h2>
+          <p>A laboratory report records tests on the named sample at the time shown. It does not, by itself, establish how results change after shipping, repeated handling, or long storage. Ask for the relevant stability evidence if your work requires a defined period.</p>
+          <p>Record missing information as missing. Do not invent an expiry date, reuse another supplier’s claimed duration, or treat unchanged appearance as a fresh analytical result. Read <Link href="/guides/what-peptide-testing-can-establish" className="text-accent underline underline-offset-4">what analytical testing can establish</Link> for the distinction between a reported measurement and an unanswered question.</p>
+        </section>
+      </GuideLayout>
+    </>
   );
 }

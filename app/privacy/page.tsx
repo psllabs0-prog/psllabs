@@ -6,14 +6,14 @@ import { privacyPageMeta, privacySections } from "@/lib/content/privacy";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Privacy Policy",
-  description: privacyPageMeta.description,
+  title: "Privacy, Cookies and Advertising Preferences",
+  description: "Learn how PSL Labs handles order information, essential cookies, optional advertising consent, data sharing and withdrawal of cookie preferences.",
   path: "/privacy",
 });
 
 export default function PrivacyPage() {
   return (
-    <ContentPageLayout meta={privacyPageMeta}>
+    <ContentPageLayout meta={privacyPageMeta} breadcrumbs={[{ name: "Home", path: "/" }, { name: "Privacy policy", path: "/privacy" }]}>
       <ContentSections sections={privacySections} />
     </ContentPageLayout>
   );

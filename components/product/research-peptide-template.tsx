@@ -63,7 +63,7 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
                 <span>{strength} label amount</span>
               </div>
               <div className={`${styles.imageFrame}${render ? ` ${styles.renderFrame}` : ""}`}>
-                <Image src={render?.src ?? imageSrc} alt={render?.alt ?? imageAlt} fill preload sizes={render ? "(max-width: 800px) 265px, 500px" : "(max-width: 359px) 260px, (max-width: 800px) 286px, (max-width: 1100px) 340px, 390px"} className={styles.vialImage} />
+                <Image src={render?.src ?? imageSrc} alt={render?.alt ?? imageAlt} fill preload sizes={render ? "(max-width: 800px) 265px, (max-width: 1100px) 340px, 500px" : "(max-width: 359px) 260px, (max-width: 800px) 286px, (max-width: 1100px) 340px, 390px"} className={styles.vialImage} />
               </div>
             </div>
             <div className={styles.mediaMeta}><span>For laboratory research only.</span>{" "}<span>Not for human or animal use.</span></div>

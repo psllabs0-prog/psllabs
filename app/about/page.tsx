@@ -9,9 +9,9 @@ import { aboutContent } from "@/lib/about";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "About PSL Labs",
+  title: "About PSL Labs: Research Supply and Batch Reports",
   description:
-    "How PSL Labs works: independent lab reports, batch transparency, shipping from within the United States, and research support.",
+    "How PSL Labs supplies laboratory research materials: original Janoshik batch reports, sample-specific testing information, U.S. fulfillment and order support.",
   path: "/about",
 });
 

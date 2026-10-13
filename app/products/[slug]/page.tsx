@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ProductTemplate } from "@/components/product/product-template";
 import { ResearchPeptideTemplate } from "@/components/product/research-peptide-template";
 import { JsonLd } from "@/components/seo/json-ld";
+import { createProductData } from "@/components/seo/product-data";
 import { getProductAvailability } from "@/lib/inventory/availability";
 import { getOtherProducts, getProduct } from "@/lib/products";
 import {
@@ -12,8 +13,8 @@ import {
 } from "@/lib/products/catalog";
 import { getPublicCatalogProduct } from "@/lib/products/public-catalog";
 import { skuToSlug } from "@/lib/products/slug";
-import { PRODUCT_VIAL_IMAGE } from "@/lib/products/images";
-import { createPageMetadata, SITE_URL } from "@/lib/seo";
+import { getProductRender } from "@/lib/products/renders";
+import { createPageMetadata } from "@/lib/seo";
 import { createBreadcrumbData } from "@/lib/structured-data";
 
 type PageProps = {
@@ -34,25 +35,20 @@ export async function generateMetadata({
   if (!catalog) return { title: "Product not found", robots: { index: false, follow: false } };
 
   const product = getProduct(catalog.handle);
-  if (!product) return { title: "Product not found" };
+  if (!product) return { title: "Product not found", robots: { index: false, follow: false } };
 
   const strength = catalog.strength.replace(/(\d)(mg|ml)$/i, "$1 $2");
+  const image = getProductRender(product.handle);
   return createPageMetadata({
-    title: `${product.name} ${strength} | Batch Report`,
+    title: product.handle === "reconstitution-solution"
+      ? `${product.name} ${strength} | Batch Report`
+      : `${product.name} ${strength}: Research Material & COA`,
     description: product.handle === "reconstitution-solution"
       ? "Reconstitution Solution 5 ml for laboratory research. View the original Janoshik batch report and reported benzyl alcohol concentration. Not for human or animal use."
       : `${product.name} ${strength} for laboratory research. View the original Janoshik batch report, tested-sample purity and reported amount. Not for human or animal use.`,
     path: catalog.href,
-    image: { url: catalog.imageSrc, alt: catalog.imageAlt },
+    image: { url: image?.src ?? catalog.imageSrc, alt: image?.alt ?? catalog.imageAlt },
   });
-}
-
-function schemaAvailability(
-  status: "in_stock" | "low_stock" | "out_of_stock"
-): string {
-  return status === "out_of_stock"
-    ? "https://schema.org/OutOfStock"
-    : "https://schema.org/InStock";
 }
 
 export default async function ProductPage({ params }: PageProps) {
@@ -84,7 +80,7 @@ export default async function ProductPage({ params }: PageProps) {
     status: product.stockStatus,
   }));
 
-  const productUrl = `${SITE_URL}${catalogEntry.href}`;
+  const productLd = createProductData({ product, catalog: catalogEntry, availability });
   const breadcrumbLd = createBreadcrumbData([
     { name: "Home", path: "" },
     { name: "Products", path: "/products" },
@@ -100,30 +96,6 @@ export default async function ProductPage({ params }: PageProps) {
   ]);
 
   if (researchPeptideHandles.has(handle)) {
-    const catalog = getCatalogProductByHandle(handle);
-    const productLd = {
-      "@context": "https://schema.org",
-      "@type": "Product",
-      name: catalog
-        ? `${product.name}${catalog.strength ? ` ${catalog.strength}` : ""}`
-        : product.name,
-      sku: catalog?.sku,
-      description: product.shortDescription,
-      url: productUrl,
-      image: `${SITE_URL}${product.imageSrc ?? PRODUCT_VIAL_IMAGE.src}`,
-      brand: {
-        "@type": "Brand",
-        name: "PSL Labs",
-      },
-      offers: {
-        "@type": "Offer",
-        price: String(product.price),
-        priceCurrency: "USD",
-        availability: schemaAvailability(availability.status),
-        url: productUrl,
-      },
-    };
-
     return (
       <>
         <JsonLd data={productLd} />
@@ -136,34 +108,9 @@ export default async function ProductPage({ params }: PageProps) {
     );
   }
 
-  const catalog = getCatalogProductByHandle(handle);
-  const productLd =
-    catalog?.status === "active"
-      ? {
-          "@context": "https://schema.org",
-          "@type": "Product",
-          name: `${product.name}${catalog.strength ? ` ${catalog.strength}` : ""}`,
-          sku: catalog.sku,
-          description: product.shortDescription,
-          url: productUrl,
-          image: `${SITE_URL}${product.imageSrc ?? PRODUCT_VIAL_IMAGE.src}`,
-          brand: {
-            "@type": "Brand",
-            name: "PSL Labs",
-          },
-          offers: {
-            "@type": "Offer",
-            price: String(product.price),
-            priceCurrency: "USD",
-            availability: schemaAvailability(availability.status),
-            url: productUrl,
-          },
-        }
-      : null;
-
   return (
     <>
-      {productLd && <JsonLd data={productLd} />}
+      <JsonLd data={productLd} />
       <JsonLd data={breadcrumbLd} />
       <ProductTemplate
         product={product}

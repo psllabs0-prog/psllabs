@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { ProductCatalogCard } from "@/components/products/product-catalog-card";
+import { JsonLd } from "@/components/seo/json-ld";
+import { SiteBreadcrumbs } from "@/components/seo/site-breadcrumbs";
 import { getAvailabilityForCatalogHandles } from "@/lib/inventory/availability";
 import { getActiveCatalogProducts, getComingSoonCatalogProducts } from "@/lib/products/catalog";
-import { createPageMetadata } from "@/lib/seo";
+import { createPageMetadata, SITE_URL } from "@/lib/seo";
 import styles from "@/components/home/research-home.module.css";
 
 export const metadata: Metadata = createPageMetadata({
@@ -22,8 +24,28 @@ export default async function ProductsPage() {
 
   return (
     <main className={styles.catalogPage}>
+      <JsonLd data={{
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "@id": `${SITE_URL}/products#catalog`,
+        name: "PSL Labs research materials catalog",
+        url: `${SITE_URL}/products`,
+        description: "Research peptides and laboratory materials with vial sizes, prices and original batch documentation. For laboratory research only.",
+        mainEntity: {
+          "@type": "ItemList",
+          numberOfItems: active.length,
+          itemListOrder: "https://schema.org/ItemListUnordered",
+          itemListElement: active.map((product, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: `${product.name} ${product.strength}`,
+            url: `${SITE_URL}${product.href}`,
+          })),
+        },
+      }} />
       <section className={styles.catalogHeader}>
         <div className={styles.container}>
+          <SiteBreadcrumbs items={[{ name: "Home", path: "/" }, { name: "Products", path: "/products" }]} />
           <p className={styles.eyebrow}>PRODUCT CATALOG</p>
           <h1 className={styles.catalogTitle}>Research peptides<br /><span>with published lab reports.</span></h1>
           <p className={styles.catalogIntro}>Browse materials for laboratory research. Each active product lists specs and a batch report when published. Research use only.</p>
@@ -32,8 +54,8 @@ export default async function ProductsPage() {
       <section className={styles.catalogPageSection}>
         <div className={styles.container}>
           <div data-product-catalog className={styles.catalogGrid}>
-            {active.map((product) => (
-              <ProductCatalogCard key={product.handle} product={product} availability={availabilityMap.get(product.handle)} showDescription />
+            {active.map((product, index) => (
+              <ProductCatalogCard key={product.handle} product={product} availability={availabilityMap.get(product.handle)} imagePriority={index === 0} showDescription />
             ))}
           </div>
           {comingSoon.length > 0 && (

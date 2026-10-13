@@ -7,7 +7,8 @@
 .platform::before { content:""; position:absolute; inset:-5px 0 6px; border-radius:50%; background:radial-gradient(ellipse,#283c47,#142129 70%); border:1px solid #42616c; }
 .shadow { position:absolute; bottom:17%; left:33%; width:38%; height:4%; border-radius:50%; background:#010608; filter:blur(9px); }
 .vial { position:absolute; inset:9% 14% 18%; transform:translateZ(42px) rotate(-3deg); animation:float 7s ease-in-out infinite; animation-play-state:paused; filter:drop-shadow(14px 20px 12px #0006); }
-.vial img { object-fit:contain; animation:arrive 420ms ease both; }
+.vial img { object-fit:contain; }
+.stage[data-selection-changed="true"] .vial img { animation:arrive 420ms ease both; }
 .studio { position:absolute; inset:0; animation:arrive 420ms ease both; }
 .studio img { object-fit:cover; }
 .stage[data-motion="enabled"][data-visible="true"] .vial { animation-play-state:running; }
@@ -37,4 +38,5 @@
 @media(max-width:1100px) and (min-width:801px){.stage{height:400px}.report strong{font-size:17px}.details{gap:10px}.report{padding-left:10px}}
 @media(max-width:800px){.stage{height:410px}.feature{max-width:600px;margin:auto}}
 @media(max-width:480px){.stage{height:330px;border-radius:10px}.topline{left:18px;right:18px;top:18px;font-size:9px}.vial{inset:12% 14% 18%}.stageFooter{left:18px;font-size:9px}.selectionHeader{font-size:8px;letter-spacing:.04em}.details{gap:10px}.details h2{font-size:19px}.report{padding-left:10px}.report strong{font-size:17px}.report span{font-size:9px}.selector button span{font-size:10px}}
-@media(prefers-reduced-motion:reduce),(hover:none),(pointer:coarse){.scene{transform:none;transition:none}.vial{animation:none;transform:rotate(-3deg)}.vial img,.studio{animation:none}.motionButton{display:none}.stageFooter{min-height:35px}.selector button{transition:none}}
+@media(max-width:359px){.selector{grid-template-columns:repeat(6,minmax(0,1fr))}.selector button{grid-column:span 2}.selector button:nth-last-child(-n+2){grid-column:span 3}.selector button span{font-size:11px}}
+@media(prefers-reduced-motion:reduce),(hover:none),(pointer:coarse){.scene{transform:none;transition:none}.vial{animation:none;transform:rotate(-3deg)}.vial img,.studio,.stage[data-selection-changed="true"] .vial img{animation:none}.motionButton{display:none}.stageFooter{min-height:35px}.selector button{transition:none}}

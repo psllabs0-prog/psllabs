@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { AnimateIn } from "@/components/product/animate-in";
 import { JsonLd } from "@/components/seo/json-ld";
 import { ScienceArticleSection, ScienceSectionHeading } from "@/components/content/science-article-body";
+import { EditorialNote } from "@/components/content/editorial-note";
+import { SiteBreadcrumbs } from "@/components/seo/site-breadcrumbs";
 import {
   getScienceArticleMeta,
   getScienceArticleSource,
@@ -12,7 +14,7 @@ import {
 } from "@/lib/content/science";
 import { compileMdxContent } from "@/lib/mdx";
 import { createPageMetadata } from "@/lib/seo";
-import { createArticleData, createBreadcrumbData } from "@/lib/structured-data";
+import { createArticleData } from "@/lib/structured-data";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -54,24 +56,24 @@ export default async function ScienceArticlePage({ params }: PageProps) {
     publishedDate: meta.date,
     modifiedDate: meta.modifiedDate,
   });
-  const breadcrumbLd = createBreadcrumbData([
+  const breadcrumbs = [
     { name: "Home", path: "" },
     { name: "Documentation reference", path: "/science" },
     { name: meta.title, path: `/science/${slug}` },
-  ]);
+  ];
 
   return (
     <main className="public-page-surface">
       <JsonLd data={articleLd} />
-      <JsonLd data={breadcrumbLd} />
       <article className="mx-auto max-w-[840px] px-6 py-16 md:px-12 md:py-20 lg:py-24">
+        <SiteBreadcrumbs items={breadcrumbs} />
         <header className="mb-12 border-b border-[var(--color-sage)] pb-12">
           <AnimateIn>
             <Link
               href="/science"
               className="text-sm text-[var(--color-sage)] underline underline-offset-4 transition-opacity duration-200 ease-out hover:opacity-70"
             >
-              ← Science
+              ← Documentation reference
             </Link>
           </AnimateIn>
           <AnimateIn delay={0.06}>
@@ -94,13 +96,14 @@ export default async function ScienceArticlePage({ params }: PageProps) {
               {meta.description}
             </p>
             <p className="mt-4 font-mono text-xs text-stone">
-              Published by PSL Labs · <time dateTime={meta.date}>{meta.date}</time>
+              PSL Labs · Supplier documentation · <time dateTime={meta.date}>{meta.date}</time>
               {meta.modifiedDate && <> · Updated <time dateTime={meta.modifiedDate}>{meta.modifiedDate}</time></>}
             </p>
           </AnimateIn>
         </header>
 
         <div className="flex flex-col gap-10 md:gap-12">{content}</div>
+        <div className="mt-12"><EditorialNote /></div>
       </article>
     </main>
   );

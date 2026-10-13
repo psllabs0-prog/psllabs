@@ -11,14 +11,14 @@ import {
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: disclaimerPageMeta.title,
-  description: disclaimerPageMeta.description,
+  title: "Research-Use Disclaimer and Label Information",
+  description: "Read PSL Labs research-use restrictions, testing limits and product-image disclosures, including Tesamorelin and Reconstitution Solution label information.",
   path: "/disclaimer",
 });
 
 export default function DisclaimerPage() {
   return (
-    <ContentPageLayout meta={disclaimerPageMeta}>
+    <ContentPageLayout meta={disclaimerPageMeta} breadcrumbs={[{ name: "Home", path: "/" }, { name: "Disclaimer", path: "/disclaimer" }]}>
       <div className="premium-card flex flex-col gap-5 p-6 md:gap-6 md:p-7">
         {disclaimerParagraphs.map((paragraph) => (
           <AnimateIn key={paragraph.slice(0, 40)}>

@@ -7,6 +7,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { ANALYTICAL_GUIDES, type GuideCategory } from "@/lib/content/guides-data";
 import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
+import { GuideBreadcrumbs } from "@/components/guides/guide-breadcrumbs";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Peptide Testing and COA Verification Guides",
@@ -63,7 +64,7 @@ const CATEGORIES: {
     id: "handling-stability",
     title: "3. Storage & Stability",
     description:
-      "How to store freeze dried peptides and keep them in good condition.",
+      "Which storage records to request, how to log handling, and why a test date is not a shelf-life claim.",
   },
 ];
 
@@ -77,6 +78,7 @@ export default function GuidesHubPage() {
         <div className="mx-auto max-w-[1100px] px-6 py-12 md:px-12 md:py-16 lg:py-20">
           {/* Header */}
           <header className="mb-12 border-b border-linen pb-10 md:mb-16 md:pb-12">
+            <GuideBreadcrumbs items={[]} className="mb-8" />
             <AnimateIn>
               <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-accent">
                 <BookOpen className="size-4 shrink-0" aria-hidden />
@@ -86,7 +88,7 @@ export default function GuidesHubPage() {
 
             <AnimateIn delay={0.06}>
               <h1 className="mt-4 font-[family-name:var(--font-display)] text-[clamp(2rem,4.5vw,3rem)] leading-[1.12] tracking-[-0.02em] text-ink font-bold">
-                Guides
+                Peptide testing & documentation guides
               </h1>
             </AnimateIn>
 
@@ -115,6 +117,16 @@ export default function GuidesHubPage() {
               </div>
             </AnimateIn>
           </header>
+
+          <section aria-labelledby="choose-a-guide" className="mb-12 border-b border-linen pb-8">
+            <h2 id="choose-a-guide" className="font-display text-xl font-bold text-ink">Start with your question</h2>
+            <ul className="mt-4 space-y-3 text-sm leading-relaxed text-ash">
+              <li>Need a file for your order? <Link href="/science/third-party-testing-explained" className="text-accent underline underline-offset-4">Find a PSL report or resolve a missing batch match.</Link></li>
+              <li>Checking a document before ordering? <Link href="/guides/verify-peptide-coa" className="text-accent underline underline-offset-4">Use the short COA fields checklist.</Link></li>
+              <li>Ready to check it with the laboratory? <Link href="/guides/verify-peptide-laboratory-report" className="text-accent underline underline-offset-4">Follow the worked report-verification example.</Link></li>
+              <li>Comparing percentages with milligrams? <Link href="/guides/peptide-purity-vs-content" className="text-accent underline underline-offset-4">Compare the reported measurements separately.</Link></li>
+            </ul>
+          </section>
 
           {/* Guide Sections by Category */}
           <div className="flex flex-col gap-14 md:gap-18">

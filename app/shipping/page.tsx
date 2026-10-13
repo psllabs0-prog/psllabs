@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AnimateIn } from "@/components/product/animate-in";
+import { SiteBreadcrumbs } from "@/components/seo/site-breadcrumbs";
 import { shippingPageMeta, shippingSections } from "@/lib/content/shipping";
 import { createPageMetadata } from "@/lib/seo";
 
@@ -62,8 +63,8 @@ function renderParagraph(text: string, key: number) {
 }
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Shipping Policy",
-  description: shippingPageMeta.description,
+  title: "U.S. Shipping, Processing and Order Tracking",
+  description: "Check PSL Labs U.S. shipping rates, processing times, the free-shipping threshold, tracking and steps for a lost or damaged research-material order.",
   path: "/shipping",
 });
 
@@ -71,6 +72,7 @@ export default function ShippingPage() {
   return (
     <main className="public-page-surface min-h-screen">
       <div className="mx-auto max-w-[840px] px-6 py-16 md:px-12 md:py-20 lg:py-24">
+        <SiteBreadcrumbs items={[{ name: "Home", path: "/" }, { name: "Shipping", path: "/shipping" }]} />
         <header className="mb-12 border-b border-linen pb-10 md:mb-14 md:pb-12">
           <AnimateIn>
             <p className="mono text-ash">{shippingPageMeta.label}</p>

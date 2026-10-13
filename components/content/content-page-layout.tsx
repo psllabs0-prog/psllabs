@@ -1,15 +1,18 @@
 import { AnimateIn } from "@/components/product/animate-in";
+import { SiteBreadcrumbs, type SiteBreadcrumbItem } from "@/components/seo/site-breadcrumbs";
 import type { ContentPageMeta } from "@/lib/content/types";
 
 type ContentPageLayoutProps = {
   meta: ContentPageMeta;
   children: React.ReactNode;
+  breadcrumbs?: SiteBreadcrumbItem[];
 };
 
-export function ContentPageLayout({ meta, children }: ContentPageLayoutProps) {
+export function ContentPageLayout({ meta, children, breadcrumbs }: ContentPageLayoutProps) {
   return (
     <main className="public-page-surface min-h-screen">
       <div className="mx-auto max-w-[840px] px-6 py-16 md:px-12 md:py-20 lg:py-24">
+        {breadcrumbs && <SiteBreadcrumbs items={breadcrumbs} />}
         <header className="public-page-header mb-10 md:mb-12">
           <AnimateIn>
             <p className="mono text-ash">{meta.label}</p>

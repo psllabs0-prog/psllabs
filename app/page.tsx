@@ -9,6 +9,7 @@ import { getAvailabilityForCatalogHandles } from "@/lib/inventory/availability";
 import { newsletterSignupVariant } from "@/lib/newsletter/config";
 import { getNewsletterWelcomeSchemaState } from "@/lib/newsletter/schema";
 import { getActiveCatalogProducts } from "@/lib/products/catalog";
+import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { createPageMetadata, SITE_URL } from "@/lib/seo";
 import styles from "@/components/home/research-home.module.css";
 
@@ -24,8 +25,9 @@ const organizationLd = {
   "@type": "Organization",
   "@id": `${SITE_URL}/#organization`,
   name: "PSL Labs",
-  legalName: "PSL Group LLC",
+  legalName: LEGAL_ENTITY_NAME,
   url: SITE_URL,
+  logo: `${SITE_URL}/branding/psl-logo.png`,
   description:
     "US-based research peptide supplier with batch-level third-party testing documentation.",
   email: "support@psllabs.org",

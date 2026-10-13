@@ -1,216 +1,57 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
-import { AnimateIn } from "@/components/product/animate-in";
 import { JsonLd } from "@/components/seo/json-ld";
-import { RelatedGuides } from "@/components/guides/related-guides";
-import { BatchDocumentationCTA } from "@/components/guides/batch-documentation-cta";
+import { GuideLayout } from "@/components/guides/guide-layout";
 import { getGuideBySlug } from "@/lib/content/guides-data";
 import { createPageMetadata } from "@/lib/seo";
 import { createArticleData, createBreadcrumbData } from "@/lib/structured-data";
 
 const guide = getGuideBySlug("peptide-purity-percentages")!;
-
-export const metadata: Metadata = createPageMetadata({
-  title: guide.seoTitle ?? guide.title,
-  description: guide.description,
-  path: "/guides/peptide-purity-percentages",
-  type: "article",
-});
-
-const articleLd = createArticleData({ ...guide, path: `/guides/${guide.slug}` });
-const breadcrumbLd = createBreadcrumbData([
-  { name: "Home", path: "" },
-  { name: "Guides", path: "/guides" },
-  { name: guide.shortTitle, path: `/guides/${guide.slug}` },
-]);
+export const metadata: Metadata = createPageMetadata({ title: guide.seoTitle ?? guide.title, description: guide.description, path: `/guides/${guide.slug}`, type: "article" });
 
 export default function PeptidePurityPercentagesGuidePage() {
   return (
-    <main className="public-page-surface min-h-screen">
-      {/* Validate Article markup: https://search.google.com/test/rich-results */}
-      <JsonLd data={articleLd} />
-      <JsonLd data={breadcrumbLd} />
-      <article className="mx-auto max-w-[840px] px-6 py-16 md:px-12 md:py-20 lg:py-24">
-        <header className="mb-10 border-b border-linen pb-10 md:mb-12 md:pb-12">
-          <AnimateIn>
-            <p className="mono text-ash">GUIDE</p>
-          </AnimateIn>
-          <AnimateIn delay={0.06}>
-            <h1 className="mt-4 font-[family-name:var(--font-display)] text-[clamp(2rem,4vw,2.5rem)] leading-[1.15] tracking-[-0.02em] text-ink">
-              Peptide Purity Percentages: What Do They Actually Mean?
-            </h1>
-          </AnimateIn>
-          <AnimateIn delay={0.1}>
-            <p className="mt-5 text-base leading-relaxed text-ash md:text-[1.0625rem]">
-                For an HPLC area result, purity describes the main peak&apos;s
-                share of the integrated detector signal. It is not a percentage
-                of the powder&apos;s total weight or a milligram amount.
-            </p>
-          </AnimateIn>
-        </header>
-
-        <div className="flex flex-col gap-10 text-base leading-relaxed text-ink md:gap-12 md:text-[1.0625rem]">
-          <AnimateIn delay={0.12}>
-            <section className="flex flex-col gap-4">
-              <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
-                What a purity percentage represents
-              </h2>
-              <p className="text-ash">
-                On a Certificate of Analysis (COA), purity is a share of what
-                the lab&apos;s test actually detected. If the report says 99.5%
-                by a laboratory purity test (HPLC), that means roughly 99.5% of
-                the measured signal belongs to the main peptide peak. The rest
-                belongs to other peaks the method picked up.
-              </p>
-              <p className="text-ash">
-                It is a relative number for that run, not a claim about biology
-                and not a guarantee for every vial with a similar label. It
-                only describes the sample and batch named on that report.
-              </p>
-            </section>
-          </AnimateIn>
-
-          <AnimateIn delay={0.14}>
-            <section className="flex flex-col gap-4">
-              <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
-                How purity is measured
-              </h2>
-              <p className="text-ash">
-                Most research peptide purity figures come from a laboratory
-                purity test. The sample is dissolved and run through a column.
-                Different compounds move at different speeds and are detected at
-                different times.
-              </p>
-              <p className="text-ash">
-                The chromatogram is the graph of that run over time. Each peak
-                is something the test detected. For a typical area-percent
-                purity, you take the main peak area, divide by the total area
-                of all counted peaks, and convert to a percentage.
-              </p>
-              <p className="text-ash">
-                Method details matter: wavelength, column, and how peaks are
-                counted. That is why a lone percentage in a summary is weaker
-                than the full report with the chromatogram attached.
-              </p>
-            </section>
-          </AnimateIn>
-
-          <AnimateIn delay={0.16}>
-            <section className="flex flex-col gap-4">
-              <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
-                What the remaining percentage could be
-              </h2>
-              <p className="text-ash">
-                Whatever is not the main peak is other material the test saw.
-                Depending on synthesis, cleanup, and storage, that can include
-                residual solvents (if the method detects them), synthesis
-                byproducts, shortened sequences, closely related peptides, or
-                breakdown products.
-              </p>
-              <p className="text-ash">
-                Some impurities will not show up at the settings used. So
-                &ldquo;100% minus purity&rdquo; means &ldquo;other peaks on
-                this graph,&rdquo; not a complete list of everything in the
-                vial. Other tests on the same COA can help you interpret those
-                peaks when they are listed.
-              </p>
-            </section>
-          </AnimateIn>
-
-          <AnimateIn delay={0.18}>
-            <section className="flex flex-col gap-4">
-              <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
-                The difference between 99.0% and 99.8%
-              </h2>
-              <p className="text-ash">
-                The gap looks tiny on a label. At 99.0% purity, about 1.0% of
-                the detected signal is other material. At 99.8%, about 0.2% is
-                other material. That is a meaningful difference when you compare
-                lots, even though both numbers look high.
-              </p>
-              <p className="text-ash">
-                Those figures do not tell you whether the other material matters
-                for your work. That depends on what it is and what you are
-                measuring. They do explain why people comparing lots still care
-                about tenths of a percent.
-              </p>
-            </section>
-          </AnimateIn>
-
-          <AnimateIn delay={0.2}>
-            <section className="flex flex-col gap-4">
-              <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
-                Why purity is not the only metric
-              </h2>
-              <p className="text-ash">
-                Identity matters just as much. A sample that is 99.9%
-                &ldquo;pure&rdquo; by a purity test is useless if the main peak
-                is not the peptide you think it is. Labs usually back identity
-                with identity testing on the report. Read those fields with the
-                chromatogram.
-              </p>
-              <p className="text-ash">
-                Quantity matters too. Purity says how the detected signal
-                splits. It does not say how many milligrams are in the vial.
-                Content or assay results (when reported) answer that. A solid
-                research COA ties identity, purity, and quantity to the same
-                batch. Each answers a different question.
-              </p>
-            </section>
-          </AnimateIn>
-
-          <AnimateIn delay={0.22}>
-            <section className="flex flex-col gap-4">
-              <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
-                How to verify a purity claim
-              </h2>
-              <p className="text-ash">
-                Do not stop at a screenshot. If the testing lab offers a public
-                check, match the task or report ID on the COA to the lab&apos;s
-                own record.
-              </p>
-              <p className="text-ash">
-                One option is Janoshik&apos;s tool at{" "}
-                <a
-                  href="https://janoshik.com/verification/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-medium text-petrol underline underline-offset-4 transition-opacity hover:opacity-80"
-                >
-                  janoshik.com/verification/
-                </a>
-                . Follow the original report&apos;s instructions and enter its
-                task number and verification key. You can confirm the purity and the rest
-                of the fields match what the lab actually issued.
-              </p>
-            </section>
-          </AnimateIn>
-
-          <AnimateIn delay={0.24}>
-            <section className="flex flex-col gap-4">
-              <h2 className="font-[family-name:var(--font-display)] text-xl font-bold text-ink md:text-2xl">
-                Purity as one part of the quality picture
-              </h2>
-              <p className="text-ash">
-                Treat purity as one measurement in a set: chromatogram,
-                identity, quantity, batch ID, and how the material was stored. A
-                high number is useful. It is not a substitute for a full,
-                verifiable lab report on the lot you actually have. When those
-                pieces line up, and you can check the lab record yourself, you
-                have a much stronger paper trail for that batch.
-              </p>
-            </section>
-          </AnimateIn>
-
-          <AnimateIn delay={0.26}>
-            <BatchDocumentationCTA guideSlug="peptide-purity-percentages" />
-          </AnimateIn>
-
-          <AnimateIn delay={0.28}>
-            <RelatedGuides currentSlug="peptide-purity-percentages" />
-          </AnimateIn>
-        </div>
-      </article>
-    </main>
+    <>
+      <JsonLd data={createArticleData({ ...guide, path: `/guides/${guide.slug}` })} />
+      <JsonLd data={createBreadcrumbData([{ name: "Home", path: "" }, { name: "Guides", path: "/guides" }, { name: guide.shortTitle, path: `/guides/${guide.slug}` }])} />
+      <GuideLayout guide={guide} tocItems={[{ id: "basis", label: "Find the calculation basis" }, { id: "trace", label: "Read the trace before comparing" }, { id: "comparison", label: "Compare percentages carefully" }, { id: "record", label: "What to keep with the number" }]}>
+        <section className="space-y-4 text-ash">
+          <p>This guide is about the percentage and the chromatogram behind it. For the separate question of how much material was reported in a vial, use <Link href="/guides/peptide-purity-vs-content" className="text-accent underline underline-offset-4">purity versus amount</Link>.</p>
+          <p>Begin with the laboratory’s result label and method. Do not assume every value called “purity” uses the same calculation.</p>
+        </section>
+        <section id="basis" className="scroll-mt-24 space-y-4 text-ash">
+          <h2 className="font-display text-2xl font-bold text-ink">Find the calculation basis</h2>
+          <p>For an uncorrected HPLC area percentage, divide the target peak area by the total integrated peak area and multiply by 100. Waters distinguishes this from calculations using response-corrected areas. Ask which result the laboratory reports.</p>
+          <div className="public-section-card p-5">
+            <p className="font-mono text-sm text-ink">Area % = target peak area ÷ total integrated peak area × 100</p>
+            <p className="mt-3 text-sm">This is a signal ratio under a stated method. It is not a weight measurement or a vial’s milligram amount.</p>
+          </div>
+          <p className="text-sm">Calculation reference: <a href="https://support.waters.com/KB_Inf/Empower_Breeze/WKB14718_How_is_the_Impurity_RRF_field_in_the_components_tab_in_the_processing_method_within_Empower_used" target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-4">Waters: area and adjusted-area calculations</a>.</p>
+        </section>
+        <section id="trace" className="scroll-mt-24 space-y-4 text-ash">
+          <h2 className="font-display text-2xl font-bold text-ink">Read the trace before comparing</h2>
+          <p>Bachem describes analytical HPLC as a common peptide-purity method, with the main peak area compared with integrated peak areas. The displayed trace and method help explain what was counted.</p>
+          <ol className="list-decimal space-y-3 pl-5">
+            <li>Locate the assigned target peak and the laboratory’s result table.</li>
+            <li>Check that axes, the run interval, and labels are readable. Ask for the complete trace if a crop removes useful context.</li>
+            <li>Ask what detection settings and integration rules were used when you need to compare methods.</li>
+            <li>Keep unresolved peaks unresolved. A small peak is not an identified compound merely because it appears on a graph.</li>
+          </ol>
+          <p className="text-sm">Method reference: <a href="https://www.bachem.com/knowledge-center/quality-control-of-amino-acids-peptides-a-guide/" target="_blank" rel="noopener noreferrer" className="text-accent underline underline-offset-4">Bachem: peptide quality control</a>. This explains a general method; it is not a test report for PSL stock.</p>
+        </section>
+        <section id="comparison" className="scroll-mt-24 space-y-4 text-ash">
+          <h2 className="font-display text-2xl font-bold text-ink">Compare percentages carefully</h2>
+          <p>The remainder of an area-percentage calculation concerns the other integrated signals. It is not a complete inventory of the vial. Anything undetected, unresolved, or excluded from integration is outside that calculation.</p>
+          <p>More decimal places do not establish greater accuracy. Before ranking two batches, check whether their methods, calculation bases, and relevant reporting limits are comparable. If you lack that information, keep the results as separate reported values.</p>
+          <p>Identity, reported amount, and other tests answer different questions. See the <Link href="/guides/peptide-identity-vs-purity-vs-content" className="text-accent underline underline-offset-4">three-result comparison</Link> and <Link href="/guides/what-peptide-testing-can-establish" className="text-accent underline underline-offset-4">testing-scope guide</Link>.</p>
+        </section>
+        <section id="record" className="scroll-mt-24 space-y-4 text-ash">
+          <h2 className="font-display text-2xl font-bold text-ink">What to keep with the number</h2>
+          <p>Save the full original file, sample and batch name, task number, analysis date, result label, percentage, and available method notes. Keep unanswered questions in the same record.</p>
+          <p>For PSL’s published values, use the matching <Link href="/coa" className="text-accent underline underline-offset-4">batch report</Link>. A reported value belongs to the tested sample; do not extend it to untested vials or later batches.</p>
+        </section>
+      </GuideLayout>
+    </>
   );
 }

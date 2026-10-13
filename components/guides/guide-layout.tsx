@@ -8,6 +8,7 @@ import { RelatedGuides } from "./related-guides";
 import { BatchDocumentationCTA } from "./batch-documentation-cta";
 import { trackGuideView } from "@/lib/analytics/guide-events";
 import type { GuideMeta } from "@/lib/content/guides-data";
+import { EditorialNote } from "@/components/content/editorial-note";
 
 type GuideLayoutProps = {
   guide: GuideMeta;
@@ -66,11 +67,13 @@ export function GuideLayout({
           {/* Metadata Row */}
           <AnimateIn delay={0.16}>
             <div className="mt-6 flex flex-wrap items-center gap-y-2 gap-x-4 border-t border-linen pt-4 text-xs font-mono text-stone">
-              <span>Published by PSL Labs</span>
+              <span>PSL Labs · Supplier documentation</span>
               <span>·</span>
               <time dateTime={guide.publishedDate}>
                 Published: {guide.publishedDate}
               </time>
+              <span>·</span>
+              <time dateTime={guide.modifiedDate}>Updated: {guide.modifiedDate}</time>
               <span>·</span>
               <span>{guide.readTime}</span>
               <span>·</span>
@@ -117,6 +120,7 @@ export function GuideLayout({
             customGuides={relatedGuides}
           />
         </AnimateIn>
+        <div className="mt-12"><EditorialNote /></div>
       </article>
     </main>
   );

@@ -20,7 +20,7 @@ export default function TestingPage() {
   const reports = getAvailableBatchReports();
 
   return (
-    <ContentPageLayout meta={testingPageMeta}>
+    <ContentPageLayout meta={testingPageMeta} breadcrumbs={[{ name: "Home", path: "/" }, { name: "Testing", path: "/testing" }]}>
       <section className="flex flex-col gap-4">
         <AnimateIn>
           <div>

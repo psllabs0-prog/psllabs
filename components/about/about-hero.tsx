@@ -1,4 +1,5 @@
 import { AnimateIn } from "@/components/product/animate-in";
+import { SiteBreadcrumbs } from "@/components/seo/site-breadcrumbs";
 import type { AboutContent } from "@/lib/about";
 
 type AboutHeroProps = {
@@ -9,6 +10,7 @@ export function AboutHero({ hero }: AboutHeroProps) {
   return (
     <section className="border-b border-linen px-6 py-12 md:px-16 md:py-16 lg:px-24 lg:py-20">
       <div className="mx-auto flex max-w-[720px] flex-col gap-6 md:gap-8">
+        <SiteBreadcrumbs items={[{ name: "Home", path: "/" }, { name: "About PSL Labs", path: "/about" }]} className="mb-0" />
         <AnimateIn>
           <h1 className="font-display text-display-lg font-bold text-ink">
             {hero.headline}

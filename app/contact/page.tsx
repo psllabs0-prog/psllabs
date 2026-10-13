@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 
 import { ContactForm } from "@/components/contact/contact-form";
 import { ContactInfoPanel } from "@/components/contact/contact-info-panel";
+import { SiteBreadcrumbs } from "@/components/seo/site-breadcrumbs";
 import { contactPage } from "@/lib/contact";
 import { createPageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = createPageMetadata({
-  title: "Contact",
+  title: "Contact for Order and Batch Documentation Support",
   description:
-    "Reach PSL Labs for order support, COA requests, and research supply questions.",
+    "Contact PSL Labs about research-material orders, shipping, product listings and original batch reports. Email support@psllabs.org or use the contact form.",
   path: "/contact",
 });
 
@@ -16,6 +17,7 @@ export default function ContactPage() {
   return (
     <main className="public-page-surface relative bg-paper">
       <div className="relative mx-auto max-w-[1440px] px-6 py-16 md:px-16 md:py-20 lg:px-24 lg:py-24">
+        <SiteBreadcrumbs items={[{ name: "Home", path: "/" }, { name: "Contact", path: "/contact" }]} />
         <div className="grid grid-cols-1 items-start gap-14 lg:grid-cols-2 lg:gap-16 xl:gap-24">
           <ContactInfoPanel content={contactPage} />
 

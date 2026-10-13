@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { createPageMetadata } from "@/lib/seo";
 import { PartnerApplicationForm } from "@/components/partners/partner-application-form";
+import { SiteBreadcrumbs } from "@/components/seo/site-breadcrumbs";
 import styles from "@/components/partners/partner-program.module.css";
 
-export const metadata = createPageMetadata({title:"PSL Labs Partner Program",description:"Apply to refer laboratory research customers to PSL Labs. A reviewed, single-level referral pilot with clear terms.",path:"/partners"});
+export const metadata = createPageMetadata({title:"Research-Supplier Referral Partner Program",description:"Apply to the PSL Labs laboratory-research referral pilot. Review first-order discounts, commissions, Bitcoin-checkout eligibility and clear partner terms.",path:"/partners"});
 export default function PartnersPage() {
   return <main className={`storefront-theme ${styles.page}`}><div className={styles.inner}>
+    <SiteBreadcrumbs items={[{ name: "Home", path: "/" }, { name: "Partner program", path: "/partners" }]} />
     <section className={styles.hero}>
       <div><p className={styles.kicker}>PSL Labs / Partner pilot</p><h1>Introduce researchers to documented materials.</h1><p className={styles.lead}>Refer laboratories and research teams to PSL Labs. Approved partners receive a personal referral code and earn a commission on eligible first orders.</p><div className={styles.actions}><a href="#apply" className={styles.primary}>Apply to join</a><Link href="/partners/account" className={styles.secondary}>Partner sign-in</Link></div><p className={styles.muted}>Free to apply. We’re starting with up to 10 reviewed partners.</p><p className={styles.scope}>For laboratory research only. Not for human or animal use.</p></div>
       <div className={styles.rates} aria-label="Pilot referral benefits"><div className={styles.rate}><strong>10%</strong><span>Off the referred customer’s first eligible order</span><p>Bitcoin checkout only during this pilot. A valid approved code is required; it replaces the standard Bitcoin discount and does not stack with other offers.</p></div><div className={styles.rate}><strong>10%</strong><span>Commission on eligible first-order merchandise</span><p>Calculated after the customer’s discount, excluding shipping, tax and refunded amounts.</p></div><p className={styles.muted}>Single-level referrals. No commission for recruiting partners and no lifetime commission promise. <Link href="/partners/terms">Read the full terms</Link>.</p></div>

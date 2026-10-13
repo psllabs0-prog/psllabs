@@ -1,5 +1,6 @@
 import { ChevronDown } from "lucide-react";
 import { AnimateIn } from "@/components/product/animate-in";
+import { SiteBreadcrumbs } from "@/components/seo/site-breadcrumbs";
 import type { SiteFaqItem } from "@/lib/content/site-faq";
 
 type FaqAccordionProps = {
@@ -10,6 +11,7 @@ export function FaqAccordion({ items }: FaqAccordionProps) {
   return (
     <section className="px-6 py-14 md:px-16 md:py-20 lg:px-24">
       <div className="mx-auto max-w-[840px]">
+        <SiteBreadcrumbs items={[{ name: "Home", path: "/" }, { name: "FAQ", path: "/faq" }]} />
         <AnimateIn>
           <header className="public-page-header mb-10 text-center md:mb-14">
             <p className="mono text-accent">FREQUENTLY ASKED QUESTIONS</p>

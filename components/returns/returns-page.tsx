@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { AnimateIn } from "@/components/product/animate-in";
+import { SiteBreadcrumbs } from "@/components/seo/site-breadcrumbs";
 import { PillButton } from "@/components/ui/pill-button";
 import { returnsPageContent } from "@/lib/content/returns";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ export function ReturnsPage() {
   return (
     <main className="public-page-surface">
       <div className="mx-auto max-w-[960px] px-6 py-16 md:px-16 md:py-20 lg:px-24 lg:py-24">
+        <SiteBreadcrumbs items={[{ name: "Home", path: "/" }, { name: "Returns and refunds", path: "/returns" }]} />
         <div className="flex flex-col gap-12 md:gap-14 lg:gap-16">
           {/* Hero */}
           <header className="public-page-header flex flex-col gap-6 md:gap-8">

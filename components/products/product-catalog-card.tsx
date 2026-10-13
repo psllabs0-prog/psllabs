@@ -16,9 +16,11 @@ type ProductCatalogCardProps = {
   className?: string;
   headingLevel?: 2 | 3;
   showDescription?: boolean;
+  /** Only the first catalog image; homepage and later cards remain lazy. */
+  imagePriority?: boolean;
 };
 
-export function ProductCatalogCard({ product, availability, className, headingLevel = 2, showDescription = false }: ProductCatalogCardProps) {
+export function ProductCatalogCard({ product, availability, className, headingLevel = 2, showDescription = false, imagePriority = false }: ProductCatalogCardProps) {
   const comingSoon = product.status === "coming_soon";
   const Heading = headingLevel === 3 ? "h3" : "h2";
   const amount = product.strength.replace(/(\d)(mg|ml)$/i, "$1 $2");
@@ -35,7 +37,7 @@ export function ProductCatalogCard({ product, availability, className, headingLe
       {!comingSoon ? (
         <Link href={product.href} aria-label={`View ${product.name}, ${amount}`} className={cn(styles.productStage, render && styles.renderStage)}>
           <span className={styles.researchBadge}>Research use only</span>
-          <Image src={render?.src ?? product.imageSrc} alt={render?.alt ?? product.imageAlt} fill sizes="(max-width: 620px) calc(100vw - 40px), (max-width: 1000px) 45vw, 400px" />
+          <Image src={render?.src ?? product.imageSrc} alt={render?.alt ?? product.imageAlt} fill loading={imagePriority ? "eager" : "lazy"} fetchPriority={imagePriority ? "high" : "auto"} sizes="(max-width: 620px) calc(100vw - 42px), (max-width: 800px) calc(50vw - 32px), (max-width: 1000px) calc(50vw - 47px), (max-width: 1100px) calc(33.333vw - 40px), (max-width: 1376px) calc(33.333vw - 50px), 411px" />
         </Link>
       ) : <div className={styles.pipelineMarker}>Coming soon</div>}
       <div className={styles.productBody}>
