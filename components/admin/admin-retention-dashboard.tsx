@@ -1,6 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
+type EmailConnectionCheck = {
+  status: "idle" | "checking" | "verified" | "failed" | "unknown";
+  checkId?: string;
+};
 
 type Payload = {
   readiness: {
@@ -36,6 +41,10 @@ export function AdminRetentionDashboard() {
   const [message, setMessage] = useState<string | null>(null);
   const [emailInput, setEmailInput] = useState("");
   const [showPreview, setShowPreview] = useState(false);
+  const [connectionCheck, setConnectionCheck] = useState<EmailConnectionCheck>({
+    status: "idle",
+  });
+  const connectionCheckPending = useRef(false);
 
   const refresh = useCallback(async () => {
     setError(null);
@@ -53,6 +62,7 @@ export function AdminRetentionDashboard() {
   }, [refresh]);
 
   async function post(action: string, extra: Record<string, unknown> = {}) {
+    if (connectionCheckPending.current) return;
     setBusy(true);
     setMessage(null);
     try {
@@ -73,7 +83,58 @@ export function AdminRetentionDashboard() {
     }
   }
 
+  async function verifyEmailConnection() {
+    if (busy || connectionCheckPending.current) return;
+    connectionCheckPending.current = true;
+    setConnectionCheck({ status: "checking" });
+    let checkId: string | undefined;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    try {
+      checkId = crypto.randomUUID();
+      setConnectionCheck({ status: "checking", checkId });
+      const controller = new AbortController();
+      timeout = setTimeout(() => controller.abort(), 35_000);
+      const res = await fetch("/api/admin/retention", {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "verify_transport", checkId }),
+        signal: controller.signal,
+      });
+      const response: unknown = await res.json();
+      const json = response && typeof response === "object"
+        ? response as Record<string, unknown>
+        : null;
+      const result = json?.result && typeof json.result === "object"
+        ? json.result as Record<string, unknown>
+        : null;
+      const validResult = json?.checkId === checkId && json?.messagesSent === 0 &&
+        typeof result?.verified === "boolean";
+      if (validResult && res.status === 200 && json?.ok === true && result?.verified === true) {
+        setConnectionCheck({ status: "verified", checkId });
+      } else if (validResult && res.status === 503 && json?.ok === false && result?.verified === false) {
+        setConnectionCheck({ status: "failed", checkId });
+      } else {
+        setConnectionCheck({ status: "unknown", checkId });
+      }
+    } catch {
+      setConnectionCheck({ status: "unknown", checkId });
+    } finally {
+      clearTimeout(timeout);
+      connectionCheckPending.current = false;
+    }
+  }
+
   const r = data?.readiness;
+  const checkingConnection = connectionCheck.status === "checking";
+  const connectionMessage = {
+    idle: "Not checked in this session.",
+    checking: "Checking email connection…",
+    verified: "Email connection verified. No emails were sent.",
+    failed: "Email connection check failed. No emails were sent. Review the sending service configuration.",
+    unknown: "The connection result could not be verified. No email send was requested. Review this check’s diagnostic record before trying again.",
+  }[connectionCheck.status];
 
   return (
     <div className="space-y-6">
@@ -105,6 +166,30 @@ export function AdminRetentionDashboard() {
               <li key={x}>{x}</li>
             ))}
           </ul>
+        )}
+      </section>
+
+      <section className="premium-card px-5 py-4 text-sm">
+        <h2 className="font-display text-lg font-bold text-ink">Email connection</h2>
+        <p className="mt-2 text-ash">
+          This check connects and authenticates with the existing email service.
+          It sends zero emails and does not prove inbox delivery.
+        </p>
+        <button
+          type="button"
+          disabled={busy || checkingConnection}
+          onClick={() => void verifyEmailConnection()}
+          className="mt-3 rounded-md border border-ink/20 px-3 py-2 disabled:opacity-50"
+        >
+          {checkingConnection ? "Checking connection…" : "Verify email connection"}
+        </button>
+        <p className="mt-3 text-ash" role="status" aria-live="polite" aria-atomic="true">
+          {connectionMessage}
+        </p>
+        {connectionCheck.checkId && (
+          <p className="mt-1 break-words text-xs text-ash">
+            Check ID: <span className="font-mono">{connectionCheck.checkId}</span>
+          </p>
         )}
       </section>
 
@@ -152,7 +237,7 @@ export function AdminRetentionDashboard() {
         <h2 className="font-display text-lg font-bold text-ink">Actions</h2>
         <button
           type="button"
-          disabled={busy}
+          disabled={busy || checkingConnection}
           onClick={() => setShowPreview((v) => !v)}
           className="mr-3 rounded-md border border-ink/20 px-3 py-2"
         >
@@ -160,7 +245,7 @@ export function AdminRetentionDashboard() {
         </button>
         <button
           type="button"
-          disabled={busy || !r?.ready}
+          disabled={busy || checkingConnection || !r?.ready}
           onClick={() => void post("run_job")}
           className="rounded-md bg-ink px-3 py-2 text-white disabled:opacity-50"
           title={!r?.ready ? "Not ready — cannot send" : undefined}
@@ -183,7 +268,7 @@ export function AdminRetentionDashboard() {
           />
           <button
             type="button"
-            disabled={busy || !emailInput.includes("@")}
+            disabled={busy || checkingConnection || !emailInput.includes("@")}
             onClick={() =>
               void post("set_eligible", { email: emailInput, eligible: true })
             }
@@ -193,7 +278,7 @@ export function AdminRetentionDashboard() {
           </button>
           <button
             type="button"
-            disabled={busy || !emailInput.includes("@")}
+            disabled={busy || checkingConnection || !emailInput.includes("@")}
             onClick={() => void post("suppress", { email: emailInput })}
             className="rounded-md border border-ink/20 px-3 py-2 disabled:opacity-50"
           >
