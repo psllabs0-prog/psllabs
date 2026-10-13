@@ -1,0 +1,44 @@
+.banner {
+  color: #e9f1f5;
+  background: #141a1f;
+  border-color: #526977;
+  box-shadow: 0 -8px 28px rgb(0 0 0 / 18%);
+}
+
+.bannerInner {
+  max-width: 1280px;
+}
+
+.choiceButton {
+  border-color: #718591;
+  color: #e9f1f5;
+  background: transparent;
+}
+
+.choiceButton:hover:not(:disabled) {
+  background: #192b34;
+}
+
+.panel:global(.cookie-settings-panel) {
+  background: #141a1f;
+  color: #e9f1f5;
+  border-color: #526977;
+  color-scheme: dark;
+}
+
+.preferencesBody section {
+  background: #0e1317;
+  border-color: #526977;
+}
+
+.preferencesBody input[type="checkbox"] {
+  accent-color: #2fb6e0;
+}
+
+.banner button:focus-visible,
+.panel button:focus-visible,
+.panel a:focus-visible,
+.panel input:focus-visible {
+  outline: 3px solid #2fb6e0;
+  outline-offset: 3px;
+}

@@ -1,0 +1,55 @@
+{
+  "method": "Built-in image_gen; image format/size optimized locally without altering labels.",
+  "date": "2026-10-13",
+  "purpose": "Illustrative product renders for the dark storefront. Not photographs or evidence of changed physical packaging.",
+  "notes": [
+    "Tesamorelin and solution unsupported purity claims corrected to BATCH REPORT ONLINE in illustrations only. Original artwork and material disclosures retained.",
+    "No COA, certification, endorsement or medical-use claim created."
+  ],
+  "firstPrompt": "Use case: product-mockup. Create one high-quality photorealistic 3D-rendered studio product image for PSL Labs website, square 1024x1024. The supplied image is the exact packaging identity reference. Keep the same clear glass vial proportions, brushed silver cap, dark stopper, cyan brand band, PSL Labs white DNA mark, iridescent silver label, product name Retatrutide, 10MG, and RESEARCH USE ONLY. Preserve accurate readable label typography. Do not add any claims, certification badges, additional products, or medical props. Use a front three-quarter camera, gently tilted vial only about 12 degrees to the left, with the full vial visible centered at consistent scale, top at 15% and bottom at 78% of image height. Float vial a little above a low charcoal cylindrical display plinth at the bottom. Near-black charcoal studio background #10171c, soft cyan rim light from right, white softbox reflections on clear glass and brushed metal, physically convincing glass edge/refraction, soft realistic shadow under vial. Sophisticated restrained custom scientific brand aesthetic. No infographic, no surrounding text, no decorative molecules, no sparks. This is an illustrative product render, not a photograph.",
+  "variants": [
+    {
+      "key": "ghk",
+      "prompt": "Use case: product-mockup. Produce one square premium photorealistic 3D-rendered PSL Labs product image. Image 1 is exact desired lighting/composition/scale/background, Image 2 is the product-specific packaging reference. Recreate Image 1 scene with Image 2 product. Keep exactly the same centered floating vial and charcoal plinth framing, camera angle, tilt, full vial scale, clear glass, metallic silver cap, dark stopper, soft cyan rim light and charcoal studio background as Image 1. Preserve Image 2 cyan PSL Labs DNA brand band and iridescent silver label. Exact readable product text: \"GHK-Cu\", \"50MG\", \"RESEARCH USE ONLY\". Preserve existing small label text \"99%+ Purity\" exactly from packaging reference. Do not invent a batch number, certification, endorsement, medical claim, human-use instructions, props or extra products. Preserve realistic glass reflections and soft shadow. This is a rendered product illustration, not a supplied-product photograph. No text outside label.",
+      "source": "C:\\Users\\Luke\\.codex\\generated_images\\01a107cb-3d9f-7e11-afaa-22cd9653a8da\\exec-9f278062-891d-4788-ae32-d2452ee31998.png"
+    },
+    {
+      "key": "bpc",
+      "prompt": "Use case: product-mockup. Produce one square premium photorealistic 3D-rendered PSL Labs product image. Image 1 is exact desired lighting/composition/scale/background, Image 2 is the product-specific packaging reference. Recreate Image 1 scene with Image 2 product. Keep exactly the same centered floating vial and charcoal plinth framing, camera angle, tilt, full vial scale, clear glass, metallic silver cap, dark stopper, soft cyan rim light and charcoal studio background as Image 1. Preserve Image 2 cyan PSL Labs DNA brand band and iridescent silver label. Exact readable product text: \"BPC-157\", \"10MG\", \"RESEARCH USE ONLY\". Preserve existing small label text \"99%+ Purity\" exactly from packaging reference. Do not invent a batch number, certification, endorsement, medical claim, human-use instructions, props or extra products. Preserve realistic glass reflections and soft shadow. This is a rendered product illustration, not a supplied-product photograph. No text outside label.",
+      "source": "C:\\Users\\Luke\\.codex\\generated_images\\01a107cb-3d9f-7e11-afaa-22cd9653a8da\\exec-07228683-d572-4e39-a0b6-164e09b94fa8.png"
+    },
+    {
+      "key": "tesa",
+      "prompt": "Use case: product-mockup. Produce one square premium photorealistic 3D-rendered PSL Labs product image. Image 1 is exact desired lighting/composition/scale/background, Image 2 is the product-specific packaging reference. Recreate Image 1 scene with Image 2 product. Keep exactly the same centered floating vial and charcoal plinth framing, camera angle, tilt, full vial scale, clear glass, metallic silver cap, dark stopper, soft cyan rim light and charcoal studio background as Image 1. Preserve Image 2 cyan PSL Labs DNA brand band and iridescent silver label. Exact readable product text: \"Tesamorelin\", \"10MG\", \"RESEARCH USE ONLY\". Correct the unsupported label claim: replace the text \"99%+ Purity\" with \"BATCH REPORT ONLINE\", no purity percentage anywhere. This intentionally corrected label is an illustrative render, not confirmation of changed physical stock. Do not invent a batch number, certification, endorsement, medical claim, human-use instructions, props or extra products. Preserve realistic glass reflections and soft shadow. This is a rendered product illustration, not a supplied-product photograph. No text outside label.",
+      "source": "C:\\Users\\Luke\\.codex\\generated_images\\01a107cb-3d9f-7e11-afaa-22cd9653a8da\\exec-0423d661-e92d-4978-8072-f1727a58a47a.png"
+    },
+    {
+      "key": "solution",
+      "prompt": "Use case: product-mockup. Produce one square premium photorealistic 3D-rendered PSL Labs product image. Image 1 is exact desired lighting/composition/scale/background, Image 2 is the product-specific packaging reference. Recreate Image 1 scene with Image 2 product. Keep exactly the same centered floating vial and charcoal plinth framing, camera angle, tilt, full vial scale, clear glass, metallic silver cap, dark stopper, soft cyan rim light and charcoal studio background as Image 1. Preserve Image 2 cyan PSL Labs DNA brand band and iridescent silver label. Exact readable product text: \"RECONSTITUTION SOLUTION\", \"5ML\", \"RESEARCH USE ONLY\". Correct the unsupported label claim: replace the text \"99%+ Purity\" with \"BATCH REPORT ONLINE\", no purity percentage anywhere. This intentionally corrected label is an illustrative render, not confirmation of changed physical stock. Do not invent a batch number, certification, endorsement, medical claim, human-use instructions, props or extra products. Preserve realistic glass reflections and soft shadow. This is a rendered product illustration, not a supplied-product photograph. No text outside label.",
+      "source": "C:\\Users\\Luke\\.codex\\generated_images\\01a107cb-3d9f-7e11-afaa-22cd9653a8da\\exec-9237eb80-0cca-4592-81e8-f3a75142257f.png"
+    }
+  ],
+  "cutouts": [
+    {
+      "key": "ghk-cu",
+      "prompt": "Use case: background-extraction. Edit only the background of this exact PSL Labs rendered product image. Remove the charcoal background, platform and shadow entirely. Keep ONLY the complete clear glass vial and metallic cap with its exact original cyan/silver label, exact product name, nominal size, small text, PSL Labs mark, proportions, silhouette, camera angle, glass highlights and cyan rim lighting. Do not change any letter or number. Real transparent alpha background, no white/black rectangle, no checkerboard image. Keep whole vial visible centered with a small even transparent margin. Do not redesign or add anything.",
+      "source": "C:\\Users\\Luke\\.codex\\generated_images\\01a107cb-3d9f-7e11-afaa-22cd9653a8da\\exec-7b21d068-af07-4d43-9755-cf074a3c9fdb.png"
+    },
+    {
+      "key": "bpc-157",
+      "prompt": "Use case: background-extraction. Edit only the background of this exact PSL Labs rendered product image. Remove the charcoal background, platform and shadow entirely. Keep ONLY the complete clear glass vial and metallic cap with its exact original cyan/silver label, exact product name, nominal size, small text, PSL Labs mark, proportions, silhouette, camera angle, glass highlights and cyan rim lighting. Do not change any letter or number. Real transparent alpha background, no white/black rectangle, no checkerboard image. Keep whole vial visible centered with a small even transparent margin. Do not redesign or add anything.",
+      "source": "C:\\Users\\Luke\\.codex\\generated_images\\01a107cb-3d9f-7e11-afaa-22cd9653a8da\\exec-8f7b3657-6870-4e44-8fba-ea13b8493e80.png"
+    },
+    {
+      "key": "tesamorelin",
+      "prompt": "Use case: background-extraction. Edit only the background of this exact PSL Labs rendered product image. Remove the charcoal background, platform and shadow entirely. Keep ONLY the complete clear glass vial and metallic cap with its exact original cyan/silver label, exact product name, nominal size, small text, PSL Labs mark, proportions, silhouette, camera angle, glass highlights and cyan rim lighting. Do not change any letter or number. Real transparent alpha background, no white/black rectangle, no checkerboard image. Keep whole vial visible centered with a small even transparent margin. Do not redesign or add anything.",
+      "source": "C:\\Users\\Luke\\.codex\\generated_images\\01a107cb-3d9f-7e11-afaa-22cd9653a8da\\exec-a6b91618-e595-42ac-a553-d9a35f5769fb.png"
+    },
+    {
+      "key": "reconstitution-solution",
+      "prompt": "Use case: background-extraction. Edit only the background of this exact PSL Labs rendered product image. Remove the charcoal background, platform and shadow entirely. Keep ONLY the complete clear glass vial and metallic cap with its exact original cyan/silver label, exact product name, nominal size, small text, PSL Labs mark, proportions, silhouette, camera angle, glass highlights and cyan rim lighting. Do not change any letter or number. Real transparent alpha background, no white/black rectangle, no checkerboard image. Keep whole vial visible centered with a small even transparent margin. Do not redesign or add anything.",
+      "source": "C:\\Users\\Luke\\.codex\\generated_images\\01a107cb-3d9f-7e11-afaa-22cd9653a8da\\exec-ae409e28-0714-43d4-af17-d15ef9a3bea0.png"
+    }
+  ],
+  "deliveredPaths": "public/products/renders/{retatrutide,ghk-cu,bpc-157,tesamorelin,reconstitution-solution}-{studio,cutout}.webp"
+}

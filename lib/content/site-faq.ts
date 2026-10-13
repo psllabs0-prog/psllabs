@@ -1,5 +1,6 @@
 import { FLAT_SHIPPING_USD, FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 import { TESTING_SCOPE_STATEMENT } from "./testing-scope";
+import { getProductArtworkDisclosure } from "../products/artwork-disclosures";
 
 export type SiteFaqItem = {
   id: string;
@@ -57,6 +58,12 @@ export const siteFaqItems: SiteFaqItem[] = [
     question: "What do the lab reports show?",
     answer:
       `For our published peptide batches, the Janoshik report shows three main results: the material identified by the lab, the reported purity, and the amount measured in the tested sample. The original report shows the full test details and results. ${TESTING_SCOPE_STATEMENT}`,
+  },
+  {
+    id: "label-artwork-discrepancies",
+    category: "testing",
+    question: "Why do some product illustrations and label claims differ from the laboratory report?",
+    answer: `Tesamorelin: ${getProductArtworkDisclosure({ handle: "tesamorelin" })} Reconstitution Solution: ${getProductArtworkDisclosure({ handle: "reconstitution-solution" })} Illustrative product renders are not evidence that physical packaging or labels have been changed. Review the original report and the label on the batch you receive.`,
   },
   {
     id: "payments",

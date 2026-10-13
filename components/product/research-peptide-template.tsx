@@ -9,6 +9,7 @@ import type { ProductAvailability } from "@/lib/inventory/availability";
 import type { Product } from "@/lib/products";
 import { getCatalogProductByHandle } from "@/lib/products/catalog";
 import { getProductImage } from "@/lib/products/images";
+import { getProductRender } from "@/lib/products/renders";
 
 import { MobileStickyCart } from "./mobile-sticky-cart";
 import { ProductArtworkDialog } from "./product-artwork-dialog";
@@ -33,6 +34,7 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
   const fallbackImage = getProductImage(product.handle);
   const imageSrc = product.imageSrc ?? fallbackImage.src;
   const imageAlt = product.imageAlt ?? fallbackImage.alt;
+  const render = getProductRender(product.handle);
   const strength = catalog?.strength.replace(/(\d)(mg|ml)$/i, "$1 $2");
   const firstSentenceEnd = product.shortDescription.indexOf(".");
   const leadDescription = firstSentenceEnd >= 0
@@ -57,21 +59,22 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
           </div>
 
           <div className={styles.productMedia}>
-            <div className={styles.imageWell}>
+            <div className={`${styles.imageWell}${render ? ` ${styles.renderWell}` : ""}`}>
               <div className={styles.imageRecord}>
                 <span>{catalog?.sku}</span>
                 <span>{strength} label amount</span>
               </div>
-              <div className={styles.imageFrame}>
-                <Image src={imageSrc} alt={imageAlt} fill preload sizes="(max-width: 359px) 260px, (max-width: 800px) 286px, (max-width: 1100px) 340px, 390px" className={styles.vialImage} />
+              <div className={`${styles.imageFrame}${render ? ` ${styles.renderFrame}` : ""}`}>
+                <Image src={render?.src ?? imageSrc} alt={render?.alt ?? imageAlt} fill preload sizes={render ? "(max-width: 800px) 265px, 500px" : "(max-width: 359px) 260px, (max-width: 800px) 286px, (max-width: 1100px) 340px, 390px"} className={styles.vialImage} />
               </div>
               <div className={styles.imageCaption}>
-                <span>Product artwork</span>
-                <ProductArtworkDialog src={imageSrc} alt={imageAlt} name={product.name} strength={catalog?.strength} />
+                <span>{render ? "Illustrative render" : "Product artwork"}</span>
+                <ProductArtworkDialog src={imageSrc} alt={imageAlt} name={product.name} strength={catalog?.strength} triggerLabel={render ? "Original artwork" : undefined} />
               </div>
             </div>
             <div className={styles.mediaMeta}><span>For laboratory research only.</span>{" "}<span>Not for human or animal use.</span></div>
-            <ProductArtworkNotice handle={product.handle} className={styles.labelNotice} />
+            {render ? <p className={styles.renderNote}>Physical packaging may differ. <a href="#product-questions">Product questions</a>.</p> : null}
+            <ProductArtworkNotice handle={product.handle} className={styles.labelNotice} concise />
           </div>
 
           <div className={styles.purchaseArea}>

@@ -9,11 +9,11 @@ export function HeroSection() {
       <div className={`${styles.container} ${styles.heroGrid}`}>
         <div className={styles.heroCopy}>
           <p className={styles.eyebrow}>PSL LABS / RESEARCH MATERIALS</p>
-          <h1 className={styles.heroTitle}>Know your<br /><span>material.</span></h1>
-          <p className={styles.heroDescription}>Compare research materials, vial amounts and original batch reports.</p>
+          <h1 className={styles.heroTitle}>Research peptides.<br /><span>Know your batch.</span></h1>
+          <p className={styles.heroDescription}>Laboratory materials with clear vial amounts, current prices and original batch documentation.</p>
           <div className={styles.actions}>
-            <Link href="/products" className={`${styles.button} ${styles.buttonPrimary}`}>Browse materials <ArrowRight aria-hidden /></Link>
-            <Link href="/coa" className={`${styles.button} ${styles.buttonSecondary}`}>Batch documentation</Link>
+            <Link href="/products" className={`${styles.button} ${styles.buttonPrimary}`}>Browse products <ArrowRight aria-hidden /></Link>
+            <Link href="/coa" className={`${styles.button} ${styles.buttonSecondary}`}>View batch reports</Link>
           </div>
           <p className={styles.scope}>For laboratory research only.{" "}<br />Not for human or animal use.</p>
         </div>

@@ -7,13 +7,15 @@ export function ProductArtworkNotice({
   imageSrc,
   className,
   collapsed = false,
+  concise = false,
 }: {
   handle?: string;
   imageSrc?: string;
   className?: string;
   collapsed?: boolean;
+  concise?: boolean;
 }) {
-  const disclosure = getProductArtworkDisclosure({ handle, imageSrc });
+  const disclosure = getProductArtworkDisclosure({ handle, imageSrc, concise });
   if (!disclosure) return null;
 
   const notice = (

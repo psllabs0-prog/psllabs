@@ -13,9 +13,10 @@ type ProductArtworkDialogProps = {
   alt: string;
   name: string;
   strength?: string;
+  triggerLabel?: string;
 };
 
-export function ProductArtworkDialog({ src, alt, name, strength }: ProductArtworkDialogProps) {
+export function ProductArtworkDialog({ src, alt, name, strength, triggerLabel }: ProductArtworkDialogProps) {
   const trigger = useRef<HTMLButtonElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
   const productName = `${name}${strength ? ` ${strength}` : ""}`;
@@ -24,12 +25,12 @@ export function ProductArtworkDialog({ src, alt, name, strength }: ProductArtwor
     <Dialog.Root>
       <Dialog.Trigger
         ref={trigger}
-        className={styles.enlarge}
-        aria-label={`Enlarge ${productName} image`}
-        title={`Enlarge ${productName} image`}
+        className={`${styles.enlarge}${triggerLabel ? ` ${styles.labelledTrigger}` : ""}`}
+        aria-label={triggerLabel ? `View ${productName} original artwork` : `Enlarge ${productName} image`}
+        title={triggerLabel ? `View ${productName} original artwork` : `Enlarge ${productName} image`}
       >
         <Expand size={17} strokeWidth={1.6} aria-hidden />
-        <span className={styles.enlargeLabel}>Enlarge</span>
+        <span className={styles.enlargeLabel}>{triggerLabel ?? "Enlarge"}</span>
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Backdrop className={styles.zoomBackdrop} />
@@ -44,6 +45,7 @@ export function ProductArtworkDialog({ src, alt, name, strength }: ProductArtwor
                 {name}
                 {strength ? <span className={styles.zoomStrength}> {strength}</span> : null}
               </Dialog.Title>
+              {triggerLabel ? <p className={styles.viewerLabel}>Original artwork</p> : null}
             </div>
             <Dialog.Close ref={closeButton} className={styles.zoomClose} aria-label="Close enlarged image">
               <X size={21} strokeWidth={1.6} aria-hidden />

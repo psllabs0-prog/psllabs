@@ -16,8 +16,9 @@ import {
   readResearcherVerification, serverResearcherVerification, subscribeResearcherVerification,
 } from "@/lib/privacy/researcher-verification";
 import type { PublicPrivacyConsent } from "@/lib/privacy/types";
+import styles from "./cookie-preferences.module.css";
 
-const choiceButtonClass = "min-h-11 min-w-0 flex-1 whitespace-nowrap border border-accent bg-transparent px-3 text-xs text-ink hover:bg-accent/10 sm:px-5 sm:text-sm";
+const choiceButtonClass = `${styles.choiceButton} min-h-11 min-w-0 flex-1 whitespace-nowrap border border-accent bg-transparent px-3 text-xs text-ink hover:bg-accent/10 sm:px-5 sm:text-sm`;
 
 export function CookiePreferencesButton() {
   return <button type="button" onClick={openCookiePreferences}
@@ -96,8 +97,8 @@ export function CookieConsentControls() {
     {bannerVisible && <>
       <div ref={spacerRef} aria-hidden="true" />
       <section ref={bannerRef} aria-label="Cookie preferences"
-        className="fixed inset-x-0 bottom-0 z-[70] border-t border-border-strong bg-surface px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-8px_28px_rgb(0_0_0/0.18)] md:px-6">
-        <div className="mx-auto flex max-w-[1320px] flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6">
+        className={`${styles.banner} fixed inset-x-0 bottom-0 z-[70] border-t border-border-strong bg-surface px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-6`}>
+        <div className={`${styles.bannerInner} mx-auto flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-6`}>
           <div className="min-w-0">
             <p className="text-sm leading-relaxed text-ink">Optional cookies help us measure advertising and personalize ads.</p>
             {status.error && <p role="status" className="mt-1 max-w-[600px] text-xs leading-relaxed text-ash">{status.error}</p>}
@@ -116,7 +117,7 @@ export function CookieConsentControls() {
     <Dialog.Root open={preferencesOpen && verified && !cartOpen} onOpenChange={setPreferencesOpen}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-[90] bg-black/70" />
-        <Dialog.Popup className="storefront-theme cookie-settings-panel fixed top-1/2 left-1/2 z-[91] flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[620px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-border-strong bg-surface text-ink shadow-xl outline-none"
+        <Dialog.Popup className={`${styles.panel} storefront-theme cookie-settings-panel fixed top-1/2 left-1/2 z-[91] flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[620px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-border-strong bg-surface text-ink shadow-xl outline-none`}
           finalFocus={() => previousFocus.current?.isConnected ? previousFocus.current : undefined}>
           <div className="flex items-center justify-between gap-4 border-b border-linen px-5 py-4 md:px-6">
             <Dialog.Title className="font-display text-xl font-bold">Cookie settings</Dialog.Title>
@@ -142,7 +143,7 @@ function PreferencesForm({ consent, excluded, onSave }: {
   const personalizationAvailable = metaAvailable;
   const disabled = excluded || consent.gpc || status.pendingDecline || status.state === "saving" || status.state === "checking";
   return <>
-    <div className="min-h-0 space-y-5 overflow-y-auto px-5 py-5 text-sm leading-relaxed md:px-6">
+    <div className={`${styles.preferencesBody} min-h-0 space-y-5 overflow-y-auto px-5 py-5 text-sm leading-relaxed md:px-6`}>
       <Dialog.Description className="text-ash">Choose which optional advertising features you allow. Shopping, login, checkout, security, and your age and research-use confirmation work whichever option you choose.</Dialog.Description>
       {(excluded || consent.gpc) && <p className="rounded-lg border border-border-strong p-3 text-ink">{excluded
         ? "Advertising collection is off for administrator and test activity."

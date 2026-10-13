@@ -15,11 +15,11 @@ export function AvailableMaterialsSection({ products, availabilityMap }: Availab
     <section id="materials" className={styles.catalogSection}>
       <div className={styles.container}>
         <div className={styles.sectionHeader}>
-          <div><p className={styles.eyebrow}>THE MATERIAL INDEX</p><h2 className={styles.sectionTitle}>Selected materials.</h2><p className={styles.catalogArtworkNote}>Product images are artwork.</p></div>
-          <Link href="/products" className={styles.textLink}>Full catalog <ArrowUpRight aria-hidden /></Link>
+          <div><p className={styles.eyebrow}>RESEARCH CATALOG</p><h2 className={styles.sectionTitle}>Explore the lineup.</h2></div>
+          <Link href="/products" className={styles.textLink}>All products <ArrowUpRight aria-hidden /></Link>
         </div>
         <div className={styles.catalogGrid}>
-          {selected.map((product) => <ProductCatalogCard key={product.handle} product={product} availability={availabilityMap.get(product.handle)} headingLevel={3} />)}
+          {selected.map((product) => <ProductCatalogCard key={product.handle} product={product} availability={availabilityMap.get(product.handle)} headingLevel={3} showDescription />)}
         </div>
         {remaining.length > 0 && <div className={styles.remainingMaterials}><p>Also in the catalog</p><div>{remaining.map((product) => <Link key={product.handle} href={product.href}>{product.name} <span>{formatPrice(product.price)}</span><ArrowUpRight aria-hidden /></Link>)}</div></div>}
       </div>

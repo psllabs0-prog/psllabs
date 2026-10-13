@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { ProductFaq } from "@/lib/products";
 
 export function ProductFaq({ faqs }: { faqs: ProductFaq[] }) {
+  const faqId = useId();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
@@ -24,6 +25,7 @@ export function ProductFaq({ faqs }: { faqs: ProductFaq[] }) {
               onClick={() => setOpenIndex(isOpen ? null : index)}
               className="flex min-h-14 w-full items-start justify-between gap-4 py-5 text-left transition-opacity duration-200 ease-out hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent motion-reduce:transition-none"
               aria-expanded={isOpen}
+              aria-controls={`${faqId}-answer-${index}`}
             >
               <span className="font-[family-name:var(--font-display)] text-base text-[var(--color-ink)]">
                 {faq.question}
@@ -37,6 +39,8 @@ export function ProductFaq({ faqs }: { faqs: ProductFaq[] }) {
               />
             </button>
             <div
+              id={`${faqId}-answer-${index}`}
+              aria-hidden={!isOpen}
               className={cn(
                 "grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none",
                 isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"

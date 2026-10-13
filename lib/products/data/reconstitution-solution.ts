@@ -1,6 +1,7 @@
 import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 import { reconstitutionSolution5mlReport } from "@/lib/batch-reports";
 import { getProductImage } from "../images";
+import { getProductArtworkDisclosure } from "../artwork-disclosures";
 import type { Product } from "../types";
 
 const report = reconstitutionSolution5mlReport;
@@ -55,6 +56,10 @@ export const reconstitutionSolution: Product = {
   ],
   citations: [],
   faqs: [
+    {
+      question: "Does the original label artwork establish 99% purity or sterility?",
+      answer: `${getProductArtworkDisclosure({ handle: "reconstitution-solution" })} The illustrative product render is not evidence that physical packaging or labels have been changed. Review the original report and the label on the batch you receive.`,
+    },
     {
       question: "Is Reconstitution Solution for human consumption?",
       answer:

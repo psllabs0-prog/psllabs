@@ -36,7 +36,7 @@ export function Header() {
           className={styles.nav}
           aria-label="Main navigation"
         >
-          {primaryNavLinks.filter((link) => link.href !== "/").map((link) => (
+          {primaryNavLinks.map((link) => (
             <NavLinkItem key={link.href} {...link}
               className={link.href === "/products" || link.href === "/coa" ? styles.primaryNavLink : undefined} />
           ))}

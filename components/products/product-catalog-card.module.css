@@ -1,0 +1,38 @@
+.productCard{display:flex;min-width:0;flex-direction:column;overflow:hidden;border:1px solid var(--line,#26333b);border-radius:16px;background:var(--surface,#141a1f);color:var(--ink,#e9f1f5)}
+.productStage{position:relative;display:block;aspect-ratio:1;height:auto;flex-shrink:0;background:#171e25;border-bottom:1px solid var(--line,#26333b);overflow:hidden}
+.productStage img{object-fit:contain;padding:35px 26px 18px;transition:transform .18s ease}
+.renderStage img{object-fit:cover;padding:0}
+.researchBadge{position:absolute;top:17px;left:18px;z-index:1;display:inline-flex;align-items:center;min-height:27px;border:1px solid #285368;border-radius:999px;padding:4px 10px;color:var(--cyan,#2fb6e0);background:#102530;font-family:var(--font-mono),monospace;font-size:10px;line-height:1.4;letter-spacing:.075em;text-transform:uppercase;pointer-events:none}
+.productBody{display:flex;flex:1;min-width:0;flex-direction:column;padding:23px}
+.productHeading{display:flex;align-items:start;justify-content:space-between;gap:16px}
+.productHeading h2,.productHeading h3{min-width:0;color:var(--ink,#e9f1f5);font-family:var(--font-display),sans-serif;font-size:24px;font-weight:600;line-height:1.22;letter-spacing:-.025em;overflow-wrap:anywhere}
+.productHeading h2 a,.productHeading h3 a{color:inherit;text-underline-offset:4px}
+.price{flex-shrink:0;color:var(--ink,#e9f1f5);font-size:22px;font-weight:600;line-height:1.35;letter-spacing:-.035em;white-space:nowrap}
+.productMeta{margin-top:10px;color:var(--ink,#e9f1f5);font-size:14px;line-height:1.5}
+.productMeta span{color:var(--muted,#a1afb7)}
+.productDescription{margin-top:13px;color:var(--muted,#a1afb7);font-size:14px;line-height:1.65}
+.stockBadge{margin-top:13px;padding:0;border:0;border-radius:0;background:transparent;color:#6ad7b4;font-family:var(--font-sans),sans-serif;font-size:12px;font-weight:400;line-height:1.5;letter-spacing:normal;text-transform:none}
+.stockOut{color:#ffc4b9}
+.batchSummary{margin-block:20px;padding:15px 0;border-block:1px solid var(--line,#26333b)}
+.reportHeading{display:flex;align-items:center;gap:7px;color:var(--muted,#a1afb7);font-size:12px;font-weight:500;line-height:1.5}
+.reportHeading svg{width:14px;height:14px;color:var(--cyan,#2fb6e0)}
+.reportMetric{margin-top:8px;color:var(--ink,#e9f1f5);font-size:14px;font-weight:500;line-height:1.55}
+.batchLabel{margin-top:5px;color:var(--muted,#a1afb7);font-family:var(--font-mono),monospace;font-size:11px;line-height:1.65;overflow-wrap:anywhere}
+.testedSample{margin-top:5px;color:var(--muted,#a1afb7);font-size:12px;line-height:1.5}
+.cardActions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px;margin-top:auto;padding-top:0}
+.buttonPrimary,.buttonSecondary{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:46px;border:1px solid #526977;border-radius:7px;padding:10px 10px;font-size:13px;font-weight:600;line-height:1.45;text-align:center;text-decoration:none}
+.buttonPrimary{border-color:var(--cyan,#2fb6e0);background:var(--cyan,#2fb6e0);color:#09202a}
+.buttonSecondary{background:transparent;color:var(--ink,#e9f1f5)}
+.buttonPrimary:hover{background:#57c9eb;text-decoration:none}.buttonSecondary:hover{border-color:var(--cyan,#2fb6e0);background:#192b35;text-decoration:none}
+.buttonPrimary svg,.buttonSecondary svg{width:15px;height:15px;flex-shrink:0}
+.productStage:focus-visible,.productHeading a:focus-visible,.buttonPrimary:focus-visible,.buttonSecondary:focus-visible{outline:3px solid var(--cyan,#2fb6e0);outline-offset:3px}
+.productStage:focus-visible{outline-offset:-4px}
+.labelAlert{margin-bottom:20px;padding:12px 13px;border:1px solid #79623d;border-radius:7px;background:#292215;color:#f3d9aa;font-size:12px;line-height:1.65}
+.labelAlert>p:first-child{margin-bottom:4px;font-weight:600}
+.pipelineMarker{padding:23px 23px 0;color:var(--cyan,#2fb6e0);font-family:var(--font-mono),monospace;font-size:11px;line-height:1.5;letter-spacing:.08em;text-transform:uppercase}
+.comingSoonCard .productBody{padding-top:13px}.comingSoonCard .productDescription{margin-bottom:22px}.comingSoonCard .cardActions{grid-template-columns:1fr}
+@media(max-width:1100px){.productBody{padding:20px}.productHeading{gap:12px}.productHeading h2,.productHeading h3{font-size:23px}.price{font-size:21px}}
+@media(max-width:620px){.productBody{padding:20px}.productHeading h2,.productHeading h3{font-size:24px}.productDescription{font-size:14px}.cardActions{gap:10px}.buttonPrimary,.buttonSecondary{min-height:46px;font-size:13px}.researchBadge{left:16px;top:15px}}
+@media(max-width:359px){.productBody{padding:17px}.productHeading h2,.productHeading h3{font-size:21px}.price{font-size:20px}.productMeta{font-size:13px}.cardActions{gap:8px}.buttonPrimary,.buttonSecondary{font-size:12px;gap:5px;padding-inline:8px}}
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){.productCard{transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease}.productCard:hover{transform:perspective(1000px) translateY(-3px) rotateX(1deg) rotateY(-1deg);border-color:#416475;box-shadow:0 16px 32px #0004}.productStage:hover img{transform:scale(1.015)}}
+@media(prefers-reduced-motion:reduce){.productStage img{transition:none}}

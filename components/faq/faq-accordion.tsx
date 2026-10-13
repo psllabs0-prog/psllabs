@@ -27,7 +27,7 @@ export function FaqAccordion({ items }: FaqAccordionProps) {
             <AnimateIn key={item.id}>
               <details
                 id={item.id}
-                className="public-section-card group p-6 md:p-8"
+                className="public-section-card group scroll-mt-28 p-6 md:p-8"
                 open
               >
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-display text-lg font-bold text-ink transition-colors hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:text-xl [&::-webkit-details-marker]:hidden">

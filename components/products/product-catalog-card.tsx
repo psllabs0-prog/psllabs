@@ -7,46 +7,60 @@ import { formatReportedPurity, getBatchReportsForProduct } from "@/lib/batch-rep
 import { formatPrice } from "@/lib/cart/format";
 import type { ProductAvailability } from "@/lib/inventory/availability";
 import type { CatalogProduct } from "@/lib/products/catalog";
+import { getProductRender } from "@/lib/products/renders";
 import { cn } from "@/lib/utils";
-import styles from "@/components/home/research-home.module.css";
+import styles from "./product-catalog-card.module.css";
 
-type ProductCatalogCardProps = { product: CatalogProduct; availability?: ProductAvailability; className?: string; headingLevel?: 2 | 3; showDescription?: boolean };
+type ProductCatalogCardProps = {
+  product: CatalogProduct;
+  availability?: ProductAvailability;
+  className?: string;
+  headingLevel?: 2 | 3;
+  showDescription?: boolean;
+};
 
 export function ProductCatalogCard({ product, availability, className, headingLevel = 2, showDescription = false }: ProductCatalogCardProps) {
   const comingSoon = product.status === "coming_soon";
   const Heading = headingLevel === 3 ? "h3" : "h2";
   const amount = product.strength.replace(/(\d)(mg|ml)$/i, "$1 $2");
+  const render = getProductRender(product.handle);
   const report = comingSoon ? undefined : getBatchReportsForProduct(product.handle).find(
     (candidate) => candidate.status === "report_available" && candidate.sku === product.sku && Boolean(candidate.reportUrl),
   );
-  const metric = report?.purityPercent !== undefined ? `${formatReportedPurity(report.purityPercent)} reported purity` : report?.reportedResult ? `${report.reportedResult.label}: ${report.reportedResult.value}` : null;
+  const metric = report?.purityPercent !== undefined
+    ? `${formatReportedPurity(report.purityPercent)} reported purity`
+    : report?.reportedResult ? `${report.reportedResult.label}: ${report.reportedResult.value}` : null;
+
   return (
     <article data-catalog-product={product.handle} className={cn(styles.productCard, comingSoon && styles.comingSoonCard, className)}>
       {!comingSoon ? (
-        <Link href={product.href} aria-label={`View ${product.name}, ${amount}`} className={styles.productStage}>
-          <Image src={product.imageSrc} alt={product.imageAlt} width={110} height={130} sizes="(max-width: 800px) 82px, 110px" />
+        <Link href={product.href} aria-label={`View ${product.name}, ${amount}`} className={cn(styles.productStage, render && styles.renderStage)}>
+          <span className={styles.researchBadge}>Research use only</span>
+          <Image src={render?.src ?? product.imageSrc} alt={render?.alt ?? product.imageAlt} fill sizes="(max-width: 620px) calc(100vw - 40px), (max-width: 1000px) 45vw, 400px" />
         </Link>
-      ) : <span className={styles.pipelineMarker}>Coming<br />soon</span>}
-      <div className={styles.productIdentity}>
-        <p className={styles.productSku}>{product.sku}</p>
-        <Heading>{comingSoon ? product.name : <Link href={product.href}>{product.name}</Link>}</Heading>
-        <p className={styles.productMeta}>{amount} · {product.tag === "LABORATORY REAGENT" ? "Laboratory reagent" : "Laboratory research"}</p>
+      ) : <div className={styles.pipelineMarker}>Coming soon</div>}
+      <div className={styles.productBody}>
+        <div className={styles.productHeading}>
+          <Heading>{comingSoon ? product.name : <Link href={product.href}>{product.name}</Link>}</Heading>
+          {!comingSoon && <p className={styles.price}>{formatPrice(product.price)}</p>}
+        </div>
+        <p className={styles.productMeta}>{amount} <span>· {product.tag === "LABORATORY REAGENT" ? "Laboratory reagent" : "Research peptide"}</span></p>
         {(showDescription || comingSoon) && <p className={styles.productDescription}>{product.description}</p>}
-        {!comingSoon && availability && <StockStatusBadge status={availability.status} available={availability.available} className={cn(styles.stockBadge, availability.status === "out_of_stock" && styles.stockOut, availability.status === "low_stock" && styles.stockLow)} />}
+        {!comingSoon && availability && <StockStatusBadge status={availability.status} available={availability.available} className={cn(styles.stockBadge, availability.status === "out_of_stock" && styles.stockOut)} />}
+        {!comingSoon && <div className={styles.batchSummary}>
+          <p className={styles.reportHeading}><FileText aria-hidden /> Published batch report</p>
+          <p className={styles.reportMetric}>{metric ?? (report ? "Original report available" : "Report not yet published")}</p>
+          {report && <p className={styles.batchLabel}>Batch {report.batch} · Task {report.taskNumber}</p>}
+          {report && <p className={styles.testedSample}>Results apply only to the sample tested.</p>}
+        </div>}
+        {!render && <ProductArtworkNotice handle={product.handle} className={styles.labelAlert} />}
+        <div className={styles.cardActions}>
+          {comingSoon ? <Link href="/#newsletter" className={styles.buttonSecondary}>Notify me <ArrowUpRight aria-hidden /></Link> : <>
+            <Link href={product.href} className={styles.buttonPrimary}>View product <ArrowUpRight aria-hidden /></Link>
+            {report ? <a href={report.reportUrl} target="_blank" rel="noopener noreferrer" className={styles.buttonSecondary} aria-label={`Open ${product.name} batch ${report.batch} original report in a new tab`}><FileText aria-hidden /> Lab report</a> : <Link href="/coa" className={styles.buttonSecondary}>Batch reports</Link>}
+          </>}
+        </div>
       </div>
-      {!comingSoon && <div className={styles.batchSummary}>
-        <p className={styles.reportMetric}>{metric ?? (report ? "Original report available" : "Report not yet published")}</p>
-        {report && <p className={styles.batchLabel}>Batch {report.batch}</p>}
-        {report && <p className={styles.testedSample}>Tested sample only.</p>}
-      </div>}
-      {!comingSoon && <div className={styles.recordPrice}><p className={styles.price}>{formatPrice(product.price)}</p><span>USD / vial</span></div>}
-      <div className={styles.cardActions}>
-        {comingSoon ? <Link href="/#newsletter" className={`${styles.button} ${styles.buttonSecondary}`}>Notify me</Link> : <>
-          <Link href={product.href} className={`${styles.button} ${styles.buttonSecondary}`}>View material <ArrowUpRight aria-hidden /></Link>
-          {report ? <a href={report.reportUrl} target="_blank" rel="noopener noreferrer" className={styles.textLink} aria-label={`Open ${product.name} batch ${report.batch} original report in a new tab`}><FileText aria-hidden /> Original report</a> : <Link href="/coa" className={styles.textLink}>Batch reports</Link>}
-        </>}
-      </div>
-      <ProductArtworkNotice handle={product.handle} className={styles.labelAlert} />
     </article>
   );
 }
