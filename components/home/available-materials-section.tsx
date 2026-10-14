@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { ProductCatalogCard } from "@/components/products/product-catalog-card";
-import { formatPrice } from "@/lib/cart/format";
+import { ProductPrice } from "@/components/commerce/product-price";
 import type { ProductAvailability } from "@/lib/inventory/availability";
 import type { CatalogProduct } from "@/lib/products/catalog";
 import styles from "./research-home.module.css";
@@ -21,7 +21,7 @@ export function AvailableMaterialsSection({ products, availabilityMap }: Availab
         <div className={styles.catalogGrid}>
           {selected.map((product) => <ProductCatalogCard key={product.handle} product={product} availability={availabilityMap.get(product.handle)} headingLevel={3} showDescription />)}
         </div>
-        {remaining.length > 0 && <div className={styles.remainingMaterials}><p>Also in the catalog</p><div>{remaining.map((product) => <Link key={product.handle} href={product.href}>{product.name} <span>{formatPrice(product.price)}</span><ArrowUpRight aria-hidden /></Link>)}</div></div>}
+        {remaining.length > 0 && <div className={styles.remainingMaterials}><p>Also in the catalog</p><div>{remaining.map((product) => <Link key={product.handle} href={product.href}>{product.name} <ProductPrice handle={product.handle} unitPrice={product.price} size="compact" /><ArrowUpRight aria-hidden /></Link>)}</div></div>}
       </div>
     </section>
   );

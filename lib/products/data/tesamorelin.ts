@@ -5,6 +5,7 @@ import {
   tesamorelin10mgReport,
 } from "@/lib/batch-reports";
 import { getProductImage } from "../images";
+import { getSalePriceUsd } from "../pricing";
 import type { Product } from "../types";
 
 const report = tesamorelin10mgReport;
@@ -18,7 +19,7 @@ export const tesamorelin: Product = {
   name: "Tesamorelin",
   shortDescription:
     "Tesamorelin reference standard for laboratory research. Third party COA lists purity for the published batch. Not for human or animal use.",
-  price: 89.99,
+  price: getSalePriceUsd("tesamorelin"),
   stockStatus: "in_stock",
   imageSrc: image.src,
   imageAlt: image.alt,

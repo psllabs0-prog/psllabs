@@ -170,6 +170,18 @@ async function main() {
     }
     const normalized = await prepare.prepareReservedOrder({ email: "fixture@example.invalid", shipping: SHIPPING, items: [{ handle: " RETATRUTIDE ", quantity: 1 }] }, { paymentMethod: "card" });
     assert.equal(normalized.ok, true); if (normalized.ok) assert.equal(normalized.order.items[0].handle, "retatrutide"); checks += 2;
+    for (const paymentMethod of ["card", "bitcoin"] as const) {
+      for (const currency of ["EUR", "GBP", "BTC", "USDT"]) {
+        const before = reservations;
+        const result = await prepare.prepareReservedOrder({ email: "fixture@example.invalid", shipping: SHIPPING,
+          currency, items: [{ handle: "bpc-157", quantity: 1 }] }, { paymentMethod });
+        assert.equal(result.ok, false); if (!result.ok) assert.equal(result.status, 400);
+        assert.equal(reservations, before, "non-USD pricing is rejected before order/inventory work"); checks += 3;
+      }
+      const result = await prepare.prepareReservedOrder({ email: "fixture@example.invalid", shipping: SHIPPING,
+        currency: " usd ", items: [{ handle: "bpc-157", quantity: 1 }] }, { paymentMethod });
+      assert(result.ok); assert.equal(result.order.currency, "USD"); checks += 2;
+    }
     assert.equal(new Set(orders.map(order => order.orderId)).size, orders.length); checks++;
     const before = reservations;
     const malformed = await prepare.prepareReservedOrder(null as unknown as CheckoutBody);
@@ -209,13 +221,16 @@ async function main() {
       assert.equal(result.order.paymentMethod, method); checks += 5;
     }
     referralPercent = 10;
-    // A real catalog basket previously computed 36.99 in JavaScript while
-    // PostgreSQL numeric round(369.95 * 10 / 100, 2) correctly expects 37.00.
+    // Keep the historical half-cent regression independently of catalog prices.
+    // PostgreSQL numeric round(369.95 * 10 / 100, 2) expects exactly 37.00.
+    assert.equal(totals.computeTotals(369.95, "", { code: "fixture-lab-1234abcd", percent: 10, exclusive: true }, "card").discountAmount, 37); checks++;
+    // Current sale prices: 2 × $47.99 plus 3 × $69.99 = $305.95. Its
+    // first-order referral reduction is another exact half-cent boundary.
     const boundary = await prepare.prepareReservedOrder({ ...referralBody,
       items: [{ handle: "bpc-157", quantity: 2 }, { handle: "tesamorelin", quantity: 3 }],
     }, { paymentMethod: "card", cardReferralPromotionConfigured: true });
-    assert(boundary.ok); assert.equal(boundary.order.subtotal, 369.95);
-    assert.equal(boundary.order.discountAmount, 37); assert.equal(boundary.order.total, 332.95); checks += 4;
+    assert(boundary.ok); assert.equal(boundary.order.subtotal, 305.95);
+    assert.equal(boundary.order.discountAmount, 30.60); assert.equal(boundary.order.total, 275.35); checks += 4;
     // Positive decimal amounts have exact integer-cent expectations; exercise
     // both percentage rules across every cent, including their half-cent ties.
     for (let subtotalCents = 1; subtotalCents <= 100000; subtotalCents++) {

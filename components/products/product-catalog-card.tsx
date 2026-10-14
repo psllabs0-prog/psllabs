@@ -2,8 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, FileText } from "lucide-react";
 import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
+import { ProductPrice, SaleBadge } from "@/components/commerce/product-price";
 import { formatReportedPurity, getBatchReportsForProduct } from "@/lib/batch-reports";
-import { formatPrice } from "@/lib/cart/format";
 import type { ProductAvailability } from "@/lib/inventory/availability";
 import type { CatalogProduct } from "@/lib/products/catalog";
 import { getProductRender } from "@/lib/products/renders";
@@ -37,13 +37,14 @@ export function ProductCatalogCard({ product, availability, className, headingLe
       {!comingSoon ? (
         <Link href={product.href} aria-label={`View ${product.name}, ${amount}`} className={cn(styles.productStage, render && styles.renderStage)}>
           <span className={styles.researchBadge}>Research use only</span>
+          <SaleBadge handle={product.handle} className={styles.saleBadge} />
           <Image src={render?.src ?? product.imageSrc} alt={render?.alt ?? product.imageAlt} fill loading={imagePriority ? "eager" : "lazy"} fetchPriority={imagePriority ? "high" : "auto"} sizes="(max-width: 620px) calc(100vw - 42px), (max-width: 800px) calc(50vw - 32px), (max-width: 1000px) calc(50vw - 47px), (max-width: 1100px) calc(33.333vw - 40px), (max-width: 1376px) calc(33.333vw - 50px), 411px" />
         </Link>
       ) : <div className={styles.pipelineMarker}>Coming soon</div>}
       <div className={styles.productBody}>
         <div className={styles.productHeading}>
           <Heading>{comingSoon ? product.name : <Link href={product.href}>{product.name}</Link>}</Heading>
-          {!comingSoon && <p className={styles.price}>{formatPrice(product.price)}</p>}
+          {!comingSoon && <ProductPrice handle={product.handle} unitPrice={product.price} className={styles.price} />}
         </div>
         <p className={styles.productMeta}>{amount} <span>· {product.tag === "LABORATORY REAGENT" ? "Laboratory reagent" : "Research peptide"}</span></p>
         {(showDescription || comingSoon) && <p className={styles.productDescription}>{product.description}</p>}

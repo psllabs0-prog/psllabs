@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Minus, PackageOpen, Plus, Trash2 } from "lucide-react";
 
 import { useCart } from "@/components/cart/cart-provider";
+import { ProductPrice } from "@/components/commerce/product-price";
 import { PillButton } from "@/components/ui/pill-button";
 import {
   Sheet,
@@ -34,7 +35,6 @@ function CartLineRow({
   onRemove: () => void;
   onError: (message: string | null) => void;
 }) {
-  const lineTotal = line.unitPrice * line.quantity;
   const atMax =
     maxAvailable !== undefined &&
     maxAvailable > 0 &&
@@ -60,7 +60,7 @@ function CartLineRow({
             </h3>
             <p className="mt-0.5 text-xs text-ash">{line.strength}</p>
             <p className="mt-1 font-mono text-sm text-ash">
-              {formatPrice(line.unitPrice)} each
+              <ProductPrice handle={line.handle} unitPrice={line.unitPrice} size="compact" /> each
             </p>
           </div>
           <button
@@ -103,7 +103,7 @@ function CartLineRow({
             </button>
           </div>
           <p className={cn("font-mono text-lg font-medium text-ink", styles.lineTotal)}>
-            {formatPrice(lineTotal)}
+            <ProductPrice handle={line.handle} unitPrice={line.unitPrice} quantity={line.quantity} size="compact" stacked />
           </p>
         </div>
       </div>

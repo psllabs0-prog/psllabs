@@ -5,6 +5,7 @@ import {
   bpc15710mgReport,
 } from "@/lib/batch-reports";
 import { getProductImage } from "../images";
+import { getSalePriceUsd } from "../pricing";
 import type { Product } from "../types";
 
 const report = bpc15710mgReport;
@@ -18,7 +19,7 @@ export const bpc157: Product = {
   name: "BPC-157",
   shortDescription:
     "BPC-157 reference standard for laboratory research. Third party COA lists purity for the published batch. Not for human or animal use.",
-  price: 49.99,
+  price: getSalePriceUsd("bpc-157"),
   stockStatus: "in_stock",
   imageSrc: image.src,
   imageAlt: image.alt,

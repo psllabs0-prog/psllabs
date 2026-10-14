@@ -1,5 +1,6 @@
 import type { StockStatus } from "./stock";
 import { productPathFromSku } from "./slug";
+import { getSalePriceUsd } from "./pricing";
 
 export const retatrutideSource = {
   handle: "retatrutide",
@@ -7,7 +8,7 @@ export const retatrutideSource = {
   name: "Retatrutide",
   tag: "RESEARCH PEPTIDE",
   nominalStrength: "10mg",
-  price: 59.99,
+  price: getSalePriceUsd("retatrutide"),
   stockStatus: "in_stock" satisfies StockStatus,
   description:
     "Freeze dried Retatrutide for laboratory research, with a published third-party batch report.",

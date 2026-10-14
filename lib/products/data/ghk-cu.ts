@@ -5,6 +5,7 @@ import {
   ghkCu50mgReport,
 } from "@/lib/batch-reports";
 import { getProductImage } from "../images";
+import { getSalePriceUsd } from "../pricing";
 import type { Product } from "../types";
 
 const report = ghkCu50mgReport;
@@ -18,7 +19,7 @@ export const ghkCu: Product = {
   name: "GHK-Cu",
   shortDescription:
     "GHK-Cu copper peptide reference standard for laboratory research. Third party COA lists purity for the published batch. Not for human or animal use.",
-  price: 24.99,
+  price: getSalePriceUsd("ghk-cu"),
   stockStatus: "in_stock",
   imageSrc: image.src,
   imageAlt: image.alt,

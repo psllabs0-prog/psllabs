@@ -2,6 +2,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { ProductPrice, SaleBadge } from "@/components/commerce/product-price";
 import { useEffect, useId, useRef, useState, type PointerEvent } from "react";
 import type { HeroShowcaseProduct } from "@/lib/home/showcase";
 import styles from "./hero-product-visual.module.css";
@@ -73,6 +74,7 @@ export function HeroVialStage({ products }: { products: FeaturedProduct[] }) {
     <div className={styles.feature}>
       <div ref={stage} id={panelId} className={styles.stage} data-hero-stage data-visible="true" data-motion="disabled" data-selection-changed={selectionChanged} onPointerMove={move} onPointerLeave={reset} onPointerCancel={reset}>
         <div className={styles.topline}><span>PSL / MATERIAL STUDY</span></div>
+        <SaleBadge handle={selected.handle} className={styles.saleBadge} />
         <div className={styles.scene}>
           <div className={styles.grid} aria-hidden /><div className={styles.platform} aria-hidden /><div className={styles.shadow} aria-hidden />
           <div key={selected.handle} className={styles.vial}>
@@ -86,7 +88,7 @@ export function HeroVialStage({ products }: { products: FeaturedProduct[] }) {
         {products.map(product => <button type="button" key={product.handle} aria-pressed={product.handle===selected.handle} aria-controls={panelId} aria-label={`Show ${product.name}, ${product.strength}`} onClick={()=>{setSelectedHandle(product.handle);setSelectionChanged(true);}}><span>{product.handle === "reconstitution-solution" ? "Solution" : product.name}</span><small>{product.strength.replace(/(\d)(mg|ml)/i,"$1 $2")}</small></button>)}
       </div>
       <div className={styles.details}>
-        <div><p>{selected.strength.replace(/(\d)(mg|ml)/i,"$1 $2")} / NOMINAL VIAL AMOUNT</p><h2><Link href={selected.href}>{selected.name}<ArrowUpRight size={18} aria-hidden /></Link></h2></div>
+        <div><p>{selected.strength.replace(/(\d)(mg|ml)/i,"$1 $2")} / NOMINAL VIAL AMOUNT</p><h2><Link href={selected.href}>{selected.name}<ArrowUpRight size={18} aria-hidden /></Link></h2><ProductPrice handle={selected.handle} className={styles.featuredPrice} /></div>
         {selected.report && <a className={styles.report} href={selected.report.href} target="_blank" rel="noopener noreferrer"><span>{selected.report.metric?.label ?? "Published report"}</span><strong>{selected.report.metric?.value ?? "View report"}<ArrowUpRight size={13} aria-hidden /></strong></a>}
       </div>
       <p className={styles.scope}>Results apply to the tested sample. <Link href={selected.href}>Product details and batch scope</Link>.</p>

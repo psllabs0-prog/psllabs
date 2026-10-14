@@ -1,6 +1,7 @@
 import { getProductImage } from "./images";
 import { retatrutideSource } from "./retatrutide-source";
 import { productPathFromSku, skuToSlug } from "./slug";
+import { getSalePriceUsd } from "./pricing";
 
 export type CatalogProductStatus = "active" | "coming_soon";
 
@@ -50,7 +51,7 @@ export const catalogProducts: CatalogProduct[] = [
     strength: "50mg",
     description:
       "Copper peptide reference standard for laboratory research. Third party COA lists purity for the published batch.",
-    price: 24.99,
+    price: getSalePriceUsd("ghk-cu"),
     href: productPathFromSku("PSL-GHKCU-50MG"),
     imageSrc: ghkCuImage.src,
     imageAlt: ghkCuImage.alt,
@@ -65,7 +66,7 @@ export const catalogProducts: CatalogProduct[] = [
     strength: "10mg",
     description:
       "Synthetic peptide reference standard for laboratory research. Third party COA lists purity for the published batch.",
-    price: 49.99,
+    price: getSalePriceUsd("bpc-157"),
     href: productPathFromSku("PSL-BPC157-10MG"),
     imageSrc: bpc157Image.src,
     imageAlt: bpc157Image.alt,
@@ -95,7 +96,7 @@ export const catalogProducts: CatalogProduct[] = [
     strength: "10mg",
     description:
       "Synthetic peptide reference standard for laboratory research. Third party COA lists purity for the published batch.",
-    price: 89.99,
+    price: getSalePriceUsd("tesamorelin"),
     href: productPathFromSku("PSL-TESA-10MG"),
     imageSrc: tesamorelinImage.src,
     imageAlt: tesamorelinImage.alt,
@@ -125,7 +126,7 @@ export const catalogProducts: CatalogProduct[] = [
     strength: "5ml",
     description:
       "Lab solution for preparing research compounds. Third party batch docs available when published.",
-    price: 12.99,
+    price: getSalePriceUsd("reconstitution-solution"),
     href: productPathFromSku("PSL-RS-5ML"),
     imageSrc: reconstitutionImage.src,
     imageAlt: reconstitutionImage.alt,

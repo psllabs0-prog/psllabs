@@ -4,10 +4,11 @@
 .renderStage img{object-fit:cover;padding:0}
 .researchBadge{position:absolute;top:17px;left:18px;z-index:1;display:inline-flex;align-items:center;min-height:27px;border:1px solid #285368;border-radius:999px;padding:4px 10px;color:var(--cyan,#2fb6e0);background:#102530;font-family:var(--font-mono),monospace;font-size:10px;line-height:1.4;letter-spacing:.075em;text-transform:uppercase;pointer-events:none}
 .productBody{display:flex;flex:1;min-width:0;flex-direction:column;padding:23px}
-.productHeading{display:flex;align-items:start;justify-content:space-between;gap:16px}
+.productHeading{display:flex;min-width:0;flex-direction:column;align-items:start;gap:8px}
 .productHeading h2,.productHeading h3{min-width:0;color:var(--ink,#e9f1f5);font-family:var(--font-display),sans-serif;font-size:24px;font-weight:600;line-height:1.22;letter-spacing:-.025em;overflow-wrap:anywhere}
 .productHeading h2 a,.productHeading h3 a{color:inherit;text-underline-offset:4px}
-.price{flex-shrink:0;color:var(--ink,#e9f1f5);font-size:22px;font-weight:600;line-height:1.35;letter-spacing:-.035em;white-space:nowrap}
+.price{flex-shrink:0}
+.saleBadge{position:absolute;top:17px;right:18px;z-index:1}
 .productMeta{margin-top:10px;color:var(--ink,#e9f1f5);font-size:14px;line-height:1.5}
 .productMeta span{color:var(--muted,#a1afb7)}
 .productDescription{margin-top:13px;color:var(--muted,#a1afb7);font-size:14px;line-height:1.65}

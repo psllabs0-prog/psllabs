@@ -1,10 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight, FileText } from "lucide-react";
+import { ProductPrice, SaleBadge } from "@/components/commerce/product-price";
 
 import { TestingScopeExplainer } from "@/components/testing/testing-scope-explainer";
 import { getBatchReportsForProduct, formatReportedPurity } from "@/lib/batch-reports";
-import { formatPrice } from "@/lib/cart/format";
 import type { ProductAvailability } from "@/lib/inventory/availability";
 import type { Product } from "@/lib/products";
 import { getCatalogProductByHandle } from "@/lib/products/catalog";
@@ -53,14 +53,14 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
             <p className={styles.eyebrow}>PSL Labs / Laboratory research</p>
             <h1>{product.name}{strength ? <span className={styles.strength}>{strength}</span> : null}</h1>
             <p className={styles.shortDescription}>{leadDescription}</p>
-            <p className={styles.titlePrice}>{formatPrice(product.price)}<span>per vial</span></p>
+            <p className={styles.titlePrice}><ProductPrice handle={product.handle} unitPrice={product.price} size="large" /><span>per vial</span></p>
           </div>
 
           <div className={styles.productMedia}>
             <div className={`${styles.imageWell}${render ? ` ${styles.renderWell}` : ""}`}>
               <div className={styles.imageRecord}>
                 <span>{catalog?.sku}</span>
-                <span>{strength} label amount</span>
+                <SaleBadge handle={product.handle} />
               </div>
               <div className={`${styles.imageFrame}${render ? ` ${styles.renderFrame}` : ""}`}>
                 <Image src={render?.src ?? imageSrc} alt={render?.alt ?? imageAlt} fill preload sizes={render ? "(max-width: 800px) 265px, (max-width: 1100px) 340px, 500px" : "(max-width: 359px) 260px, (max-width: 800px) 286px, (max-width: 1100px) 340px, 390px"} className={styles.vialImage} />

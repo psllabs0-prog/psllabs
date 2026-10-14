@@ -1,4 +1,6 @@
 .feature { width:100%; min-width:0; }
+.saleBadge { position:absolute; z-index:4; top:18px; right:18px; }
+.featuredPrice { margin-top:9px; }
 .stage { --turn-x:0deg; --turn-y:0deg; position:relative; overflow:hidden; isolation:isolate; height:440px; border:1px solid #26333b; border-radius:14px; background:radial-gradient(ellipse at 70% 38%,#142830 0%,#10171c 44%,#0c1115 80%); }
 .topline { position:absolute; z-index:3; top:22px; left:24px; right:24px; display:flex; justify-content:space-between; font:10px/1.5 var(--font-mono); letter-spacing:.12em; color:#9babb5; }
 .scene { position:absolute; inset:0; transform-style:preserve-3d; transform:perspective(1000px) rotateX(var(--turn-x)) rotateY(var(--turn-y)); transition:transform 500ms ease; }

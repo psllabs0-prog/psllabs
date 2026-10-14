@@ -169,6 +169,9 @@ export async function prepareReservedOrder(
     typeof body.currency === "string" && body.currency.trim()
       ? body.currency.trim().toUpperCase()
       : "USD";
+  if (currency !== "USD") {
+    return { ok: false, error: "PSL Labs checkout prices are in USD. Select USD to continue.", status: 400 };
+  }
 
   const items: OrderItem[] = [];
   const seenHandles = new Set<string>();

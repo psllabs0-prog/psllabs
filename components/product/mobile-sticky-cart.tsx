@@ -1,7 +1,7 @@
 "use client";
 
 import { AddToCartButton } from "@/components/commerce/AddToCartButton";
-import { formatPrice } from "@/lib/cart/format";
+import { ProductPrice } from "@/components/commerce/product-price";
 import type { ProductAvailability } from "@/lib/inventory/availability";
 import type { StockStatus } from "@/lib/products/stock";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,7 @@ export function MobileStickyCart({
   stockStatus,
   availability,
 }: MobileStickyCartProps) {
-  const { quantity, totalPrice } = useProductQuantity();
+  const { quantity, unitPrice } = useProductQuantity();
   const maxAvailable = availability?.tracked ? availability.available : undefined;
   const isOutOfStock =
     stockStatus === "out_of_stock" || (maxAvailable !== undefined && maxAvailable <= 0);
@@ -33,7 +33,7 @@ export function MobileStickyCart({
         <div className="min-w-0">
           <p className={styles.stickyName}>{productName}</p>
           <p className={styles.stickyPrice}>
-            {formatPrice(totalPrice)}
+            <ProductPrice handle={productHandle} unitPrice={unitPrice} quantity={quantity} size="compact" />
           </p>
         </div>
         <AddToCartButton

@@ -14,6 +14,7 @@ import { useCart } from "@/components/cart/cart-provider";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 import { formatPrice } from "@/lib/cart/format";
 import { DISCOUNT_CODES_ENABLED } from "@/lib/checkout/discount-codes";
+import { ProductPrice } from "@/components/commerce/product-price";
 import { REFERRAL_CODE_FIELD_VISIBLE } from "@/lib/partners/referral-logic";
 import { computeTotals, type OrderTotals } from "@/lib/checkout/totals";
 import { trackPlausibleClientEvent } from "@/lib/plausible/client";
@@ -865,7 +866,7 @@ function CheckoutSummary({
               </p>
             </div>
             <p className="shrink-0 font-mono font-medium text-ink">
-              {formatPrice(line.unitPrice * line.quantity)}
+              <ProductPrice handle={line.handle} unitPrice={line.unitPrice} quantity={line.quantity} size="compact" stacked />
             </p>
           </li>
         ))}

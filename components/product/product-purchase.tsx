@@ -4,6 +4,7 @@ import Link from "next/link";
 
 import { AddToCartButton } from "@/components/commerce/AddToCartButton";
 import { StockStatusBadge } from "@/components/commerce/stock-status-badge";
+import { ProductPrice } from "@/components/commerce/product-price";
 import { FLAT_SHIPPING_USD, FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 import { formatPrice } from "@/lib/cart/format";
 import type { ProductAvailability } from "@/lib/inventory/availability";
@@ -25,7 +26,7 @@ type ProductPurchaseProps = {
 const MAX_QUANTITY = 10;
 
 export function ProductPurchase({ productHandle, stockStatus, availability, nominalStrength, hideSinglePriceOnMobile = false, className }: ProductPurchaseProps) {
-  const { quantity, setQuantity, unitPrice, totalPrice } = useProductQuantity();
+  const { quantity, setQuantity, unitPrice } = useProductQuantity();
   const status = availability?.status ?? stockStatus;
   const available = availability?.available;
   const maxQuantity = available !== undefined
@@ -37,7 +38,7 @@ export function ProductPurchase({ productHandle, stockStatus, availability, nomi
     <div data-product-purchase className={cn(styles.purchase, className)}>
       <div className={cn(styles.purchasePriceRow, hideSinglePriceOnMobile && quantity === 1 && styles.mobileDuplicatePrice)}>
         <div>
-          <span className={styles.purchasePrice}>{formatPrice(totalPrice)}</span>
+          <ProductPrice handle={productHandle} unitPrice={unitPrice} quantity={quantity} size="large" />
           <p className={styles.purchaseMeta}>{quantity > 1 ? `${quantity} vials · ${formatPrice(unitPrice)} each` : "Price per vial"}</p>
         </div>
         <span className={styles.purchaseMeta}>USD</span>

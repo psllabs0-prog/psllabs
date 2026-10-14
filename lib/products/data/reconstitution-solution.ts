@@ -1,6 +1,7 @@
 import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
 import { reconstitutionSolution5mlReport } from "@/lib/batch-reports";
 import { getProductImage } from "../images";
+import { getSalePriceUsd } from "../pricing";
 import type { Product } from "../types";
 
 const report = reconstitutionSolution5mlReport;
@@ -12,7 +13,7 @@ export const reconstitutionSolution: Product = {
   name: "Reconstitution Solution",
   shortDescription:
     "Lab reconstitution solution for preparing research compounds. Batch-specific COA available. Not for human or animal use.",
-  price: 12.99,
+  price: getSalePriceUsd("reconstitution-solution"),
   stockStatus: "in_stock",
   imageSrc: image.src,
   imageAlt: image.alt,

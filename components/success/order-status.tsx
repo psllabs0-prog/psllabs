@@ -141,7 +141,7 @@ export function OrderStatus({
                     {item.quantity}
                   </span>
                 </span>
-                <span className="shrink-0 font-medium text-ink">
+                <span className="shrink-0 font-medium text-accent">
                   {money(item.lineTotal)}
                 </span>
               </li>
