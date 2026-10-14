@@ -56,7 +56,7 @@ export function validPartnerId(value: unknown): value is string {
 }
 
 export function validPartnerCode(value: unknown): value is string {
-  return typeof value === "string" && /^[a-z0-9](?:[a-z0-9-]{0,23})-[0-9a-f]{8}$/.test(value);
+  return typeof value === "string" && (/^[a-z0-9]{3,24}$/.test(value) || /^[a-z0-9](?:[a-z0-9-]{0,23})-[0-9a-f]{8}$/.test(value));
 }
 
 /** The suffix is supplied by a cryptographically secure server-side generator. */

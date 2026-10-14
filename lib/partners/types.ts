@@ -32,4 +32,6 @@ export type PartnersDashboard = {
   summary: PartnerMetrics & { partners: number; active: number; followUpsDue: number };
   outboundSendingEnabled: false;
   referralPilot?: Awaited<ReturnType<typeof import("./referral-store").loadReferralPilotDashboard>>;
+  payouts?: Awaited<ReturnType<typeof import("./registration-store").loadPartnerPayouts>>;
+  payoutContacts?: Record<string, { method: string; contact: string }>;
 };

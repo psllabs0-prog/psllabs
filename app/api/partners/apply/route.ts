@@ -3,13 +3,14 @@ import { isSameOriginMutation } from "@/lib/security/request-origin";
 import { consumeRequestLimit } from "@/lib/security/request-rate-limit";
 import { isDesignPreview } from "@/lib/design-preview";
 import { PartnerInputError } from "@/lib/partners/logic";
-import { validateReferralApplication } from "@/lib/partners/referral-logic";
-import { assertPartnersAvailable, createPartner, PartnersUnavailableError } from "@/lib/partners/store";
-import { assertReferralPilotAvailable } from "@/lib/partners/referral-store";
+import { validatePartnerRegistration } from "@/lib/partners/registration-logic";
+import { PartnersUnavailableError } from "@/lib/partners/store";
+import { registerReferralPartner } from "@/lib/partners/registration-store";
+import { requestPartnerSignIn } from "@/lib/partners/auth";
 
 export const runtime = "nodejs";
 const headers = { "Cache-Control": "no-store" };
-const success = () => NextResponse.json({ success: true, message: "Application received. We’ll review it before issuing a code." }, { headers });
+const success = () => NextResponse.json({ success: true, message: "Check your email for a secure verification link. New partner codes activate after email verification." }, { headers });
 export async function POST(request: Request) {
   if (!isSameOriginMutation(request)) return NextResponse.json({ error: "Same-origin request required." }, { status: 403, headers });
   if (!/^application\/json(?:;|$)/i.test(request.headers.get("content-type") ?? "")) return NextResponse.json({ error: "JSON required." }, { status: 415, headers });
@@ -21,12 +22,11 @@ export async function POST(request: Request) {
     const body = JSON.parse(text) as Record<string, unknown>;
     if (!body || typeof body !== "object" || Array.isArray(body)) throw new PartnerInputError("Invalid application.");
     if (typeof body.websiteUrl === "string" && body.websiteUrl.trim()) return success();
-    const input = validateReferralApplication(body);
+    const input = validatePartnerRegistration(body);
     const rateLimit = await consumeRequestLimit(request, "partner-application", 5, 3600);
     if (rateLimit) return rateLimit;
-    await assertPartnersAvailable();
-    await assertReferralPilotAvailable();
-    await createPartner(input);
+    await registerReferralPartner(input);
+    await requestPartnerSignIn(input.partner.email);
     return success();
   } catch (error) {
     if (error instanceof SyntaxError || error instanceof PartnerInputError) return NextResponse.json({ error: error instanceof PartnerInputError ? error.message : "Invalid JSON." }, { status: 400, headers });

@@ -12,6 +12,7 @@ import * as partnerStore from "../lib/partners/store";
 import * as referralStore from "../lib/partners/referral-store";
 import * as referralLogic from "../lib/partners/referral-logic";
 import { readPartnerAuthReadiness } from "../lib/partners/auth";
+import * as registrationStore from "../lib/partners/registration-store";
 
 const origin = "https://www.psllabs.org";
 const savedEnv = { ...process.env };
@@ -45,6 +46,7 @@ const mocks: Record<string, unknown> = {
   },
   "@/lib/partners/referral-logic": referralLogic,
   "@/lib/partners/auth": { readPartnerAuthReadiness },
+  "@/lib/partners/registration-store": registrationStore,
 };
 function load(file: string): Record<string, unknown> {
   const filename = resolve(file);
@@ -93,8 +95,8 @@ async function main() {
     check([result.setup.partnerAuth.secretConfigured, result.setup.partnerAuth.schemaReady, result.setup.partnerAuth.smtpDeliveryVerified], [false, true, false]);
     check(response.headers.get("cache-control"), "no-store");
     const firstSetup = statements.slice(beforeSetup);
-    check(firstSetup.filter(query => query.includes("CREATE TABLE IF NOT EXISTS")).length, 5);
-    check(firstSetup.filter(query => query.includes("CREATE OR REPLACE FUNCTION")).length, 4);
+    check(firstSetup.filter(query => query.includes("CREATE TABLE IF NOT EXISTS")).length, 8);
+    check(firstSetup.filter(query => query.includes("CREATE OR REPLACE FUNCTION")).length, 9);
     check(firstSetup.filter(query => query.includes("CREATE OR REPLACE TRIGGER")).length, 1);
     check(firstSetup.some(query => /^\s*(INSERT|UPDATE|DELETE|DROP|TRUNCATE)\b/i.test(query)), false);
     check(firstSetup.some(query => query.includes("SELECT approve_referral_partner")), false);

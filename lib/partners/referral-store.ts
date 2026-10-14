@@ -6,6 +6,7 @@ import { PartnerInputError, validPartnerId } from "./logic";
 import { PartnersUnavailableError } from "./store";
 import { calculateReferralCommission, normalizeReferralCode, REFERRAL_PILOT, type ReferralCommissionCalculation } from "./referral-logic";
 import { referralCodesEnabled } from "./referral-config";
+import { migratePartnerRegistrationSchema } from "./registration-store";
 
 export type ReferralTerms = {
   active: boolean; approvedAt: string; version: string;
@@ -16,6 +17,11 @@ export type ReferralCommissionRow = ReferralCommissionCalculation & {
   orderStatus: string;
   deliveredAt: string | null; refundedProductAmount: number;
   refundReviewConfirmed: boolean; fraudCleared: boolean;
+  items: Array<{ name: string; strength: string; quantity: number; lineTotal: number }>;
+  paymentMethod: "card" | "bitcoin" | null;
+  paidAt: string | null;
+  currency: string;
+  payoutId: string | null;
 };
 
 /** Additive, explicit migration. No request handler is allowed to run it. */
@@ -66,9 +72,6 @@ export async function migrateReferralPilot(): Promise<void> {
     PERFORM pg_advisory_xact_lock(hashtextextended('psl-referral-pilot-approval', 0));
     PERFORM id FROM acquisition_partners WHERE id = p_id AND status NOT IN ('declined','paused') FOR UPDATE;
     IF NOT FOUND THEN RETURN false; END IF;
-    IF (SELECT count(*) FROM partner_referral_terms t JOIN acquisition_partners p ON p.id = t.partner_id
-      WHERE t.active = true AND p.status = 'active') >= 10
-      AND NOT EXISTS (SELECT 1 FROM partner_referral_terms WHERE partner_id = p_id AND active = true) THEN RETURN false; END IF;
     INSERT INTO partner_referral_terms (partner_id, version, discount_percent, commission_percent, hold_days)
     VALUES (p_id, p_version, 10, 10, 30)
     ON CONFLICT (partner_id) DO UPDATE SET active = true;
@@ -81,10 +84,6 @@ export async function migrateReferralPilot(): Promise<void> {
     IF NEW.status = 'active' AND OLD.status <> 'active' AND EXISTS
       (SELECT 1 FROM partner_referral_terms WHERE partner_id = NEW.id AND active = true) THEN
       PERFORM pg_advisory_xact_lock(hashtextextended('psl-referral-pilot-approval', 0));
-      IF (SELECT count(*) FROM partner_referral_terms t JOIN acquisition_partners p ON p.id = t.partner_id
-        WHERE t.active = true AND p.status = 'active') >= 10 THEN
-        RAISE EXCEPTION 'Referral pilot partner limit reached' USING ERRCODE = '23514';
-      END IF;
     END IF;
     RETURN NEW;
   END;
@@ -129,6 +128,7 @@ export async function migrateReferralPilot(): Promise<void> {
     RETURN result;
   END;
   $$ LANGUAGE plpgsql`;
+  await migratePartnerRegistrationSchema();
 }
 
 export async function assertReferralPilotAvailable(): Promise<void> {
@@ -137,7 +137,9 @@ export async function assertReferralPilotAvailable(): Promise<void> {
   const rows = await sql`SELECT to_regclass('public.partner_referral_terms') IS NOT NULL
     AND to_regclass('public.partner_referral_claims') IS NOT NULL
     AND to_regclass('public.partner_referral_commissions') IS NOT NULL
-    AND to_regprocedure('checkout_create_referral_order(text,text,text,jsonb,jsonb,numeric,numeric,numeric,numeric,numeric,text,numeric,integer,integer)') IS NOT NULL AS ready`;
+    AND to_regclass('public.partner_registration_profiles') IS NOT NULL
+    AND to_regclass('public.partner_referral_payout_items') IS NOT NULL
+    AND to_regprocedure('checkout_create_referral_order(text,text,text,jsonb,jsonb,numeric,numeric,numeric,numeric,numeric,text,numeric,integer,integer,text)') IS NOT NULL AS ready`;
   if (!rows[0]?.ready) throw new PartnersUnavailableError("The referral pilot needs its one-time database setup.");
 }
 
@@ -150,10 +152,15 @@ export async function verifyReferralPilotSchema(): Promise<void> {
     AND to_regclass('public.partner_referral_commissions') IS NOT NULL
     AND to_regclass('public.partner_signin_tokens') IS NOT NULL
     AND to_regclass('public.partner_auth_sessions') IS NOT NULL
+    AND to_regclass('public.partner_registration_profiles') IS NOT NULL
+    AND to_regclass('public.partner_referral_payouts') IS NOT NULL
+    AND to_regclass('public.partner_referral_payout_items') IS NOT NULL
     AND to_regprocedure('checkout_create_referral_order(text,text,text,jsonb,jsonb,numeric,numeric,numeric,numeric,numeric,text,numeric,integer,integer)') IS NOT NULL
     AND to_regprocedure('approve_referral_partner(uuid,text)') IS NOT NULL
     AND to_regprocedure('create_partner_signin_token(text,text,integer)') IS NOT NULL
     AND to_regprocedure('referral_partner_activation_guard()') IS NOT NULL
+    AND to_regprocedure('activate_verified_referral_registration(uuid)') IS NOT NULL
+    AND to_regprocedure('record_manual_referral_payout(uuid,uuid,text[],text,text,text,numeric,text)') IS NOT NULL
     AND EXISTS (SELECT 1 FROM pg_trigger WHERE tgname = 'referral_partner_activation_limit'
       AND tgrelid = 'public.acquisition_partners'::regclass AND tgenabled <> 'D' AND NOT tgisinternal) AS ready`;
   if (rows[0]?.ready !== true) throw new PartnersUnavailableError("Referral pilot schema verification did not pass. No partners have been approved.");
@@ -165,24 +172,27 @@ export async function approveReferralPartner(id: string, reviewConfirmed: unknow
   await assertReferralPilotAvailable();
   const sql = getSql();
   const rows = await sql`SELECT approve_referral_partner(${id}::uuid, ${REFERRAL_PILOT.version}) AS approved`;
-  if (rows[0]?.approved !== true) throw new PartnerInputError("Approval was not saved: review the partner status or the 10-partner pilot limit.");
+  if (rows[0]?.approved !== true) throw new PartnerInputError("Approval was not saved: review the partner status.");
 }
 
 /** Return only the transactional code/percentage. Never reveal partner/customer PII or order history. */
-export async function lookupReferralDiscount(rawCode: unknown, email?: string): Promise<{ code: string; percent: 10 } | null> {
+export async function lookupReferralDiscount(rawCode: unknown, email?: string): Promise<{ code: string; percent: 0 | 10 } | null> {
   if (!referralCodesEnabled()) return null;
   const code = normalizeReferralCode(rawCode);
   if (!code || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
   await assertReferralPilotAvailable();
   const sql = getSql();
-  const rows = await sql`SELECT p.code FROM acquisition_partners p JOIN partner_referral_terms t ON t.partner_id = p.id
+  const rows = await sql`SELECT p.code, t.version,
+    EXISTS (SELECT 1 FROM orders o WHERE lower(btrim(o.email)) = ${email.trim().toLowerCase()} AND o.paid_at IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM finance_transactions ft WHERE ft.psl_order_id = o.order_id AND ft.reporting_excluded = true)) AS repeat_customer
+    FROM acquisition_partners p JOIN partner_referral_terms t ON t.partner_id = p.id
     WHERE p.code = ${code} AND p.status = 'active' AND t.active = true
     AND lower(btrim(p.email)) <> ${email.trim().toLowerCase()}
-    AND NOT EXISTS (SELECT 1 FROM orders o WHERE lower(btrim(o.email)) = ${email.trim().toLowerCase()} AND o.paid_at IS NOT NULL
+    AND (t.version = ${REFERRAL_PILOT.version} OR NOT EXISTS (SELECT 1 FROM orders o WHERE lower(btrim(o.email)) = ${email.trim().toLowerCase()} AND o.paid_at IS NOT NULL
       AND NOT EXISTS (SELECT 1 FROM finance_transactions ft WHERE ft.psl_order_id = o.order_id AND ft.reporting_excluded = true))
-    AND NOT EXISTS (SELECT 1 FROM partner_referral_claims c JOIN orders o ON o.order_id = c.order_id
+    ) AND NOT EXISTS (SELECT 1 FROM partner_referral_claims c JOIN orders o ON o.order_id = c.order_id
       WHERE c.customer_email = ${email.trim().toLowerCase()} AND o.status = 'pending') LIMIT 1`;
-  return rows[0] ? { code: String(rows[0].code), percent: 10 } : null;
+  return rows[0] ? { code: String(rows[0].code), percent: rows[0].repeat_customer === true ? 0 : 10 } : null;
 }
 
 /** Same stock reservation operation, enclosed by the first-order/coupon transaction lock. */
@@ -193,7 +203,7 @@ export async function reserveReferralOrder(order: Order): Promise<{ ok: true } |
   const rows = await sql`SELECT checkout_create_referral_order(${order.orderId}, ${order.currency}, ${order.email},
     ${JSON.stringify(order.shipping)}::jsonb, ${JSON.stringify(order.items)}::jsonb,
     ${order.subtotal}, ${order.taxRate}, ${order.tax}, ${order.shippingCost}, ${order.total},
-    ${order.discountCode}, ${order.discountAmount}, ${INVOICE_EXPIRY_MINUTES}, ${PENDING_GRACE_MINUTES}) AS result`;
+    ${order.discountCode}, ${order.discountAmount}, ${INVOICE_EXPIRY_MINUTES}, ${PENDING_GRACE_MINUTES}, ${order.paymentMethod}) AS result`;
   const result = rows[0]?.result as { ok?: boolean; error?: string } | undefined;
   if (!result?.ok) return { ok: false, error: result?.error ?? "This referral code is not eligible for this order." };
   if (order.attribution) {
@@ -223,7 +233,8 @@ export async function loadReferralPilotDashboard(partnerId?: string) {
     WHERE (${partnerId ?? null}::uuid IS NULL OR t.partner_id = ${partnerId ?? null}::uuid)`;
   // Candidates come directly from durable claims, so a failed best-effort settlement
   // hook cannot omit earned commission from owner review. GET never writes records.
-  const rowsPromise = sql`SELECT c.order_id, c.partner_id, c.code, c.created_at, o.subtotal, o.discount_amount, o.currency,
+  const rowsPromise = sql`SELECT c.order_id, c.partner_id, c.code, c.created_at, c.terms_version, o.subtotal, o.discount_amount, o.currency,
+    o.items, o.payment_method, payout.payout_id,
     o.status, o.paid_at, o.shipped_at, r.delivered_at, r.refunded_product_amount, r.refund_review_confirmed, r.fraud_cleared,
     lower(btrim(o.email)) = lower(btrim(p.email)) AS self_referral,
     NOT EXISTS (SELECT 1 FROM orders older WHERE lower(btrim(older.email)) = lower(btrim(o.email)) AND older.paid_at IS NOT NULL
@@ -237,6 +248,7 @@ export async function loadReferralPilotDashboard(partnerId?: string) {
         OR lower(pe.event_type) SIMILAR TO '%(refund|void|chargeback|revers)%')) AS refund_or_void_detected
     FROM partner_referral_claims c JOIN orders o ON o.order_id = c.order_id JOIN acquisition_partners p ON p.id = c.partner_id
     LEFT JOIN partner_referral_commissions r ON r.order_id = c.order_id
+    LEFT JOIN partner_referral_payout_items payout ON payout.order_id = c.order_id
     WHERE (${partnerId ?? null}::uuid IS NULL OR c.partner_id = ${partnerId ?? null}::uuid)
     ORDER BY c.created_at DESC LIMIT 1000`;
   const [terms, rows] = await Promise.all([termsPromise, rowsPromise]);
@@ -247,7 +259,12 @@ export async function loadReferralPilotDashboard(partnerId?: string) {
       orderStatus: String(row.status),
       createdAt: new Date(String(row.created_at)).toISOString(), deliveredAt, refundedProductAmount,
       refundReviewConfirmed: row.refund_review_confirmed === true, fraudCleared: row.fraud_cleared === true,
-      ...calculateReferralCommission({ productSubtotal: Number(row.subtotal), discountAmount: Number(row.discount_amount),
+      items: (Array.isArray(row.items) ? row.items : []).map((item: Record<string, unknown>) => ({
+        name: String(item.name ?? "Research material"), strength: String(item.strength ?? ""), quantity: Number(item.quantity ?? 0), lineTotal: Number(item.lineTotal ?? 0) })),
+      paymentMethod: row.payment_method === "card" || row.payment_method === "bitcoin" ? row.payment_method : null,
+      paidAt: row.paid_at ? new Date(String(row.paid_at)).toISOString() : null,
+      currency: String(row.currency), payoutId: row.payout_id ? String(row.payout_id) : null,
+      ...calculateReferralCommission({ termsVersion: String(row.terms_version ?? "psl-referral-pilot-v1"), productSubtotal: Number(row.subtotal), discountAmount: Number(row.discount_amount),
         refundedProductAmount, currency: String(row.currency), paidAt: row.paid_at ? String(row.paid_at) : null,
         shippedAt: row.shipped_at ? String(row.shipped_at) : null, deliveredAt, status: String(row.status),
         firstPaidOrder: row.first_paid_order === true, selfReferral: row.self_referral === true,
@@ -303,6 +320,7 @@ export async function reviewReferralCommission(input: Record<string, unknown>): 
     WHERE c.order_id = ${input.orderId} AND o.paid_at IS NOT NULL AND o.status = 'shipped' AND o.shipped_at IS NOT NULL
     AND o.shipped_at <= ${new Date(deliveredAt).toISOString()}::timestamptz
     AND ${input.refundedProductAmount} <= o.subtotal - o.discount_amount
+    FOR UPDATE OF o
     ON CONFLICT (order_id) DO UPDATE SET delivered_at = EXCLUDED.delivered_at,
       refunded_product_amount = EXCLUDED.refunded_product_amount, refund_review_confirmed = EXCLUDED.refund_review_confirmed,
       fraud_cleared = EXCLUDED.fraud_cleared, reviewed_at = now() RETURNING order_id`;

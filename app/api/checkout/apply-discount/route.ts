@@ -8,6 +8,7 @@ import { isSameOriginMutation } from "@/lib/security/request-origin";
 import { consumeRequestLimit } from "@/lib/security/request-rate-limit";
 import { readRequestPrivacyConsent } from "@/lib/privacy/server";
 import { isDesignPreview } from "@/lib/design-preview";
+import { configuredReferralPromotionCode } from "@/lib/tagada/referral-checkout";
 
 export const runtime = "nodejs";
 const headers = { "Cache-Control": "no-store" };
@@ -34,7 +35,12 @@ export async function POST(request: Request) {
       if (privacy.consent.admin) return json({ error: "Referral codes are unavailable in admin sessions." }, 400);
       const discount = await lookupReferralDiscount(rawCode, email);
       if (!discount) return json({ error: "This referral code is not eligible for this order." }, 400);
-      return json({ code: discount.code, discountPercent: discount.percent, exclusive: true, supportedPaymentMethods: ["bitcoin"] });
+      const cardSupported = discount.percent === 0 || configuredReferralPromotionCode() !== null;
+      return json({ code: discount.code, discountPercent: discount.percent, exclusive: discount.percent > 0,
+        referral: true,
+        message: discount.percent === 0 ? "Referral code recorded. The first-order discount has already been used; your partner can still earn on this eligible order."
+          : "10% first-order referral discount applied.",
+        supportedPaymentMethods: cardSupported ? ["bitcoin", "card"] : ["bitcoin"] });
     }
     const discount = await lookupActiveDiscountCode(rawCode);
     if (!discount) return json({ error: "Invalid or unavailable code." }, 400);

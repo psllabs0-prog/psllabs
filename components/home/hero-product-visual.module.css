@@ -13,8 +13,8 @@
 .studio img { object-fit:cover; }
 .stage[data-motion="enabled"][data-visible="true"] .vial { animation-play-state:running; }
 .stageFooter { position:absolute; left:24px; right:18px; bottom:12px; z-index:3; display:flex; align-items:center; justify-content:flex-end; }
-.motionButton { display:grid; place-items:center; min-width:44px; min-height:44px; border:1px solid #31434d; border-radius:6px; background:#0d151bd9; color:#dce9ed; cursor:pointer; }
-.motionButton:hover { border-color:#2fb6e0; }
+.motionButton { display:inline-flex; align-items:center; justify-content:center; min-height:44px; border:0; border-radius:0; padding:10px 5px; background:transparent; color:#a1afb7; font:10px/1.5 var(--font-sans); text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
+.motionButton:hover { color:#e9f1f5; }
 .selectionHeader { display:flex; justify-content:space-between; gap:12px; margin:18px 0 9px; color:#a1afb7; font:9px/1.5 var(--font-mono); letter-spacing:.09em; }
 .selector { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px; }
 .selector button { min-height:58px; padding:10px 4px; display:flex; align-items:center; justify-content:center; gap:4px; flex-direction:column; border:1px solid #26333b; border-radius:5px; background:#11171b; color:#bcc9d0; cursor:pointer; transition:background 160ms,border-color 160ms; }

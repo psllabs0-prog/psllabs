@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowUpRight, Pause, Play } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { useEffect, useId, useRef, useState, type PointerEvent } from "react";
 import type { HeroShowcaseProduct } from "@/lib/home/showcase";
 import styles from "./hero-product-visual.module.css";
@@ -79,7 +79,7 @@ export function HeroVialStage({ products }: { products: FeaturedProduct[] }) {
             <Image src={src} alt={alt} fill preload={selected.handle === "retatrutide"} sizes="(max-width: 640px) calc(72vw - 30px), (max-width: 800px) 430px, (max-width: 1100px) calc(38vw - 40px), (max-width: 1376px) calc(38vw - 58px), 462px" />
           </div>
         </div>
-        <div className={styles.stageFooter}><button className={styles.motionButton} type="button" onClick={() => setPaused(v=>!v)} aria-pressed={paused} aria-label={paused ? "Resume product motion" : "Pause product motion"}>{paused ? <Play size={14} aria-hidden /> : <Pause size={14} aria-hidden />}</button></div>
+        <div className={styles.stageFooter}><button className={styles.motionButton} type="button" onClick={() => setPaused(v=>!v)} aria-pressed={paused}>{paused ? "Resume motion" : "Pause motion"}</button></div>
       </div>
       <div className={styles.selectionHeader}><span>EXPLORE THE LINEUP</span><span>RESEARCH USE ONLY</span></div>
       <div className={styles.selector} role="group" aria-label="Choose featured product">

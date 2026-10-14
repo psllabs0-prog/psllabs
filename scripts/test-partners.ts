@@ -68,7 +68,7 @@ async function main() {
     check(checkPartnerOrigin(request({ "x-psl-partners-action": "1", "sec-fetch-site": "same-origin" })), "same-origin browser fallback");
     const unsafeHeaders: Record<string, string>[] = [{ origin: "https://www.psllabs.org" }, { "x-psl-partners-action": "1" }, { "x-psl-partners-action": "1", origin: "https://evil.test" }, { "x-psl-partners-action": "1", origin: "https://www.psllabs.org.evil.test" }, { "x-psl-partners-action": "1", origin: "https://www.psllabs.org", "sec-fetch-site": "cross-site" }];
     for (const headers of unsafeHeaders) check(!checkPartnerOrigin(request(headers)), "unsafe cross-origin mutation rejected");
-    const metric = parsePartnerMetrics([{ code: partner.code, paid_orders: "2", paid_revenue: "89.98" }, { code: "bad", paid_orders: 99, paid_revenue: 50 }, { code: "other-1234abcd", paid_orders: -1, paid_revenue: 9 }]);
+    const metric = parsePartnerMetrics([{ code: partner.code, paid_orders: "2", paid_revenue: "89.98" }, { code: "bad!", paid_orders: 99, paid_revenue: 50 }, { code: "other-1234abcd", paid_orders: -1, paid_revenue: 9 }]);
     check(metric.size === 1 && metric.get(partner.code)?.paidOrderRevenueUsd === 89.98, "bounded aggregate parsing");
 
     const statements: string[] = [];

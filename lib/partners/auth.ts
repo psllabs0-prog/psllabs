@@ -50,7 +50,8 @@ export async function readPartnerAuthReadiness() {
   const sql = getSql();
   const rows = await sql`SELECT to_regclass('public.partner_signin_tokens') IS NOT NULL
     AND to_regclass('public.partner_auth_sessions') IS NOT NULL
-    AND to_regprocedure('create_partner_signin_token(text,text,integer)') IS NOT NULL AS ready`;
+    AND to_regprocedure('create_partner_signin_token(text,text,integer)') IS NOT NULL
+    AND to_regprocedure('activate_verified_referral_registration(uuid)') IS NOT NULL AS ready`;
   schemaReady = rows[0]?.ready === true;
   return { secretConfigured, schemaReady, smtpConfigured: Boolean(smtpConfiguration()), smtpDeliveryVerified: false as const };
 }
@@ -71,7 +72,7 @@ export async function sendPartnerSignInEmail(email: string, url: string, createT
   try {
     const result = await transporter.sendMail({ from: "PSL Labs <support@psllabs.org>", to: email,
       subject: "Sign in to your PSL Labs partner account",
-      text: `Use this one-time link to sign in to your PSL Labs partner account:\n\n${url}\n\nThe link expires in 15 minutes. If you did not request it, ignore this email. No account changes have been made.\n\nPSL Labs`,
+      text: `Use this one-time link to verify your email and sign in to your PSL Labs partner account:\n\n${url}\n\nThe link expires in 15 minutes. For a new registration, verifying your email activates your referral code under the terms you accepted. If you did not request it, ignore this email.\n\nPSL Labs`,
     });
     const address = (value: unknown) => typeof value === "string" ? value.toLowerCase() :
       value && typeof value === "object" && "address" in value && typeof value.address === "string" ? value.address.toLowerCase() : "";
@@ -100,7 +101,9 @@ export async function requestPartnerSignIn(value: unknown, mailer: SignInMailer 
   try { await mailer(String(rows[0].email), `${SITE_ORIGIN}/api/partners/auth/verify?token=${token}`); }
   catch {
     await sql`UPDATE partner_signin_tokens SET used_at = now() WHERE digest = ${digest(token)}`;
-    throw new PartnersUnavailableError("Partner sign-in mail is temporarily unavailable.");
+    // Recipient-specific failure must not distinguish a registered email from an unknown one.
+    // Global configuration failures above still apply uniformly before lookup.
+    console.error("[partners/auth] Sign-in delivery failed; the one-time link was revoked.");
   }
 }
 
@@ -115,10 +118,12 @@ export async function redeemPartnerSignIn(value: unknown): Promise<string | null
     UPDATE partner_signin_tokens SET used_at = now()
     WHERE digest = ${digest(value)} AND used_at IS NULL AND expires_at > now()
     RETURNING partner_id
+  ), activated AS (
+    SELECT partner_id, activate_verified_referral_registration(partner_id) AS activated FROM consumed
   ), revoked AS (
     DELETE FROM partner_auth_sessions WHERE partner_id IN (SELECT partner_id FROM consumed)
   ) INSERT INTO partner_auth_sessions (digest, partner_id, expires_at)
-    SELECT ${digest(token)}, partner_id, ${new Date(expiresAt).toISOString()}::timestamptz FROM consumed RETURNING partner_id`;
+    SELECT ${digest(token)}, partner_id, ${new Date(expiresAt).toISOString()}::timestamptz FROM activated RETURNING partner_id`;
   return rows.length ? signPartnerSession(token, expiresAt) : null;
 }
 

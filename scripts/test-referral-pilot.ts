@@ -48,7 +48,7 @@ __setSqlClientForTests((async (parts: TemplateStringsArray, ...values: unknown[]
   }
   if (query.includes("SELECT partner_id FROM partner_auth_sessions")) return !sessionRevoked && values[0] === sessionDigest ? [{ partner_id: partnerId }] : [];
   if (query.includes("DELETE FROM partner_auth_sessions")) { sessionRevoked = true; return []; }
-  if (query.includes("SELECT p.code FROM acquisition_partners")) return eligibleCode ? [{ code }] : [];
+  if (query.includes("SELECT p.code, t.version")) return eligibleCode ? [{ code, version: "psl-referral-program-v2", repeat_customer: false }] : [];
   if (query.includes("SELECT approve_referral_partner")) return [{ approved: true }];
   if (query.includes("SELECT checkout_create_referral_order")) return [{ result: { ok: true } }];
   if (query.includes("RETURNING order_id") || query.includes("RETURNING o.order_id")) return [{ order_id: "psl_fixture_1234" }];
@@ -177,8 +177,8 @@ async function main() {
     const migration = statements.slice(beforeMigration).map(row => row.query).join("\n");
     check(migration.includes("pg_advisory_xact_lock") && migration.includes("FOR SHARE") && migration.includes("referral_partner_activation_guard"), true);
     check(migration.includes("ft.reporting_excluded = true"), true);
-    check(migration.includes("UPDATE products") || migration.includes("UPDATE orders SET"), false);
-    check(migration.includes("INSERT INTO acquisition_partners") || migration.includes("DROP TABLE"), false);
+    check(migration.includes("UPDATE products") || statements.slice(beforeMigration).some(row => /^\s*(UPDATE|INSERT|DELETE)\b/i.test(row.query)), false);
+    check(migration.includes("DROP TABLE") || migration.includes("count(*) FROM partner_referral_terms"), false);
     const beforeDisabled = statements.length;
     delete process.env.REFERRAL_CODES_ENABLED;
     check(referralCodesEnabled(), false);
@@ -204,7 +204,7 @@ async function main() {
     await assert.rejects(sendPartnerSignInEmail("partner@example.test", "https://www.psllabs.org/api/partners/auth/verify?token=fixture", transportFactory)); checks++;
     check([mailAttempts, mailClosed], [2, 2]);
     usedToken = false;
-    await assert.rejects(requestPartnerSignIn("partner@example.test", async () => { throw new Error("offline send failure"); })); checks++;
+    await requestPartnerSignIn("partner@example.test", async () => { throw new Error("offline send failure"); });
     check(statements.at(-1)?.query.includes("UPDATE partner_signin_tokens SET used_at = now()"), true);
     console.log(`Referral pilot: ${checks} offline calculation, eligibility, exclusive-discount, authentication, replay, ownership, and accounting checks passed. No real orders, email, payments, or network requests.`);
   } finally {

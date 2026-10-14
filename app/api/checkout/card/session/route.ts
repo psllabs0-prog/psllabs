@@ -10,6 +10,8 @@ import { setInvoiceId, setPaymentMethod } from "@/lib/orders/store";
 import { getTagadaIdsForHandle, isTagadaConfigured } from "@/lib/tagada";
 import { createTagadaCheckoutSession } from "@/lib/tagada/server";
 import { readRequestPrivacyConsent } from "@/lib/privacy/server";
+import { normalizeReferralCode } from "@/lib/partners/referral-logic";
+import { configuredReferralPromotionCode, configureAndVerifyReferralCardSession } from "@/lib/tagada/referral-checkout";
 
 export const runtime = "nodejs";
 
@@ -18,6 +20,8 @@ export const runtime = "nodejs";
  * the browser headless SDK (tokenize + processPayment).
  */
 export async function POST(request: Request) {
+  if (process.env.PSL_VISUAL_PREVIEW === "1") return NextResponse.json(
+    { error: "Preview only. Payments and order creation are disabled." }, { status: 503 });
   if (!isTagadaConfigured()) {
     return NextResponse.json(
       { error: "Card checkout is not available." },
@@ -36,7 +40,9 @@ export async function POST(request: Request) {
   }
 
   const privacyConsent = await readRequestPrivacyConsent(request).catch(() => null);
-  const prepared = await prepareReservedOrder(body, { paymentMethod: "card", privacyConsent });
+  const referralPromotionCode = configuredReferralPromotionCode();
+  const prepared = await prepareReservedOrder(body, { paymentMethod: "card", privacyConsent,
+    cardReferralPromotionConfigured: referralPromotionCode !== null });
   if (!prepared.ok) {
     return NextResponse.json(
       { error: prepared.error },
@@ -74,10 +80,17 @@ export async function POST(request: Request) {
       firstName: order.shipping.firstName,
       lastName: order.shipping.lastName,
       orderId: order.orderId,
+      referralCode: normalizeReferralCode(order.discountCode),
     });
 
     // Persist Token for webhook / fulfill correlation
     await setInvoiceId(order.orderId, session.checkoutToken);
+
+    if (normalizeReferralCode(order.discountCode)) {
+      await configureAndVerifyReferralCardSession(order, session, {
+        storeId: process.env.TAGADA_STORE_ID!, items: sessionItems,
+      }, referralPromotionCode);
+    }
 
     return NextResponse.json({
       orderId: order.orderId,
@@ -99,6 +112,7 @@ export async function POST(request: Request) {
       items: sessionItems,
       total: order.total,
       shippingCost: order.shippingCost,
+      pricing: { subtotal: order.subtotal, discountCode: order.discountCode, discountAmount: order.discountAmount, tax: order.tax },
     });
   } catch (error) {
     const message =

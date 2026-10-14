@@ -2,12 +2,12 @@ import { PartnerInputError, validPartnerCode, validatePartnerInput } from "./log
 import type { PartnerInput } from "./types";
 
 export const REFERRAL_PILOT = {
-  version: "psl-referral-pilot-v1",
+  version: "psl-referral-program-v2",
   discountPercent: 10,
   commissionPercent: 10,
-  maximumPartners: 10,
+  maximumPartners: null,
   holdDays: 30,
-  supportedPaymentMethods: ["bitcoin"] as const,
+  supportedPaymentMethods: ["bitcoin", "card"] as const,
 } as const;
 
 /** UI capability only. Actual redemption is gated independently by server configuration. */
@@ -35,6 +35,8 @@ export function validateReferralApplication(value: unknown, now = new Date()): P
 }
 
 export type ReferralCommissionCheck = {
+  /** Historic v1 claims retain their original first-order terms. */
+  termsVersion?: string;
   productSubtotal: number;
   discountAmount: number;
   refundedProductAmount: number;
@@ -65,7 +67,7 @@ function cents(value: number): number {
   return Math.round((value + Number.EPSILON) * 100);
 }
 
-/** Integer-cent calculation; tax, shipping, fees, and repeat orders never enter the base. */
+/** Integer-cent calculation. Shipping, taxes and fees never enter the base. */
 export function calculateReferralCommission(input: ReferralCommissionCheck, now = new Date()): ReferralCommissionCalculation {
   const subtotal = cents(input.productSubtotal);
   const discount = cents(input.discountAmount);
@@ -74,10 +76,11 @@ export function calculateReferralCommission(input: ReferralCommissionCheck, now 
   const base = subtotal - discount - refunded;
   const result = { eligibleProductSubtotal: base / 100, amount: Math.round(base * REFERRAL_PILOT.commissionPercent / 100) / 100,
     payableAfter: null as string | null };
-  if (discount !== Math.round(subtotal * REFERRAL_PILOT.discountPercent / 100) ||
+  const legacy = input.termsVersion !== REFERRAL_PILOT.version;
+  if ((legacy && (discount !== Math.round(subtotal * REFERRAL_PILOT.discountPercent / 100) || !input.firstPaidOrder)) ||
       input.currency !== "USD" || !input.paidAt || !["paid", "shipped"].includes(input.status) ||
-      !input.firstPaidOrder || input.selfReferral || input.reportingExcluded || input.refundOrVoidDetected || base <= 0) {
-    return { ...result, amount: 0, status: "ineligible", reason: "Unpaid, repeat, excluded, self-referred, refunded, voided, or unsupported order." };
+      input.selfReferral || input.reportingExcluded || input.refundOrVoidDetected || base <= 0 || result.amount <= 0) {
+    return { ...result, amount: 0, status: "ineligible", reason: "Unpaid, excluded, self-referred, refunded, voided, unsupported, or outside the recorded terms." };
   }
   if (!input.financeVerified) return { ...result, status: "held", reason: "Verified payment record required." };
   const delivery = input.deliveredAt ? Date.parse(input.deliveredAt) : NaN;

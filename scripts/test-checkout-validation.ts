@@ -24,6 +24,9 @@ let reservations = 0;
 let schemaCalls = 0;
 let databaseCalls = 0;
 let referralCalls = 0;
+let allowReferralFixtures = false;
+let referralPercent: 0 | 10 = 10;
+const vmEnv: Record<string, string | undefined> = {};
 const orders: Order[] = [];
 
 function load(file: string, mocks: Record<string, unknown>): Record<string, unknown> {
@@ -31,7 +34,7 @@ function load(file: string, mocks: Record<string, unknown>): Record<string, unkn
   const compiled = ts.transpileModule(readFileSync(filename, "utf8"), {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, esModuleInterop: true },
   }).outputText;
-  const context = createContext({ console: { error() {} }, Date, URL, process: { env: {} } });
+  const context = createContext({ console: { error() {} }, Date, URL, process: { env: vmEnv } });
   const output: Record<string, unknown> = {};
   const evaluate = new Script(`(function(require,module,exports){${compiled}\n})`, { filename }).runInContext(context);
   evaluate((id: string) => { assert(id in mocks, `Offline loader rejected ${id}`); return mocks[id]; }, { exports: output }, output);
@@ -43,13 +46,17 @@ const prepare = load("lib/checkout/prepare-order.ts", {
   "@/lib/attribution/logic": attribution, "@/lib/payments/products": pricing, "@/lib/products/catalog": catalog,
   "@/lib/checkout/discount-codes": { DISCOUNT_CODES_ENABLED: false, lookupActiveDiscountCode: async () => { throw new Error("Unexpected discount lookup"); } },
   "@/lib/partners/referral-logic": referralLogic,
-  "@/lib/partners/referral-config": { referralCodesEnabled: () => { referralCalls++; throw new Error("Unexpected referral configuration lookup in ordinary checkout"); } },
+  "@/lib/partners/referral-config": { referralCodesEnabled: () => { referralCalls++; if (allowReferralFixtures) return true;
+    throw new Error("Unexpected referral configuration lookup in ordinary checkout"); } },
   "@/lib/partners/referral-store": {
-    lookupReferralDiscount: async () => { referralCalls++; throw new Error("Unexpected referral lookup in ordinary checkout"); },
-    reserveReferralOrder: async () => { referralCalls++; throw new Error("Unexpected referral reservation in ordinary checkout"); },
+    lookupReferralDiscount: async () => { referralCalls++; if (allowReferralFixtures) return { code: "fixture-lab-1234abcd", percent: referralPercent };
+      throw new Error("Unexpected referral lookup in ordinary checkout"); },
+    reserveReferralOrder: async (order: Order) => { referralCalls++; if (allowReferralFixtures) { reservations++; orders.push(structuredClone(order)); return { ok: true }; }
+      throw new Error("Unexpected referral reservation in ordinary checkout"); },
   },
   "@/lib/inventory/store": {
-    ensureInventorySchema: async () => { schemaCalls++; throw new Error("Unexpected schema bootstrap in ordinary checkout fixture"); },
+    ensureInventorySchema: async () => { schemaCalls++; if (allowReferralFixtures) return;
+      throw new Error("Unexpected schema bootstrap in ordinary checkout fixture"); },
     checkoutWithStockCheck: async (order: Order) => {
       reservations++; orders.push(structuredClone(order));
       // Ten units exist for each product. The old per-line stock check would
@@ -121,6 +128,9 @@ async function checkoutPrivacyChecks() {
         "@/lib/payments": { getPaymentProcessor: () => ({ createInvoice: async () => ({ id: "invoice_fixture", url: "https://checkout.example.invalid" }) }) },
         "@/lib/tagada": { isTagadaConfigured: () => true, getTagadaIdsForHandle: async () => ({ tagadaVariantId: "variant_fixture" }) },
         "@/lib/tagada/server": { createTagadaCheckoutSession: async () => ({ checkoutToken: "checkout_fixture", sessionToken: "session_fixture" }) },
+        "@/lib/partners/referral-logic": referralLogic,
+        "@/lib/tagada/referral-checkout": { configuredReferralPromotionCode: () => null,
+          configureAndVerifyReferralCardSession: async () => { throw new Error("Unexpected referral provider setup in ordinary checkout"); } },
       }) as { POST: (request: Request) => Promise<Response> };
       const response = await route.POST(new Request("https://fixture.invalid/api/checkout", {
         method: "POST", headers: { "Content-Type": "application/json", "Sec-GPC": "1" }, body: JSON.stringify(body),
@@ -183,6 +193,44 @@ async function main() {
     assert(guard < source.indexOf("PERFORM p.handle", functionStart));
     assert(guard < source.indexOf("INSERT INTO orders", functionStart)); checks += 3;
     assert.equal(referralCalls, 0, "ordinary card/Bitcoin checkout never enters referral configuration, lookup, or reservation"); checks++;
+    allowReferralFixtures = true;
+    const referralBody = { email: "fixture@example.invalid", shipping: SHIPPING, items: [{ handle: "retatrutide", quantity: 1 }], discountCode: "fixture-lab-1234abcd" };
+    const beforeCard = reservations;
+    const blocked = await prepare.prepareReservedOrder(referralBody, { paymentMethod: "card" });
+    assert.equal(blocked.ok, false); if (!blocked.ok) assert.equal(blocked.status, 409);
+    assert.equal(reservations, beforeCard, "missing provider discount blocks before any reservation"); checks += 3;
+    for (const [method, percent, discountAmount, total] of [
+      ["card", 10, 6, 63.98], ["bitcoin", 10, 6, 63.98], ["card", 0, 0, 69.98], ["bitcoin", 0, 3, 66.98],
+    ] as const) {
+      referralPercent = percent;
+      const result = await prepare.prepareReservedOrder(referralBody, { paymentMethod: method, cardReferralPromotionConfigured: true });
+      assert(result.ok); assert.equal(result.order.discountCode, "fixture-lab-1234abcd");
+      assert.equal(result.order.discountAmount, discountAmount); assert.equal(result.order.total, total);
+      assert.equal(result.order.paymentMethod, method); checks += 5;
+    }
+    referralPercent = 10;
+    // A real catalog basket previously computed 36.99 in JavaScript while
+    // PostgreSQL numeric round(369.95 * 10 / 100, 2) correctly expects 37.00.
+    const boundary = await prepare.prepareReservedOrder({ ...referralBody,
+      items: [{ handle: "bpc-157", quantity: 2 }, { handle: "tesamorelin", quantity: 3 }],
+    }, { paymentMethod: "card", cardReferralPromotionConfigured: true });
+    assert(boundary.ok); assert.equal(boundary.order.subtotal, 369.95);
+    assert.equal(boundary.order.discountAmount, 37); assert.equal(boundary.order.total, 332.95); checks += 4;
+    // Positive decimal amounts have exact integer-cent expectations; exercise
+    // both percentage rules across every cent, including their half-cent ties.
+    for (let subtotalCents = 1; subtotalCents <= 100000; subtotalCents++) {
+      const first = totals.computeTotals(subtotalCents / 100, "", { code: "fixture-lab-1234abcd", percent: 10, exclusive: true }, "card");
+      const bitcoin = totals.computeTotals(subtotalCents / 100, "", null, "bitcoin");
+      assert.equal(Math.round(first.discountAmount * 100), Math.floor((subtotalCents + 5) / 10));
+      assert.equal(Math.round(bitcoin.discountAmount * 100), Math.floor((subtotalCents + 10) / 20));
+    }
+    checks += 200000;
+    vmEnv.PSL_VISUAL_PREVIEW = "1";
+    const beforePreview = reservations;
+    const preview = await prepare.prepareReservedOrder(referralBody, { paymentMethod: "card", cardReferralPromotionConfigured: true });
+    assert.equal(preview.ok, false); if (!preview.ok) assert.equal(preview.status, 503);
+    assert.equal(reservations, beforePreview, "preview cannot reserve or persist orders"); checks += 3;
+    delete vmEnv.PSL_VISUAL_PREVIEW;
     console.log(`PASS: Checkout validation (${checks} checks; valid card/Bitcoin totals preserved; duplicate 20-vs-10 carts rejected before writes; no database/provider calls).`);
   } finally { globalThis.fetch = previousFetch; }
 }

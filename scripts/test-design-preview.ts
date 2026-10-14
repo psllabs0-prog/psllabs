@@ -29,7 +29,8 @@ async function main() {
       [["ghk-cu", false]], "preview inventory is only source fallback, never operational stock or unreleased products");
     const blocked = ["/api/checkout", "/api/checkout/card/session", "/api/contact", "/api/newsletter",
       "/api/meta/events", "/api/tiktok/events", "/api/admin/orders", "/api/cron/finance-reconcile",
-      "/api/webhooks/tagada", "/api/track", "/admin-ledger.01", "/admin", "/success", "/unsubscribe"];
+      "/api/webhooks/tagada", "/api/track", "/admin-ledger.01", "/admin", "/success", "/unsubscribe",
+      "/api/partners/apply", "/api/partners/enroll", "/api/partners/auth/request", "/api/admin/partners"];
     for (const path of blocked) {
       for (const method of ["GET", "POST"]) {
         const response = await proxy(new NextRequest(`https://preview.invalid${path}`, { method }));

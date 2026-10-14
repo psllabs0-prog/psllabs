@@ -28,6 +28,7 @@ export async function createTagadaCheckoutSession(params: {
   firstName: string;
   lastName: string;
   orderId: string;
+  referralCode?: string | null;
 }): Promise<CreatedCheckoutSession> {
   const tagada = getTagadaServerClient();
   const storeId = getTagadaStoreId();
@@ -46,7 +47,8 @@ export async function createTagadaCheckoutSession(params: {
     // Custom metadata for webhook / fulfillment correlation
     orderId: params.orderId,
     metadata: {
-      cartCustomAttributes: [{ name: "pslOrderId", value: params.orderId }],
+      cartCustomAttributes: [{ name: "pslOrderId", value: params.orderId },
+        ...(params.referralCode ? [{ name: "pslReferralCode", value: params.referralCode }] : [])],
     },
   });
 

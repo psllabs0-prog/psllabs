@@ -5,6 +5,7 @@ import { assertPartnersAvailable, createPartner, getPartner, loadPartnerDashboar
 import { approveReferralPartner, loadReferralPilotDashboard, migrateReferralPilot, releaseUnpaidReferralClaim, reviewReferralCommission, verifyReferralPilotSchema } from "@/lib/partners/referral-store";
 import { REFERRAL_PILOT } from "@/lib/partners/referral-logic";
 import { readPartnerAuthReadiness } from "@/lib/partners/auth";
+import { loadPartnerPayouts, loadPartnerPayoutContacts, recordManualPartnerPayout } from "@/lib/partners/registration-store";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -14,7 +15,7 @@ function failed(error: unknown) {
   if (error instanceof PartnerInputError) return json({ error: error.message }, 400);
   if (error instanceof PartnersUnavailableError) return json({ available: false, code: "PARTNERS_NOT_MIGRATED", error: error.message }, 503);
   if (error && typeof error === "object" && "code" in error && error.code === "23505") return json({ error: "A partner with this email already exists. Refresh and edit that record." }, 409);
-  if (error && typeof error === "object" && "code" in error && error.code === "23514") return json({ error: "The 10-partner referral pilot limit has been reached. Pause a current pilot partner before activating another." }, 409);
+  if (error && typeof error === "object" && "code" in error && error.code === "23514") return json({ error: "A referral record failed its eligibility checks. Refresh and review the selected records." }, 409);
   // Database errors can include contact data; never expose or log the raw error.
   console.error("[admin/partners] Partner request failed.");
   return json({ error: "Unable to load or save partners. Try again." }, 500);
@@ -25,7 +26,8 @@ export async function GET() {
   try {
     await assertPartnersAvailable();
     const dashboard = await loadPartnerDashboard();
-    try { dashboard.referralPilot = await loadReferralPilotDashboard(); }
+    try { dashboard.referralPilot = await loadReferralPilotDashboard();
+      [dashboard.payouts, dashboard.payoutContacts] = await Promise.all([loadPartnerPayouts(), loadPartnerPayoutContacts()]); }
     catch (error) { if (!(error instanceof PartnersUnavailableError)) throw error; }
     return json(dashboard);
   } catch (error) { return failed(error); }
@@ -61,6 +63,7 @@ export async function POST(request: Request) {
     }
     if (body.action === "review_referral_commission") { await reviewReferralCommission(body); return json({ ok: true }); }
     if (body.action === "release_unpaid_referral") { await releaseUnpaidReferralClaim(body); return json({ ok: true }); }
+    if (body.action === "record_manual_payout") { await recordManualPartnerPayout(body, "admin"); return json({ ok: true, paymentSentByWebsite: false }); }
     if (body.action === "create") return json({ partner: await createPartner(validatePartnerInput(body)), outboundSendingEnabled: false }, 201);
     if (!["update", "mark_contacted", "mark_replied", "pause"].includes(String(body.action))) throw new PartnerInputError("Unknown partner action.");
     if (!validPartnerId(body.id)) throw new PartnerInputError("Invalid partner ID.");

@@ -180,18 +180,23 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
   } | null>(null);
   const [discountError, setDiscountError] = useState<string | null>(null);
   const [discountApplying, setDiscountApplying] = useState(false);
+  const [discountMessage, setDiscountMessage] = useState<string | null>(null);
 
   const subtotalRaw = lines.reduce(
     (sum, line) => sum + line.unitPrice * line.quantity,
     0
   );
-  const totals = computeTotals(subtotalRaw, form.state, appliedDiscount, {
+  const computedTotals = computeTotals(subtotalRaw, form.state, appliedDiscount, {
     paymentMethod: method,
   });
+  const totals: OrderTotals = tagadaSession?.pricing ? { ...computedTotals, ...tagadaSession.pricing,
+    discountPercent: tagadaSession.pricing.subtotal > 0 ? tagadaSession.pricing.discountAmount / tagadaSession.pricing.subtotal * 100 : 0,
+    bitcoinDiscountAmount: 0, bitcoinDiscountPercent: 0, taxRate: 0,
+    shipping: tagadaSession.shippingCost, total: tagadaSession.total } : computedTotals;
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
-    if (key === "email") setAppliedDiscount(null);
+    if (key === "email") { setAppliedDiscount(null); setDiscountMessage(null); }
     if (errors[key]) {
       setErrors((current) => ({ ...current, [key]: undefined }));
     }
@@ -228,8 +233,8 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
 
   async function handleApplyDiscount() {
     setDiscountError(null);
+    setDiscountMessage(null);
     if (visualPreview) { setDiscountError("Referral code checks are available on the live site."); return; }
-    if (method === "card") { setDiscountError("Referral codes currently support Bitcoin checkout. Card checkout remains available at the regular price."); return; }
     const code = discountInput.trim();
     if (!code) {
       setDiscountError("Enter a discount code.");
@@ -247,6 +252,8 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
         code?: string;
         discountPercent?: number;
         exclusive?: boolean;
+        supportedPaymentMethods?: string[];
+        message?: string;
         error?: string;
       };
 
@@ -262,7 +269,9 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
         exclusive: data.exclusive === true,
       });
       setDiscountInput(data.code);
-      setDiscountError(null);
+      setDiscountMessage(data.message ?? null);
+      setDiscountError(method === "card" && data.supportedPaymentMethods && !data.supportedPaymentMethods.includes("card")
+        ? "The first-order referral discount is not configured for card checkout yet. Choose Bitcoin for this discount or remove the code to pay the regular card price." : null);
     } catch {
       setDiscountError("Unable to validate discount code. Please try again.");
     } finally {
@@ -274,6 +283,7 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
     setAppliedDiscount(null);
     setDiscountInput("");
     setDiscountError(null);
+    setDiscountMessage(null);
   }
 
   async function handleBtcpaySubmit() {
@@ -341,6 +351,7 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
         items: data.items,
         shippingCost: data.shippingCost ?? totals.shipping,
         total: data.total,
+        ...(data.pricing ? { pricing: data.pricing } : {}),
         cartFingerprint: cardCartFingerprint(lines),
       });
       if (!saved) setPayError("We couldn't restore a valid card checkout session. Please try again.");
@@ -646,7 +657,9 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                 onRemoveDiscount={handleRemoveDiscount}
                 discountApplying={discountApplying}
                 discountError={discountError}
-                applied={!!appliedDiscount}
+                appliedCode={tagadaSession?.pricing?.discountCode ?? appliedDiscount?.code ?? null}
+                discountMessage={discountMessage}
+                discountLocked={!!tagadaSession}
                 showDiscount={DISCOUNT_CODES_ENABLED || REFERRAL_CODE_FIELD_VISIBLE}
               />
             </div>}
@@ -661,6 +674,7 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                   onClick={() => {
                     setMethod("btcpay");
                     setPayError(null);
+                    setDiscountError(null);
                     cardSessionStore.clear();
                   }}
                   disabled={paymentUnresolved || isSubmitting || isCardReturn}
@@ -685,12 +699,12 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                         Pay with Bitcoin
                       </span>
                       <span className="inline-flex items-center rounded-pill border border-accent/35 bg-accent/10 px-2 py-0.5 font-mono text-[0.68rem] font-semibold tracking-wide text-accent">
-                        Save 5%
+                        {appliedDiscount?.exclusive ? "Referral 10%" : "Save 5%"}
                       </span>
                     </div>
                     <span className="text-xs leading-relaxed text-ash">
-                      Pay with Bitcoin and save 5% on your subtotal. You&apos;ll be
-                      redirected to our secure BTCPay checkout.
+                      {appliedDiscount?.exclusive ? "The 10% first-order referral discount replaces the standard Bitcoin savings." : "Pay with Bitcoin and save 5% on your subtotal."}
+                      {" "}You&apos;ll be redirected to our secure BTCPay checkout.
                     </span>
                   </div>
                   {method === "btcpay" && (
@@ -706,8 +720,8 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                   type="button"
                   onClick={() => {
                     setMethod("card");
-                    if (appliedDiscount?.exclusive) { setAppliedDiscount(null); setDiscountError("Referral discount removed: card promotion setup is not yet verified."); }
                     setPayError(null);
+                    setDiscountError(null);
                     cardSessionStore.clear();
                   }}
                   disabled={paymentUnresolved || isSubmitting || isCardReturn}
@@ -792,7 +806,9 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                 onRemoveDiscount={handleRemoveDiscount}
                 discountApplying={discountApplying}
                 discountError={discountError}
-                applied={!!appliedDiscount}
+                appliedCode={tagadaSession?.pricing?.discountCode ?? appliedDiscount?.code ?? null}
+                discountMessage={discountMessage}
+                discountLocked={!!tagadaSession}
                 showDiscount={DISCOUNT_CODES_ENABLED || REFERRAL_CODE_FIELD_VISIBLE}
               />
             </div>
@@ -812,7 +828,9 @@ function CheckoutSummary({
   onRemoveDiscount,
   discountApplying,
   discountError,
-  applied,
+  appliedCode,
+  discountMessage,
+  discountLocked,
   showDiscount,
 }: {
   lines: ReturnType<typeof useCart>["lines"];
@@ -823,7 +841,9 @@ function CheckoutSummary({
   onRemoveDiscount: () => void;
   discountApplying: boolean;
   discountError: string | null;
-  applied: boolean;
+  appliedCode: string | null;
+  discountMessage: string | null;
+  discountLocked: boolean;
   showDiscount: boolean;
 }) {
   return (
@@ -858,7 +878,7 @@ function CheckoutSummary({
             htmlFor="checkout-discount"
             className="text-sm font-medium text-ink"
           >
-            Discount code
+            Discount or partner code
           </label>
           <div className="flex gap-2">
             <Input
@@ -873,13 +893,13 @@ function CheckoutSummary({
               }}
               placeholder="Enter code"
               autoComplete="off"
-              disabled={discountApplying}
+              disabled={discountApplying || discountLocked}
               className="h-11 rounded-lg border-linen bg-lab-white px-3 text-base uppercase md:text-sm"
             />
             <button
               type="button"
               onClick={onApplyDiscount}
-              disabled={discountApplying}
+              disabled={discountApplying || discountLocked}
               className="inline-flex shrink-0 items-center justify-center rounded-lg border border-linen bg-lab-white px-4 text-sm font-medium text-ink transition-colors hover:border-primary-blue/50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {discountApplying ? "…" : "Apply"}
@@ -890,13 +910,14 @@ function CheckoutSummary({
               {discountError}
             </p>
           )}
-          {applied && totals.discountCode && (
+          {discountMessage && <p role="status" className="text-xs text-accent">{discountMessage}</p>}
+          {appliedCode && !discountLocked && (
             <button
               type="button"
               onClick={onRemoveDiscount}
               className="self-start text-xs font-medium text-primary-blue underline underline-offset-2"
             >
-              Remove {totals.discountCode}
+              Remove {appliedCode}
             </button>
           )}
         </div>

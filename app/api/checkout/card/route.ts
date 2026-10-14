@@ -25,6 +25,8 @@ const str = (value: unknown): string =>
  * Browser references are lookup hints; this endpoint never charges a card.
  */
 export async function POST(request: Request) {
+  if (process.env.PSL_VISUAL_PREVIEW === "1") return NextResponse.json(
+    { error: "Preview only. Payment confirmation and fulfillment are disabled." }, { status: 503 });
   if (!isTagadaConfigured()) {
     return NextResponse.json(
       { error: "Card checkout is not available." },

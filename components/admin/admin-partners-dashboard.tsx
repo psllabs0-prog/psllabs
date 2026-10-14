@@ -220,14 +220,14 @@ export function AdminPartnersDashboard() {
           </p>
           {data.referralPilot ? (
             <section aria-labelledby="referral-pilot-heading" className="space-y-4 rounded-xl border border-linen bg-surface p-5 sm:p-6">
-              <h2 id="referral-pilot-heading" className="font-display text-xl font-semibold text-ink">Referral pilot · {data.referralPilot.activePartners}/10 partners</h2>
+              <h2 id="referral-pilot-heading" className="font-display text-xl font-semibold text-ink">Referral program · {data.referralPilot.activePartners} active partners</h2>
               {!data.referralPilot.codesEnabled && <p role="status" className="text-sm text-ash">Referral code redemption is disabled. Existing commission review remains available.</p>}
-              <p className="text-sm leading-relaxed text-ash">Reviewed partners receive a unique code for 10% off a new customer’s first eligible order. Commission is 10% of discounted product value, excluding shipping, tax, and refunded products. No stacking, self-referrals, tiers, or lifetime commissions. No payment transfers are automated.</p>
-              <p className="text-sm leading-relaxed text-ash">Referral discount redemption initially supports Bitcoin checkout. Card promotion setup is not verified; ordinary card checkout remains available at regular prices.</p>
+              <p className="text-sm leading-relaxed text-ash">New registrations receive an active unique code after email verification. There is no partner-count limit. Codes give eligible new customers 10% off, and partners earn 10% of eligible discounted merchandise on orders that use their code. Historical claims retain their agreed terms. Shipping, taxes and refunded merchandise are excluded.</p>
+              <p className="text-sm leading-relaxed text-ash">Card and Bitcoin referrals are supported. First-order card discounts require a matching payment-provider promotion and exact checkout-total verification before payment. No payment transfers are automated.</p>
               <p className="text-sm leading-relaxed text-ash">Commissions remain held until payment is verified, delivery is confirmed, 30 days have passed, and refund/fraud review is complete. After review, pay manually through your agreed monthly process and retain the payout record. These amounts do not establish profitability.</p>
               {data.referralPilot.commissions.length === 0 ? <p className="text-sm text-ash">No referral checkout claims yet.</p> : data.referralPilot.commissions.map((row) => (
                 <details key={row.orderId} className="border-t border-linen pt-4">
-                  <summary className="cursor-pointer break-words text-sm font-medium text-ink">{row.orderId} · {row.code} · {money(row.amount)} · {row.status}</summary>
+                  <summary className="cursor-pointer break-words text-sm font-medium text-ink">{row.orderId} · {row.code} · {money(row.amount)} · {row.payoutId ? "Payout recorded" : row.status}</summary>
                   <p className="mt-3 text-sm text-ash">{row.reason} · Eligible product base: {money(row.eligibleProductSubtotal)} · Earliest payout: {dateLabel(row.payableAfter)}</p>
                   {row.orderStatus === "shipped" && <form className="mt-4 grid gap-3 sm:grid-cols-2" onSubmit={(event) => {
                     event.preventDefault();
@@ -253,8 +253,29 @@ export function AdminPartnersDashboard() {
                   </form>}
                 </details>
               ))}
+              <div className="space-y-4 border-t border-linen pt-5"><h3 className="font-display text-lg font-semibold text-ink">Monthly manual payout queue</h3><p className="text-sm text-ash">Send payment yourself using the agreed recipient details. Then record the exact payment here. Recording a payout does not send money.</p>
+                {data.partners.map(partner => {
+                  const eligible = data.referralPilot!.commissions.filter(row => row.partnerId === partner.id && row.status === "payable" && !row.payoutId);
+                  if (!eligible.length) return null;
+                  const amount = Math.round(eligible.reduce((sum, row) => sum + row.amount, 0) * 100) / 100;
+                  const recipient = data.payoutContacts?.[partner.id];
+                  return <form key={partner.id} className="grid gap-3 rounded-lg border border-linen p-4 sm:grid-cols-2" onSubmit={event => {
+                    event.preventDefault(); const fields = new FormData(event.currentTarget);
+                    void save({ action: "record_manual_payout", partnerId: partner.id, orderIds: eligible.map(row => row.orderId), expectedAmount: amount,
+                      period: fields.get("period"), reference: fields.get("reference"), method: fields.get("method"), paymentSentConfirmed: fields.get("paymentSentConfirmed") === "on" }, "Manual payout recorded. The website did not send a payment.");
+                  }}><p className="break-words text-sm font-medium text-ink sm:col-span-2">{partner.businessName} · {eligible.length} payable orders · {money(amount)}</p>
+                    <p className="break-words text-sm text-ash sm:col-span-2">Recipient: {recipient?.contact || "Arrange directly with the partner"} · {recipient?.method || "Manual payment"}</p>
+                    <label className="space-y-1.5 text-sm text-ink">Commission month<input required type="month" name="period" className={fieldClass} disabled={busy}/></label>
+                    <label className="space-y-1.5 text-sm text-ink">Payment method<select name="method" className={fieldClass} disabled={busy}><option value="zelle">Zelle</option><option value="bank">Bank transfer</option><option value="other">Other agreed method</option></select></label>
+                    <label className="space-y-1.5 text-sm text-ink sm:col-span-2">Payment reference<input required name="reference" minLength={3} maxLength={100} className={fieldClass} disabled={busy}/></label>
+                    <label className="flex items-start gap-2 text-sm text-ink sm:col-span-2"><input required type="checkbox" name="paymentSentConfirmed" disabled={busy} className="mt-1"/>I already sent {money(amount)} and checked the recipient and payment confirmation.</label>
+                    <button type="submit" disabled={busy} className={buttonClass}>Record completed manual payout</button></form>;
+                })}
+                {!data.referralPilot.commissions.some(row => row.status === "payable" && !row.payoutId) && <p className="text-sm text-ash">No unpaid commissions are ready for payout.</p>}
+                {!!data.payouts?.length && <div className="space-y-2"><h4 className="font-semibold text-ink">Recorded payouts</h4>{data.payouts.map(payout => <p key={payout.id} className="break-words text-sm text-ash">{payout.period} · {money(payout.amount)} · {payout.method} · {payout.reference} · {dateLabel(payout.paidAt)}</p>)}</div>}
+              </div>
             </section>
-          ) : <p className="text-sm text-ash">Referral pilot database setup is not complete. General partner tracking continues without discount or commission terms.</p>}
+          ) : <p className="text-sm text-ash">Referral program database setup is not complete. General partner tracking continues without discount or commission terms.</p>}
 
           <details className="rounded-xl border border-linen bg-surface p-5" open={data.partners.length === 0}>
             <summary className="cursor-pointer text-base font-semibold text-ink">Add a partner</summary>
@@ -357,10 +378,10 @@ export function AdminPartnersDashboard() {
                 ) : <form className="space-y-3 border-t border-linen pt-4" onSubmit={(event) => {
                   event.preventDefault();
                   const form = new FormData(event.currentTarget);
-                  void save({ action: "approve_referral_pilot", id: partner.id, reviewConfirmed: form.get("reviewConfirmed") === "on" }, "Partner approved for the referral pilot. No email or payout was sent.");
+                  void save({ action: "approve_referral_pilot", id: partner.id, reviewConfirmed: form.get("reviewConfirmed") === "on" }, "Partner referral terms approved. No email or payout was sent.");
                 }}>
                   <label className="flex items-start gap-2 text-sm text-ink"><input required type="checkbox" name="reviewConfirmed" disabled={busy} className="mt-1" />I reviewed this partner’s laboratory-research audience, proposed content, affiliate disclosure, and acceptance of the 10% / 10% pilot terms.</label>
-                  <button type="submit" disabled={busy || partner.status === "paused" || partner.status === "declined"} className={buttonClass}>Approve referral pilot</button>
+                  <button type="submit" disabled={busy || partner.status === "paused" || partner.status === "declined"} className={buttonClass}>Approve referral terms</button>
                 </form>)}
 
                 <div className="grid gap-3 text-xs text-ash sm:grid-cols-3">

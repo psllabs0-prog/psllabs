@@ -36,6 +36,8 @@ export type CheckoutBody = {
 
 export type PrepareOrderOptions = {
   paymentMethod?: PaymentMethod | "btcpay" | null;
+  /** Set only by the card route after checking its provider-side promotion configuration. */
+  cardReferralPromotionConfigured?: boolean;
   /** Read from the request's HttpOnly receipt by the server, never from body. */
   privacyConsent?: { consent: PublicPrivacyConsent; binding: PrivacyConsentBinding | null } | null;
 };
@@ -110,6 +112,9 @@ export async function prepareReservedOrder(
   body: CheckoutBody,
   options?: PrepareOrderOptions
 ): Promise<PrepareOrderResult> {
+  if (process.env.PSL_VISUAL_PREVIEW === "1") {
+    return { ok: false, error: "Preview only. Payments and order creation are disabled.", status: 503 };
+  }
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return { ok: false, error: "Invalid checkout request.", status: 400 };
   }
@@ -229,7 +234,7 @@ export async function prepareReservedOrder(
         if (options?.privacyConsent?.consent.admin) return { ok: false, error: "Referral discounts are unavailable in admin sessions.", status: 400 };
         const discount = await lookupReferralDiscount(requestedCode, email);
         if (!discount) return { ok: false, error: "This referral code is not eligible for this order.", status: 400 };
-        appliedDiscount = { ...discount, exclusive: true };
+        appliedDiscount = { ...discount, exclusive: discount.percent > 0 };
         referralDiscount = true;
       } catch {
         return { ok: false, error: "Unable to validate the referral code. Please try again later.", status: 503 };
@@ -270,10 +275,14 @@ export async function prepareReservedOrder(
         ? "card"
         : null;
 
-  // Headless card sessions use provider catalog prices. The pilot must not show
-  // a local discount until a matching provider promotion is configured/verified.
-  if (referralDiscount && paymentMethod !== "bitcoin") return {
-    ok: false, error: "Referral discounts currently support Bitcoin checkout only. Card payments remain available at the regular price.", status: 409,
+  if (referralDiscount && paymentMethod === null) return {
+    ok: false, error: "Choose a payment method before using a referral code.", status: 400,
+  };
+  // Tagada owns card pricing. A first-order reduction must exist there, and its
+  // actual session totals are checked again before any payment can start.
+  if (referralDiscount && paymentMethod === "card" && (appliedDiscount?.percent ?? 0) > 0 &&
+      options?.cardReferralPromotionConfigured !== true) return {
+    ok: false, error: "The first-order referral discount is not configured for card checkout yet. Use Bitcoin for this discount or remove the code to pay the regular card price.", status: 409,
   };
 
   const totals = computeTotals(subtotalRaw, shipping.state, appliedDiscount, {
@@ -300,7 +309,9 @@ export async function prepareReservedOrder(
     shipping,
     items,
     subtotal: totals.subtotal,
-    discountCode: totals.discountCode,
+    // Repeat customers can use the code for commission attribution without a
+    // second first-order discount. Preserve that code even with zero reduction.
+    discountCode: referralDiscount ? appliedDiscount!.code : totals.discountCode,
     discountAmount: totals.discountAmount,
     taxRate: totals.taxRate,
     tax: totals.tax,

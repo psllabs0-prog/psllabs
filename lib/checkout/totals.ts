@@ -70,6 +70,7 @@ export function computeTotals(
   options?: ComputeTotalsOptions | PaymentMethodOption
 ): OrderTotals {
   const subtotal = roundMoney(subtotalRaw);
+  const subtotalCents = Math.round(subtotal * 100);
   void _state;
 
   const paymentMethod =
@@ -82,19 +83,20 @@ export function computeTotals(
       ? Math.min(100, Math.max(0, discount.percent))
       : 0;
   const promoCode = promoPercent > 0 ? discount!.code : null;
-  const promoDiscountAmount =
-    promoPercent > 0 ? roundMoney(subtotal * (promoPercent / 100)) : 0;
+  // Round integer cents directly so half-cent percentage boundaries agree
+  // with PostgreSQL numeric round(). Multiplying decimal dollars first can
+  // turn an exact half-cent into a slightly smaller binary float.
+  const promoDiscountCents = promoPercent > 0 ? Math.round(subtotalCents * promoPercent / 100) : 0;
 
   // 2. Bitcoin 5% discount
   const bitcoinDiscountPercent = isBitcoin && !discount?.exclusive ? BITCOIN_DISCOUNT_PERCENT : 0;
-  const bitcoinDiscountAmount = isBitcoin && !discount?.exclusive
-    ? roundMoney(subtotal * (BITCOIN_DISCOUNT_PERCENT / 100))
-    : 0;
+  const bitcoinDiscountCents = isBitcoin && !discount?.exclusive
+    ? Math.round(subtotalCents * BITCOIN_DISCOUNT_PERCENT / 100) : 0;
+  const bitcoinDiscountAmount = bitcoinDiscountCents / 100;
 
   // Combined discount
-  const combinedDiscountAmount = roundMoney(
-    Math.min(subtotal, promoDiscountAmount + bitcoinDiscountAmount)
-  );
+  const combinedDiscountCents = Math.min(subtotalCents, promoDiscountCents + bitcoinDiscountCents);
+  const combinedDiscountAmount = combinedDiscountCents / 100;
 
   let discountCode: string | null = null;
   let discountPercent = 0;
@@ -110,9 +112,8 @@ export function computeTotals(
     discountPercent = BITCOIN_DISCOUNT_PERCENT;
   }
 
-  const afterDiscount = roundMoney(
-    Math.max(0, subtotal - combinedDiscountAmount)
-  );
+  const afterDiscountCents = Math.max(0, subtotalCents - combinedDiscountCents);
+  const afterDiscount = afterDiscountCents / 100;
 
   // Tax intentionally not itemized. Arizona TPT is absorbed in pricing.
   // To re-enable itemized AZ tax, compute tax from `afterDiscount`.
@@ -123,7 +124,7 @@ export function computeTotals(
     afterDiscount >= FREE_SHIPPING_THRESHOLD
       ? 0
       : FLAT_SHIPPING_USD;
-  const total = roundMoney(afterDiscount + tax + shipping);
+  const total = (afterDiscountCents + Math.round((tax + shipping) * 100)) / 100;
 
   return {
     subtotal,
