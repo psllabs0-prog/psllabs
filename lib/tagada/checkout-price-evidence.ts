@@ -1,0 +1,91 @@
+/**
+ * Tagada's v2 summary distinguishes the original totalAmount from the payable
+ * totalAdjustedAmount. Headless SDK 1.8 currently normalizes the original total.
+ * Read the same authenticated session endpoint and validate its actual summary;
+ * never infer a charge amount by subtracting from an SDK-normalized total.
+ */
+type RecordValue = Record<string, unknown>;
+const object = (value: unknown): RecordValue | null => value !== null && typeof value === "object" && !Array.isArray(value) ? value as RecordValue : null;
+const money = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+const identifier = (value: unknown): value is string => typeof value === "string" && value.length > 0 && value.length <= 1024;
+
+export type CheckoutPriceBinding = {
+  storeId: string;
+  checkoutToken: string;
+  expectedSessionId?: string;
+  /** Only for explicitly marked unpaid provider QA drafts. Never set in checkout. */
+  allowSyntheticDraft?: boolean;
+};
+
+export function normalizeTagadaCheckoutPriceEvidence(value: unknown, binding: CheckoutPriceBinding) {
+  const raw = object(value);
+  const session = object(raw?.checkoutSession);
+  const summaries = Array.isArray(session?.orderSummaries) ? session.orderSummaries : [];
+  const summary = object(raw?.summary ?? session?.summary ?? summaries[0]);
+  const metadata = object(session?.metadata);
+  if (!session || !summary || !identifier(session.id) || session.storeId !== binding.storeId ||
+      session.checkoutToken !== binding.checkoutToken ||
+      (binding.expectedSessionId && session.id !== binding.expectedSessionId) ||
+      summary.currency !== "USD" || (session.selectedPresentmentCurrency != null && session.selectedPresentmentCurrency !== "USD")) return null;
+  if (binding.allowSyntheticDraft ? !(session.draft === true && metadata?.synthetic === true)
+    : session.draft === true || metadata?.synthetic === true) return null;
+  const subtotal = summary.subtotalAmount;
+  const discount = summary.totalPromotionAmount;
+  const shipping = summary.shippingCost;
+  const tax = summary.totalTaxAmount;
+  if (![subtotal, discount, shipping, tax].every(money)) return null;
+  const amounts = { subtotal: subtotal as number, discount: discount as number, shipping: shipping as number, tax: tax as number };
+  if (amounts.discount > amounts.subtotal) return null;
+  const gross = amounts.subtotal + amounts.shipping + amounts.tax;
+  const total = summary.totalAdjustedAmount ?? (amounts.discount === 0 ? summary.totalAmount : undefined);
+  if (!money(total) || total !== gross - amounts.discount || !money(summary.totalAmount) ||
+      (summary.totalAmount !== gross && summary.totalAmount !== total)) return null;
+  if (!Array.isArray(summary.items) || summary.items.length < 1 || summary.items.length > 50 ||
+      !Array.isArray(session.sessionLineItems) || session.sessionLineItems.length !== summary.items.length) return null;
+  const seen = new Set<string>();
+  const items: Array<{ variantId: string; quantity: number }> = [];
+  let itemSubtotal = 0;
+  for (const value of summary.items) {
+    const item = object(value);
+    if (!item || !identifier(item.variantId) || seen.has(item.variantId) || item.currency !== "USD" ||
+        typeof item.quantity !== "number" || !Number.isSafeInteger(item.quantity) || item.quantity < 1 || item.quantity > 100 ||
+        !money(item.unitAmount) || !money(item.amount) || item.amount !== item.unitAmount * item.quantity ||
+        session.sessionLineItems.filter(value => {
+          const line = object(value);
+          return line?.variantId === item.variantId && line?.quantity === item.quantity;
+        }).length !== 1) return null;
+    seen.add(item.variantId);
+    itemSubtotal += item.amount;
+    items.push({ variantId: item.variantId, quantity: item.quantity });
+  }
+  if (itemSubtotal !== amounts.subtotal) return null;
+  const customer = object(session.customer);
+  return {
+    id: session.id,
+    storeId: binding.storeId,
+    checkoutToken: binding.checkoutToken,
+    currency: "USD",
+    items,
+    totals: { ...amounts, total, currency: "USD" },
+    customer: customer && typeof customer.email === "string" ? { email: customer.email } : undefined,
+  };
+}
+
+export async function readTagadaCheckoutPriceEvidence(
+  binding: CheckoutPriceBinding,
+  sessionToken: string | null,
+  environment: "production" | "development" = "production",
+) {
+  if (!identifier(binding.storeId) || !identifier(binding.checkoutToken) || !sessionToken || sessionToken.length > 8192) {
+    throw new Error("The authenticated card checkout binding is unavailable.");
+  }
+  const { HttpClient } = await import("@tagadapay/headless-sdk");
+  const http = new HttpClient({ baseUrl: HttpClient.resolveBaseUrl(environment), timeout: 30000,
+    getToken: () => sessionToken });
+  const raw = await http.get(`/api/v1/checkout-sessions/${encodeURIComponent(binding.checkoutToken)}/v2`, {
+    params: { skipAsyncWait: "false" }, token: sessionToken,
+  });
+  const evidence = normalizeTagadaCheckoutPriceEvidence(raw, binding);
+  if (!evidence) throw new Error("The provider's payable card total or session binding could not be verified.");
+  return evidence;
+}

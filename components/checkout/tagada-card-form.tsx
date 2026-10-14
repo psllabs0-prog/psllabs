@@ -11,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { normalizeCountryCode } from "@/lib/checkout/us-states";
 import { pickTagadaShippingRate } from "@/lib/tagada/select-shipping-rate";
+import { readTagadaCheckoutPriceEvidence } from "@/lib/tagada/checkout-price-evidence";
 import {
   cardSessionStore,
   cardSessionReadyToCharge,
@@ -269,7 +270,9 @@ function TagadaCardFields({
         cardholderName: cardholderName.trim() || undefined,
       });
 
-      const freshSession = await client.checkout.loadSession(session.checkoutToken, session.sessionToken ?? undefined);
+      const freshSession = await readTagadaCheckoutPriceEvidence({ storeId: session.storeId,
+        checkoutToken: session.checkoutToken, expectedSessionId: checkoutSession.id }, session.sessionToken,
+        client.config.environment === "development" ? "development" : "production");
       if (!cardSessionReadyToCharge(session, freshSession, checkoutSession.id)) {
         throw new Error("The current card checkout total does not match your order. Cancel this checkout and start again, use Bitcoin, or contact support. No card charge was started.");
       }

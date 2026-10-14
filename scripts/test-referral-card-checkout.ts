@@ -10,7 +10,7 @@ const order = { currency: "USD", subtotal: 59.99, discountAmount: 6, shippingCos
   email: "fixture@example.test", shipping: { firstName: "Fixture", lastName: "Buyer", address: "1 Test Street", city: "Phoenix", state: "AZ", zip: "85001", country: "US" },
 } as Order;
 const binding = { storeId: "store_fixture", checkoutToken: "checkout_fixture", items: [{ variantId: "var_fixture", quantity: 1 }] };
-const correct = { id: "ch_fixture", ...binding, currency: "USD", totals: { currency: "USD", subtotal: 5999, discount: 600, shipping: 999, tax: 0, total: 6398 } };
+const correct = { id: "ch_fixture", ...binding, currency: "USD", customer: { email: order.email }, totals: { currency: "USD", subtotal: 5999, discount: 600, shipping: 999, tax: 0, total: 6398 } };
 const session: TagadaCardSession = { orderId: "psl_fixture", checkoutToken: binding.checkoutToken, sessionToken: "session_fixture", storeId: binding.storeId,
   items: binding.items, customer: { email: order.email, firstName: "Fixture", lastName: "Buyer" },
   shippingAddress: { line1: "1 Test Street", city: "Phoenix", state: "AZ", postalCode: "85001", country: "US" },
@@ -49,13 +49,13 @@ async function main() {
     process.env.TAGADA_REFERRAL_PROMOTION_CODE = " PROVIDER_REFERRAL10 ";
     expect(configuredReferralPromotionCode(), "PROVIDER_REFERRAL10");
     const calls: string[] = [];
-    let fresh: unknown = correct; let initial: unknown = correct; let loads = 0;
+    let fresh: unknown = correct; let initial: unknown = correct; let loads = 0; let promoFailure: string | null = null;
     const client: ReferralCardCheckoutClient = {
       loadSession: async () => { calls.push("load"); return ++loads === 1 ? initial : fresh; },
       updateCustomerAndAddress: async () => { calls.push("address"); },
       getShippingRates: async () => { calls.push("rates"); return [{ id: "wrong", amount: 1000, currency: "USD" }, { id: "exact", amount: 999, currency: "USD" }]; },
       selectShippingRate: async (_id, rate) => { calls.push(`shipping:${rate}`); },
-      applyPromoCode: async (_id, code) => { calls.push(`promo:${code}`); },
+      applyPromoCode: async (_id, code) => { calls.push(`promo:${code}`); if (promoFailure) throw Object.assign(new Error("Fixture provider failure"), { code: promoFailure }); },
     };
     await configureAndVerifyReferralCardSession(order, session, binding, configuredReferralPromotionCode(), client);
     expect(calls, ["load", "address", "promo:PROVIDER_REFERRAL10", "rates", "shipping:exact", "load"]);
@@ -65,6 +65,15 @@ async function main() {
     initial = { ...correct, checkoutToken: "wrong" };
     await assert.rejects(configureAndVerifyReferralCardSession(order, session, binding, configuredReferralPromotionCode(), client)); checks++;
     expect(calls, ["load"]);
+    initial = correct; fresh = correct; calls.length = 0; loads = 0; promoFailure = "network_error";
+    await configureAndVerifyReferralCardSession(order, session, binding, configuredReferralPromotionCode(), client);
+    expect(calls.filter(call => call.startsWith("promo:")).length, 1);
+    fresh = { ...correct, totals: { ...correct.totals, discount: 0, total: 6998 } }; calls.length = 0; loads = 0;
+    await assert.rejects(configureAndVerifyReferralCardSession(order, session, binding, configuredReferralPromotionCode(), client)); checks++;
+    fresh = correct; calls.length = 0; loads = 0; promoFailure = "validation_error";
+    await assert.rejects(configureAndVerifyReferralCardSession(order, session, binding, configuredReferralPromotionCode(), client)); checks++;
+    expect(calls.includes("rates"), false);
+    promoFailure = null; fresh = { ...correct, totals: { ...correct.totals, discount: 0, total: 6998 } };
     initial = correct; fresh = { ...correct, totals: { ...correct.totals, total: 6998, discount: 0 } }; calls.length = 0; loads = 0;
     await assert.rejects(configureAndVerifyReferralCardSession(order, session, binding, configuredReferralPromotionCode(), client)); checks++;
     const repeat = { ...order, discountAmount: 0, total: 69.98 };
