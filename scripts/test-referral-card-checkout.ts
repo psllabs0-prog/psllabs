@@ -11,7 +11,9 @@ const order = { currency: "USD", subtotal: 59.99, discountAmount: 6, shippingCos
   email: "fixture@example.test", shipping: { firstName: "Fixture", lastName: "Buyer", address: "1 Test Street", city: "Phoenix", state: "AZ", zip: "85001", country: "US" },
 } as Order;
 const binding = { storeId: "store_fixture", checkoutToken: "checkout_fixture", items: [{ variantId: "var_fixture", quantity: 1 }] };
-const correct = { id: "ch_fixture", ...binding, currency: "USD", selectedShippingRateId: "exact", customer: { email: order.email }, totals: { currency: "USD", subtotal: 5999, discount: 600, shipping: 999, tax: 0, total: 6398 } };
+const correct = { id: "ch_fixture", ...binding, currency: "USD", selectedShippingRateId: "exact", customer: { email: order.email },
+  shippingAddress: { line1: order.shipping.address, city: order.shipping.city, state: order.shipping.state, postalCode: order.shipping.zip, country: order.shipping.country },
+  totals: { currency: "USD", subtotal: 5999, discount: 600, shipping: 999, tax: 0, total: 6398 } };
 const session: TagadaCardSession = { orderId: "psl_fixture", checkoutToken: binding.checkoutToken, sessionToken: "session_fixture", storeId: binding.storeId,
   items: binding.items, customer: { email: order.email, firstName: "Fixture", lastName: "Buyer" },
   shippingAddress: { line1: "1 Test Street", city: "Phoenix", state: "AZ", postalCode: "85001", country: "US" },

@@ -1,5 +1,6 @@
 import { CHECKOUT_RESEARCH_ACK_VERSION } from "@/lib/checkout/research-acknowledgement";
 import type { ShippingMethod } from "@/lib/shipping/types";
+import { tagadaCheckoutShippingAddressMatches } from "@/lib/tagada/checkout-price-evidence";
 
 export type TagadaCardSession = {
   orderId: string;
@@ -171,6 +172,8 @@ export function cardSessionReadyToCharge(session: TagadaCardSession, providerVal
     pricingMatches && itemMatches && !!provider && !!totals && string(expectedSessionId, 150) &&
     provider.id === expectedSessionId && provider.storeId === session.storeId &&
     provider.checkoutToken === session.checkoutToken && provider.currency === "USD" && totals.currency === "USD" &&
+    object(provider.customer)?.email === session.customer?.email &&
+    tagadaCheckoutShippingAddressMatches(session.shippingAddress, provider.shippingAddress) &&
     typeof totals.total === "number" && Number.isSafeInteger(totals.total) && totals.total > 0 &&
     Number.isFinite(session.total) && session.total > 0 && totals.total === Math.round(session.total * 100);
 }

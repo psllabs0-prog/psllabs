@@ -209,7 +209,8 @@ function recoveryChecks() {
   const session: TagadaCardSession = { orderId: "fixture", checkoutToken: "checkout_fixture", sessionToken: "fixture_token", storeId: "store_fixture",
     customer: { email: ACCOUNT.email, firstName: "Offline", lastName: "Fixture" }, shippingAddress: { line1: SHIPPING.address, city: SHIPPING.city, state: "AZ", postalCode: "85001", country: "US" },
     items: [{ variantId: "variant_fixture", quantity: 1 }], shippingCost: 9.99, total: 57.98, cartFingerprint: "fixture" };
-  const provider = { id: "session_fixture", storeId: session.storeId, checkoutToken: session.checkoutToken, currency: "USD", totals: { currency: "USD", total: 5798 } };
+  const provider = { id: "session_fixture", storeId: session.storeId, checkoutToken: session.checkoutToken, currency: "USD",
+    customer: { email: session.customer.email }, shippingAddress: { ...session.shippingAddress }, totals: { currency: "USD", total: 5798 } };
   check(cardSessionReadyToCharge(session, provider, provider.id), false, "Legacy ready sessions cannot initiate another card charge");
   check(cardSessionReadyToCharge({ ...session, researchAcknowledgementVersion: "old" }, provider, provider.id), false);
   check(cardSessionReadyToCharge({ ...session, researchAcknowledgementVersion: research.CHECKOUT_RESEARCH_ACK_VERSION,

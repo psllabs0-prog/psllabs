@@ -1,22 +1,26 @@
 /** Offline regressions for the actual v2 original-vs-payable summary format. */
 import assert from "node:assert/strict";
 import { CHECKOUT_RESEARCH_ACK_VERSION } from "../lib/checkout/research-acknowledgement";
-import { normalizeTagadaCheckoutPriceEvidence, readTagadaCheckoutPriceEvidence } from "../lib/tagada/checkout-price-evidence";
+import { normalizeTagadaCheckoutPriceEvidence, readTagadaCheckoutPriceEvidence,
+  normalizeTagadaCheckoutShippingAddress, tagadaCheckoutShippingAddressMatches } from "../lib/tagada/checkout-price-evidence";
 import { referralCardSessionMatchesOrder } from "../lib/tagada/referral-checkout";
 import { cardSessionReadyToCharge, type TagadaCardSession } from "../lib/checkout/card-session-storage";
 import type { Order } from "../lib/orders/types";
 
 let checks = 0;
-const check = (value: unknown, expected: unknown) => { assert.deepEqual(value, expected); checks++; };
+const check = (value: unknown, expected: unknown, message?: string) => { assert.deepEqual(value, expected, message); checks++; };
 const binding = { storeId: "store_fixture", checkoutToken: "checkout_fixture", expectedSessionId: "cs_fixture" };
 const raw = { checkoutSession: { id: "cs_fixture", storeId: binding.storeId, checkoutToken: binding.checkoutToken,
   selectedPresentmentCurrency: "USD", shippingRateId: "ship_fixture", draft: false, metadata: {}, customer: { email: "fixture@example.test" },
+  shippingAddress: { address1: "1 Test Street", address2: "Apt 2", city: "Phoenix", state: "AZ", postal: "85001", country: "US" },
   sessionLineItems: [{ variantId: "variant_fixture", quantity: 1 }] },
 summary: { currency: "USD", subtotalAmount: 5999, totalPromotionAmount: 600, shippingCost: 999, totalTaxAmount: 0,
   totalAmount: 6998, totalAdjustedAmount: 6398, items: [{ variantId: "variant_fixture", quantity: 1, unitAmount: 5999, amount: 5999, currency: "USD" }] } };
 const order = { currency: "USD", subtotal: 59.99, discountAmount: 6, shippingCost: 9.99, tax: 0, total: 63.98 } as Order;
 const expected = { ...binding, items: [{ variantId: "variant_fixture", quantity: 1 }], customerEmail: "fixture@example.test" };
 const session = { storeId: binding.storeId, checkoutToken: binding.checkoutToken, items: expected.items, shippingCost: 9.99, total: 63.98,
+  customer: { email: "fixture@example.test", firstName: "Fixture", lastName: "Buyer" },
+  shippingAddress: { line1: "1 Test Street\nApt 2", city: "Phoenix", state: "AZ", postalCode: "85001", country: "US" },
   researchAcknowledgementVersion: CHECKOUT_RESEARCH_ACK_VERSION,
   shippingMethod: "standard", tagadaShippingRateId: "ship_fixture",
   pricing: { subtotal: 59.99, discountAmount: 6, tax: 0, discountCode: "fixture" } } as TagadaCardSession;
@@ -24,8 +28,22 @@ const session = { storeId: binding.storeId, checkoutToken: binding.checkoutToken
 async function main() {
   const evidence = normalizeTagadaCheckoutPriceEvidence(raw, binding);
   check(evidence?.totals.total, 6398);
+  check(evidence?.shippingAddress, { line1: "1 Test Street", line2: "Apt 2", city: "Phoenix", state: "AZ", postalCode: "85001", country: "US" });
+  check(tagadaCheckoutShippingAddressMatches(session.shippingAddress, evidence?.shippingAddress), true);
+  check(tagadaCheckoutShippingAddressMatches(session.shippingAddress, { line1: " 1 test street ", line2: "apt  2", city: "phoenix", state: "az", postalCode: "85001", country: "us" }), true);
+  check(tagadaCheckoutShippingAddressMatches({ ...session.shippingAddress, postalCode: "85001-1234" }, { ...evidence?.shippingAddress, postalCode: "850011234" }), true);
+  check(tagadaCheckoutShippingAddressMatches(session.shippingAddress, { ...evidence?.shippingAddress, postalCode: "85001-1234" }), false, "a ZIP+4 is never invented or discarded");
+  check(normalizeTagadaCheckoutShippingAddress({ ...raw.checkoutSession.shippingAddress, unrelatedPrivateValue: "omitted" }), evidence?.shippingAddress);
   check(referralCardSessionMatchesOrder(order, expected, evidence), true);
   check(cardSessionReadyToCharge(session, evidence, "cs_fixture"), true);
+  for (const shippingAddress of [undefined, {}, { ...evidence?.shippingAddress, line1: "Unrelated Street" },
+    { ...evidence?.shippingAddress, line2: "" }, { ...evidence?.shippingAddress, city: "Other City" },
+    { ...evidence?.shippingAddress, state: "NY" }, { ...evidence?.shippingAddress, postalCode: "10007" },
+    { ...evidence?.shippingAddress, country: "CA" }]) {
+    check(cardSessionReadyToCharge(session, { ...evidence, shippingAddress }, "cs_fixture"), false);
+    check(referralCardSessionMatchesOrder(order, { ...expected, shippingAddress: session.shippingAddress }, { ...evidence, shippingAddress }), false);
+  }
+  check(cardSessionReadyToCharge(session, { ...evidence, customer: { email: "other@example.test" } }, "cs_fixture"), false);
   for (const changed of [{ totalAdjustedAmount: 6998 }, { totalAdjustedAmount: undefined }, { totalAdjustedAmount: "6398" },
     { totalAdjustedAmount: 6397 }, { totalAmount: 6999 }, { currency: "EUR" }, { subtotalAmount: 6000 },
     { totalPromotionAmount: 601 }, { totalPromotionAmount: -600 }, { shippingCost: 1000 }, { totalTaxAmount: 1 },

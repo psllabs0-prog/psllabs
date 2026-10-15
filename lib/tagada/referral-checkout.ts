@@ -1,6 +1,10 @@
 import type { Order } from "@/lib/orders/types";
-import { readTagadaCheckoutPriceEvidence } from "@/lib/tagada/checkout-price-evidence";
+import { readTagadaCheckoutPriceEvidence, tagadaCheckoutShippingAddressMatches, type CheckoutShippingAddress } from "@/lib/tagada/checkout-price-evidence";
 import { configuredTagadaShippingRateId, pickTagadaShippingRate } from "@/lib/tagada/select-shipping-rate";
+import { computeTotals } from "@/lib/checkout/totals";
+import { getPriorityShippingConfig } from "@/lib/shipping/config";
+import { getPriorityShippingPriceUsd, PRIORITY_PACKAGE, priorityCostCovered, readShippingSelection } from "@/lib/shipping/policy";
+import { isPhysicalUSShippingAddress } from "@/lib/shipping/request";
 
 /** Provider promotion is selected by the server, never supplied by the shopper. */
 export function configuredReferralPromotionCode(): string | null {
@@ -15,7 +19,7 @@ const minor = (value: number) => Math.round(value * 100);
 /** Exact catalog, shipping, and promotion evidence, without trusting browser metadata. */
 export function referralCardSessionMatchesOrder(
   order: Pick<Order, "currency" | "subtotal" | "discountAmount" | "shippingCost" | "tax" | "total">,
-  expected: { storeId: string; checkoutToken: string; items: Array<{ variantId: string; quantity: number }>; customerEmail?: string; expectedSessionId?: string; shippingRateId?: string },
+  expected: { storeId: string; checkoutToken: string; items: Array<{ variantId: string; quantity: number }>; customerEmail?: string; expectedSessionId?: string; shippingRateId?: string; shippingAddress?: CheckoutShippingAddress },
   providerValue: unknown,
 ): boolean {
   const provider = object(providerValue);
@@ -26,6 +30,7 @@ export function referralCardSessionMatchesOrder(
   if (expected.expectedSessionId && provider.id !== expected.expectedSessionId) return false;
   if (expected.customerEmail && object(provider.customer)?.email !== expected.customerEmail) return false;
   if (expected.shippingRateId && provider.selectedShippingRateId !== expected.shippingRateId) return false;
+  if (expected.shippingAddress && !tagadaCheckoutShippingAddressMatches(expected.shippingAddress, provider.shippingAddress)) return false;
   for (const [field, amount] of Object.entries({ subtotal: order.subtotal, discount: order.discountAmount,
     shipping: order.shippingCost, tax: order.tax, total: order.total })) {
     if (!Number.isFinite(amount) || amount < 0 || !Number.isSafeInteger(totals[field]) || totals[field] !== minor(amount)) return false;
@@ -48,6 +53,31 @@ export type ReferralCardCheckoutClient = {
   selectShippingRate(id: string, rateId: string): Promise<void>;
   applyPromoCode(id: string, code: string): Promise<void>;
 };
+
+/** Server-owned tier IDs are usable only under this store's verified eligibility. */
+function configuredShippingEligible(order: Order, method: "standard" | "priority"): boolean {
+  if (order.currency !== "USD" || !isPhysicalUSShippingAddress(order.shipping) ||
+      ![order.subtotal, order.discountAmount, order.shippingCost].every(value => Number.isFinite(value) && value >= 0) ||
+      order.subtotal <= 0 || order.discountAmount > order.subtotal) return false;
+  if (method === "standard") {
+    const subtotalCents = Math.round(order.subtotal * 100);
+    // These are the independently verified native merchant-rate brackets.
+    // The empty-list path must not broaden a configured rate's eligibility.
+    return order.shippingCost === computeTotals(order.subtotal).shipping && subtotalCents <= 999_999 &&
+      (order.shippingCost === 0 ? subtotalCents >= 10_000 : subtotalCents <= 9_999);
+  }
+  const config = getPriorityShippingConfig();
+  const selection = readShippingSelection(order.shipping.selection);
+  return !!config && !!selection && selection.method === "priority" && selection.providerServiceCode === config.serviceCode &&
+    selection.transitDays !== null && typeof selection.deliveryEstimate === "string" && selection.deliveryEstimate.trim().length > 0 &&
+    JSON.stringify(selection.package) === JSON.stringify(PRIORITY_PACKAGE) &&
+    !!selection.quoteExpiresAt && Date.parse(selection.quoteExpiresAt) > Date.now() &&
+    Array.isArray(order.items) && order.items.length > 0 &&
+    order.items.every(item => Number.isSafeInteger(item.quantity) && item.quantity > 0) &&
+    order.items.reduce((sum, item) => sum + item.quantity, 0) <= config.maxUnits &&
+    order.shippingCost === getPriorityShippingPriceUsd(Math.round(order.subtotal * 100) - Math.round(order.discountAmount * 100)) &&
+    priorityCostCovered(selection.quotedPostageUsd!, order.shippingCost, config.extraCostReserveUsd);
+}
 
 /** Real checkout use only. Offline tests inject a fixture; previews cannot call the provider. */
 export async function configureAndVerifyCardSession(
@@ -97,14 +127,20 @@ export async function configureAndVerifyCardSession(
   const rates = await checkout.getShippingRates(id);
   const rate = pickTagadaShippingRate(rates.map(rate => ({ ...rate, name: rate.name ?? "" })), order.shippingCost,
     { method, rateId: configuredId });
-  if (!rate) throw new Error("The selected shipping service and exact USD price are unavailable for card checkout.");
-  await checkout.selectShippingRate(id, rate.id);
+  // The provider can return a successful empty list with force-refetch set even
+  // for merchant-verified eligible rates. Never recover from HTTP/auth errors or
+  // a nonempty conflicting list; only a configured, locally eligible ID applies.
+  const rateId = rate?.id ?? (rates.length === 0 && configuredId && configuredShippingEligible(order, method) ? configuredId : null);
+  if (!rateId) throw new Error("The selected shipping service and exact USD price are unavailable for card checkout.");
+  await checkout.selectShippingRate(id, rateId);
   const fresh = await checkout.loadSession(session.checkoutToken, session.sessionToken ?? undefined);
   if (!referralCardSessionMatchesOrder(order, { ...expected, checkoutToken: session.checkoutToken,
-    expectedSessionId: id, customerEmail: order.email, shippingRateId: rate.id }, fresh)) {
+    expectedSessionId: id, customerEmail: order.email, shippingRateId: rateId,
+    shippingAddress: { line1: order.shipping.address, city: order.shipping.city, state: order.shipping.state,
+      postalCode: order.shipping.zip, country: order.shipping.country } }, fresh)) {
     throw new Error("The provider card price or shipping service does not match this order. No card charge was started.");
   }
-  return { shippingRateId: rate.id };
+  return { shippingRateId: rateId };
 }
 
 /** Compatibility export for existing referral callers and offline coverage. */

@@ -252,8 +252,12 @@ function TagadaCardFields({
       const rates = await getShippingRates();
       const pickedRate = pickTagadaShippingRate(rates, session.shippingCost,
         { method: session.shippingMethod, rateId: session.tagadaShippingRateId });
-      if (!pickedRate) throw new Error("Your selected shipping service or price is no longer available. Cancel this checkout and review shipping again. No card charge was started.");
-      if (checkoutSession.selectedShippingRateId !== pickedRate.id) await selectShippingRate(pickedRate.id);
+      // A successful lookup can omit the configured rate. Only the exact ID
+      // already verified by our server may fill an empty list; fresh provider
+      // evidence below must still prove its saved service, fee and order total.
+      const shippingRateId = pickedRate?.id ?? (rates.length === 0 ? session.tagadaShippingRateId : null);
+      if (!shippingRateId) throw new Error("Your selected shipping service or price is no longer available. Cancel this checkout and review shipping again. No card charge was started.");
+      if (checkoutSession.selectedShippingRateId !== shippingRateId) await selectShippingRate(shippingRateId);
       await refresh();
 
       const { tagadaToken } = await tokenizeCard({
@@ -264,7 +268,7 @@ function TagadaCardFields({
       });
 
       const freshSession = await readTagadaCheckoutPriceEvidence({ storeId: session.storeId,
-        checkoutToken: session.checkoutToken, expectedSessionId: checkoutSession.id, expectedShippingRateId: pickedRate.id }, session.sessionToken,
+        checkoutToken: session.checkoutToken, expectedSessionId: checkoutSession.id, expectedShippingRateId: shippingRateId }, session.sessionToken,
         client.config.environment === "development" ? "development" : "production");
       if (!cardSessionReadyToCharge(session, freshSession, checkoutSession.id)) {
         throw new Error("The current card checkout total does not match your order. Cancel this checkout and start again, use Bitcoin, or contact support. No card charge was started.");

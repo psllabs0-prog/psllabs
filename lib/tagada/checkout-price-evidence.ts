@@ -9,6 +9,34 @@ const object = (value: unknown): RecordValue | null => value !== null && typeof 
 const money = (value: unknown): value is number => typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
 const identifier = (value: unknown): value is string => typeof value === "string" && value.length > 0 && value.length <= 1024;
 
+export type CheckoutShippingAddress = {
+  line1: string; line2?: string; city: string; state: string; postalCode: string; country: string;
+};
+
+/** Project provider address aliases without retaining unrelated customer data. */
+export function normalizeTagadaCheckoutShippingAddress(value: unknown): CheckoutShippingAddress | null {
+  const raw = object(value);
+  if (!raw) return null;
+  const address = { line1: raw.line1 ?? raw.address1, line2: raw.line2 ?? raw.address2 ?? "", city: raw.city,
+    state: raw.state, postalCode: raw.postalCode ?? raw.postal, country: raw.country };
+  if (!Object.values(address).every(value => typeof value === "string" && value.length <= 500 && !/[\u0000-\u0009\u000b\u000c\u000e-\u001f\u007f]/.test(value)) ||
+      ![address.line1, address.city, address.state, address.postalCode, address.country].every(value => (value as string).trim())) return null;
+  return address as CheckoutShippingAddress;
+}
+
+/** Case/spacing and line splits may differ; no street or ZIP+4 is guessed. */
+export function tagadaCheckoutShippingAddressMatches(expected: CheckoutShippingAddress, value: unknown): boolean {
+  const actual = normalizeTagadaCheckoutShippingAddress(value);
+  const wanted = normalizeTagadaCheckoutShippingAddress(expected);
+  if (!actual || !wanted) return false;
+  const clean = (text: string) => text.trim().replace(/\s+/g, " ").toUpperCase();
+  const street = (address: CheckoutShippingAddress) => clean([address.line1, address.line2 ?? ""].join(" "));
+  const postal = (text: string) => clean(text).replace(/-/g, "");
+  return street(actual) === street(wanted) && clean(actual.city) === clean(wanted.city) &&
+    clean(actual.state) === clean(wanted.state) && clean(actual.country) === clean(wanted.country) &&
+    /^\d{5}(?:\d{4})?$/.test(postal(actual.postalCode)) && postal(actual.postalCode) === postal(wanted.postalCode);
+}
+
 export type CheckoutPriceBinding = {
   storeId: string;
   checkoutToken: string;
@@ -74,6 +102,7 @@ export function normalizeTagadaCheckoutPriceEvidence(value: unknown, binding: Ch
     items,
     totals: { ...amounts, total, currency: "USD" },
     customer: customer && typeof customer.email === "string" ? { email: customer.email } : undefined,
+    shippingAddress: normalizeTagadaCheckoutShippingAddress(session.shippingAddress) ?? undefined,
   };
 }
 

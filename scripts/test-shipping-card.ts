@@ -33,6 +33,7 @@ const session: TagadaCardSession = { orderId: order.orderId, ...binding, session
   researchAcknowledgementVersion: CHECKOUT_RESEARCH_ACK_VERSION, shippingMethod: "priority", tagadaShippingRateId: "priority2499",
   shippingQuote: context.quote!, shippingQuoteExpiresAt: new Date(Date.now() + 300000).toISOString(), shippingContextFingerprint: cardShippingContextFingerprint(context) };
 const provider = { ...binding, id: "cs_fixture", currency: "USD", selectedShippingRateId: "priority2499", customer: { email: context.email },
+  shippingAddress: { ...session.shippingAddress },
   totals: { subtotal: 5999, discount: 0, shipping: 2499, tax: 0, total: 8498, currency: "USD" } };
 
 async function main() {
@@ -89,6 +90,7 @@ async function main() {
     check(createCardSessionStore(() => storage, () => 1100).getSnapshot()?.phase, "processing");
     check(createCardSessionStore(() => storage, () => 1100).getSnapshot()?.session?.shippingContextFingerprint, session.shippingContextFingerprint);
     const raw = { checkoutSession: { id: provider.id, storeId: binding.storeId, checkoutToken: binding.checkoutToken,
+      shippingAddress: { ...session.shippingAddress },
       shippingRateId: "priority2499", sessionLineItems: binding.items, draft: false }, summary: { currency: "USD",
       subtotalAmount: 5999, totalPromotionAmount: 0, shippingCost: 2499, totalTaxAmount: 0, totalAmount: 8498,
       items: [{ variantId: "variant_fixture", quantity: 1, unitAmount: 5999, amount: 5999, currency: "USD" }] } };

@@ -16,9 +16,9 @@ const ROOT = resolve(__dirname, "..");
 let checks = 0;
 const check = (actual: unknown, expected: unknown, message?: string) => { assert.deepEqual(actual, expected, message); checks++; };
 type Failure = "mapping-missing" | "mapping-error" | "payment-method" | "create" | "persist-before" | "persist-after"
-  | "address" | "rate" | "currency" | "price" | "selection" | "cleanup";
+  | "address" | "rate" | "rate-error" | "currency" | "price" | "selection" | "cleanup";
 type Drift = "paid" | "shipped" | "invoiceId" | "paymentMethod" | "total" | "currency";
-type Options = { failure?: Failure; drift?: Drift; unauthorized?: boolean; invalid?: boolean; configured?: boolean; preview?: boolean };
+type Options = { failure?: Failure; drift?: Drift; unauthorized?: boolean; invalid?: boolean; configured?: boolean; preview?: boolean; emptyRates?: boolean };
 const template = {
   orderId: "psl_setup_fixture", status: "pending", paymentMethod: "card", invoiceId: null, currency: "USD",
   email: "fixture@example.invalid", subtotal: 59.99, discountAmount: 0, discountCode: null, shippingCost: 9.99, tax: 0, total: 69.98,
@@ -66,13 +66,17 @@ async function run(options: Options = {}) {
     } },
   }) as { markStatusIfPending: (...args: unknown[]) => Promise<void> };
   const provider = { id: "session_fixture", storeId: "store_fixture", checkoutToken: "checkout_fixture", currency: "USD",
+    shippingAddress: { line1: template.shipping.address, city: template.shipping.city, state: template.shipping.state, postalCode: template.shipping.zip, country: template.shipping.country },
     customer: { email: template.email }, items: [{ variantId: "variant_fixture", quantity: 1 }], selectedShippingRateId: "rate_fixture",
     totals: { currency: "USD", subtotal: 5999, discount: 0, shipping: 999, tax: 0, total: options.failure === "price" ? 6999 : 6998 } };
   const client: ReferralCardCheckoutClient = {
     loadSession: async () => structuredClone(provider),
     updateCustomerAndAddress: async () => { if (options.failure === "address") throw new Error("Fixture address failure"); },
-    getShippingRates: async () => options.failure === "rate" ? [] : [{ id: "rate_fixture", name: "USPS Ground Advantage", amount: 999,
-      currency: options.failure === "currency" ? "EUR" : "USD" }],
+    getShippingRates: async () => {
+      if (options.failure === "rate-error") throw new Error("Fixture rate HTTP/auth failure");
+      return options.emptyRates ? [] : [{ id: options.failure === "rate" ? "other_rate" : "rate_fixture", name: "USPS Ground Advantage", amount: 999,
+        currency: options.failure === "currency" ? "EUR" : "USD" }];
+    },
     selectShippingRate: async () => {},
     applyPromoCode: async () => { throw new Error("Unexpected fixture promotion"); },
   };
@@ -136,7 +140,7 @@ async function main() {
   Object.assign(process.env, { PSL_VISUAL_PREVIEW: "0", TAGADA_SHIPPING_STANDARD_PAID_RATE_ID: "rate_fixture" });
   try {
     for (const failure of ["mapping-missing", "mapping-error", "payment-method", "create", "persist-before", "persist-after",
-      "address", "rate", "currency", "price", "selection"] as Failure[]) {
+      "address", "rate", "rate-error", "currency", "price", "selection"] as Failure[]) {
       const result = await run({ failure });
       check(result.response.status, failure === "mapping-missing" ? 409 : 502);
       check(result.saved.status, "cancelled", `${failure} releases only the new pending stock reservation`);
@@ -156,6 +160,10 @@ async function main() {
     check(success.response.status, 200); check(success.saved.status, "pending");
     check(success.effects.cancellations, [], "A ready payable session is never cancelled");
     check(success.payload.checkoutToken, "checkout_fixture"); check(success.payload.tagadaShippingRateId, "rate_fixture");
+    const emptyRates = await run({ emptyRates: true });
+    check(emptyRates.response.status, 200); check(emptyRates.saved.status, "pending");
+    check(emptyRates.effects.cancellations, [], "a successful configured empty-list selection remains ready to pay");
+    check(emptyRates.payload.tagadaShippingRateId, "rate_fixture");
     for (const [options, status] of [[{ unauthorized: true }, 401], [{ invalid: true }, 400], [{ configured: false }, 503], [{ preview: true }, 503]] as const) {
       const result = await run(options);
       check(result.response.status, status); check(result.effects.cancellations, []); check(result.effects.creates, 0);

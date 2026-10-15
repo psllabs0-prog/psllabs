@@ -145,6 +145,7 @@ async function main() {
     check(cardCartFingerprint(multiple) === cardCartFingerprint([...multiple].reverse()), "cart order alone does not invalidate checkout");
     check(!cardCartFingerprint([{ ...cart[0], cardNumber: "CARD_SECRET" } as typeof cart[0]]).includes("CARD_SECRET"));
     const providerSession = {
+      customer: { email: session.customer.email }, shippingAddress: { ...session.shippingAddress },
       id: "session_fixture", storeId: session.storeId, checkoutToken: session.checkoutToken,
       currency: "USD", totals: { total: 6898, currency: "USD" },
       selectedShippingRateId: "ship_fixture",
