@@ -5,6 +5,7 @@ import { Pool } from "pg";
 import { getMigrations } from "better-auth/db/migration";
 import { createResearchAuth } from "../lib/research-auth/auth";
 import { assertReviewedQualificationConstraints } from "./research-accounts-schema-check";
+import { researchOperatorConnection, operatorErrorCode } from "./research-accounts-operator-database";
 
 const EXPECTED_PROJECT="prj_2okzpd1tXGerE2c5i0zdjExu8tLd";
 const SETUP_FLAG="reviewed-kashu-20261014-v1";
@@ -18,12 +19,11 @@ async function main(){
   assert.equal(process.env.VERCEL_ENV,"production","Staged production context required.");
   assert.equal(process.env.VERCEL_PROJECT_ID,EXPECTED_PROJECT,"Verified PSL project required.");
   assert.notEqual(process.env.PSL_VISUAL_PREVIEW,"1","Production auth may not use a design-preview database bypass.");
-  const connectionString=process.env.DATABASE_URL||process.env.POSTGRES_URL;
+  const connection=researchOperatorConnection(process.env),{connectionString}=connection;
   const secret=process.env.RESEARCH_AUTH_SECRET?.trim();
   assert.ok(connectionString&&secret&&secret.length>=32,"Existing database and dedicated new auth secret required.");
-  const url=new URL(connectionString!);assert.ok(["postgres:","postgresql:"].includes(url.protocol)&&url.hostname.endsWith(".neon.tech"),"Existing Neon database required.");
   const pool=new Pool({connectionString,options:"-c search_path=public",max:2,connectionTimeoutMillis:10000,idleTimeoutMillis:1000});
-  const report:Record<string,unknown>={project:EXPECTED_PROJECT,setupVersion:SETUP_FLAG,productionAccountWrites:0,orderRowWrites:0,mailSends:0,providerCalls:0};
+  const report:Record<string,unknown>={project:EXPECTED_PROJECT,setupVersion:SETUP_FLAG,connectionMode:connection.connectionMode,connectionSource:connection.source,productionAccountWrites:0,orderRowWrites:0,mailSends:0,providerCalls:0};
   try{
     const snapshot=async()=>{
       const exists=await pool.query("SELECT to_regclass('public.orders') IS NOT NULL AS orders,to_regclass('public.products') IS NOT NULL AS products,to_regclass('public.partner_registration_profiles') IS NOT NULL AS partners,to_regclass('public.research_auth_user') IS NOT NULL AS auth");
@@ -63,4 +63,4 @@ async function main(){
     console.log(JSON.stringify(report));
   }finally{await pool.end();}
 }
-main().catch(()=>{console.error("Reviewed research-account bootstrap did not pass. Current live deployment must remain unchanged; inspect the sanitized stage and schema plan.");process.exitCode=1;});
+main().catch(error=>{console.error(JSON.stringify({passed:false,errorCode:operatorErrorCode(error),failure:"Reviewed research-account bootstrap did not pass. Current live deployment must remain unchanged; inspect the sanitized stage and schema plan."}));process.exitCode=1;});

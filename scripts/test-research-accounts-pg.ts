@@ -11,6 +11,7 @@ import { createResearchAuth } from "../lib/research-auth/auth";
 import { createResearchAccountReader } from "../lib/research-auth/server";
 import { createResearchRequestGuard } from "../lib/research-auth/guard";
 import { assertReviewedQualificationConstraints } from "./research-accounts-schema-check";
+import { researchOperatorConnection, operatorErrorCode } from "./research-accounts-operator-database";
 
 const QA_SCHEMA = /^psl_research_qa_\d{8}_[a-f0-9]{16}$/;
 const tables = ["research_auth_user","research_auth_session","research_auth_account","research_auth_verification","research_auth_rate_limit"].sort();
@@ -23,26 +24,27 @@ async function main() {
   const fromEnvironment=process.argv.includes("--environment");
   if ((!envFile&&!fromEnvironment)||(envFile&&fromEnvironment)) throw new Error("Choose exactly one explicit protected configuration source.");
   const protectedEnv=fromEnvironment?process.env:parseEnv(readFileSync(envFile!,"utf8"));
-  const connectionString=protectedEnv.DATABASE_URL || protectedEnv.POSTGRES_URL;
-  if (!connectionString) throw new Error("No database connection is configured.");
-  const databaseUrl=new URL(connectionString);
-  if (!["postgres:","postgresql:"].includes(databaseUrl.protocol) || !databaseUrl.hostname.endsWith(".neon.tech")) throw new Error("Expected existing Neon PostgreSQL connection.");
+  const connection=researchOperatorConnection(protectedEnv);
+  const {connectionString}=connection;
   const schema=`psl_research_qa_${new Date().toISOString().slice(0,10).replaceAll("-","")}_${randomBytes(8).toString("hex")}`;
   if (!QA_SCHEMA.test(schema)) throw new Error("Invalid QA schema guard.");
   const control=new Pool({connectionString,max:1,connectionTimeoutMillis:10000,idleTimeoutMillis:1000});
   const isolated=new Pool({connectionString,options:`-c search_path=${schema}`,max:2,connectionTimeoutMillis:10000,idleTimeoutMillis:1000});
   let createdOid:string|null=null,stage="preflight",checks=0;
   const check=(truth:unknown,message:string)=>{assert.ok(truth,message);checks++;};
-  const report:Record<string,unknown>={schema,startedAt:new Date().toISOString(),onlyTemporarySchema:true,publicAccountWrites:0,realMailSends:0,orderWrites:0,providerCalls:0};
+  const report:Record<string,unknown>={schema,startedAt:new Date().toISOString(),connectionMode:connection.connectionMode,connectionSource:connection.source,onlyTemporarySchema:true,publicAccountWrites:0,realMailSends:0,orderWrites:0,providerCalls:0};
   try {
     const existing=await control.query("SELECT to_regclass('public.orders') IS NOT NULL AS orders, to_regclass('public.products') IS NOT NULL AS products, to_regclass('public.partner_registration_profiles') IS NOT NULL AS partners");
     check(existing.rows[0].orders&&existing.rows[0].products&&existing.rows[0].partners,"expected PSL existing database schema");
     const publicBefore=await control.query("SELECT oid::text,relname FROM pg_class WHERE relnamespace='public'::regnamespace AND relname=ANY($1::text[]) ORDER BY relname",[tables]);
     stage="create-isolated-schema";
     await control.query(`CREATE SCHEMA "${schema}"`);
+    stage="verify-created-schema-identity";
     const identity=await control.query("SELECT oid::text, pg_get_userbyid(nspowner)=current_user AS owned FROM pg_namespace WHERE nspname=$1",[schema]);
     check(identity.rows.length===1&&identity.rows[0].owned===true,"QA schema owned by current operator");createdOid=identity.rows[0].oid;
-    const current=await isolated.query("SELECT current_schema() AS schema");check(current.rows[0].schema===schema,"PG adapter isolated search_path");
+    stage="connect-isolated-search-path";
+    const current=await isolated.query("SELECT current_schema() AS schema");
+    stage="verify-isolated-search-path";check(current.rows[0].schema===schema,"PG adapter isolated search_path");
     stage="apply-isolated-schema";
     const client=await isolated.connect();try{await client.query("BEGIN");await client.query(readFileSync(resolve("scripts/research-accounts-schema.sql"),"utf8"));await client.query("COMMIT");}catch(error){await client.query("ROLLBACK");throw error;}finally{client.release();}
     const createdTables=await isolated.query("SELECT tablename FROM pg_tables WHERE schemaname=$1 ORDER BY tablename",[schema]);
@@ -87,7 +89,7 @@ async function main() {
     check(JSON.stringify(publicBefore.rows)===JSON.stringify(publicAfter.rows),"public research-auth relations unchanged");
     report.passed=true;report.checks=checks;report.actualPostgresAdapter=true;report.captureOnlyPasswordReset=true;
   } catch(error) {
-    report.passed=false;report.failedStage=stage;report.failure=error instanceof assert.AssertionError?error.message:"Isolated QA could not complete; no connection details printed.";process.exitCode=1;
+    report.passed=false;report.failedStage=stage;report.errorCode=operatorErrorCode(error);report.failure=error instanceof assert.AssertionError?error.message:"Isolated QA could not complete; no connection details printed.";process.exitCode=1;
   } finally {
     await isolated.end();
     if(createdOid){
