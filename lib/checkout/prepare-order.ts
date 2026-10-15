@@ -18,6 +18,8 @@ import { normalizeReferralCode } from "@/lib/partners/referral-logic";
 import { referralCodesEnabled } from "@/lib/partners/referral-config";
 import { readCheckoutResearchDeclaration, RESEARCH_USE_CHECKOUT_STATEMENT } from "@/lib/checkout/research-acknowledgement";
 import { markStatusIfPending, saveOrderResearchAcknowledgement } from "@/lib/orders/store";
+import { normalizeShippingMethod, standardShippingSelection } from "@/lib/shipping/policy";
+import { isPhysicalUSShippingAddress } from "@/lib/shipping/request";
 
 const MAX_QUANTITY = 10;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -36,6 +38,8 @@ export type CheckoutBody = {
   attribution?: unknown;
   /** Required explicit checkout choice, separate from account and cookie consent. */
   researchAcknowledgement?: unknown;
+  shippingMethod?: unknown;
+  shippingQuote?: unknown;
 };
 
 export type PrepareOrderOptions = {
@@ -124,6 +128,8 @@ export async function prepareReservedOrder(
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return { ok: false, error: "Invalid checkout request.", status: 400 };
   }
+  const shippingMethod = normalizeShippingMethod(body.shippingMethod);
+  if (!shippingMethod) return { ok: false, error: "Choose standard shipping or an available Priority Mail option.", status: 400 };
   const researchDeclaration = readCheckoutResearchDeclaration(body.researchAcknowledgement);
   if (!researchDeclaration) return {
     ok: false, error: "Choose your research status and confirm research use only, not for human consumption.", status: 400,
@@ -149,7 +155,7 @@ export async function prepareReservedOrder(
   }
 
   const rawShipping = (body.shipping ?? {}) as RawShipping;
-  const shipping = {
+  const shipping: Order["shipping"] = {
     firstName: str(rawShipping.firstName),
     lastName: str(rawShipping.lastName),
     address: str(rawShipping.address),
@@ -178,6 +184,9 @@ export async function prepareReservedOrder(
       status: 400,
     };
   }
+  if (!isPhysicalUSShippingAddress(shipping)) return {
+    ok: false, error: "Enter a U.S. physical street address and valid ZIP code. International, PO box and military mail addresses are not supported.", status: 400,
+  };
 
   const currency =
     typeof body.currency === "string" && body.currency.trim()
@@ -304,7 +313,18 @@ export async function prepareReservedOrder(
 
   const totals = computeTotals(subtotalRaw, shipping.state, appliedDiscount, {
     paymentMethod,
+    shippingMethod,
   });
+  if (shippingMethod === "priority") {
+    const { validatePriorityShippingQuote } = await import("@/lib/shipping/quote");
+    const selection = validatePriorityShippingQuote(body.shippingQuote, {
+      accountId, email, shipping, items, subtotalCents: Math.round(totals.subtotal * 100),
+      discountCents: Math.round(totals.discountAmount * 100),
+      discountCode: referralDiscount ? appliedDiscount!.code : totals.discountCode, paymentMethod,
+    });
+    if (!selection) return { ok: false, error: "Priority Mail is unavailable or the quote has changed or expired. Choose standard shipping or request a new quote.", status: 409 };
+    shipping.selection = selection;
+  } else shipping.selection = standardShippingSelection();
   if (totals.total <= 0) {
     return {
       ok: false,

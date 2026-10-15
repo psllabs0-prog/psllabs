@@ -1,6 +1,7 @@
 import type { ContentPageMeta, FaqCategory } from "./types";
 import { FLAT_SHIPPING_USD, FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 import { TESTING_SCOPE_STATEMENT } from "./testing-scope";
+import { ORDER_PROCESSING_NOTICE, STANDARD_TRANSIT_NOTICE } from "./shipping";
 
 export const faqPageMeta: ContentPageMeta = {
   label: "FAQ",
@@ -76,7 +77,7 @@ export const faqCategories: FaqCategory[] = [
       },
       {
         question: "How long does shipping take?",
-        answer: `Orders usually pack and ship within 1 to 2 business days after payment clears. Carrier delivery often takes about 3 to 5 business days after that. Standard shipping is $${FLAT_SHIPPING_USD.toFixed(2)}; orders of $${FREE_SHIPPING_THRESHOLD} or more get free standard shipping.`,
+        answer: `${ORDER_PROCESSING_NOTICE} ${STANDARD_TRANSIT_NOTICE} Standard shipping is $${FLAT_SHIPPING_USD.toFixed(2)}; a product subtotal of $${FREE_SHIPPING_THRESHOLD} or more before discounts gets free standard shipping. Checkout shows currently available delivery options and any separate upgrade charge. Carrier estimates are not guaranteed.`,
       },
       {
         question: "What is your return policy?",

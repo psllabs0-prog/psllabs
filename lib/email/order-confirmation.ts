@@ -17,6 +17,7 @@ import {
 } from "@/lib/orders/tracking";
 import { getCatalogProductByHandle } from "@/lib/products/catalog";
 import type { Order } from "@/lib/orders/types";
+import { getOrderShippingPresentation } from "@/lib/shipping/presentation";
 
 const LEGAL_FOOTER = `${LEGAL_ENTITY_NAME} — Phoenix, AZ. All products are for laboratory research use only. Not for human or animal consumption.`;
 const TRACK_URL = ORDER_TRACKING_URL;
@@ -32,6 +33,7 @@ export function buildCustomerOrderConfirmationEmail(order: Order) {
   const orderDate = formatOrderDate(order.createdAt);
   const shipSummary = formatPartialShippingAddress(order.shipping);
   const documentation = buildOrderDocumentation();
+  const shipping = getOrderShippingPresentation(order.shipping);
 
   const itemRows = order.items
     .map((it) => {
@@ -88,6 +90,9 @@ export function buildCustomerOrderConfirmationEmail(order: Order) {
     }
     <p style="margin:0 0 4px;font-size:13px;color:${muted};">Ship to</p>
     <p style="margin:0 0 20px;white-space:pre-line;font-size:14px;">${escapeHtml(shipSummary)}</p>
+    <p style="margin:0 0 8px;font-size:14px;"><strong>Shipping service:</strong> ${escapeHtml(shipping.serviceName)}</p>
+    ${shipping.deliveryEstimate ? `<p style="margin:0 0 8px;font-size:13px;color:${muted};">${escapeHtml(shipping.deliveryEstimate)}</p>` : ""}
+    <p style="margin:0 0 20px;font-size:13px;color:${muted};">${escapeHtml(shipping.processingNotice)}</p>
     <p style="margin:0 0 20px;font-size:13px;color:${muted};line-height:1.6;">
       <a href="${escapeHtml(TRACK_URL)}" style="color:${accent};">Check your order status</a>
       using your order number and the email address used at checkout.
@@ -126,6 +131,9 @@ export function buildCustomerOrderConfirmationEmail(order: Order) {
     "",
     "Ship to:",
     shipSummary,
+    `Shipping service: ${shipping.serviceName}`,
+    ...(shipping.deliveryEstimate ? [shipping.deliveryEstimate] : []),
+    shipping.processingNotice,
     "",
     `Check your order status: ${TRACK_URL}`,
     "Use your order number and the email address used at checkout.",

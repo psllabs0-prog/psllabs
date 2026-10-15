@@ -1,0 +1,147 @@
+{
+  "source": "Actual BTCPostage native Get Rates screens observed by the root agent; figures relayed for this evidence file",
+  "status": "Read-only quotes only; no cart additions or label purchases",
+  "origin": {
+    "zip": "85016",
+    "country": "US"
+  },
+  "dimensionsIn": {
+    "length": 6,
+    "width": 4,
+    "height": 3
+  },
+  "currency": "USD",
+  "transitUnit": "Displayed estimated days; not a delivery guarantee, and separate from processing",
+  "mediaMailExcluded": true,
+  "ownerConfirmed": {
+    "maximumVialsFor8ozProfile": 10,
+    "packaging": "one custom box plus one bubble pouch",
+    "allocatedPackagingCostUsd": 0.50808,
+    "additionalFulfillmentAllowanceUsd": 2,
+    "allowanceIsActualMeasuredExpense": false
+  },
+  "pricingDecision": {
+    "status": "Owner approved; configuration prepared, not live",
+    "approved": true,
+    "lowerTier": {
+      "afterDiscountMerchandiseSubtotal": "<= USD100",
+      "shippingUsd": 24.99
+    },
+    "higherTier": {
+      "afterDiscountMerchandiseSubtotal": "> USD100",
+      "shippingUsd": 22.99,
+      "description": "Approved higher tier; covers the four observed 8oz Priority samples including packaging and approved reserve, subject to actual live cost guard"
+    },
+    "historicalProposalNotSelected": { "higherTierShippingUsd": 14.99 }
+  },
+  "routes": [
+    {
+      "zip": "85085",
+      "description": "Nearby ZIP area; customer details omitted",
+      "weightOz": 4,
+      "observedAt": "2026-10-15 (earlier nearby screen; exact time not recorded here)",
+      "ground": [
+        6.32,
+        2
+      ],
+      "priority": [
+        9.61,
+        2
+      ],
+      "express": [
+        39.01,
+        1
+      ]
+    },
+    {
+      "zip": "90012",
+      "description": "Los Angeles, CA; public government-building destination",
+      "weightOz": 8,
+      "observedAt": "2026-10-15T14:20:00Z/2026-10-15T14:22:00Z",
+      "ground": [
+        7.12,
+        2
+      ],
+      "priority": [
+        11.06,
+        2
+      ],
+      "express": [
+        45.83,
+        1
+      ],
+      "destinationSource": "https://lacity.gov/government/city-hall-locations"
+    },
+    {
+      "zip": "10007",
+      "description": "New York, NY; public government-building destination",
+      "weightOz": 8,
+      "observedAt": "2026-10-15T14:20:00Z/2026-10-15T14:22:00Z",
+      "ground": [
+        7.61,
+        5
+      ],
+      "priority": [
+        16.18,
+        3
+      ],
+      "express": [
+        65.87,
+        1
+      ],
+      "destinationSource": "https://www.nyc.gov/site/dcas/business/dcasmanagedbuildings/david-n-dinkins-manhattan-municipal-building.page"
+    },
+    {
+      "zip": "96813",
+      "description": "Honolulu, HI; public government-building destination",
+      "weightOz": 8,
+      "observedAt": "2026-10-15T14:20:00Z/2026-10-15T14:22:00Z",
+      "ground": [
+        10.74,
+        13
+      ],
+      "priority": [
+        19.28,
+        3
+      ],
+      "express": [
+        59.98,
+        2
+      ],
+      "destinationSource": "https://www.honolulucitycouncil.org/visit"
+    },
+    {
+      "zip": "99501",
+      "description": "Anchorage, AK; public government-building destination",
+      "weightOz": 8,
+      "observedAt": "2026-10-15T14:20:00Z/2026-10-15T14:22:00Z",
+      "ground": [
+        10.74,
+        13
+      ],
+      "priority": [
+        19.28,
+        3
+      ],
+      "express": [
+        59.98,
+        1
+      ],
+      "destinationSource": "https://property.muni.org/"
+    }
+  ],
+  "limitations": [
+    "No customer name, street address, payment data, API key or session token included.",
+    "The nearby 4oz rate is not evidence of the 8oz checkout profile.",
+    "Listed quotes do not prove nationwide coverage, future rates, API-key availability or product mailability.",
+    "The $2 additional allowance is owner-approved planning capacity, not an accounting transaction."
+  ],
+  "documentation": [
+    "https://btcpostage.com/link-builder-documentation",
+    "https://btcpostage.com/api-documentation",
+    "https://postcalc.usps.com/Calculator/Index",
+    "https://postcalc.usps.com/ServiceCommitments/Index",
+    "https://pe.usps.com/text/dmm300/Notice123.htm",
+    "https://pe.usps.com/text/pub52/welcome.htm"
+  ]
+}

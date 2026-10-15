@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Bitcoin, Check, CreditCard } from "lucide-react";
 
 import {
@@ -19,10 +19,12 @@ import { RESEARCH_STATUSES, isResearchStatus } from "@/lib/research-auth/qualifi
 import { ProductPrice } from "@/components/commerce/product-price";
 import { REFERRAL_CODE_FIELD_VISIBLE } from "@/lib/partners/referral-logic";
 import { computeTotals, type OrderTotals } from "@/lib/checkout/totals";
+import { PRIORITY_BASE_SHIPPING_USD, PRIORITY_DISCOUNTED_SHIPPING_USD } from "@/lib/shipping/policy";
 import { trackPlausibleClientEvent } from "@/lib/plausible/client";
 import { US_COUNTRY, US_COUNTRY_LABEL, US_STATES } from "@/lib/checkout/us-states";
 import { getOrderAttributionForCheckout } from "@/lib/attribution/storage";
-import { cardCartFingerprint, cardSessionMatchesCart, cardSessionStore, getCardReturnHints } from "@/lib/checkout/card-session-storage";
+import { cardCartFingerprint, cardShippingContextFingerprint, cardSessionMatchesShipping, cardSessionMatchesCart, cardSessionStore, getCardReturnHints, type CardShippingContext } from "@/lib/checkout/card-session-storage";
+import type { ShippingOptionsResponse, ShippingSelection } from "@/lib/shipping/types";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import styles from "./checkout-page.module.css";
@@ -182,7 +184,7 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
   const handleCardError = useCallback((message: string) => setPayError(message || null), [setPayError]);
   const handleCardSuccess = useCallback((redirectTo: string) => {
     cardSessionStore.clear();
-    window.location.href = redirectTo;
+    window.location.assign(redirectTo);
   }, []);
   const [discountInput, setDiscountInput] = useState("");
   const [appliedDiscount, setAppliedDiscount] = useState<{
@@ -193,6 +195,53 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
   const [discountError, setDiscountError] = useState<string | null>(null);
   const [discountApplying, setDiscountApplying] = useState(false);
   const [discountMessage, setDiscountMessage] = useState<string | null>(null);
+  const [shippingChoice, setShippingChoice] = useState<{ method: "standard" } | { method: "priority"; context: string; token: string }>({ method: "standard" });
+  const [shippingOptions, setShippingOptions] = useState<{ context: string; status: "loading" | "ready" | "error"; data?: ShippingOptionsResponse } | null>(null);
+  const [quoteClock, setQuoteClock] = useState(0);
+  const shippingRequest = JSON.stringify({ email: form.email, shipping: {
+    firstName: form.firstName, lastName: form.lastName, address: form.address, city: form.city,
+    state: form.state, zip: form.zip, country: US_COUNTRY,
+  }, items: lines.map(({ handle, quantity }) => ({ handle, quantity })),
+    ...(appliedDiscount ? { discountCode: appliedDiscount.code } : {}), paymentMethod: method });
+  const shippingContext = `${shippingRequest}:${cardCartFingerprint(lines)}`;
+  const addressComplete = EMAIL_PATTERN.test(form.email.trim()) &&
+    [form.firstName, form.lastName, form.address, form.city, form.state].every(value => value.trim()) && /^\d{5}(?:-\d{4})?$/.test(form.zip.trim());
+  const canCheckShipping = !visualPreview && !retained && addressComplete && lines.length > 0;
+  const currentOptions = shippingOptions?.context === shippingContext ? shippingOptions : null;
+  const priority = currentOptions?.status === "ready" && currentOptions.data?.priority.available &&
+    Date.parse(currentOptions.data.priority.expiresAt) > quoteClock ? currentOptions.data.priority : null;
+  const prioritySelected = shippingChoice.method === "priority" && shippingChoice.context === shippingContext &&
+    priority?.quoteToken === shippingChoice.token;
+  const shippingInvalid = !tagadaSession && shippingChoice.method === "priority" && !prioritySelected;
+  const shippingMethod = tagadaSession?.shippingMethod ?? (prioritySelected ? "priority" : "standard");
+
+  useEffect(() => {
+    if (!canCheckShipping) return;
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      setShippingOptions({ context: shippingContext, status: "loading" });
+      void (async () => {
+        try {
+          const response = await fetch("/api/checkout/shipping-options", { method: "POST", headers: { "Content-Type": "application/json" },
+            body: shippingRequest, signal: controller.signal, cache: "no-store" });
+          const data = await response.json() as ShippingOptionsResponse;
+          if (!response.ok || !data.standard || typeof data.standard.priceUsd !== "number" || !data.priority ||
+              (data.priority.available && (!data.priority.quoteToken || ![PRIORITY_BASE_SHIPPING_USD, PRIORITY_DISCOUNTED_SHIPPING_USD].includes(data.priority.priceUsd) ||
+                !Number.isFinite(Date.parse(data.priority.expiresAt)) || !data.priority.selection))) throw new Error("Shipping options unavailable");
+          if (!controller.signal.aborted) { setQuoteClock(Date.now()); setShippingOptions({ context: shippingContext, status: "ready", data }); }
+        } catch {
+          if (!controller.signal.aborted) setShippingOptions({ context: shippingContext, status: "error" });
+        }
+      })();
+    }, 500);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [canCheckShipping, shippingContext, shippingRequest]);
+
+  useEffect(() => {
+    if (!priority) return;
+    const timer = setTimeout(() => setQuoteClock(Date.now()), Math.max(0, Date.parse(priority.expiresAt) - Date.now()));
+    return () => clearTimeout(timer);
+  }, [priority]);
 
   const subtotalRaw = lines.reduce(
     (sum, line) => sum + line.unitPrice * line.quantity,
@@ -200,11 +249,23 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
   );
   const computedTotals = computeTotals(subtotalRaw, form.state, appliedDiscount, {
     paymentMethod: method,
+    shippingMethod,
   });
   const totals: OrderTotals = tagadaSession?.pricing ? { ...computedTotals, ...tagadaSession.pricing,
     discountPercent: tagadaSession.pricing.subtotal > 0 ? tagadaSession.pricing.discountAmount / tagadaSession.pricing.subtotal * 100 : 0,
     bitcoinDiscountAmount: 0, bitcoinDiscountPercent: 0, taxRate: 0,
     shipping: tagadaSession.shippingCost, total: tagadaSession.total } : computedTotals;
+  const shippingDescription = tagadaSession
+    ? tagadaSession.shippingDescription ?? (tagadaSession.shippingMethod === "priority" ? "USPS Priority Mail" : tagadaSession.shippingMethod === "standard" ? "USPS Ground Advantage" : "Saved shipping service")
+    : shippingMethod === "priority" ? "USPS Priority Mail" : "USPS Ground Advantage";
+  const shippingEstimate = (tagadaSession?.shippingEstimate ?? (prioritySelected ? priority?.selection.deliveryEstimate ?? null : null))
+    ?.replace(/\s+after carrier acceptance/gi, "") ?? null;
+  function cardShippingContext(): CardShippingContext {
+    return { method: shippingMethod, quote: tagadaSession?.shippingQuote ?? (prioritySelected ? priority?.quoteToken ?? null : null),
+      email: form.email, address: { firstName: form.firstName, lastName: form.lastName, address: form.address,
+        city: form.city, state: form.state, zip: form.zip, country: US_COUNTRY },
+      discountCode: tagadaSession?.pricing?.discountCode ?? appliedDiscount?.code ?? null, paymentMethod: method };
+  }
 
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -218,6 +279,8 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
     const attribution = getOrderAttributionForCheckout();
     return {
       currency: "USD",
+      shippingMethod,
+      ...(prioritySelected && priority ? { shippingQuote: priority.quoteToken } : {}),
       researchAcknowledgement: {
         version: CHECKOUT_RESEARCH_ACK_VERSION,
         researchStatus: form.researchStatus,
@@ -327,7 +390,7 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
         return;
       }
 
-      window.location.href = data.checkoutLink;
+      window.location.assign(data.checkoutLink);
     } catch {
       setPayError("We couldn't start checkout. Please try again.");
       setIsSubmitting(false);
@@ -350,6 +413,7 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
       const data = (await res.json()) as TagadaCardSession & {
         error?: string;
         storeId?: string;
+        shippingSelection?: ShippingSelection;
       };
 
       if (!res.ok || !data.orderId || !data.checkoutToken || !data.storeId) {
@@ -370,6 +434,13 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
         total: data.total,
         ...(data.pricing ? { pricing: data.pricing } : {}),
         ...(data.researchAcknowledgementVersion ? { researchAcknowledgementVersion: data.researchAcknowledgementVersion } : {}),
+        shippingMethod: data.shippingMethod,
+        tagadaShippingRateId: data.tagadaShippingRateId,
+        ...(data.shippingQuote ? { shippingQuote: data.shippingQuote } : {}),
+        ...(data.shippingQuoteExpiresAt ? { shippingQuoteExpiresAt: data.shippingQuoteExpiresAt } : {}),
+        shippingDescription: data.shippingSelection?.serviceDisplayName,
+        shippingEstimate: data.shippingSelection?.deliveryEstimate ?? null,
+        shippingContextFingerprint: cardShippingContextFingerprint(cardShippingContext()),
         cartFingerprint: cardCartFingerprint(lines),
       });
       if (!saved) setPayError("We couldn't restore a valid card checkout session. Please try again.");
@@ -392,6 +463,12 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
       return;
     }
     if (visualPreview) { setPayError("Design preview only. Payments and order creation are disabled."); return; }
+
+    if (shippingInvalid) {
+      setPayError("Your previous shipping quote changed or expired. Select Standard or review the new Priority option before continuing.");
+      document.getElementById("checkout-shipping-heading")?.focus();
+      return;
+    }
 
     if (method === "btcpay") {
       trackPlausibleClientEvent("checkout_started", { payment: "bitcoin" });
@@ -438,12 +515,13 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
   }
 
   if (tagadaSession && retained?.phase === "ready" && !isCardReturn &&
-      tagadaSession.researchAcknowledgementVersion !== CHECKOUT_RESEARCH_ACK_VERSION) {
+      (tagadaSession.researchAcknowledgementVersion !== CHECKOUT_RESEARCH_ACK_VERSION ||
+        !cardSessionMatchesShipping(tagadaSession, cardShippingContext()))) {
     return (
       <main className={cn("storefront-theme public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24", styles.page)}>
         <div className="premium-card public-section-card mx-auto max-w-lg p-6">
-          <h1 className="font-display text-display-md font-bold text-ink">Review your research-use declaration</h1>
-          <p className="mt-4 text-ash">Start a new checkout to choose your research status and confirm the intended use before payment.</p>
+          <h1 className="font-display text-display-md font-bold text-ink">Review your checkout details</h1>
+          <p className="mt-4 text-ash">Start a new checkout to review your shipping choice, current quote and research-use declaration before payment.</p>
           <button type="button" onClick={() => cardSessionStore.clear()} className="mt-6 inline-flex rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page">Start new checkout</button>
         </div>
       </main>
@@ -678,6 +756,33 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
               </div>
             </section>
 
+            <section className="premium-card public-section-card p-5 md:p-6" aria-labelledby="checkout-shipping-heading">
+              <h2 id="checkout-shipping-heading" tabIndex={-1} className="font-display text-lg font-bold text-ink">Shipping method</h2>
+              {tagadaSession && !tagadaSession.shippingMethod ? <p className="mt-3 text-sm text-ash">Shipping from your original order: {formatPrice(tagadaSession.shippingCost)}. The saved session does not identify its carrier service. Confirm the original payment before starting another checkout.</p> : <fieldset className="mt-4 space-y-3" disabled={!!tagadaSession || isSubmitting}>
+                <legend className="sr-only">Choose a shipping method</legend>
+                <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-linen p-4">
+                  <input type="radio" name="shipping-method" value="standard" checked={tagadaSession ? shippingMethod === "standard" : shippingChoice.method === "standard"}
+                    onChange={() => { setShippingChoice({ method: "standard" }); setPayError(null); }} className="mt-1 size-4 accent-accent" />
+                  <span className="flex-1 text-sm"><span className="flex justify-between gap-3 font-medium text-ink"><span>Standard · USPS Ground Advantage</span><span>{(tagadaSession && shippingMethod === "standard" ? totals.shipping : computeTotals(subtotalRaw).shipping) === 0 ? "Free" : "$9.99"}</span></span>
+                    <span className="mt-1 block text-xs leading-relaxed text-ash">Usually 2–5 business days for most contiguous U.S. addresses. Alaska, Hawaii and remote destinations can take longer.</span></span>
+                </label>
+                {(priority || tagadaSession?.shippingMethod === "priority") && <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-linen p-4">
+                  <input type="radio" name="shipping-method" value="priority" checked={!!tagadaSession || !!prioritySelected}
+                    onChange={() => { if (priority) { setShippingChoice({ method: "priority", context: shippingContext, token: priority.quoteToken }); setPayError(null); } }} className="mt-1 size-4 accent-accent" />
+                  <span className="flex-1 text-sm"><span className="flex justify-between gap-3 font-medium text-ink"><span>USPS Priority Mail</span><span>{formatPrice(tagadaSession ? totals.shipping : priority!.priceUsd)}</span></span>
+                    <span className="mt-1 block text-xs leading-relaxed text-ash">{(tagadaSession?.shippingEstimate || priority?.selection.deliveryEstimate || "Usually 2–3 business days for most addresses; remote destinations can take longer.").replace(/\s+after carrier acceptance/gi, "")}</span></span>
+                </label>}
+              </fieldset>}
+              {shippingInvalid && <p role="alert" className="mt-3 text-sm text-signal">Your address, cart, discount or payment choice changed, or the Priority quote expired. Select Standard or review and select the current Priority option before paying.</p>}
+              {!tagadaSession && !priority && <p role="status" className="mt-3 text-xs leading-relaxed text-ash">{
+                !addressComplete ? "Standard is selected by default. Complete your contact and full shipping address to check any additional options." :
+                canCheckShipping && (!currentOptions || currentOptions.status === "loading") ? "Checking additional shipping options. Standard remains available." :
+                currentOptions?.status === "error" ? "We couldn’t check additional shipping options. Standard remains available; you can continue with it." :
+                "Additional shipping options are unavailable for these details. Standard remains available."
+              }</p>}
+              <p className="mt-3 text-xs leading-relaxed text-ash">Orders are processed within 24 hours. Transit begins when the carrier receives the parcel; delivery times are estimates.</p>
+            </section>
+
             {!tagadaSession && <section className="premium-card public-section-card p-5 md:p-6" aria-labelledby="checkout-research-heading">
               <h2 id="checkout-research-heading" className="font-display text-lg font-bold text-ink">Research-use confirmation</h2>
               <p id="checkout-research-description" className="mt-2 text-sm leading-relaxed text-ash">Choose your current research role. This is your declaration, not a verification of researcher credentials. Advertising-cookie preferences are separate.</p>
@@ -708,6 +813,8 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
               <CheckoutSummary
                 lines={lines}
                 totals={totals}
+                shippingDescription={shippingDescription}
+                shippingEstimate={shippingEstimate}
                 discountInput={discountInput}
                 onDiscountInputChange={setDiscountInput}
                 onApplyDiscount={() => void handleApplyDiscount()}
@@ -859,6 +966,8 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
               <CheckoutSummary
                 lines={lines}
                 totals={totals}
+                shippingDescription={shippingDescription}
+                shippingEstimate={shippingEstimate}
                 discountInput={discountInput}
                 onDiscountInputChange={setDiscountInput}
                 onApplyDiscount={() => void handleApplyDiscount()}
@@ -881,6 +990,8 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
 function CheckoutSummary({
   lines,
   totals,
+  shippingDescription,
+  shippingEstimate,
   discountInput,
   onDiscountInputChange,
   onApplyDiscount,
@@ -894,6 +1005,8 @@ function CheckoutSummary({
 }: {
   lines: ReturnType<typeof useCart>["lines"];
   totals: OrderTotals;
+  shippingDescription: string;
+  shippingEstimate: string | null;
   discountInput: string;
   onDiscountInputChange: (value: string) => void;
   onApplyDiscount: () => void;
@@ -905,6 +1018,10 @@ function CheckoutSummary({
   discountLocked: boolean;
   showDiscount: boolean;
 }) {
+  const codeDiscountAmount = Math.max(
+    0,
+    Math.round((totals.discountAmount - totals.bitcoinDiscountAmount) * 100) / 100
+  );
   return (
     <div className={cn("flex flex-col gap-5", styles.summary)}>
       <h2 className="font-display text-lg font-bold text-ink">Order Summary</h2>
@@ -995,14 +1112,14 @@ function CheckoutSummary({
             </dd>
           </div>
         )}
-        {showDiscount && totals.discountAmount > 0 && totals.discountCode && (
+        {showDiscount && codeDiscountAmount > 0 && totals.discountCode && (
           <div className="flex justify-between text-accent">
-            <dt>Discount ({totals.discountCode})</dt>
-            <dd className="font-mono">-{formatPrice(totals.discountAmount)}</dd>
+            <dt>Discount ({totals.discountCode.replace(/\+BTC$/, "")})</dt>
+            <dd className="font-mono">-{formatPrice(codeDiscountAmount)}</dd>
           </div>
         )}
         <div className="flex justify-between text-ash">
-          <dt>Shipping</dt>
+          <dt>Shipping · {shippingDescription}</dt>
           <dd
             className={cn(
               "font-mono text-ink",
@@ -1019,13 +1136,14 @@ function CheckoutSummary({
           </dd>
         </div>
       </dl>
+      {shippingEstimate && <p className="text-xs leading-relaxed text-ash">Carrier estimate: {shippingEstimate}</p>}
       {totals.bitcoinDiscountAmount > 0 && (
         <p className="text-xs leading-relaxed text-ash">
           Bitcoin is selected. The 5% subtotal discount is included in this total.
         </p>
       )}
       <p className="text-xs leading-relaxed text-ash">
-        Free U.S. shipping over ${FREE_SHIPPING_THRESHOLD}.
+        Standard Ground Advantage is free at a product subtotal of ${FREE_SHIPPING_THRESHOLD} or more before discounts; otherwise $9.99.
       </p>
     </div>
   );

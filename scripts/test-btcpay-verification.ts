@@ -5,6 +5,8 @@ import { resolve } from "node:path";
 import { createContext, Script } from "node:vm";
 import ts from "typescript";
 import { verifyBtcpayInvoice, type BtcpayOrderSnapshot } from "../lib/payments/btcpay-verify";
+import * as researchAcknowledgement from "../lib/checkout/research-acknowledgement";
+import * as shippingPolicy from "../lib/shipping/policy";
 import type { PaymentSettlementBinding } from "../lib/inventory/store";
 
 const ORDER: BtcpayOrderSnapshot = {
@@ -62,7 +64,11 @@ async function sqlBindings() {
     }
     assert(query.values.includes(paymentMethod)); assert(query.values.includes("invoice_fixture")); checks += 2;
   }
-  const orders = load("lib/orders/store.ts", { "@/lib/db/sql": { getSql: () => sql } }) as {
+  const orders = load("lib/orders/store.ts", {
+    "@/lib/db/sql": { getSql: () => sql },
+    "@/lib/checkout/research-acknowledgement": researchAcknowledgement,
+    "@/lib/shipping/policy": shippingPolicy,
+  }) as {
     markStatusIfPending: (id: string, status: string, binding: PaymentSettlementBinding & { invoiceId: string }) => Promise<void>;
   };
   await orders.markStatusIfPending(ORDER.orderId, "cancelled", { invoiceId: "invoice_fixture", paymentMethod: "bitcoin", total: ORDER.total, currency: ORDER.currency });

@@ -8,6 +8,7 @@ import { OrderResources } from "@/components/success/order-resources";
 import { GoogleAdsPurchaseConversion } from "@/components/analytics/google-ads-purchase";
 import { MetaAdsPurchaseReceipt } from "@/components/analytics/meta-ads-purchase";
 import type { PublicOrder } from "@/lib/orders/types";
+import { getShippingSelectionPresentation } from "@/lib/shipping/presentation";
 
 function money(n: number): string {
   return `$${n.toFixed(2)}`;
@@ -103,6 +104,7 @@ export function OrderStatus({
   }, [orderId, isTerminal, order]);
 
   const banner = bannerFor(status);
+  const shipping = getShippingSelectionPresentation(order?.shippingSelection);
 
   return (
     <div className="mx-auto max-w-[720px] px-6 py-16 md:px-12 lg:py-20">
@@ -174,7 +176,10 @@ export function OrderStatus({
             </div>
           </dl>
           <div className="mt-5 border-t border-linen pt-4 text-sm text-ash">
-            <p>Shipping details are included in your order confirmation email.</p>
+            <p className="font-medium text-ink">{shipping.serviceName}</p>
+            {shipping.deliveryEstimate && <p className="mt-1">{shipping.deliveryEstimate}</p>}
+            <p className="mt-2">{shipping.processingNotice}</p>
+            <p className="mt-2">Shipping details are included in your order confirmation email.</p>
           </div>
         </div>
       )}

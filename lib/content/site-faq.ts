@@ -1,5 +1,6 @@
 import { FLAT_SHIPPING_USD, FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 import { TESTING_SCOPE_STATEMENT } from "./testing-scope";
+import { ORDER_PROCESSING_NOTICE, STANDARD_TRANSIT_NOTICE } from "./shipping";
 
 export type SiteFaqItem = {
   id: string;
@@ -70,14 +71,14 @@ export const siteFaqItems: SiteFaqItem[] = [
     category: "orders",
     question: "Where do you ship, and what does it cost?",
     answer:
-      `We ship to physical addresses in all 50 U.S. states from Phoenix, Arizona. Standard shipping is $${FLAT_SHIPPING_USD.toFixed(2)}. Orders of $${FREE_SHIPPING_THRESHOLD} or more get free standard shipping. We pack and ship within 1 to 2 business days after payment clears. Carrier delivery usually takes about 3 to 5 business days after that.`,
+      `We ship to physical addresses in all 50 U.S. states from Phoenix, Arizona. Standard shipping is $${FLAT_SHIPPING_USD.toFixed(2)}. A product subtotal of $${FREE_SHIPPING_THRESHOLD} or more before discounts gets free standard shipping. ${ORDER_PROCESSING_NOTICE} ${STANDARD_TRANSIT_NOTICE} Checkout shows currently available delivery options and any separate upgrade charge. Carrier estimates are not guaranteed.`,
   },
   {
     id: "order-tracking",
     category: "orders",
     question: "How do I track my order?",
     answer:
-      "When your label is created, you get a shipping email with the tracking number. You can also check status anytime on Track Order (/track) with your email and order number.",
+      "When tracking is saved to your order, we send a shipping email with the tracking number. Label creation alone does not mean carrier acceptance. You can also check status anytime on Track Order (/track) with your email and order number.",
   },
   {
     id: "order-issues",

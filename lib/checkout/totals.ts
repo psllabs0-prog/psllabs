@@ -1,4 +1,6 @@
 import { FLAT_SHIPPING_USD, FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
+import { getPriorityShippingPriceUsd } from "@/lib/shipping/policy";
+import type { ShippingMethod } from "@/lib/shipping/types";
 
 export { FLAT_SHIPPING_USD };
 
@@ -37,6 +39,7 @@ export type PaymentMethodOption = "bitcoin" | "btcpay" | "card" | string | null;
 
 export type ComputeTotalsOptions = {
   paymentMethod?: PaymentMethodOption;
+  shippingMethod?: ShippingMethod;
 };
 
 export type OrderTotals = {
@@ -119,7 +122,8 @@ export function computeTotals(
   // To re-enable itemized AZ tax, compute tax from `afterDiscount`.
   const taxRate = 0;
   const tax = 0;
-  const shipping =
+  const shippingMethod = typeof options === "object" && options ? options.shippingMethod ?? "standard" : "standard";
+  const shipping = shippingMethod === "priority" ? getPriorityShippingPriceUsd(afterDiscountCents) :
     subtotal >= FREE_SHIPPING_THRESHOLD ||
     afterDiscount >= FREE_SHIPPING_THRESHOLD
       ? 0

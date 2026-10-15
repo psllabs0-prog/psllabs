@@ -1,5 +1,6 @@
 import type { Order } from "@/lib/orders/types";
 import { readTagadaCheckoutPriceEvidence } from "@/lib/tagada/checkout-price-evidence";
+import { configuredTagadaShippingRateId, pickTagadaShippingRate } from "@/lib/tagada/select-shipping-rate";
 
 /** Provider promotion is selected by the server, never supplied by the shopper. */
 export function configuredReferralPromotionCode(): string | null {
@@ -14,7 +15,7 @@ const minor = (value: number) => Math.round(value * 100);
 /** Exact catalog, shipping, and promotion evidence, without trusting browser metadata. */
 export function referralCardSessionMatchesOrder(
   order: Pick<Order, "currency" | "subtotal" | "discountAmount" | "shippingCost" | "tax" | "total">,
-  expected: { storeId: string; checkoutToken: string; items: Array<{ variantId: string; quantity: number }>; customerEmail?: string; expectedSessionId?: string },
+  expected: { storeId: string; checkoutToken: string; items: Array<{ variantId: string; quantity: number }>; customerEmail?: string; expectedSessionId?: string; shippingRateId?: string },
   providerValue: unknown,
 ): boolean {
   const provider = object(providerValue);
@@ -24,6 +25,7 @@ export function referralCardSessionMatchesOrder(
       order.currency !== "USD" || provider.currency !== "USD" || totals.currency !== "USD") return false;
   if (expected.expectedSessionId && provider.id !== expected.expectedSessionId) return false;
   if (expected.customerEmail && object(provider.customer)?.email !== expected.customerEmail) return false;
+  if (expected.shippingRateId && provider.selectedShippingRateId !== expected.shippingRateId) return false;
   for (const [field, amount] of Object.entries({ subtotal: order.subtotal, discount: order.discountAmount,
     shipping: order.shippingCost, tax: order.tax, total: order.total })) {
     if (!Number.isFinite(amount) || amount < 0 || !Number.isSafeInteger(totals[field]) || totals[field] !== minor(amount)) return false;
@@ -42,21 +44,24 @@ export type ReferralCardCheckoutClient = {
   loadSession(token: string, sessionToken?: string): Promise<unknown>;
   updateCustomerAndAddress(id: string, data: { customer: { email: string; firstName: string; lastName: string };
     shippingAddress: { line1: string; city: string; state: string; postalCode: string; country: string } }): Promise<void>;
-  getShippingRates(id: string): Promise<Array<{ id: string; amount: number; currency: string }>>;
+  getShippingRates(id: string): Promise<Array<{ id: string; name?: string; amount: number; currency: string }>>;
   selectShippingRate(id: string, rateId: string): Promise<void>;
   applyPromoCode(id: string, code: string): Promise<void>;
 };
 
 /** Real checkout use only. Offline tests inject a fixture; previews cannot call the provider. */
-export async function configureAndVerifyReferralCardSession(
+export async function configureAndVerifyCardSession(
   order: Order,
   session: { checkoutToken: string; sessionToken: string | null },
   expected: { storeId: string; items: Array<{ variantId: string; quantity: number }> },
   promotionCode: string | null,
   injectedClient?: ReferralCardCheckoutClient,
-): Promise<void> {
+): Promise<{ shippingRateId: string }> {
   if (process.env.PSL_VISUAL_PREVIEW === "1") throw new Error("Payments are disabled in this preview.");
   if (order.discountAmount > 0 && !promotionCode) throw new Error("The first-order card referral promotion is not configured.");
+  const method = order.shipping.selection?.method ?? "standard";
+  const configuredId = configuredTagadaShippingRateId(method, order.shippingCost);
+  if (method === "priority" && !configuredId) throw new Error("Priority card shipping is not configured for this price tier.");
   let checkout = injectedClient;
   if (!checkout) {
     const { createHeadlessClient } = await import("@tagadapay/headless-sdk");
@@ -90,11 +95,17 @@ export async function configureAndVerifyReferralCardSession(
     }
   }
   const rates = await checkout.getShippingRates(id);
-  const rate = rates.find((value) => value.currency === order.currency && value.amount === minor(order.shippingCost));
-  if (rate) await checkout.selectShippingRate(id, rate.id);
+  const rate = pickTagadaShippingRate(rates.map(rate => ({ ...rate, name: rate.name ?? "" })), order.shippingCost,
+    { method, rateId: configuredId });
+  if (!rate) throw new Error("The selected shipping service and exact USD price are unavailable for card checkout.");
+  await checkout.selectShippingRate(id, rate.id);
   const fresh = await checkout.loadSession(session.checkoutToken, session.sessionToken ?? undefined);
   if (!referralCardSessionMatchesOrder(order, { ...expected, checkoutToken: session.checkoutToken,
-    expectedSessionId: id, customerEmail: order.email }, fresh)) {
-    throw new Error("The provider card price does not match the referral order. No card charge was started.");
+    expectedSessionId: id, customerEmail: order.email, shippingRateId: rate.id }, fresh)) {
+    throw new Error("The provider card price or shipping service does not match this order. No card charge was started.");
   }
+  return { shippingRateId: rate.id };
 }
+
+/** Compatibility export for existing referral callers and offline coverage. */
+export const configureAndVerifyReferralCardSession = configureAndVerifyCardSession;

@@ -13,6 +13,8 @@ import * as countries from "../lib/checkout/us-states";
 import * as attribution from "../lib/attribution/logic";
 import * as referralLogic from "../lib/partners/referral-logic";
 import * as researchAcknowledgement from "../lib/checkout/research-acknowledgement";
+import * as shippingPolicy from "../lib/shipping/policy";
+import * as shippingRequest from "../lib/shipping/request";
 import type { CheckoutBody, PrepareOrderOptions, PrepareOrderResult } from "../lib/checkout/prepare-order";
 import type { Order } from "../lib/orders/types";
 import { PRIVACY_CONSENT_VERSION, UNKNOWN_PRIVACY_CONSENT } from "../lib/privacy/types";
@@ -46,6 +48,8 @@ function load(file: string, mocks: Record<string, unknown>): Record<string, unkn
 }
 
 const rawPrepare = load("lib/checkout/prepare-order.ts", {
+  "@/lib/shipping/policy": shippingPolicy,
+  "@/lib/shipping/request": shippingRequest,
   "node:crypto": crypto, "@/lib/checkout/totals": totals, "@/lib/checkout/us-states": countries,
   "@/lib/attribution/logic": attribution, "@/lib/payments/products": pricing, "@/lib/products/catalog": catalog,
   "@/lib/checkout/discount-codes": { DISCOUNT_CODES_ENABLED: false, lookupActiveDiscountCode: async () => { throw new Error("Unexpected discount lookup"); } },
@@ -127,7 +131,7 @@ async function checkoutPrivacyChecks() {
   // Execute both actual checkout routes with consent storage failure and fixture-only payment effects.
   for (const filename of ["app/api/checkout/route.ts", "app/api/checkout/card/session/route.ts"]) {
     for (const consentFails of [false, true]) {
-      let reads = 0;
+      let reads = 0; let shippingBindings = 0;
       const route = load(filename, {
         "next/server": { NextResponse }, "@/lib/checkout/prepare-order": prepare,
         "@/lib/research-auth/server": { getResearchAccount: async () => RESEARCH_ACCOUNT },
@@ -137,18 +141,22 @@ async function checkoutPrivacyChecks() {
           if (consentFails) throw new Error("offline consent storage unavailable");
           return { ...privacy, binding: null, consent: { ...privacy.consent, gpc: true, measurement: false } };
         } },
-        "@/lib/orders/store": { setInvoiceId: async () => {}, setPaymentMethod: async () => {} },
+        "@/lib/orders/store": { setInvoiceId: async () => {}, setPaymentMethod: async () => {},
+          setOrderShippingSelection: async (_id: string, selection: { tagadaShippingRateId: string }) => {
+            assert.equal(selection.tagadaShippingRateId, "ship_fixture"); shippingBindings++;
+          } },
         "@/lib/payments": { getPaymentProcessor: () => ({ createInvoice: async () => ({ id: "invoice_fixture", url: "https://checkout.example.invalid" }) }) },
         "@/lib/tagada": { isTagadaConfigured: () => true, getTagadaIdsForHandle: async () => ({ tagadaVariantId: "variant_fixture" }) },
         "@/lib/tagada/server": { createTagadaCheckoutSession: async () => ({ checkoutToken: "checkout_fixture", sessionToken: "session_fixture" }) },
         "@/lib/partners/referral-logic": referralLogic,
         "@/lib/tagada/referral-checkout": { configuredReferralPromotionCode: () => null,
-          configureAndVerifyReferralCardSession: async () => { throw new Error("Unexpected referral provider setup in ordinary checkout"); } },
+          configureAndVerifyCardSession: async () => ({ shippingRateId: "ship_fixture" }) },
       }) as { POST: (request: Request) => Promise<Response> };
       const response = await route.POST(new Request("https://fixture.invalid/api/checkout", {
         method: "POST", headers: { "Content-Type": "application/json", "Sec-GPC": "1" }, body: JSON.stringify(body),
       }));
       assert.equal(response.status, 200); assert.equal(reads, 1);
+      assert.equal(shippingBindings, filename.includes("card/session") ? 1 : 0); checks++;
       assert.equal(orders.at(-1)!.attribution, null); checks += 3;
     }
   }

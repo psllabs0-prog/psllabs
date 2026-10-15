@@ -10,7 +10,7 @@ let checks = 0;
 const check = (value: unknown, expected: unknown) => { assert.deepEqual(value, expected); checks++; };
 const binding = { storeId: "store_fixture", checkoutToken: "checkout_fixture", expectedSessionId: "cs_fixture" };
 const raw = { checkoutSession: { id: "cs_fixture", storeId: binding.storeId, checkoutToken: binding.checkoutToken,
-  selectedPresentmentCurrency: "USD", draft: false, metadata: {}, customer: { email: "fixture@example.test" },
+  selectedPresentmentCurrency: "USD", shippingRateId: "ship_fixture", draft: false, metadata: {}, customer: { email: "fixture@example.test" },
   sessionLineItems: [{ variantId: "variant_fixture", quantity: 1 }] },
 summary: { currency: "USD", subtotalAmount: 5999, totalPromotionAmount: 600, shippingCost: 999, totalTaxAmount: 0,
   totalAmount: 6998, totalAdjustedAmount: 6398, items: [{ variantId: "variant_fixture", quantity: 1, unitAmount: 5999, amount: 5999, currency: "USD" }] } };
@@ -18,6 +18,7 @@ const order = { currency: "USD", subtotal: 59.99, discountAmount: 6, shippingCos
 const expected = { ...binding, items: [{ variantId: "variant_fixture", quantity: 1 }], customerEmail: "fixture@example.test" };
 const session = { storeId: binding.storeId, checkoutToken: binding.checkoutToken, items: expected.items, shippingCost: 9.99, total: 63.98,
   researchAcknowledgementVersion: CHECKOUT_RESEARCH_ACK_VERSION,
+  shippingMethod: "standard", tagadaShippingRateId: "ship_fixture",
   pricing: { subtotal: 59.99, discountAmount: 6, tax: 0, discountCode: "fixture" } } as TagadaCardSession;
 
 async function main() {

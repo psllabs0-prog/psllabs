@@ -1,4 +1,5 @@
 import { CHECKOUT_RESEARCH_ACK_VERSION } from "@/lib/checkout/research-acknowledgement";
+import type { ShippingMethod } from "@/lib/shipping/types";
 
 export type TagadaCardSession = {
   orderId: string;
@@ -15,6 +16,13 @@ export type TagadaCardSession = {
   pricing?: { subtotal: number; discountCode: string | null; discountAmount: number; tax: number };
   /** Issued only after the server saves this order's explicit checkout declaration. */
   researchAcknowledgementVersion?: string;
+  shippingMethod?: ShippingMethod;
+  tagadaShippingRateId?: string;
+  shippingQuote?: string;
+  shippingQuoteExpiresAt?: string;
+  shippingDescription?: string;
+  shippingEstimate?: string | null;
+  shippingContextFingerprint?: string;
 };
 
 export type CardConfirmationHints = {
@@ -61,6 +69,31 @@ export function cardSessionMatchesCart(session: TagadaCardSession, lines: Array<
   return session.cartFingerprint === cardCartFingerprint(lines);
 }
 
+export type CardShippingContext = {
+  method: ShippingMethod;
+  quote: string | null;
+  email: string;
+  address: { firstName: string; lastName: string; address: string; city: string; state: string; zip: string; country: string };
+  discountCode: string | null;
+  paymentMethod: string | null;
+};
+
+/** No payment secrets: binds a ready form to its address, service and quote context. */
+export function cardShippingContextFingerprint(context: CardShippingContext): string {
+  const clean = (value: string) => value.trim();
+  return JSON.stringify({ method: context.method, quote: context.quote,
+    email: clean(context.email).toLowerCase(), address: {
+      firstName: clean(context.address.firstName), lastName: clean(context.address.lastName),
+      address: clean(context.address.address), city: clean(context.address.city), state: clean(context.address.state).toUpperCase(),
+      zip: clean(context.address.zip), country: clean(context.address.country).toUpperCase(),
+    }, discountCode: context.discountCode, paymentMethod: context.paymentMethod });
+}
+
+export function cardSessionMatchesShipping(session: TagadaCardSession, context: CardShippingContext): boolean {
+  return !!session.shippingMethod && !!session.tagadaShippingRateId &&
+    session.shippingMethod === context.method && session.shippingContextFingerprint === cardShippingContextFingerprint(context);
+}
+
 /** Project an explicit allowlist; caller objects are never serialized wholesale. */
 export function sanitizeCardSession(value: unknown): TagadaCardSession | null {
   const raw = object(value);
@@ -94,6 +127,12 @@ export function sanitizeCardSession(value: unknown): TagadaCardSession | null {
       Number(pricing.discountAmount) > Number(pricing.subtotal) ||
       Math.round((Number(pricing.subtotal) - Number(pricing.discountAmount) + Number(pricing.tax) + raw.shippingCost) * 100) !== Math.round(raw.total * 100))) return null;
   if (raw.researchAcknowledgementVersion !== undefined && !string(raw.researchAcknowledgementVersion, 100)) return null;
+  if (raw.shippingMethod !== undefined && raw.shippingMethod !== "standard" && raw.shippingMethod !== "priority") return null;
+  for (const [field, max] of [["tagadaShippingRateId", 150], ["shippingQuote", 12000], ["shippingDescription", 200], ["shippingContextFingerprint", 18000]] as const) {
+    if (raw[field] !== undefined && !string(raw[field], max)) return null;
+  }
+  if (raw.shippingEstimate !== undefined && raw.shippingEstimate !== null && !string(raw.shippingEstimate, 300)) return null;
+  if (raw.shippingQuoteExpiresAt !== undefined && (!string(raw.shippingQuoteExpiresAt, 40) || !Number.isFinite(Date.parse(raw.shippingQuoteExpiresAt)))) return null;
   return {
     orderId: raw.orderId, checkoutToken: raw.checkoutToken, sessionToken: raw.sessionToken,
     storeId: raw.storeId,
@@ -106,11 +145,18 @@ export function sanitizeCardSession(value: unknown): TagadaCardSession | null {
     ...(pricing ? { pricing: { subtotal: Number(pricing.subtotal), discountCode: pricing.discountCode as string | null,
       discountAmount: Number(pricing.discountAmount), tax: Number(pricing.tax) } } : {}),
     ...(raw.researchAcknowledgementVersion ? { researchAcknowledgementVersion: raw.researchAcknowledgementVersion as string } : {}),
+    ...(raw.shippingMethod ? { shippingMethod: raw.shippingMethod as ShippingMethod } : {}),
+    ...(raw.tagadaShippingRateId ? { tagadaShippingRateId: raw.tagadaShippingRateId as string } : {}),
+    ...(raw.shippingQuote ? { shippingQuote: raw.shippingQuote as string } : {}),
+    ...(raw.shippingQuoteExpiresAt ? { shippingQuoteExpiresAt: raw.shippingQuoteExpiresAt as string } : {}),
+    ...(raw.shippingDescription ? { shippingDescription: raw.shippingDescription as string } : {}),
+    ...(raw.shippingEstimate !== undefined ? { shippingEstimate: raw.shippingEstimate as string | null } : {}),
+    ...(raw.shippingContextFingerprint ? { shippingContextFingerprint: raw.shippingContextFingerprint as string } : {}),
   };
 }
 
 /** A browser safeguard before charging; server verification remains authoritative. */
-export function cardSessionReadyToCharge(session: TagadaCardSession, providerValue: unknown, expectedSessionId: string): boolean {
+export function cardSessionReadyToCharge(session: TagadaCardSession, providerValue: unknown, expectedSessionId: string, now = Date.now()): boolean {
   const provider = object(providerValue);
   const totals = object(provider?.totals);
   const pricingMatches = !session.pricing || (!!totals &&
@@ -120,6 +166,8 @@ export function cardSessionReadyToCharge(session: TagadaCardSession, providerVal
   const itemMatches = !session.pricing || (providerItems !== null && providerItems.length === session.items.length &&
     session.items.every(item => providerItems.filter(value => object(value)?.variantId === item.variantId && object(value)?.quantity === item.quantity).length === 1));
   return session.researchAcknowledgementVersion === CHECKOUT_RESEARCH_ACK_VERSION &&
+    (session.shippingMethod !== "priority" || !!session.shippingQuoteExpiresAt && Date.parse(session.shippingQuoteExpiresAt) > now) &&
+    !!session.shippingMethod && !!session.tagadaShippingRateId && provider?.selectedShippingRateId === session.tagadaShippingRateId &&
     pricingMatches && itemMatches && !!provider && !!totals && string(expectedSessionId, 150) &&
     provider.id === expectedSessionId && provider.storeId === session.storeId &&
     provider.checkoutToken === session.checkoutToken && provider.currency === "USD" && totals.currency === "USD" &&
@@ -147,7 +195,7 @@ export function sanitizeConfirmationHints(value: unknown): CardConfirmationHints
 }
 
 export function parseCardCheckout(raw: string | null, now = Date.now()): StoredCardCheckout | null {
-  if (!raw || raw.length > 30000) return null;
+  if (!raw || raw.length > 60000) return null;
   try {
     const value = object(JSON.parse(raw));
     if (!value || !exactKeys(value, ["version", "createdAt", "expiresAt", "orderId", "session", "phase", "confirmation", "reportedSuccess"]) ||
@@ -169,7 +217,7 @@ export function parseCardCheckout(raw: string | null, now = Date.now()): StoredC
         confirmation, reportedSuccess: value.reportedSuccess };
     }
     const storedSession = object(value.session);
-    if (!storedSession || !exactKeys(storedSession, ["orderId", "checkoutToken", "sessionToken", "storeId", "customer", "shippingAddress", "items", "shippingCost", "total", "cartFingerprint", "pricing", "researchAcknowledgementVersion"]) ||
+    if (!storedSession || !exactKeys(storedSession, ["orderId", "checkoutToken", "sessionToken", "storeId", "customer", "shippingAddress", "items", "shippingCost", "total", "cartFingerprint", "pricing", "researchAcknowledgementVersion", "shippingMethod", "tagadaShippingRateId", "shippingQuote", "shippingQuoteExpiresAt", "shippingDescription", "shippingEstimate", "shippingContextFingerprint"]) ||
         !exactKeys(object(storedSession.customer) ?? {}, ["email", "firstName", "lastName"]) ||
         !exactKeys(object(storedSession.shippingAddress) ?? {}, ["line1", "city", "state", "postalCode", "country"]) ||
         !Array.isArray(storedSession.items) || !storedSession.items.every((line) =>

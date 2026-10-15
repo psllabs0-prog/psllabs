@@ -2,6 +2,15 @@ import { FLAT_SHIPPING_USD, FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants
 import type { ContentPageMeta, ContentSection } from "./types";
 import { PUBLIC_CLAIM_WINDOW_NOTICE } from "./testing-scope";
 
+export const ORDER_PROCESSING_NOTICE =
+  "Orders usually process within 24 hours after payment clears. Carrier acceptance or collection may occur on the next operating day.";
+
+export const STANDARD_TRANSIT_NOTICE =
+  "USPS Ground Advantage transit is usually 2–5 business days after carrier acceptance for most contiguous U.S. destinations. Alaska and Hawaii can take longer.";
+
+export const PRIORITY_TRANSIT_NOTICE =
+  "USPS Priority Mail transit is usually 2–3 business days after carrier acceptance for most contiguous U.S. destinations. Alaska and Hawaii can take longer. Transit estimates are not guaranteed.";
+
 export const shippingPageMeta: ContentPageMeta = {
   label: "SHIPPING",
   title: "Shipping Policy",
@@ -25,24 +34,25 @@ export const shippingSections: ContentSection[] = [
     id: "processing",
     title: "Processing time",
     paragraphs: [
-      "Orders usually pack and ship within 1 to 2 business days (Monday through Friday, excluding U.S. federal postal holidays) after payment clears.",
-      "Weekend and holiday orders enter the queue on the next business day.",
+      ORDER_PROCESSING_NOTICE,
+      "Processing is separate from carrier transit. The selected service does not promise same-day dispatch or a particular collection cutoff.",
     ],
   },
   {
     id: "delivery-window",
     title: "Delivery timing",
     paragraphs: [
-      "After the carrier accepts the package, standard domestic transit usually takes about 3 to 5 business days, depending on distance from Arizona.",
-      "Carrier timing is an estimate, not a guaranteed delivery date. Weather and carrier delays can change transit times.",
+      STANDARD_TRANSIT_NOTICE,
+      "Checkout shows the delivery options currently available for your order. If Priority Mail is offered, its usual transit is 2–3 business days after carrier acceptance for most contiguous U.S. destinations; Alaska and Hawaii can take longer.",
+      "Carrier timing is an estimate, not a guaranteed delivery date. Weekends, postal holidays, weather and carrier delays can change arrival dates.",
     ],
   },
   {
     id: "rates",
     title: "Shipping rates",
     paragraphs: [
-      `Standard domestic shipping is $${FLAT_SHIPPING_USD.toFixed(2)} on orders under $${FREE_SHIPPING_THRESHOLD}.`,
-      `Orders with a product subtotal of $${FREE_SHIPPING_THRESHOLD} or more get free standard U.S. shipping at checkout.`,
+      `Standard USPS Ground Advantage shipping is $${FLAT_SHIPPING_USD.toFixed(2)} on orders with a product subtotal under $${FREE_SHIPPING_THRESHOLD} before discounts.`,
+      `Orders with a product subtotal of $${FREE_SHIPPING_THRESHOLD} or more before discounts get free standard U.S. shipping at checkout. Any optional upgrade is priced separately and shown before payment; free standard shipping does not include an upgrade.`,
       "Packaging is chosen to protect vial seals and lyophilized material in normal transit.",
     ],
   },
@@ -50,7 +60,7 @@ export const shippingSections: ContentSection[] = [
     id: "tracking",
     title: "Tracking",
     paragraphs: [
-      "When your label is created, you get a shipping email with the tracking number.",
+      "When tracking is saved to your order, we send a shipping email with the tracking number. Creating a label alone does not mean the carrier has received the package.",
       "You can also check status anytime on /track with your email and order number. Carrier scans can take up to 24 hours to appear after label creation.",
     ],
   },

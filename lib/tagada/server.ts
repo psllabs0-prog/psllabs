@@ -29,6 +29,7 @@ export async function createTagadaCheckoutSession(params: {
   lastName: string;
   orderId: string;
   referralCode?: string | null;
+  shippingMethod?: "standard" | "priority";
 }): Promise<CreatedCheckoutSession> {
   const tagada = getTagadaServerClient();
   const storeId = getTagadaStoreId();
@@ -48,6 +49,7 @@ export async function createTagadaCheckoutSession(params: {
     orderId: params.orderId,
     metadata: {
       cartCustomAttributes: [{ name: "pslOrderId", value: params.orderId },
+        { name: "pslShippingMethod", value: params.shippingMethod ?? "standard" },
         ...(params.referralCode ? [{ name: "pslReferralCode", value: params.referralCode }] : [])],
     },
   });

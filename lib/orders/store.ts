@@ -2,8 +2,26 @@ import { getSql } from "@/lib/db/sql";
 import { readStoredResearchAcknowledgement, type OrderResearchAcknowledgement } from "@/lib/checkout/research-acknowledgement";
 
 import type { Order, OrderStatus, PaymentMethod } from "./types";
+import type { ShippingSelection } from "@/lib/shipping/types";
+import { readShippingSelection } from "@/lib/shipping/policy";
 
 let schemaReady: Promise<void> | null = null;
+
+/** Bind the provider-selected rate before a card checkout can become payable. */
+export async function setOrderShippingSelection(orderId: string, selection: ShippingSelection): Promise<void> {
+  const valid = readShippingSelection(selection);
+  if (!valid) throw new Error("Invalid shipping selection.");
+  await ensureOrdersSchema();
+  const sql = getSql();
+  const rows = await sql`
+    UPDATE orders
+    SET shipping = jsonb_set(shipping, '{selection}', ${JSON.stringify(valid)}::jsonb, true), updated_at = now()
+    WHERE order_id = ${orderId} AND status = 'pending'
+      AND shipping->'selection'->>'method' = ${valid.method}
+    RETURNING order_id
+  `;
+  if (rows.length !== 1) throw new Error("The selected shipping service was not saved.");
+}
 
 export async function ensureOrdersSchema(): Promise<void> {
   if (schemaReady) return schemaReady;
@@ -165,6 +183,14 @@ function parseJson<T>(value: T | string): T {
 }
 
 function rowToOrder(row: OrderRow): Order {
+  const rawShipping = parseJson(row.shipping);
+  if (!rawShipping || typeof rawShipping !== "object" || Array.isArray(rawShipping)) throw new Error("Stored order address could not be read.");
+  const shipping = { ...rawShipping };
+  if (Object.prototype.hasOwnProperty.call(rawShipping, "selection")) {
+    const selection = readShippingSelection(rawShipping.selection);
+    if (!selection) throw new Error("Stored shipping selection could not be verified. Review this order before fulfillment.");
+    shipping.selection = selection;
+  }
   return {
     orderId: row.order_id,
     createdAt: new Date(row.created_at).toISOString(),
@@ -172,7 +198,7 @@ function rowToOrder(row: OrderRow): Order {
     status: row.status,
     currency: row.currency,
     email: row.email,
-    shipping: parseJson(row.shipping),
+    shipping,
     items: parseJson(row.items),
     subtotal: Number(row.subtotal),
     discountCode: row.discount_code ?? null,
@@ -589,11 +615,21 @@ export async function releaseTagadaWebhookClaim(
 export async function markStatusIfPending(
   orderId: string,
   status: Extract<OrderStatus, "cancelled" | "failed">,
-  binding?: { invoiceId: string; paymentMethod: PaymentMethod; total: number; currency: string }
+  binding?: { invoiceId: string | null; paymentMethod: PaymentMethod; total: number; currency: string }
 ): Promise<void> {
   await ensureOrdersSchema();
   const sql = getSql();
   if (binding) {
+    if (binding.invoiceId === null) {
+      await sql`
+        UPDATE orders SET status = ${status}, updated_at = now()
+        WHERE order_id = ${orderId} AND status = 'pending'
+          AND invoice_id IS NULL
+          AND payment_method = ${binding.paymentMethod}
+          AND total = ${binding.total} AND currency = ${binding.currency}
+      `;
+      return;
+    }
     await sql`
       UPDATE orders SET status = ${status}, updated_at = now()
       WHERE order_id = ${orderId} AND status = 'pending'

@@ -13,6 +13,7 @@ export type CheckoutPriceBinding = {
   storeId: string;
   checkoutToken: string;
   expectedSessionId?: string;
+  expectedShippingRateId?: string;
   /** Only for explicitly marked unpaid provider QA drafts. Never set in checkout. */
   allowSyntheticDraft?: boolean;
 };
@@ -20,12 +21,16 @@ export type CheckoutPriceBinding = {
 export function normalizeTagadaCheckoutPriceEvidence(value: unknown, binding: CheckoutPriceBinding) {
   const raw = object(value);
   const session = object(raw?.checkoutSession);
+  // The raw v2 endpoint calls this shippingRateId; the SDK normalizes it to
+  // selectedShippingRateId. Read the provider field, not a browser assertion.
+  const selectedShippingRateId = session?.shippingRateId;
   const summaries = Array.isArray(session?.orderSummaries) ? session.orderSummaries : [];
   const summary = object(raw?.summary ?? session?.summary ?? summaries[0]);
   const metadata = object(session?.metadata);
   if (!session || !summary || !identifier(session.id) || session.storeId !== binding.storeId ||
       session.checkoutToken !== binding.checkoutToken ||
       (binding.expectedSessionId && session.id !== binding.expectedSessionId) ||
+      (binding.expectedShippingRateId && selectedShippingRateId !== binding.expectedShippingRateId) ||
       summary.currency !== "USD" || (session.selectedPresentmentCurrency != null && session.selectedPresentmentCurrency !== "USD")) return null;
   if (binding.allowSyntheticDraft ? !(session.draft === true && metadata?.synthetic === true)
     : session.draft === true || metadata?.synthetic === true) return null;
@@ -65,6 +70,7 @@ export function normalizeTagadaCheckoutPriceEvidence(value: unknown, binding: Ch
     storeId: binding.storeId,
     checkoutToken: binding.checkoutToken,
     currency: "USD",
+    ...(identifier(selectedShippingRateId) ? { selectedShippingRateId } : {}),
     items,
     totals: { ...amounts, total, currency: "USD" },
     customer: customer && typeof customer.email === "string" ? { email: customer.email } : undefined,

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { BtcpostageOrderPanel } from "@/components/admin/btcpostage-order-panel";
+import type { OrderShippingAddress } from "@/lib/orders/types";
+import { getOrderShippingPresentation } from "@/lib/shipping/presentation";
 
 type Card = {
   orderId: string;
@@ -15,15 +17,7 @@ type Card = {
     sku: string | null;
     quantity: number;
   }>;
-  shipping: {
-    firstName: string;
-    lastName: string;
-    address: string;
-    city: string;
-    state: string;
-    zip: string;
-    country: string;
-  };
+  shipping: OrderShippingAddress;
   workflowStatus: string;
   holdReason: string | null;
   blocker: string | null;
@@ -60,6 +54,12 @@ type Payload = {
   labelsByOrderId?: Record<string, LabelPublic>;
 };
 
+async function loadFulfillmentBoard(signal?: AbortSignal): Promise<Payload> {
+  const response = await fetch("/api/admin/fulfillment", { signal });
+  if (!response.ok) throw new Error("Failed to load fulfillment board.");
+  return response.json() as Promise<Payload>;
+}
+
 export function AdminFulfillmentDashboard() {
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -69,20 +69,27 @@ export function AdminFulfillmentDashboard() {
   >({});
 
   const refresh = useCallback(async () => {
-    setError(null);
-    const res = await fetch("/api/admin/fulfillment");
-    if (!res.ok) {
+    try {
+      const payload = await loadFulfillmentBoard();
+      setError(null);
+      setData(payload);
+      setLabelsByOrderId(payload.labelsByOrderId ?? {});
+    } catch {
       setError("Failed to load fulfillment board.");
-      return;
     }
-    const payload = (await res.json()) as Payload;
-    setData(payload);
-    setLabelsByOrderId(payload.labelsByOrderId ?? {});
   }, []);
 
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    const controller = new AbortController();
+    void loadFulfillmentBoard(controller.signal).then((payload) => {
+      if (controller.signal.aborted) return;
+      setData(payload);
+      setLabelsByOrderId(payload.labelsByOrderId ?? {});
+    }).catch(() => {
+      if (!controller.signal.aborted) setError("Failed to load fulfillment board.");
+    });
+    return () => controller.abort();
+  }, []);
 
   async function act(action: string, orderId: string, reason?: string) {
     setBusy(`${action}:${orderId}`);
@@ -98,15 +105,10 @@ export function AdminFulfillmentDashboard() {
     }
   }
 
-  function OrderCard({
-    card,
-    mode,
-  }: {
-    card: Card;
-    mode: "ready" | "hold" | "packed";
-  }) {
+  function renderOrderCard(card: Card, mode: "ready" | "hold" | "packed") {
+    const shipping = getOrderShippingPresentation(card.shipping);
     return (
-      <li className="premium-card px-4 py-3 text-sm">
+      <li key={card.orderId} className="premium-card px-4 py-3 text-sm">
         <p className="font-medium text-ink">
           {card.orderId} · {card.workflowStatus}
         </p>
@@ -117,6 +119,9 @@ export function AdminFulfillmentDashboard() {
         <p className="text-ash">
           Paid {card.paidAt ?? "—"} · {card.paymentMethod ?? "—"}
         </p>
+        <p className="mt-2 font-medium text-ink">Selected service: {shipping.serviceName}</p>
+        {shipping.deliveryEstimate && <p className="text-ash">{shipping.deliveryEstimate}</p>}
+        <p className="text-ash">{shipping.processingNotice}</p>
         <ul className="mt-2 list-disc pl-5">
           {card.items.map((it) => (
             <li key={`${card.orderId}-${it.sku}-${it.name}`}>
@@ -277,7 +282,7 @@ export function AdminFulfillmentDashboard() {
                 <li className="text-sm text-ash">None.</li>
               ) : (
                 data.ready.map((c) => (
-                  <OrderCard key={c.orderId} card={c} mode="ready" />
+                  renderOrderCard(c, "ready")
                 ))
               )}
             </ul>
@@ -292,7 +297,7 @@ export function AdminFulfillmentDashboard() {
                 <li className="text-sm text-ash">None.</li>
               ) : (
                 data.hold.map((c) => (
-                  <OrderCard key={c.orderId} card={c} mode="hold" />
+                  renderOrderCard(c, "hold")
                 ))
               )}
             </ul>
@@ -307,7 +312,7 @@ export function AdminFulfillmentDashboard() {
                 <li className="text-sm text-ash">None.</li>
               ) : (
                 data.packed.map((c) => (
-                  <OrderCard key={c.orderId} card={c} mode="packed" />
+                  renderOrderCard(c, "packed")
                 ))
               )}
             </ul>

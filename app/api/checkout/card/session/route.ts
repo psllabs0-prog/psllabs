@@ -6,12 +6,12 @@ import {
   prepareReservedOrder,
   type CheckoutBody,
 } from "@/lib/checkout/prepare-order";
-import { setInvoiceId, setPaymentMethod } from "@/lib/orders/store";
+import { markStatusIfPending, setInvoiceId, setPaymentMethod, setOrderShippingSelection } from "@/lib/orders/store";
 import { getTagadaIdsForHandle, isTagadaConfigured } from "@/lib/tagada";
 import { createTagadaCheckoutSession } from "@/lib/tagada/server";
 import { readRequestPrivacyConsent } from "@/lib/privacy/server";
 import { normalizeReferralCode } from "@/lib/partners/referral-logic";
-import { configuredReferralPromotionCode, configureAndVerifyReferralCardSession } from "@/lib/tagada/referral-checkout";
+import { configuredReferralPromotionCode, configureAndVerifyCardSession } from "@/lib/tagada/referral-checkout";
 import { getResearchAccount } from "@/lib/research-auth/server";
 
 export const runtime = "nodejs";
@@ -54,6 +54,19 @@ export async function POST(request: Request) {
   }
 
   const { order } = prepared;
+  let checkoutToken: string | null = null;
+  let tokenPersisted = false;
+  // This route has not exposed payment tokens. Release only this new pending
+  // reservation; a paid order or a different provider session stays untouched.
+  const releaseFailedSetup = async () => {
+    const binding = { paymentMethod: "card" as const, total: order.total, currency: order.currency };
+    try {
+      if (checkoutToken) await markStatusIfPending(order.orderId, "cancelled", { ...binding, invoiceId: checkoutToken });
+      if (!tokenPersisted) await markStatusIfPending(order.orderId, "cancelled", { ...binding, invoiceId: null });
+    } catch {
+      console.error("[checkout/card/session] Unable to release the failed pending reservation.");
+    }
+  };
 
   try {
     await setPaymentMethod(order.orderId, "card");
@@ -62,6 +75,7 @@ export async function POST(request: Request) {
     for (const item of order.items) {
       const ids = await getTagadaIdsForHandle(item.handle);
       if (!ids) {
+        await releaseFailedSetup();
         return NextResponse.json(
           {
             error:
@@ -84,16 +98,20 @@ export async function POST(request: Request) {
       lastName: order.shipping.lastName,
       orderId: order.orderId,
       referralCode: normalizeReferralCode(order.discountCode),
+      shippingMethod: order.shipping.selection?.method ?? "standard",
     });
 
     // Persist Token for webhook / fulfill correlation
+    checkoutToken = session.checkoutToken;
     await setInvoiceId(order.orderId, session.checkoutToken);
+    tokenPersisted = true;
 
-    if (normalizeReferralCode(order.discountCode)) {
-      await configureAndVerifyReferralCardSession(order, session, {
-        storeId: process.env.TAGADA_STORE_ID!, items: sessionItems,
-      }, referralPromotionCode);
-    }
+    const binding = await configureAndVerifyCardSession(order, session, {
+      storeId: process.env.TAGADA_STORE_ID!, items: sessionItems,
+    }, normalizeReferralCode(order.discountCode) ? referralPromotionCode : null);
+    if (!order.shipping.selection) throw new Error("The reserved shipping method is unavailable.");
+    const shippingSelection = { ...order.shipping.selection, tagadaShippingRateId: binding.shippingRateId };
+    await setOrderShippingSelection(order.orderId, shippingSelection);
 
     return NextResponse.json({
       orderId: order.orderId,
@@ -115,10 +133,18 @@ export async function POST(request: Request) {
       items: sessionItems,
       total: order.total,
       shippingCost: order.shippingCost,
+      shippingMethod: shippingSelection.method,
+      shippingSelection,
+      tagadaShippingRateId: binding.shippingRateId,
+      ...(shippingSelection.quoteExpiresAt ? { shippingQuoteExpiresAt: shippingSelection.quoteExpiresAt } : {}),
+      ...(shippingSelection.method === "priority" && typeof body.shippingQuote === "string" ? {
+        shippingQuote: body.shippingQuote,
+      } : {}),
       researchAcknowledgementVersion: order.researchAcknowledgement?.version,
       pricing: { subtotal: order.subtotal, discountCode: order.discountCode, discountAmount: order.discountAmount, tax: order.tax },
     });
   } catch (error) {
+    await releaseFailedSetup();
     const message =
       error instanceof Error
         ? error.message

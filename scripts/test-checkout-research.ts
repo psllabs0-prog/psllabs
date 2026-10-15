@@ -14,6 +14,8 @@ import * as totals from "../lib/checkout/totals";
 import * as countries from "../lib/checkout/us-states";
 import * as attribution from "../lib/attribution/logic";
 import * as referralLogic from "../lib/partners/referral-logic";
+import * as shippingPolicy from "../lib/shipping/policy";
+import * as shippingRequest from "../lib/shipping/request";
 import { UNKNOWN_PRIVACY_CONSENT } from "../lib/privacy/types";
 import { toPublicOrder, type Order } from "../lib/orders/types";
 import { cardSessionReadyToCharge, createCardSessionStore, type TagadaCardSession } from "../lib/checkout/card-session-storage";
@@ -50,9 +52,11 @@ const ordersMock = {
     saved.set(id, structuredClone(declaration));
   },
   markStatusIfPending: async (_id: string, state: string) => { check(state, "cancelled"); cancellations++; },
-  setInvoiceId: async () => {}, setPaymentMethod: async () => {},
+  setInvoiceId: async () => {}, setPaymentMethod: async () => {}, setOrderShippingSelection: async () => {},
 };
 const prepare = load("lib/checkout/prepare-order.ts", {
+  "@/lib/shipping/policy": shippingPolicy,
+  "@/lib/shipping/request": shippingRequest,
   "node:crypto": crypto, "@/lib/checkout/totals": totals, "@/lib/checkout/us-states": countries,
   "@/lib/checkout/research-acknowledgement": research, "@/lib/orders/store": ordersMock,
   "@/lib/attribution/logic": attribution, "@/lib/payments/products": pricing, "@/lib/products/catalog": catalog,
@@ -83,7 +87,7 @@ function route(file: string, account: typeof ACCOUNT | null = ACCOUNT) {
     } },
     "@/lib/partners/referral-logic": referralLogic,
     "@/lib/tagada/referral-checkout": { configuredReferralPromotionCode: () => null,
-      configureAndVerifyReferralCardSession: async () => { throw Error("Unexpected referral provider fixture"); } },
+      configureAndVerifyCardSession: async () => ({ shippingRateId: "ship_fixture" }) },
   }) as { POST: (request: Request) => Promise<Response> };
 }
 
@@ -174,6 +178,7 @@ async function persistenceChecks() {
   let selected: Record<string, unknown> | null = null;
   const store = load("lib/orders/store.ts", {
     "@/lib/checkout/research-acknowledgement": research,
+    "@/lib/shipping/policy": shippingPolicy,
     "@/lib/db/sql": { getSql: () => async (parts: TemplateStringsArray, ...values: unknown[]) => {
       const text = parts.join("?"); queries.push({ text, values });
       if (/SELECT \* FROM orders/.test(text)) return selected ? [selected] : [];
@@ -207,7 +212,8 @@ function recoveryChecks() {
   const provider = { id: "session_fixture", storeId: session.storeId, checkoutToken: session.checkoutToken, currency: "USD", totals: { currency: "USD", total: 5798 } };
   check(cardSessionReadyToCharge(session, provider, provider.id), false, "Legacy ready sessions cannot initiate another card charge");
   check(cardSessionReadyToCharge({ ...session, researchAcknowledgementVersion: "old" }, provider, provider.id), false);
-  check(cardSessionReadyToCharge({ ...session, researchAcknowledgementVersion: research.CHECKOUT_RESEARCH_ACK_VERSION }, provider, provider.id), true);
+  check(cardSessionReadyToCharge({ ...session, researchAcknowledgementVersion: research.CHECKOUT_RESEARCH_ACK_VERSION,
+    shippingMethod: "standard", tagadaShippingRateId: "ship_fixture" }, { ...provider, selectedShippingRateId: "ship_fixture" }, provider.id), true);
   const values = new Map<string, string>();
   const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); }, removeItem: (key: string) => { values.delete(key); } };
   const legacy = createCardSessionStore(() => storage, () => 100000);

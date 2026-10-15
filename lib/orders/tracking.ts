@@ -1,6 +1,7 @@
 import { getCatalogProductByHandle } from "@/lib/products/catalog";
 
 import type { Order, OrderItem, OrderShippingAddress } from "./types";
+import { getOrderShippingPresentation, type ShippingPresentation } from "@/lib/shipping/presentation";
 
 export type OrderDisplayStatus =
   | "pending"
@@ -19,6 +20,7 @@ export type TrackedOrder = {
   displayStatus: OrderDisplayStatus;
   items: TrackedOrderItem[];
   shippingSummary: string;
+  shippingService: ShippingPresentation;
   trackingNumber: string | null;
   trackingCarrier: string | null;
   subtotal: number;
@@ -77,6 +79,7 @@ export function toTrackedOrder(order: Order): TrackedOrder {
     displayStatus: orderDisplayStatus(order),
     items: order.items.map(itemWithSku),
     shippingSummary: formatPartialShippingAddress(order.shipping),
+    shippingService: getOrderShippingPresentation(order.shipping),
     trackingNumber: order.trackingNumber,
     trackingCarrier: order.trackingCarrier,
     subtotal: order.subtotal,

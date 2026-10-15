@@ -11,12 +11,13 @@ const order = { currency: "USD", subtotal: 59.99, discountAmount: 6, shippingCos
   email: "fixture@example.test", shipping: { firstName: "Fixture", lastName: "Buyer", address: "1 Test Street", city: "Phoenix", state: "AZ", zip: "85001", country: "US" },
 } as Order;
 const binding = { storeId: "store_fixture", checkoutToken: "checkout_fixture", items: [{ variantId: "var_fixture", quantity: 1 }] };
-const correct = { id: "ch_fixture", ...binding, currency: "USD", customer: { email: order.email }, totals: { currency: "USD", subtotal: 5999, discount: 600, shipping: 999, tax: 0, total: 6398 } };
+const correct = { id: "ch_fixture", ...binding, currency: "USD", selectedShippingRateId: "exact", customer: { email: order.email }, totals: { currency: "USD", subtotal: 5999, discount: 600, shipping: 999, tax: 0, total: 6398 } };
 const session: TagadaCardSession = { orderId: "psl_fixture", checkoutToken: binding.checkoutToken, sessionToken: "session_fixture", storeId: binding.storeId,
   items: binding.items, customer: { email: order.email, firstName: "Fixture", lastName: "Buyer" },
   shippingAddress: { line1: "1 Test Street", city: "Phoenix", state: "AZ", postalCode: "85001", country: "US" },
   shippingCost: order.shippingCost, total: order.total, cartFingerprint: "fixture",
   researchAcknowledgementVersion: CHECKOUT_RESEARCH_ACK_VERSION,
+  shippingMethod: "standard", tagadaShippingRateId: "exact",
   pricing: { subtotal: order.subtotal, discountCode: "fixture-1234abcd", discountAmount: order.discountAmount, tax: order.tax } };
 
 async function main() {
@@ -55,7 +56,7 @@ async function main() {
     const client: ReferralCardCheckoutClient = {
       loadSession: async () => { calls.push("load"); return ++loads === 1 ? initial : fresh; },
       updateCustomerAndAddress: async () => { calls.push("address"); },
-      getShippingRates: async () => { calls.push("rates"); return [{ id: "wrong", amount: 1000, currency: "USD" }, { id: "exact", amount: 999, currency: "USD" }]; },
+      getShippingRates: async () => { calls.push("rates"); return [{ id: "wrong", name: "Standard", amount: 1000, currency: "USD" }, { id: "exact", name: "USPS Ground Advantage", amount: 999, currency: "USD" }]; },
       selectShippingRate: async (_id, rate) => { calls.push(`shipping:${rate}`); },
       applyPromoCode: async (_id, code) => { calls.push(`promo:${code}`); if (promoFailure) throw Object.assign(new Error("Fixture provider failure"), { code: promoFailure }); },
     };

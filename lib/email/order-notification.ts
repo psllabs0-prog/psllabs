@@ -5,6 +5,7 @@ import { formatDiscountEmailLine } from "@/lib/email/discount-line";
 import { getStockLevels } from "@/lib/inventory/store";
 import type { Order, PaymentMethod } from "@/lib/orders/types";
 import { SITE_URL } from "@/lib/seo";
+import { getOrderShippingPresentation } from "@/lib/shipping/presentation";
 
 const FROM_EMAIL = "PSL Labs Orders <support@psllabs.org>";
 const DEFAULT_TO = "support@psllabs.org";
@@ -104,6 +105,7 @@ export async function sendOrderEmail(order: Order): Promise<void> {
   const name = `${order.shipping.firstName} ${order.shipping.lastName}`.trim();
   const stockLevels = await getStockLevels(order.items.map((it) => it.handle));
   const discountLine = formatDiscountEmailLine(order);
+  const shipping = getOrderShippingPresentation(order.shipping);
 
   const rows = order.items
     .map(
@@ -136,6 +138,9 @@ export async function sendOrderEmail(order: Order): Promise<void> {
     <p style="margin:0 0 12px;white-space:pre-line;">${escapeHtml(
       `${order.shipping.address}\n${order.shipping.city}, ${order.shipping.state} ${order.shipping.zip}\n${order.shipping.country}`
     )}</p>
+    <p style="margin:0 0 4px;"><strong>Selected shipping service:</strong> ${escapeHtml(shipping.serviceName)}</p>
+    ${shipping.deliveryEstimate ? `<p style="margin:0 0 4px;">${escapeHtml(shipping.deliveryEstimate)}</p>` : ""}
+    <p style="margin:0 0 12px;">${escapeHtml(shipping.processingNotice)}</p>
     <table style="border-collapse:collapse;width:100%;font-size:14px;">
       <thead><tr style="background:#f1f5f9;">
         <th style="padding:6px 8px;text-align:left;">Product</th>
@@ -183,6 +188,9 @@ export async function sendOrderEmail(order: Order): Promise<void> {
     order.shipping.address,
     `${order.shipping.city}, ${order.shipping.state} ${order.shipping.zip}`,
     order.shipping.country,
+    `Selected shipping service: ${shipping.serviceName}`,
+    ...(shipping.deliveryEstimate ? [shipping.deliveryEstimate] : []),
+    shipping.processingNotice,
     "",
     ...order.items.flatMap((it) => {
       const remaining = stockLevels[it.handle];

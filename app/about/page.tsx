@@ -59,7 +59,7 @@ export default function AboutPage() {
       title: "Shipping from within the United States",
       paragraphs: [
         "We ship from Phoenix, Arizona. Packages are packed to protect vials in normal domestic transit.",
-        "Most orders process within 1 to 2 business days after payment clears, with tracking to all 50 U.S. states.",
+        "Most orders process within 24 hours after payment clears. Carrier acceptance may occur on the next operating day, with tracking to all 50 U.S. states.",
       ],
       linkText: "Shipping rates and timing",
       linkHref: "/shipping",

@@ -13,6 +13,7 @@ const session: TagadaCardSession = {
   items: [{ variantId: "variant_fixture", quantity: 1 }], shippingCost: 8.99, total: 68.98,
   cartFingerprint: cardCartFingerprint([{ handle: "fixture", quantity: 1, unitPrice: 59.99 }]),
   researchAcknowledgementVersion: CHECKOUT_RESEARCH_ACK_VERSION,
+  shippingMethod: "standard", tagadaShippingRateId: "ship_fixture",
 };
 let checks = 0;
 function check(value: unknown, message?: string) { checks++; assert.ok(value, message); }
@@ -146,6 +147,7 @@ async function main() {
     const providerSession = {
       id: "session_fixture", storeId: session.storeId, checkoutToken: session.checkoutToken,
       currency: "USD", totals: { total: 6898, currency: "USD" },
+      selectedShippingRateId: "ship_fixture",
     };
     check(cardSessionReadyToCharge(session, providerSession, providerSession.id));
     for (const changed of [

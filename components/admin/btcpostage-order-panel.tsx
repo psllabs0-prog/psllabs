@@ -1,16 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import type { OrderShippingAddress } from "@/lib/orders/types";
+import { getOrderShippingPresentation } from "@/lib/shipping/presentation";
+import { labelRateMatchesShippingSelection } from "@/lib/btcpostage/shipping-guard";
 
-type Shipping = {
-  firstName: string;
-  lastName: string;
-  address: string;
-  city: string;
-  state: string;
-  zip: string;
-  country: string;
-};
+type Shipping = OrderShippingAddress;
 
 type Rate = {
   service: string;
@@ -62,19 +57,26 @@ export function BtcpostageOrderPanel({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
+  const quotedPackage = shipping.selection?.package;
   const [weightLbs, setWeightLbs] = useState("0");
-  const [weightOz, setWeightOz] = useState("4");
-  const [heightIn, setHeightIn] = useState("3");
-  const [widthIn, setWidthIn] = useState("4");
-  const [depthIn, setDepthIn] = useState("6");
+  const [weightOz, setWeightOz] = useState(String(quotedPackage?.weightOz ?? 4));
+  const [heightIn, setHeightIn] = useState(String(quotedPackage?.heightIn ?? 3));
+  const [widthIn, setWidthIn] = useState(String(quotedPackage?.widthIn ?? 4));
+  const [depthIn, setDepthIn] = useState(String(quotedPackage?.lengthIn ?? 6));
+  const shippingInfo = getOrderShippingPresentation(shipping);
+
+  function invalidateRates() {
+    setRates([]);
+    setSelected("");
+  }
 
   function packageBody() {
     return {
-      weightLbs: Number(weightLbs) || 0,
-      weightOz: Number(weightOz) || 0,
-      heightIn: Number(heightIn) || 3,
-      widthIn: Number(widthIn) || 4,
-      depthIn: Number(depthIn) || 6,
+      weightLbs: Number(weightLbs),
+      weightOz: Number(weightOz),
+      heightIn: Number(heightIn),
+      widthIn: Number(widthIn),
+      depthIn: Number(depthIn),
       packageType: "Parcel",
     };
   }
@@ -149,11 +151,24 @@ export function BtcpostageOrderPanel({
 
   async function onRates() {
     try {
+      const pkg = packageBody();
+      if (![pkg.weightLbs, pkg.weightOz].every((n) => Number.isFinite(n) && n >= 0) ||
+          pkg.weightLbs * 16 + pkg.weightOz <= 0 ||
+          ![pkg.depthIn, pkg.widthIn, pkg.heightIn].every((n) => Number.isFinite(n) && n > 0)) {
+        setError("Enter the measured package weight and dimensions before requesting rates.");
+        return;
+      }
       const data = await post("get_rates", packageBody());
-      const nextRates = Array.isArray(data.rates) ? (data.rates as Rate[]) : [];
+      const nextRates = (Array.isArray(data.rates) ? (data.rates as Rate[]) : [])
+        .filter((rate) => rate.currency.trim().toUpperCase() === "USD" &&
+          Number.isFinite(Number(rate.rate)) && Number(rate.rate) > 0 &&
+          labelRateMatchesShippingSelection(shipping.selection, rate));
       setRates(nextRates);
-      setSelected("");
-      if (nextRates.length === 0) setError("No rates returned.");
+      setSelected(shipping.selection && nextRates[0]
+        ? `${nextRates[0].carrier}::${nextRates[0].service}` : "");
+      if (nextRates.length === 0) setError(shipping.selection
+        ? "No rate matches the order's selected shipping service. Review before buying a label."
+        : "No rates returned.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Rates failed");
     }
@@ -208,6 +223,8 @@ export function BtcpostageOrderPanel({
   return (
     <div className="mt-3 border-t border-black/10 pt-3 text-sm">
       <p className="font-medium text-ink">BTCPostage label</p>
+      <p className="mt-1 font-medium text-ink">Order service: {shippingInfo.serviceName}</p>
+      {!shippingInfo.legacy && <p className="mt-1 text-xs text-ash">Only rates matching the saved carrier and service are available. A label purchase still requires your confirmation.</p>}
       {testMode && (
         <p className="mt-1 font-medium text-amber-800">
           BTCPOSTAGE TEST MODE — labels are not real customer shipments.
@@ -234,45 +251,50 @@ export function BtcpostageOrderPanel({
           Lbs
           <input
             className="mt-1 w-full border px-2 py-1"
+            disabled={busy !== null}
             value={weightLbs}
-            onChange={(e) => setWeightLbs(e.target.value)}
+            onChange={(e) => { setWeightLbs(e.target.value); invalidateRates(); }}
           />
         </label>
         <label className="text-xs text-ash">
           Oz
           <input
             className="mt-1 w-full border px-2 py-1"
+            disabled={busy !== null}
             value={weightOz}
-            onChange={(e) => setWeightOz(e.target.value)}
+            onChange={(e) => { setWeightOz(e.target.value); invalidateRates(); }}
           />
         </label>
         <label className="text-xs text-ash">
           H (in)
           <input
             className="mt-1 w-full border px-2 py-1"
+            disabled={busy !== null}
             value={heightIn}
-            onChange={(e) => setHeightIn(e.target.value)}
+            onChange={(e) => { setHeightIn(e.target.value); invalidateRates(); }}
           />
         </label>
         <label className="text-xs text-ash">
           W (in)
           <input
             className="mt-1 w-full border px-2 py-1"
+            disabled={busy !== null}
             value={widthIn}
-            onChange={(e) => setWidthIn(e.target.value)}
+            onChange={(e) => { setWidthIn(e.target.value); invalidateRates(); }}
           />
         </label>
         <label className="text-xs text-ash">
           D (in)
           <input
             className="mt-1 w-full border px-2 py-1"
+            disabled={busy !== null}
             value={depthIn}
-            onChange={(e) => setDepthIn(e.target.value)}
+            onChange={(e) => { setDepthIn(e.target.value); invalidateRates(); }}
           />
         </label>
       </div>
       <p className="mt-1 text-xs text-ash">
-        Default package 6 × 4 × 3 in (depth × width × height).
+        Confirm the packed weight and outside dimensions. {quotedPackage ? "Priority orders start with their saved quoted package; changes require review." : "The default package is 6 × 4 × 3 in (depth × width × height)."}
       </p>
 
       <div className="mt-3 flex flex-wrap gap-3">

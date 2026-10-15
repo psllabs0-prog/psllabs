@@ -11,6 +11,7 @@ import {
   type TrackedOrder,
 } from "@/lib/orders/tracking";
 import { cn } from "@/lib/utils";
+import { getShippingSelectionPresentation } from "@/lib/shipping/presentation";
 
 function money(n: number): string {
   return `$${n.toFixed(2)}`;
@@ -42,6 +43,7 @@ export function TrackOrderForm() {
   const [error, setError] = useState<string | null>(null);
   const [order, setOrder] = useState<TrackedOrder | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const shipping = order?.shippingService ?? getShippingSelectionPresentation();
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -203,7 +205,7 @@ export function TrackOrderForm() {
             ) : (
               <p className="rounded-lg border border-linen bg-surface px-4 py-3 text-sm text-ash">
                 Tracking information will be available once your order ships.
-                Please allow 1–2 business days.
+                {" "}{shipping.processingNotice}
               </p>
             )}
           </div>
@@ -259,7 +261,10 @@ export function TrackOrderForm() {
           </dl>
 
           <div className="mt-5 border-t border-linen pt-4 text-sm text-ash">
-            <p className="font-medium text-ink">Shipping destination</p>
+            <p className="font-medium text-ink">{shipping.serviceName}</p>
+            {shipping.deliveryEstimate && <p className="mt-1">{shipping.deliveryEstimate}</p>}
+            {order.trackingNumber && <p className="mt-2">Check carrier tracking for acceptance and the latest delivery estimate.</p>}
+            <p className="mt-4 font-medium text-ink">Shipping destination</p>
             <p className="mt-1 whitespace-pre-line">{order.shippingSummary}</p>
             <p className="mt-2 text-xs leading-relaxed">
               Street address is omitted for privacy. Contact support if you need

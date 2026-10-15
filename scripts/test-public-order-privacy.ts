@@ -15,11 +15,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import * as jsxRuntime from "react/jsx-runtime";
 import ts from "typescript";
 import { toPublicOrder, type Order, type OrderStatus, type PublicOrder } from "../lib/orders/types";
+import type { ShippingSelection } from "../lib/shipping/types";
 
 const PRIVATE_CANARY = "PRIVATE_CUSTOMER_PAYMENT_ATTRIBUTION_CANARY";
 const ROOT = resolve(__dirname, "..");
-const PUBLIC_KEYS = ["orderId", "createdAt", "status", "currency", "items", "subtotal", "discountCode", "discountAmount", "shippingCost", "total"].sort();
+const PUBLIC_KEYS = ["orderId", "createdAt", "status", "currency", "items", "subtotal", "discountCode", "discountAmount", "shippingCost", "total", "shippingSelection"].sort();
 const ITEM_KEYS = ["handle", "name", "strength", "quantity", "unitPrice", "lineTotal"].sort();
+const SHIPPING_KEYS = ["method", "carrier", "serviceDisplayName", "deliveryEstimate"].sort();
 let checks = 0;
 let networkAttempts = 0;
 
@@ -68,6 +70,16 @@ function adversarialFixture(status: OrderStatus = "paid"): Order {
   Object.assign(order.attribution!, { googleAdsVerifiedPurchase: { proof: { provider: "tagada", paymentId: PRIVATE_CANARY }, transactionId: PRIVATE_CANARY } });
   return order;
 }
+function shippingSelectionFixture(): ShippingSelection {
+  return {
+    method: "priority", carrier: "USPS", providerServiceCode: "Priority",
+    serviceDisplayName: "USPS Priority Mail", transitDays: 2,
+    deliveryEstimate: "Estimated 2 business days after carrier acceptance; not guaranteed.",
+    quotedPostageUsd: 9.61, package: { weightOz: 8, lengthIn: 6, widthIn: 4, heightIn: 3 },
+    quotedAt: "2026-10-15T12:00:00.000Z", quoteExpiresAt: "2026-10-15T12:05:00.000Z",
+    tagadaShippingRateId: PRIVATE_CANARY,
+  };
+}
 type StatusProps = { orderId: string; initialOrder: PublicOrder | null };
 type StatusComponent = (props: StatusProps) => React.ReactNode;
 type Page = (props: { searchParams: Promise<{ orderId?: string }> }) => Promise<React.ReactNode>;
@@ -108,6 +120,7 @@ function harness(order: Order | null, failure = false) {
         return null;
       },
     },
+    "@/components/analytics/meta-ads-purchase": { MetaAdsPurchaseReceipt: () => null },
     "@/components/success/order-status": {
       OrderStatus: (props: StatusProps) => {
         capturedProps = props;
@@ -118,6 +131,10 @@ function harness(order: Order | null, failure = false) {
   const sources: Record<string, string> = {
     route: "app/api/order-status/route.ts", page: "app/success/page.tsx", status: "components/success/order-status.tsx",
     "@/components/success/order-resources": "components/success/order-resources.tsx",
+    "@/lib/shipping/presentation": "lib/shipping/presentation.ts",
+    "@/lib/content/shipping": "lib/content/shipping.ts",
+    "@/lib/cart/constants": "lib/cart/constants.ts",
+    "./testing-scope": "lib/content/testing-scope.ts",
   };
   function load(id: string): Record<string, unknown> {
     if (mocks[id]) return mocks[id];
@@ -163,6 +180,7 @@ async function main() {
       check(summary.status, status, `${status}: useful status survives`);
       check(summary.total, 129.97, `${status}: useful price survives`);
       check(summary.items[0].quantity, 2, `${status}: useful quantity survives`);
+      check(summary.shippingSelection, null, `${status}: historical orders have no invented shipping selection`);
       check(JSON.stringify(privateOrder), before, `${status}: private record is unchanged`);
 
       const h = harness(privateOrder);
@@ -191,11 +209,34 @@ async function main() {
       check(h.reads, [privateOrder.orderId, privateOrder.orderId], `${status}: API and page query only their explicit fixture reference`);
     }
 
+    const selectedOrder = adversarialFixture();
+    selectedOrder.shipping.selection = shippingSelectionFixture();
+    Object.assign(selectedOrder.shipping.selection, { quoteToken: PRIVATE_CANARY, internalAddress: PRIVATE_CANARY, futureInternalField: PRIVATE_CANARY });
+    const selectedSummary = toPublicOrder(selectedOrder);
+    check(Object.keys(selectedSummary).sort(), PUBLIC_KEYS, "selected service preserves the explicit public-order subset");
+    check(Object.keys(selectedSummary.shippingSelection!).sort(), SHIPPING_KEYS, "selected service exposes only its four customer-safe fields");
+    check(selectedSummary.shippingSelection, {
+      method: "priority", carrier: "USPS", serviceDisplayName: "USPS Priority Mail",
+      deliveryEstimate: selectedOrder.shipping.selection.deliveryEstimate,
+    }, "public selected service has no cost, package, provider IDs, tokens or address");
+    excludesPrivate(selectedSummary, "selected-service serializer");
+    const selectedHarness = harness(selectedOrder);
+    const selectedResponse = await selectedHarness.route.GET(request(selectedOrder.orderId));
+    check(await selectedResponse.json(), { order: selectedSummary }, "selected-service API uses the minimal projection");
+    const selectedHtml = renderToStaticMarkup(await selectedHarness.page({ searchParams: Promise.resolve({ orderId: selectedOrder.orderId }) }));
+    check(selectedHarness.captured()?.initialOrder, selectedSummary, "selected-service client receives the minimal projection");
+    check(selectedHtml.includes("USPS Priority Mail"), true, "selected shipping service remains visible");
+    excludesPrivate(selectedHtml, "selected-service rendered page");
+
     const untouchedPrivateFields = adversarialFixture();
-    for (const key of ["shipping", "email", "invoiceId", "attribution", "card", "futureInternalField"]) {
+    untouchedPrivateFields.shipping.selection = shippingSelectionFixture();
+    for (const key of ["firstName", "lastName", "address", "city", "state", "zip", "country"]) {
+      Object.defineProperty(untouchedPrivateFields.shipping, key, { get() { throw new Error(`Serializer accessed private shipping.${key}`); } });
+    }
+    for (const key of ["email", "invoiceId", "attribution", "card", "futureInternalField"]) {
       Object.defineProperty(untouchedPrivateFields, key, { get() { throw new Error(`Serializer accessed private ${key}`); } });
     }
-    excludesPrivate(toPublicOrder(untouchedPrivateFields), "serializer never reads private fields or unknown extensions");
+    excludesPrivate(toPublicOrder(untouchedPrivateFields), "serializer never reads address fields, unrelated private fields or unknown extensions");
 
     const missingId = harness(adversarialFixture());
     check((await missingId.route.GET(request())).status, 400, "missing API reference remains rejected");

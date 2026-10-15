@@ -193,11 +193,15 @@ function TagadaCardFields({
 
   async function handlePay() {
     if (context?.phase !== "ready" || confirmation || confirmationRequest.current) return;
-    if (session.researchAcknowledgementVersion !== CHECKOUT_RESEARCH_ACK_VERSION) {
-      const message = "Start a new checkout to review your research-use declaration before paying. No card charge was started.";
+    if (session.researchAcknowledgementVersion !== CHECKOUT_RESEARCH_ACK_VERSION || !session.shippingMethod || !session.tagadaShippingRateId) {
+      const message = "Start a new checkout to review your shipping choice and research-use declaration before paying. No card charge was started.";
       setLocalError(message);
       onError(message);
       return;
+    }
+    if (session.shippingMethod === "priority" && (!session.shippingQuoteExpiresAt || Date.parse(session.shippingQuoteExpiresAt) <= Date.now())) {
+      const message = "Your Priority quote expired. Cancel this uncharged checkout and choose shipping again. No card charge was started.";
+      setLocalError(message); onError(message); return;
     }
     setLocalError(null);
     onError("");
@@ -246,29 +250,11 @@ function TagadaCardFields({
       });
 
       const rates = await getShippingRates();
-      const pickedRate = pickTagadaShippingRate(rates, session.shippingCost);
-
-      if (process.env.NODE_ENV === "development") {
-        console.info("[tagada] shipping rates:", rates);
-        console.info("[tagada] expected shipping (USD):", session.shippingCost);
-        console.info("[tagada] picked shipping rate:", pickedRate);
-        console.info("[tagada] checkout session before shipping select:", {
-          items: checkoutSession.items,
-          totals: checkoutSession.totals,
-          selectedShippingRateId: checkoutSession.selectedShippingRateId,
-        });
-      }
-
-      if (pickedRate) {
-        if (checkoutSession.selectedShippingRateId !== pickedRate.id) {
-          await selectShippingRate(pickedRate.id);
-        }
-        await refresh();
-      } else if (process.env.NODE_ENV === "development") {
-        console.warn(
-          "[tagada] no shipping rates returned — pay-with-token may fail for shippable products"
-        );
-      }
+      const pickedRate = pickTagadaShippingRate(rates, session.shippingCost,
+        { method: session.shippingMethod, rateId: session.tagadaShippingRateId });
+      if (!pickedRate) throw new Error("Your selected shipping service or price is no longer available. Cancel this checkout and review shipping again. No card charge was started.");
+      if (checkoutSession.selectedShippingRateId !== pickedRate.id) await selectShippingRate(pickedRate.id);
+      await refresh();
 
       const { tagadaToken } = await tokenizeCard({
         cardNumber: digits,
@@ -278,7 +264,7 @@ function TagadaCardFields({
       });
 
       const freshSession = await readTagadaCheckoutPriceEvidence({ storeId: session.storeId,
-        checkoutToken: session.checkoutToken, expectedSessionId: checkoutSession.id }, session.sessionToken,
+        checkoutToken: session.checkoutToken, expectedSessionId: checkoutSession.id, expectedShippingRateId: pickedRate.id }, session.sessionToken,
         client.config.environment === "development" ? "development" : "production");
       if (!cardSessionReadyToCharge(session, freshSession, checkoutSession.id)) {
         throw new Error("The current card checkout total does not match your order. Cancel this checkout and start again, use Bitcoin, or contact support. No card charge was started.");

@@ -2,10 +2,12 @@ import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { SUPPORT_EMAIL } from "@/lib/email/shared";
 import type { Order } from "@/lib/orders/types";
 import { getCatalogProductByHandle } from "@/lib/products/catalog";
+import { getOrderShippingPresentation } from "@/lib/shipping/presentation";
 
 /** Printable packing slip — operational only, no use/dosing language. */
 export function buildPackingSlipHtml(order: Order): string {
   const name = `${order.shipping.firstName} ${order.shipping.lastName}`.trim();
+  const shipping = getOrderShippingPresentation(order.shipping);
   const dest = [
     name,
     order.shipping.address,
@@ -13,6 +15,7 @@ export function buildPackingSlipHtml(order: Order): string {
     order.shipping.country,
   ]
     .filter(Boolean)
+    .map(escape)
     .join("<br/>");
 
   const rows = order.items
@@ -39,6 +42,9 @@ export function buildPackingSlipHtml(order: Order): string {
   <p><strong>Order:</strong> ${escape(order.orderId)}</p>
   <p><strong>Date:</strong> ${escape(order.paidAt ?? order.createdAt)}</p>
   <p><strong>Ship to:</strong><br/>${dest}</p>
+  <p><strong>Selected shipping service:</strong> ${escape(shipping.serviceName)}</p>
+  ${shipping.deliveryEstimate ? `<p class="muted">${escape(shipping.deliveryEstimate)}</p>` : ""}
+  <p class="muted">${escape(shipping.processingNotice)}</p>
   <table>
     <thead><tr>
       <th style="text-align:left;padding:6px;">Item</th>

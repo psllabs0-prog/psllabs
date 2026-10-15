@@ -1,5 +1,7 @@
 import { getOrder } from "@/lib/orders/store";
 import type { Order } from "@/lib/orders/types";
+import { isPriorityServiceCode, PRIORITY_ORIGIN_ZIP, priorityCostCovered } from "@/lib/shipping/policy";
+import { isPhysicalUSShippingAddress } from "@/lib/shipping/request";
 
 import {
   BtcpostageApiError,
@@ -14,6 +16,7 @@ import {
 } from "./config";
 import {
   claimLabelPurchase,
+  ensureLabelRow,
   getBtcpostageLabel,
   markPurchaseFailed,
   markPurchaseNeedsReview,
@@ -28,6 +31,7 @@ import type {
   BtcpostageRate,
 } from "./types";
 import { DEFAULT_PACKAGE } from "./types";
+import { assertLabelMatchesOrderShipping, assertReturnedPurchaseMatchesOrder, labelRateMatchesShippingSelection } from "./shipping-guard";
 
 function assertPaidUnshipped(order: Order): void {
   if (order.status !== "paid") {
@@ -35,6 +39,13 @@ function assertPaidUnshipped(order: Order): void {
   }
   if (order.trackingNumber?.trim()) {
     throw new Error("Order already has a tracking number on the PSL order.");
+  }
+}
+
+function assertStoredLabelService(order: Order, label: { carrier: string | null; service: string | null }): void {
+  if (order.shipping.selection && (!label.carrier || !label.service ||
+      !labelRateMatchesShippingSelection(order.shipping.selection, { carrier: label.carrier, service: label.service }))) {
+    throw new Error("The stored label does not match the order's selected shipping service. Review the existing shipment; do not buy another label.");
   }
 }
 
@@ -81,6 +92,33 @@ function normalizePackage(input?: Partial<BtcpostagePackage> | null): Btcpostage
     depthIn: Math.max(0.1, Number(input?.depthIn ?? DEFAULT_PACKAGE.depthIn)),
     packageType: (input?.packageType || DEFAULT_PACKAGE.packageType).trim() || "Parcel",
   };
+}
+
+/** Recheck paid Priority orders even when new Priority sales are paused. */
+async function assertCurrentPriorityPostageCovered(
+  order: Order, from: BtcpostageAddress, to: BtcpostageAddress, pkg: BtcpostagePackage
+): Promise<void> {
+  const selection = order.shipping.selection;
+  if (selection?.method !== "priority") return;
+  if (order.currency !== "USD" || !isPriorityServiceCode(selection.providerServiceCode) ||
+      from.country.trim().toUpperCase() !== "US" || from.zip.trim().slice(0, 5) !== PRIORITY_ORIGIN_ZIP ||
+      !isPhysicalUSShippingAddress({ ...order.shipping, address: [to.street1, to.street2].filter(Boolean).join("\n"),
+        city: to.city, state: to.state, zip: to.zip, country: to.country.trim().toUpperCase() })) {
+    throw new Error("The current Priority shipping origin or destination could not be verified.");
+  }
+  const reserveRaw = process.env.PSL_PRIORITY_EXTRA_COST_RESERVE_USD?.trim() ?? "";
+  // The user approved a $2 reserve. Missing settings must not prevent already-
+  // paid Priority orders being fulfilled when the new-offer flag is paused.
+  // An explicitly malformed setting is held for review instead of ignored.
+  const reserve = reserveRaw === "" ? 2 : /^\d+(?:\.\d{1,5})?$/.test(reserveRaw) ? Number(reserveRaw) : Number.NaN;
+  if (!Number.isFinite(reserve) || reserve < 0 || reserve > 100) throw new Error("The Priority shipping cost reserve is invalid.");
+  const rates = await getRates({ from, to, pkg, carrier: "USPS" });
+  const exact = rates.filter(rate => rate.carrier.trim().toUpperCase() === "USPS" &&
+    rate.service === selection.providerServiceCode && rate.currency === "USD" &&
+    /^\d+(?:\.\d{1,2})?$/.test(rate.rate) && Number(rate.rate) > 0);
+  if (exact.length !== 1 || !priorityCostCovered(Number(exact[0].rate), order.shippingCost, reserve)) {
+    throw new Error("The current exact USPS Priority Mail rate is unavailable or exceeds the collected shipping fee including packaging and reserve.");
+  }
 }
 
 export async function verifyOrderAddress(orderId: string): Promise<{
@@ -136,19 +174,24 @@ export async function getOrderRates(
 }
 
 function applyPurchaseResult(
-  orderId: string,
+  order: Order,
   purchase: Awaited<ReturnType<typeof createPurchase>>,
   pkg: BtcpostagePackage,
-  testMode: boolean
+  testMode: boolean,
+  recovery?: { requestedPurchaseId: string; recordedPurchaseId: string | null }
 ) {
-  const item = purchase.items[0];
-  if (!item) {
-    throw new BtcpostageApiError("BTCPostage purchase returned no label items.", {
-      uncertain: true,
+  try {
+    assertReturnedPurchaseMatchesOrder({
+      orderId: order.orderId, selection: order.shipping.selection,
+      destinationName: `${order.shipping.firstName} ${order.shipping.lastName}`,
+      purchase, recovery,
     });
+  } catch (error) {
+    throw new BtcpostageApiError(error instanceof Error ? error.message : "The returned shipment could not be verified.", { uncertain: true });
   }
+  const item = purchase.items[0];
   return markPurchaseSucceeded({
-    pslOrderId: orderId,
+    pslOrderId: order.orderId,
     btcpOrderId: purchase.orderId,
     shipmentId: item.shipmentId || null,
     carrier: item.carrier || null,
@@ -187,14 +230,26 @@ export async function buyOrderLabel(input: {
   if (!order) throw new Error("Order not found.");
   assertPaidUnshipped(order);
 
+  const pkg = normalizePackage(input.pkg);
+  const carrier = input.carrier.trim();
+  const service = input.service.trim();
+  assertLabelMatchesOrderShipping({
+    selection: order.shipping.selection,
+    carrier,
+    service,
+    pkg,
+  });
+
   const existing = await getBtcpostageLabel(input.orderId);
   if (existing?.purchaseStatus === "purchased") {
+    assertStoredLabelService(order, existing);
     return { label: toPublicLabel(existing), alreadyPurchased: true };
   }
 
   const claim = await claimLabelPurchase(input.orderId);
   if (!claim.ok) {
     if (claim.reason === "already_purchased") {
+      assertStoredLabelService(order, claim.label);
       return { label: toPublicLabel(claim.label), alreadyPurchased: true };
     }
     if (claim.reason === "needs_review") {
@@ -208,11 +263,6 @@ export async function buyOrderLabel(input: {
     );
   }
 
-  const pkg = normalizePackage(input.pkg);
-  const to = await resolveToAddress(order);
-  const from = getBtcpostageFromAddress();
-  const carrier = input.carrier.trim();
-  const service = input.service.trim();
   if (!carrier || !service) {
     await markPurchaseFailed(input.orderId, "Carrier and service are required.");
     throw new Error("Carrier and service are required.");
@@ -227,6 +277,22 @@ export async function buyOrderLabel(input: {
     throw new Error("BTCPOSTAGE_TEST_MODE only supports USPS label purchases.");
   }
 
+  let to: BtcpostageAddress;
+  let from: BtcpostageAddress;
+  try {
+    to = await resolveToAddress(order);
+    from = getBtcpostageFromAddress();
+    await assertCurrentPriorityPostageCovered(order, from, to, pkg);
+  } catch (error) {
+    if (order.shipping.selection?.method === "priority") {
+      const message = error instanceof Error ? error.message : "Current postage could not be checked.";
+      await markPurchaseNeedsReview(input.orderId, `Priority shipping review before purchase: ${message}`);
+      throw new Error(`Priority shipping needs review. No label was purchased. ${message}`);
+    }
+    throw error;
+  }
+
+  let returnedPurchaseId: string | null = null;
   try {
     const purchase = await createPurchase({
       to,
@@ -238,8 +304,9 @@ export async function buyOrderLabel(input: {
       testMode: testMode || undefined,
       orderNotes: `PSL ${input.orderId}`,
     });
+    returnedPurchaseId = purchase.orderId || null;
     const record = await applyPurchaseResult(
-      input.orderId,
+      order,
       purchase,
       pkg,
       testMode
@@ -254,7 +321,8 @@ export async function buyOrderLabel(input: {
     if (uncertain) {
       await markPurchaseNeedsReview(
         input.orderId,
-        `Uncertain after purchase attempt: ${message}`
+        `Uncertain after purchase attempt: ${message}`,
+        { btcpOrderId: returnedPurchaseId }
       );
       throw new Error(
         `Purchase result uncertain — do not retry. Review BTCPostage or use retrieve. (${message})`
@@ -275,6 +343,7 @@ export async function recoverOrderPurchase(input: {
 
   const existing = await getBtcpostageLabel(input.orderId);
   if (existing?.purchaseStatus === "purchased") {
+    assertStoredLabelService(order, existing);
     return { label: toPublicLabel(existing) };
   }
 
@@ -286,6 +355,11 @@ export async function recoverOrderPurchase(input: {
     );
   }
 
+  assertPaidUnshipped(order);
+  await ensureLabelRow(input.orderId);
+  // A retrieval may concern an existing paid purchase. Keep duplicate-buy
+  // protection even if the provider read fails or cannot establish its identity.
+  await markPurchaseNeedsReview(input.orderId, "Retrieving an existing shipment for review. Do not buy another label until it is resolved.");
   const purchase = await retrievePurchase(btcpOrderId);
   const pkg = normalizePackage({
     weightLbs: existing?.weightLbs ?? undefined,
@@ -294,13 +368,20 @@ export async function recoverOrderPurchase(input: {
     widthIn: existing?.widthIn ?? undefined,
     depthIn: existing?.depthIn ?? undefined,
   });
-  const record = await applyPurchaseResult(
-    input.orderId,
-    purchase,
-    pkg,
-    existing?.testMode ?? isBtcpostageTestMode()
-  );
-  return { label: toPublicLabel(record) };
+  try {
+    const record = await applyPurchaseResult(
+      order,
+      purchase,
+      pkg,
+      existing?.testMode ?? isBtcpostageTestMode(),
+      { requestedPurchaseId: btcpOrderId, recordedPurchaseId: existing?.btcpOrderId ?? null }
+    );
+    return { label: toPublicLabel(record) };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "The retrieved purchase could not be verified.";
+    await markPurchaseNeedsReview(input.orderId, `Retrieved shipment needs review: ${message}`);
+    throw new Error(`Retrieved shipment needs review — do not buy another label. ${message}`);
+  }
 }
 
 export async function getOrderLabelPublic(

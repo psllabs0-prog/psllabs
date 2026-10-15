@@ -9,6 +9,7 @@ import {
 import { LEGAL_ENTITY_NAME } from "@/lib/content/testing-scope";
 import { buildOrderDocumentation, customerTrackingUrl, ORDER_TRACKING_URL } from "@/lib/email/order-documentation";
 import type { Order } from "@/lib/orders/types";
+import { getOrderShippingPresentation } from "@/lib/shipping/presentation";
 
 const SUBJECT = "Your Order Has Shipped — PSL Labs";
 const TRACK_PAGE_URL = ORDER_TRACKING_URL;
@@ -23,6 +24,7 @@ export function buildOrderShippedEmail(order: Order) {
 
   const trackingUrl = customerTrackingUrl(order);
   const documentation = buildOrderDocumentation();
+  const shipping = getOrderShippingPresentation(order.shipping);
   const { muted, accent } = EMAIL_COLORS;
 
   const text = [
@@ -32,6 +34,8 @@ export function buildOrderShippedEmail(order: Order) {
     "",
     `Tracking Number: ${trackingNumber}`,
     `Carrier: ${carrier}`,
+    `Selected shipping service: ${shipping.serviceName}`,
+    ...(shipping.deliveryEstimate ? [shipping.deliveryEstimate] : []),
     "",
     `Track your package: ${trackingUrl}`,
     `Or visit ${TRACK_PAGE_URL.replace("https://www.", "")} and enter your order number and email.`,
@@ -56,6 +60,8 @@ export function buildOrderShippedEmail(order: Order) {
       <span style="font-family:monospace;overflow-wrap:anywhere;word-break:break-word;">${escapeHtml(trackingNumber)}</span>
     </p>
     <p style="margin:0 0 20px;"><strong>Carrier:</strong> ${escapeHtml(carrier)}</p>
+    <p style="margin:0 0 8px;"><strong>Selected shipping service:</strong> ${escapeHtml(shipping.serviceName)}</p>
+    ${shipping.deliveryEstimate ? `<p style="margin:0 0 20px;font-size:13px;color:${muted};">${escapeHtml(shipping.deliveryEstimate)}</p>` : ""}
     <p style="margin:0 0 8px;">
       Track your package:
       <a href="${escapeHtml(trackingUrl)}" style="color:${accent};">View shipment tracking</a>

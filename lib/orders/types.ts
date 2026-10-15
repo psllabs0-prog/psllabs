@@ -1,5 +1,7 @@
 import type { OrderAttribution } from "@/lib/attribution/types";
 import type { OrderResearchAcknowledgement } from "@/lib/checkout/research-acknowledgement";
+import type { PublicShippingSelection, ShippingSelection } from "@/lib/shipping/types";
+import { readShippingSelection } from "@/lib/shipping/policy";
 
 export type OrderStatus =
   | "pending"
@@ -27,6 +29,8 @@ export type OrderShippingAddress = {
   state: string;
   zip: string;
   country: string;
+  /** Historical addresses have no inferred carrier or purchased service. */
+  selection?: ShippingSelection;
 };
 
 export type Order = {
@@ -81,9 +85,11 @@ export type PublicOrder = Pick<
   | "discountAmount"
   | "shippingCost"
   | "total"
->;
+> & { shippingSelection?: PublicShippingSelection | null };
 
 export function toPublicOrder(order: Order): PublicOrder {
+  const selection = order.shipping.selection === undefined ? null : readShippingSelection(order.shipping.selection);
+  if (order.shipping.selection !== undefined && !selection) throw new Error("Stored shipping selection could not be verified.");
   return {
     orderId: order.orderId,
     createdAt: order.createdAt,
@@ -102,5 +108,7 @@ export function toPublicOrder(order: Order): PublicOrder {
     discountAmount: order.discountAmount,
     shippingCost: order.shippingCost,
     total: order.total,
+    shippingSelection: selection ? { method: selection.method, carrier: selection.carrier,
+      serviceDisplayName: selection.serviceDisplayName, deliveryEstimate: selection.deliveryEstimate } : null,
   };
 }
