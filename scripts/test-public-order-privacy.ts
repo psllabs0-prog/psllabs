@@ -134,6 +134,8 @@ function harness(order: Order | null, failure = false) {
     "@/lib/shipping/presentation": "lib/shipping/presentation.ts",
     "@/lib/content/shipping": "lib/content/shipping.ts",
     "@/lib/cart/constants": "lib/cart/constants.ts",
+    "@/lib/cart/format": "lib/cart/format.ts",
+    "@/lib/shipping/policy": "lib/shipping/policy.ts",
     "./testing-scope": "lib/content/testing-scope.ts",
   };
   function load(id: string): Record<string, unknown> {

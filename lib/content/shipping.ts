@@ -1,4 +1,6 @@
 import { FLAT_SHIPPING_USD, FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
+import { formatPrice } from "@/lib/cart/format";
+import { PRIORITY_BASE_SHIPPING_USD, PRIORITY_DISCOUNTED_SHIPPING_USD } from "@/lib/shipping/policy";
 import type { ContentPageMeta, ContentSection } from "./types";
 import { PUBLIC_CLAIM_WINDOW_NOTICE } from "./testing-scope";
 
@@ -10,6 +12,9 @@ export const STANDARD_TRANSIT_NOTICE =
 
 export const PRIORITY_TRANSIT_NOTICE =
   "USPS Priority Mail transit is usually 2–3 business days after carrier acceptance for most contiguous U.S. destinations. Alaska and Hawaii can take longer. Transit estimates are not guaranteed.";
+
+export const PRIORITY_PRICING_NOTICE =
+  `When offered at checkout, USPS Priority Mail costs ${formatPrice(PRIORITY_BASE_SHIPPING_USD)} when the product subtotal after discounts is $100 or less, or ${formatPrice(PRIORITY_DISCOUNTED_SHIPPING_USD)} when it is over $100. This threshold excludes tax and shipping charges. Availability depends on your shipping address and parcel. The Priority price replaces Standard shipping; it is not added to the Standard charge.`;
 
 export const shippingPageMeta: ContentPageMeta = {
   label: "SHIPPING",
@@ -52,7 +57,8 @@ export const shippingSections: ContentSection[] = [
     title: "Shipping rates",
     paragraphs: [
       `Standard USPS Ground Advantage shipping is $${FLAT_SHIPPING_USD.toFixed(2)} on orders with a product subtotal under $${FREE_SHIPPING_THRESHOLD} before discounts.`,
-      `Orders with a product subtotal of $${FREE_SHIPPING_THRESHOLD} or more before discounts get free standard U.S. shipping at checkout. Any optional upgrade is priced separately and shown before payment; free standard shipping does not include an upgrade.`,
+      `Orders with a product subtotal of $${FREE_SHIPPING_THRESHOLD} or more before discounts get free standard U.S. shipping at checkout. Free Standard shipping does not include a Priority upgrade.`,
+      PRIORITY_PRICING_NOTICE,
       "Packaging is chosen to protect vial seals and lyophilized material in normal transit.",
     ],
   },

@@ -5,6 +5,7 @@ import {
 } from "@/lib/cart/constants";
 import { siteFaqItems } from "@/lib/content/site-faq";
 import { TESTING_SCOPE_STATEMENT } from "@/lib/content/testing-scope";
+import { PRIORITY_PRICING_NOTICE } from "@/lib/content/shipping";
 import type { SupportCategory } from "./constants";
 
 export type KnowledgeSnippet = {
@@ -50,7 +51,7 @@ export function getApprovedKnowledgeLibrary(): KnowledgeSnippet[] {
     {
       id: "policy:shipping",
       categoryHints: ["shipping_timing", "shipping_destination", "free_shipping"],
-      text: `We ship to physical addresses in all 50 U.S. states from Phoenix, Arizona. Standard USPS Ground Advantage shipping is $${FLAT_SHIPPING_USD.toFixed(2)}. A product subtotal of $${FREE_SHIPPING_THRESHOLD} or more before discounts includes free standard shipping. International shipping is not offered. Orders usually process within 24 hours after payment clears; carrier acceptance or collection may occur on the next operating day. Ground Advantage transit is usually 2–5 business days after acceptance for most contiguous U.S. destinations; Alaska and Hawaii can take longer. Checkout shows currently available options and any separately priced upgrade. If USPS Priority Mail is offered, transit is usually 2–3 business days for most contiguous U.S. destinations after acceptance; Alaska and Hawaii can take longer. Neither service has a guaranteed delivery date. Never promise nationwide 1–2-day delivery, infer the selected service from the amount charged, or claim a label proves carrier acceptance. Use the saved order shipping selection when available; historical orders without a selection remain Standard shipping without an invented carrier.`,
+      text: `We ship to physical addresses in all 50 U.S. states from Phoenix, Arizona. Standard USPS Ground Advantage shipping is $${FLAT_SHIPPING_USD.toFixed(2)}. A product subtotal of $${FREE_SHIPPING_THRESHOLD} or more before discounts includes free standard shipping. ${PRIORITY_PRICING_NOTICE} International shipping is not offered. Orders usually process within 24 hours after payment clears; carrier acceptance or collection may occur on the next operating day. Ground Advantage transit is usually 2–5 business days after acceptance for most contiguous U.S. destinations; Alaska and Hawaii can take longer. If USPS Priority Mail is offered, transit is usually 2–3 business days for most contiguous U.S. destinations after acceptance; Alaska and Hawaii can take longer. Neither service has a guaranteed delivery date. Never promise nationwide 1–2-day delivery, infer the selected service from the amount charged, or claim a label proves carrier acceptance. Use the saved order shipping selection when available; historical orders without a selection remain Standard shipping without an invented carrier.`,
     },
     {
       id: "policy:returns",
