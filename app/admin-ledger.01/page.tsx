@@ -48,7 +48,7 @@ export default async function FinanceDemoPage() {
     <div className={styles.printNotice}>Synthetic financial data — Not real business records</div>
     <div className={styles.container}>
       <header className={styles.header}>
-        <div><p className={styles.eyebrow}>OPERATIONS</p><h1>Admin ledger</h1><p className={styles.subtitle}>Financial overview, inventory movement, and transaction log.</p></div>
+        <div><p className={styles.eyebrow}>OPERATIONS · DEMO DATA</p><h1>Admin ledger</h1><p className={styles.subtitle}>Sample financial overview, inventory movement, and transaction log.</p></div>
         <div className={styles.headerAside}><span className={styles.period}>{periodLabel} · USD</span><a href="/admin-ledger">Main ledger ↗</a></div>
       </header>
 

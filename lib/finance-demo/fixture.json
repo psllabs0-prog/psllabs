@@ -1,6 +1,6 @@
 {
-  "scenario": "August 25–October 9, 2026 — fictional financial period",
-  "revenueTargetCents": 2274813,
+  "scenario": "August 25–October 15, 2026 — fictional financial period",
+  "revenueTargetCents": 2748673,
   "expenseTargetCents": 791993,
   "openingCashCents": 500000,
   "products": [
@@ -1508,6 +1508,246 @@
       "unitPriceCents": 14900,
       "discountCents": 2637,
       "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-113",
+      "customerId": "DEMO-C-041",
+      "date": "2026-10-10",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2235,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-114",
+      "customerId": "DEMO-C-042",
+      "date": "2026-10-10",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4760,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-115",
+      "customerId": "DEMO-C-043",
+      "date": "2026-10-10",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 8950,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-116",
+      "customerId": "DEMO-C-044",
+      "date": "2026-10-10",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2980,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-117",
+      "customerId": "DEMO-C-045",
+      "date": "2026-10-11",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 3570,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-118",
+      "customerId": "DEMO-C-046",
+      "date": "2026-10-11",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 8950,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-119",
+      "customerId": "DEMO-C-047",
+      "date": "2026-10-11",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 3725,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-120",
+      "customerId": "DEMO-C-048",
+      "date": "2026-10-11",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4760,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-121",
+      "customerId": "DEMO-C-049",
+      "date": "2026-10-12",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 5370,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-122",
+      "customerId": "DEMO-C-050",
+      "date": "2026-10-12",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2980,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-123",
+      "customerId": "DEMO-C-051",
+      "date": "2026-10-12",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 5950,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-124",
+      "customerId": "DEMO-C-052",
+      "date": "2026-10-12",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 7160,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-125",
+      "customerId": "DEMO-C-053",
+      "date": "2026-10-13",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2235,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-126",
+      "customerId": "DEMO-C-054",
+      "date": "2026-10-13",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 5950,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-127",
+      "customerId": "DEMO-C-055",
+      "date": "2026-10-13",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 8950,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-128",
+      "customerId": "DEMO-C-056",
+      "date": "2026-10-13",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 2980,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-129",
+      "customerId": "DEMO-C-057",
+      "date": "2026-10-14",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 3570,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-130",
+      "customerId": "DEMO-C-058",
+      "date": "2026-10-14",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 7160,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-131",
+      "customerId": "DEMO-C-059",
+      "date": "2026-10-14",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 3725,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-132",
+      "customerId": "DEMO-C-060",
+      "date": "2026-10-14",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 4760,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-133",
+      "customerId": "DEMO-C-061",
+      "date": "2026-10-15",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 5370,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-134",
+      "customerId": "DEMO-C-062",
+      "date": "2026-10-15",
+      "sku": "DEMO-LAB-A",
+      "quantity": 1,
+      "unitPriceCents": 14900,
+      "discountCents": 3725,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-135",
+      "customerId": "DEMO-C-063",
+      "date": "2026-10-15",
+      "sku": "DEMO-LAB-B",
+      "quantity": 2,
+      "unitPriceCents": 11900,
+      "discountCents": 5950,
+      "status": "Simulated paid"
+    },
+    {
+      "id": "DEMO-O-136",
+      "customerId": "DEMO-C-064",
+      "date": "2026-10-15",
+      "sku": "DEMO-LAB-C",
+      "quantity": 2,
+      "unitPriceCents": 17900,
+      "discountCents": 6375,
+      "status": "Simulated paid"
     }
   ],
   "expenses": [
@@ -1679,5 +1919,5 @@
     }
   ],
   "periodStart": "2026-08-25",
-  "periodEnd": "2026-10-09"
+  "periodEnd": "2026-10-15"
 }
