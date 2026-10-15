@@ -1,4 +1,5 @@
 import { getSql } from "@/lib/db/sql";
+import { readStoredResearchAcknowledgement, type OrderResearchAcknowledgement } from "@/lib/checkout/research-acknowledgement";
 
 import type { Order, OrderStatus, PaymentMethod } from "./types";
 
@@ -106,6 +107,10 @@ export async function ensureOrdersSchema(): Promise<void> {
       ADD COLUMN IF NOT EXISTS attribution JSONB
     `;
     await sql`
+      ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS research_acknowledgement JSONB
+    `;
+    await sql`
       UPDATE orders
       SET tracking_saved_at = shipped_at
       WHERE tracking_saved_at IS NULL
@@ -152,6 +157,7 @@ type OrderRow = {
   tagada_webhook_sent: boolean;
   tagada_webhook_claimed_at: string | null;
   attribution: Order["attribution"] | string | null;
+  research_acknowledgement?: OrderResearchAcknowledgement | string | null;
 };
 
 function parseJson<T>(value: T | string): T {
@@ -201,7 +207,29 @@ function rowToOrder(row: OrderRow): Order {
     attribution: row.attribution
       ? parseJson<NonNullable<Order["attribution"]>>(row.attribution)
       : null,
+    researchAcknowledgement: row.research_acknowledgement
+      ? readStoredResearchAcknowledgement(parseJson(row.research_acknowledgement))
+      : null,
   };
+}
+
+/** Required evidence is saved before any provider checkout is created. */
+export async function saveOrderResearchAcknowledgement(
+  orderId: string,
+  acknowledgement: OrderResearchAcknowledgement,
+): Promise<void> {
+  const evidence = readStoredResearchAcknowledgement(acknowledgement);
+  if (!evidence) throw new Error("Invalid checkout research acknowledgement.");
+  await ensureOrdersSchema();
+  const sql = getSql();
+  const rows = await sql`
+    UPDATE orders
+    SET research_acknowledgement = ${JSON.stringify(evidence)}::jsonb, updated_at = now()
+    WHERE order_id = ${orderId} AND status = 'pending'
+      AND research_acknowledgement IS NULL
+    RETURNING order_id
+  `;
+  if (rows.length !== 1) throw new Error("Checkout research acknowledgement was not saved.");
 }
 
 export async function getOrderByEmailAndId(

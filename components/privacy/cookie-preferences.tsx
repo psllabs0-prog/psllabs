@@ -27,9 +27,17 @@ export function CookiePreferencesButton() {
   </button>;
 }
 
-export function CookieConsentControls() {
-  const pathname = usePathname();
+export function CookieConsentControls({ standalone = false }: { standalone?: boolean } = {}) {
+  return standalone ? <CookieConsentControlsCore cartOpen={false} standalone /> : <CartCookieConsentControls />;
+}
+
+function CartCookieConsentControls() {
   const { isOpen: cartOpen } = useCart();
+  return <CookieConsentControlsCore cartOpen={cartOpen} />;
+}
+
+function CookieConsentControlsCore({ cartOpen, standalone = false }: { cartOpen: boolean; standalone?: boolean }) {
+  const pathname = usePathname();
   const consent = useSyncExternalStore(subscribePrivacyConsent, readPrivacyConsent, serverPrivacyConsent);
   const status = useSyncExternalStore(subscribePrivacyClientStatus, readPrivacyClientStatus, serverPrivacyClientStatus);
   const verified = useSyncExternalStore(subscribeResearcherVerification, readResearcherVerification, serverResearcherVerification);
@@ -46,8 +54,8 @@ export function CookieConsentControls() {
     (consent.choice === "unknown" || status.pendingDecline);
 
   useEffect(() => {
-    if (verified && !excluded) void initializePrivacyConsent();
-  }, [verified, excluded]);
+    if ((verified || standalone) && !excluded) void initializePrivacyConsent();
+  }, [verified, standalone, excluded]);
 
   useEffect(() => {
     const open = () => {
@@ -114,7 +122,7 @@ export function CookieConsentControls() {
         </div>
       </section>
     </>}
-    <Dialog.Root open={preferencesOpen && verified && !cartOpen} onOpenChange={setPreferencesOpen}>
+    <Dialog.Root open={preferencesOpen && (verified || standalone) && !cartOpen} onOpenChange={setPreferencesOpen}>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-[90] bg-black/70" />
         <Dialog.Popup className={`${styles.panel} storefront-theme cookie-settings-panel fixed top-1/2 left-1/2 z-[91] flex max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-[620px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-border-strong bg-surface text-ink shadow-xl outline-none`}
@@ -124,15 +132,15 @@ export function CookieConsentControls() {
             <Dialog.Close aria-label="Close cookie settings" className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-pill border border-border-strong text-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">×</Dialog.Close>
           </div>
           {preferencesOpen && <PreferencesForm key={`${consent.revision}:${consent.gpc}:${excluded}`}
-            consent={consent} excluded={excluded} onSave={choose} />}
+            consent={consent} excluded={excluded} qualified={verified} onSave={choose} />}
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>
   </>;
 }
 
-function PreferencesForm({ consent, excluded, onSave }: {
-  consent: PublicPrivacyConsent; excluded: boolean;
+function PreferencesForm({ consent, excluded, qualified, onSave }: {
+  consent: PublicPrivacyConsent; excluded: boolean; qualified: boolean;
   onSave: (measurement: boolean, personalization: boolean) => Promise<void>;
 }) {
   const status = useSyncExternalStore(subscribePrivacyClientStatus, readPrivacyClientStatus, serverPrivacyClientStatus);
@@ -145,6 +153,7 @@ function PreferencesForm({ consent, excluded, onSave }: {
   return <>
     <div className={`${styles.preferencesBody} min-h-0 space-y-5 overflow-y-auto px-5 py-5 text-sm leading-relaxed md:px-6`}>
       <Dialog.Description className="text-ash">Choose which optional advertising features you allow. Shopping, login, checkout, security, and your age and research-use confirmation work whichever option you choose.</Dialog.Description>
+      {!qualified && <p className="text-ash">Optional advertising stays off before research-account access. You can decline or withdraw optional cookies here.</p>}
       {(excluded || consent.gpc) && <p className="rounded-lg border border-border-strong p-3 text-ink">{excluded
         ? "Advertising collection is off for administrator and test activity."
         : "Global Privacy Control is active. Optional advertising measurement and personalization stay off."}</p>}
@@ -155,7 +164,7 @@ function PreferencesForm({ consent, excluded, onSave }: {
       <section className="rounded-lg border border-border-strong p-4">
         <label className="flex min-h-11 items-center justify-between gap-4 font-semibold">
           Advertising measurement
-          <input type="checkbox" checked={measurement && !consent.gpc && !excluded} disabled={disabled || !measurementAvailable}
+          <input type="checkbox" checked={qualified && measurement && !consent.gpc && !excluded} disabled={disabled || !qualified || !measurementAvailable}
             onChange={(event) => {
               setMeasurement(event.target.checked);
               if (!event.target.checked) setPersonalization(false);
@@ -172,7 +181,7 @@ function PreferencesForm({ consent, excluded, onSave }: {
       <section className="rounded-lg border border-border-strong p-4">
         <label className="flex min-h-11 items-center justify-between gap-4 font-semibold">
           Personalized advertising
-          <input type="checkbox" checked={personalization && !consent.gpc && !excluded} disabled={disabled || !measurement || !personalizationAvailable}
+          <input type="checkbox" checked={qualified && personalization && !consent.gpc && !excluded} disabled={disabled || !qualified || !measurement || !personalizationAvailable}
             onChange={(event) => setPersonalization(event.target.checked)} className="size-5 shrink-0 accent-accent" />
         </label>
         <p className="mt-1 text-ash">Where enabled and permitted, Meta may use consented website events to personalize advertising across Facebook and Instagram. PSL requires both Advertising measurement and Personalized advertising before sending any Meta event.</p>
@@ -188,12 +197,12 @@ function PreferencesForm({ consent, excluded, onSave }: {
         onClick={() => void requestPrivacyConsent({ measurement: false, personalization: false })}>Retry withdrawal</PillButton>}
     </div>
     <div className="grid grid-cols-2 gap-2 border-t border-linen px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] md:px-6">
-      <PillButton size="sm" variant="secondary" className={choiceButtonClass} disabled={disabled}
+      <PillButton size="sm" variant="secondary" className={choiceButtonClass} disabled={disabled || !qualified}
         onClick={() => void onSave(true, true)}>Accept all</PillButton>
       <PillButton size="sm" variant="secondary" className={choiceButtonClass} disabled={status.state === "saving" || status.state === "checking" || excluded}
         onClick={() => void onSave(false, false)}>Decline optional</PillButton>
       <PillButton size="sm" className="col-span-2 min-h-11" disabled={disabled}
-        onClick={() => void onSave(measurement, personalization)}>Save settings</PillButton>
+        onClick={() => void onSave(qualified && measurement, qualified && personalization)}>Save settings</PillButton>
     </div>
   </>;
 }

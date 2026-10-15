@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Menu } from "lucide-react";
+import { Menu, UserRound } from "lucide-react";
 
 import { PSLLogo } from "@/components/branding/psl-logo";
 import { CartIconButton } from "@/components/cart/cart-icon-button";
@@ -43,6 +43,7 @@ export function Header() {
         </nav>
 
         <div className={styles.tools}>
+          <Link href="/research-account" aria-label="Your research account" className={styles.accountLink}><UserRound className="size-5" aria-hidden /></Link>
           <CartIconButton />
 
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>

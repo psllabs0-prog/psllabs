@@ -8,7 +8,8 @@ import { CartProvider } from "@/components/cart/cart-provider";
 import { AnnouncementBar } from "@/components/layout/AnnouncementBar";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
-import { ResearcherVerificationGate } from "@/components/layout/ResearcherVerificationGate";
+import { ResearchAccountDeclarationBridge } from "@/components/research-auth/research-account-session";
+import { ResearchUseBanner } from "@/components/layout/research-use-banner";
 import { CookieConsentControls } from "@/components/privacy/cookie-preferences";
 import { StorefrontTheme } from "./storefront-theme";
 
@@ -18,13 +19,14 @@ export function SiteLayout({ children, visualPreview = false }: { children: Reac
       {!visualPreview && <Suspense fallback={null}>
         <AttributionCapture />
       </Suspense>}
-      <ResearcherVerificationGate />
+      <ResearchAccountDeclarationBridge />
       {!visualPreview && <><GoogleAdsMeasurement />
       <Suspense fallback={null}><MetaAdsMeasurement /></Suspense></>}
       <StorefrontTheme visualPreview={visualPreview}>
       <a href="#main-content" className="storefront-skip-link">Skip to content</a>
       <div className="flex min-h-screen flex-col">
         <Header />
+        <ResearchUseBanner />
         <AnnouncementBar />
         <div id="main-content" tabIndex={-1} className="flex-1 storefront-main-content">{children}</div>
         <Footer />

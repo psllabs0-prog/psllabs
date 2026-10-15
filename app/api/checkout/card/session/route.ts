@@ -12,6 +12,7 @@ import { createTagadaCheckoutSession } from "@/lib/tagada/server";
 import { readRequestPrivacyConsent } from "@/lib/privacy/server";
 import { normalizeReferralCode } from "@/lib/partners/referral-logic";
 import { configuredReferralPromotionCode, configureAndVerifyReferralCardSession } from "@/lib/tagada/referral-checkout";
+import { getResearchAccount } from "@/lib/research-auth/server";
 
 export const runtime = "nodejs";
 
@@ -20,6 +21,8 @@ export const runtime = "nodejs";
  * the browser headless SDK (tokenize + processPayment).
  */
 export async function POST(request: Request) {
+  const researchAccount = await getResearchAccount(request);
+  if (!researchAccount) return NextResponse.json({ error: "Sign in to your research account to continue." }, { status: 401 });
   if (process.env.PSL_VISUAL_PREVIEW === "1") return NextResponse.json(
     { error: "Preview only. Payments and order creation are disabled." }, { status: 503 });
   if (!isTagadaConfigured()) {
@@ -41,7 +44,7 @@ export async function POST(request: Request) {
 
   const privacyConsent = await readRequestPrivacyConsent(request).catch(() => null);
   const referralPromotionCode = configuredReferralPromotionCode();
-  const prepared = await prepareReservedOrder(body, { paymentMethod: "card", privacyConsent,
+  const prepared = await prepareReservedOrder(body, { paymentMethod: "card", privacyConsent, researchAccount,
     cardReferralPromotionConfigured: referralPromotionCode !== null });
   if (!prepared.ok) {
     return NextResponse.json(
@@ -112,6 +115,7 @@ export async function POST(request: Request) {
       items: sessionItems,
       total: order.total,
       shippingCost: order.shippingCost,
+      researchAcknowledgementVersion: order.researchAcknowledgement?.version,
       pricing: { subtotal: order.subtotal, discountCode: order.discountCode, discountAmount: order.discountAmount, tax: order.tax },
     });
   } catch (error) {

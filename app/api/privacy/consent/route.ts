@@ -30,7 +30,8 @@ export async function POST(request: Request) {
     body = JSON.parse(raw);
     if (!body || Array.isArray(body) || typeof body !== "object" ||
         Object.keys(body).some((key) => !["version", "measurement", "personalization", "verifiedAdult", "expectedRevision"].includes(key)) ||
-        body.version !== PRIVACY_CONSENT_VERSION || body.verifiedAdult !== true ||
+        body.version !== PRIVACY_CONSENT_VERSION ||
+        (body.verifiedAdult !== true && !(body.verifiedAdult === false && body.measurement === false && body.personalization === false)) ||
         !Number.isSafeInteger(body.expectedRevision) || (body.expectedRevision as number) < 0 ||
         typeof body.measurement !== "boolean" || typeof body.personalization !== "boolean" ||
         (body.personalization && !body.measurement)) throw new Error("invalid");

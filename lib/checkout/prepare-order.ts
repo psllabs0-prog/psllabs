@@ -16,6 +16,8 @@ import type { PrivacyConsentBinding, PublicPrivacyConsent } from "@/lib/privacy/
 import { lookupReferralDiscount, reserveReferralOrder } from "@/lib/partners/referral-store";
 import { normalizeReferralCode } from "@/lib/partners/referral-logic";
 import { referralCodesEnabled } from "@/lib/partners/referral-config";
+import { readCheckoutResearchDeclaration, RESEARCH_USE_CHECKOUT_STATEMENT } from "@/lib/checkout/research-acknowledgement";
+import { markStatusIfPending, saveOrderResearchAcknowledgement } from "@/lib/orders/store";
 
 const MAX_QUANTITY = 10;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -32,12 +34,16 @@ export type CheckoutBody = {
   paymentMethod?: unknown;
   /** Optional paid-acquisition attribution from client localStorage. */
   attribution?: unknown;
+  /** Required explicit checkout choice, separate from account and cookie consent. */
+  researchAcknowledgement?: unknown;
 };
 
 export type PrepareOrderOptions = {
   paymentMethod?: PaymentMethod | "btcpay" | null;
   /** Set only by the card route after checking its provider-side promotion configuration. */
   cardReferralPromotionConfigured?: boolean;
+  /** Authenticated account supplied by the server, never accepted from body. */
+  researchAccount?: { id: string; email: string } | null;
   /** Read from the request's HttpOnly receipt by the server, never from body. */
   privacyConsent?: { consent: PublicPrivacyConsent; binding: PrivacyConsentBinding | null } | null;
 };
@@ -118,6 +124,14 @@ export async function prepareReservedOrder(
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return { ok: false, error: "Invalid checkout request.", status: 400 };
   }
+  const researchDeclaration = readCheckoutResearchDeclaration(body.researchAcknowledgement);
+  if (!researchDeclaration) return {
+    ok: false, error: "Choose your research status and confirm research use only, not for human consumption.", status: 400,
+  };
+  const accountId = options?.researchAccount?.id;
+  if (typeof accountId !== "string" || !accountId.trim() || accountId.length > 150) return {
+    ok: false, error: "Sign in to your research account before checkout.", status: 401,
+  };
   if (!Array.isArray(body.items) || body.items.length === 0) {
     return { ok: false, error: "Cart is empty.", status: 400 };
   }
@@ -337,6 +351,7 @@ export async function prepareReservedOrder(
     deliveryFollowupSent: false,
     stockDecremented: false,
     attribution,
+    researchAcknowledgement: { ...researchDeclaration, statement: RESEARCH_USE_CHECKOUT_STATEMENT, acceptedAt: now, accountId },
   };
 
   try {
@@ -346,7 +361,14 @@ export async function prepareReservedOrder(
     if (!stockCheck.ok) {
       return { ok: false, error: stockCheck.error, status: 409 };
     }
+    // Unlike optional attribution, this declaration must be durable before
+    // returning an order to either payment provider. Never infer old acceptance.
+    await saveOrderResearchAcknowledgement(orderId, order.researchAcknowledgement!);
   } catch (error) {
+    // Release the pending reservation if mandatory evidence could not be saved.
+    // No provider session or invoice has been created at this boundary.
+    try { await markStatusIfPending(orderId, "cancelled"); }
+    catch { console.error("[checkout] Unable to cancel the failed pending reservation."); }
     console.error("[checkout] Failed to persist order:", error);
     return {
       ok: false,

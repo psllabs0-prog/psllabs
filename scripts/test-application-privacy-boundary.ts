@@ -4,6 +4,7 @@ import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { isPrivacyExcludedPath } from "../lib/privacy/client";
 import { isFinanceDemoPath } from "../lib/finance-demo/path";
+import { isPublicResearchPage, isResearchRecoveryPage } from "../lib/research-auth/paths";
 import { REVIEWED_META_EVENT_POLICY } from "../lib/meta-ads/events";
 import { loadMetaBrowserFixture } from "./meta-browser-fixture";
 
@@ -73,6 +74,10 @@ runInNewContext(compiled + "\nexports.resetDocumentNavigation = () => { pendingD
     if (name === "next/navigation") return { usePathname: () => pathname };
     if (name === "next/script") return { default: "Script" };
     if (name.endsWith("/SiteLayout")) return { SiteLayout: "SiteLayout" };
+    if (name.endsWith("/research-auth/paths")) return { isPublicResearchPage, isResearchRecoveryPage };
+    if (name.endsWith("/research-auth/research-account-shell")) return { ResearchAccountShell: "ResearchAccountShell" };
+    if (name.endsWith("/cart/cart-provider")) return { CartProvider: "CartProvider" };
+    if (name.endsWith("/layout/research-use-banner")) return { ResearchUseBanner: "ResearchUseBanner" };
     if (name.endsWith("/finance-demo/path")) return { isFinanceDemoPath };
     if (name.endsWith("/plausible/redact")) return { PLAUSIBLE_INIT_JS: "" };
     if (name.endsWith("/privacy/client")) return { isPrivacyExcludedPath, PRIVACY_WITHDRAWAL_EVENT: "psl-privacy-withdrawal" };
@@ -132,7 +137,7 @@ const publicTransition = render();
 assert.equal(publicTransition.tree, null); publicTransition.flush();
 assert.equal(reloads, 0);
 
-for (const route of ["/admin", "/admin-ledger", "/admin-ledger.01", "/test", "/tests/check", "/demo", "/api/orders", "/partners/account", "/partners/auth/verify"]) {
+for (const route of ["/admin", "/admin-ledger", "/admin-ledger.01", "/test", "/tests/check", "/demo", "/api/orders", "/partners/account", "/partners/auth/verify", "/research-account/sign-in", "/research-account/sign-up", "/research-account/reset-password", "/terms", "/privacy", "/contact", "/payment-return"]) {
   pathname = "/"; initialScope = undefined; render().flush();
   pathname = route;
   assert.equal(render().tree, null, `private route must not mount in the old SDK document: ${route}`);
@@ -203,6 +208,20 @@ assert.equal(reloads, beforeFresh);
 const freshPrivate = freshDocument("/admin-ledger.01");
 assert.notEqual(freshPrivate.tree, null); freshPrivate.flush();
 assert.equal(reloads, beforeFresh);
+
+// Account/legal/recovery documents never mount store navigation, cart drawer,
+// measurement scripts, or new-payment controls. The dedicated recovery child
+// still retains its essential saved-order provider for paid reconciliation.
+for (const route of ["/research-account/sign-in", "/research-account/sign-up", "/terms", "/privacy", "/contact", "/payment-return"]) {
+  const isolated = freshDocument(route);
+  const tree = isolated.tree as { type: unknown; props: Record<string, unknown> };
+  assert.equal(tree.type, "ResearchAccountShell", `minimal pre-login/recovery shell: ${route}`);
+  assert.equal(JSON.stringify(tree).includes("SiteLayout"), false, `store never mounted: ${route}`);
+  assert.equal(JSON.stringify(tree).includes("Script"), false, `measurement never mounted: ${route}`);
+  if (route !== "/payment-return") assert.equal(JSON.stringify(tree).includes("CartProvider"), false, `no cart before login: ${route}`);
+  assert.equal(tree.props.legal, route === "/payment-return" ? undefined : ["/terms", "/privacy", "/contact"].includes(route));
+  isolated.flush();
+}
 
 // An approved subset must also constrain SDK lifetime, even when the excluded
 // destination is otherwise a reviewed, public product page.

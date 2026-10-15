@@ -1,0 +1,5 @@
+.banner { background: #0c181d; border-block: 1px solid #24434c; color: #dcecf2; }
+.content { width: min(1280px, calc(100% - 40px)); margin-inline: auto; padding-block: 13px; }
+.primary { margin: 0; font-size: 13px; font-weight: 600; line-height: 1.6; }
+.secondary { margin: 4px 0 0; color: #acc1cb; font-size: 12px; line-height: 1.65; }
+@media (min-width: 800px) { .content { width: min(1280px, calc(100% - 96px)); } }

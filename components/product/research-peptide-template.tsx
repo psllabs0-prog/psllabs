@@ -10,6 +10,8 @@ import type { Product } from "@/lib/products";
 import { getCatalogProductByHandle } from "@/lib/products/catalog";
 import { getProductImage } from "@/lib/products/images";
 import { getProductRender } from "@/lib/products/renders";
+import { chemicalReferences, CHEMICAL_REFERENCE_SCOPE, getResearchSpecifications } from "@/lib/products/research-specifications";
+import { FDA_RESEARCH_NOTICE, RESEARCH_USE_NOTICE } from "@/lib/content/research-use";
 
 import { MobileStickyCart } from "./mobile-sticky-cart";
 import { ProductFaq } from "./product-faq";
@@ -38,6 +40,8 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
   const leadDescription = firstSentenceEnd >= 0
     ? product.shortDescription.slice(0, firstSentenceEnd + 1)
     : product.shortDescription;
+  const specifications = getResearchSpecifications(product);
+  const chemicalReference = chemicalReferences[product.handle];
 
   return (
     <ProductQuantityProvider unitPrice={product.price}>
@@ -93,7 +97,7 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
         <nav aria-label="Product details" className={styles.productTabs}>
           <div className={styles.container}>
             <a href="#batch-testing">Batch documentation</a>
-            {product.specifications?.length ? <a href="#product-specifications">Specifications</a> : null}
+            {specifications.length ? <a href="#product-specifications">Specifications</a> : null}
             <a href="#product-questions">Questions</a>
             <Link href="/shipping">Shipping</Link>
           </div>
@@ -101,10 +105,15 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
 
         <div className={`${styles.container} ${styles.detailsLayout}`}>
           <ProductTesting product={product} compact />
-          {product.specifications?.length ? (
+          {specifications.length ? (
             <section id="product-specifications" className={styles.detailSection}>
               <h2>Product specifications</h2>
-              <ProductSpecificationsTable specifications={product.specifications} />
+              <ProductSpecificationsTable specifications={specifications} />
+              {chemicalReference ? <div className={styles.referenceNotes}>
+                <p>{CHEMICAL_REFERENCE_SCOPE}</p>
+                <p>Reference sources:</p>
+                <ul>{chemicalReference.sources.map((source) => <li key={source.href}><a href={source.href} target="_blank" rel="noopener noreferrer">{source.title}</a></li>)}</ul>
+              </div> : null}
             </section>
           ) : null}
         </div>
@@ -138,6 +147,8 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
         </section>
 
         <section className={`${styles.container} ${styles.disclaimer}`} aria-label="Research-use notice">
+          <p>{RESEARCH_USE_NOTICE}</p>
+          <p>{FDA_RESEARCH_NOTICE}</p>
           <p>{product.researchDisclaimer ?? "For laboratory research only. Not for human or animal use."}</p>
           <p>Laboratory reports cover only the submitted sample and tests reported; they do not establish safety, efficacy or suitability for human or animal use.</p>
           <p><Link href="/disclaimer#product-label-information">Read the full product disclaimer</Link>.</p>

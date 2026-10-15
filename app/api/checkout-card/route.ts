@@ -9,6 +9,7 @@ import { fulfillPaidOrder } from "@/lib/orders/fulfill-paid-order";
 import { getOrder, markStatusIfPending } from "@/lib/orders/store";
 import { getPaymentProcessor } from "@/lib/payments";
 import { isCardCheckoutEnabled } from "@/lib/payments/authnet";
+import { getResearchAccount } from "@/lib/research-auth/server";
 
 export const runtime = "nodejs";
 
@@ -21,6 +22,8 @@ const str = (value: unknown): string =>
   typeof value === "string" ? value.trim() : "";
 
 export async function POST(request: Request) {
+  const researchAccount = await getResearchAccount(request);
+  if (!researchAccount) return NextResponse.json({ error: "Sign in to your research account to continue." }, { status: 401 });
   // Hard sandbox gate — refuse before touching orders or Auth.net.
   if (!isCardCheckoutEnabled()) {
     return NextResponse.json(
@@ -48,7 +51,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const prepared = await prepareReservedOrder(body);
+  const prepared = await prepareReservedOrder(body, { paymentMethod: "card", researchAccount });
   if (!prepared.ok) {
     return NextResponse.json(
       { error: prepared.error },

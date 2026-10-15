@@ -1,3 +1,5 @@
+import { CHECKOUT_RESEARCH_ACK_VERSION } from "@/lib/checkout/research-acknowledgement";
+
 export type TagadaCardSession = {
   orderId: string;
   checkoutToken: string;
@@ -11,6 +13,8 @@ export type TagadaCardSession = {
   cartFingerprint: string;
   /** Reserved server amounts survive refresh and 3DS recovery. Older sessions remain readable. */
   pricing?: { subtotal: number; discountCode: string | null; discountAmount: number; tax: number };
+  /** Issued only after the server saves this order's explicit checkout declaration. */
+  researchAcknowledgementVersion?: string;
 };
 
 export type CardConfirmationHints = {
@@ -89,6 +93,7 @@ export function sanitizeCardSession(value: unknown): TagadaCardSession | null {
       !(pricing.discountCode === null || string(pricing.discountCode, 100)) ||
       Number(pricing.discountAmount) > Number(pricing.subtotal) ||
       Math.round((Number(pricing.subtotal) - Number(pricing.discountAmount) + Number(pricing.tax) + raw.shippingCost) * 100) !== Math.round(raw.total * 100))) return null;
+  if (raw.researchAcknowledgementVersion !== undefined && !string(raw.researchAcknowledgementVersion, 100)) return null;
   return {
     orderId: raw.orderId, checkoutToken: raw.checkoutToken, sessionToken: raw.sessionToken,
     storeId: raw.storeId,
@@ -100,6 +105,7 @@ export function sanitizeCardSession(value: unknown): TagadaCardSession | null {
     items, shippingCost: raw.shippingCost, total: raw.total, cartFingerprint: raw.cartFingerprint,
     ...(pricing ? { pricing: { subtotal: Number(pricing.subtotal), discountCode: pricing.discountCode as string | null,
       discountAmount: Number(pricing.discountAmount), tax: Number(pricing.tax) } } : {}),
+    ...(raw.researchAcknowledgementVersion ? { researchAcknowledgementVersion: raw.researchAcknowledgementVersion as string } : {}),
   };
 }
 
@@ -113,7 +119,8 @@ export function cardSessionReadyToCharge(session: TagadaCardSession, providerVal
   const providerItems: unknown[] | null = Array.isArray(provider?.items) ? provider.items : null;
   const itemMatches = !session.pricing || (providerItems !== null && providerItems.length === session.items.length &&
     session.items.every(item => providerItems.filter(value => object(value)?.variantId === item.variantId && object(value)?.quantity === item.quantity).length === 1));
-  return pricingMatches && itemMatches && !!provider && !!totals && string(expectedSessionId, 150) &&
+  return session.researchAcknowledgementVersion === CHECKOUT_RESEARCH_ACK_VERSION &&
+    pricingMatches && itemMatches && !!provider && !!totals && string(expectedSessionId, 150) &&
     provider.id === expectedSessionId && provider.storeId === session.storeId &&
     provider.checkoutToken === session.checkoutToken && provider.currency === "USD" && totals.currency === "USD" &&
     typeof totals.total === "number" && Number.isSafeInteger(totals.total) && totals.total > 0 &&
@@ -162,7 +169,7 @@ export function parseCardCheckout(raw: string | null, now = Date.now()): StoredC
         confirmation, reportedSuccess: value.reportedSuccess };
     }
     const storedSession = object(value.session);
-    if (!storedSession || !exactKeys(storedSession, ["orderId", "checkoutToken", "sessionToken", "storeId", "customer", "shippingAddress", "items", "shippingCost", "total", "cartFingerprint", "pricing"]) ||
+    if (!storedSession || !exactKeys(storedSession, ["orderId", "checkoutToken", "sessionToken", "storeId", "customer", "shippingAddress", "items", "shippingCost", "total", "cartFingerprint", "pricing", "researchAcknowledgementVersion"]) ||
         !exactKeys(object(storedSession.customer) ?? {}, ["email", "firstName", "lastName"]) ||
         !exactKeys(object(storedSession.shippingAddress) ?? {}, ["line1", "city", "state", "postalCode", "country"]) ||
         !Array.isArray(storedSession.items) || !storedSession.items.every((line) =>

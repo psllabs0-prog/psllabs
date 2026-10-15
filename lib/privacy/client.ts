@@ -41,8 +41,14 @@ export function isPrivacyExcludedPath(pathname: string): boolean {
   try {
     const decoded = decodeURIComponent(pathname);
     return /%|\\/.test(decoded) || /^\/(?:admin[^/]*|api|test(?:s)?|demo)(?:\/|$)/i.test(decoded) ||
-      /^\/partners\/(?:account|auth)(?:\/|$)/i.test(decoded);
+      /^\/partners\/(?:account|auth)(?:\/|$)/i.test(decoded) ||
+      /^\/(?:research-account|payment-return)(?:\/|$)/i.test(decoded);
   } catch { return true; }
+}
+
+/** Public policy pages may read/revoke consent without asserting research access. */
+function isStandalonePrivacyPage(pathname: string): boolean {
+  return ["/terms", "/privacy", "/contact"].includes(pathname.replace(/\/+$/, ""));
 }
 
 function browserStorageWorks(): boolean {
@@ -188,7 +194,8 @@ async function fetchConsent(): Promise<PublicPrivacyConsent> {
 }
 
 export function initializePrivacyConsent(): Promise<PublicPrivacyConsent> {
-  if (typeof window === "undefined" || isPrivacyExcludedPath(window.location.pathname) || !readResearcherVerification()) {
+  if (typeof window === "undefined" || isPrivacyExcludedPath(window.location.pathname) ||
+      (!readResearcherVerification() && !isStandalonePrivacyPage(window.location.pathname))) {
     return Promise.resolve(readPrivacyConsent());
   }
   ensureListeners();
@@ -201,7 +208,9 @@ export function initializePrivacyConsent(): Promise<PublicPrivacyConsent> {
 }
 
 export function requestPrivacyConsent(choices: PrivacyChoices): Promise<PublicPrivacyConsent> {
-  if (typeof window === "undefined" || !readResearcherVerification() || isPrivacyExcludedPath(window.location.pathname)) {
+  const declineOnly = choices.measurement === false && choices.personalization === false;
+  if (typeof window === "undefined" || isPrivacyExcludedPath(window.location.pathname) ||
+      (!readResearcherVerification() && !declineOnly)) {
     return Promise.resolve(readPrivacyConsent());
   }
   const permitted = !globalPrivacyControl() && !consent.admin && browserStorageWorks();
@@ -223,11 +232,12 @@ export function requestPrivacyConsent(choices: PrivacyChoices): Promise<PublicPr
         if (!serverInitialized) throw new Error("Could not initialize privacy session");
       }
       // A grant queued before a newer choice or cross-tab withdrawal is stale.
-      if ((next.measurement || next.personalization) && currentOperation !== operation) return readPrivacyConsent();
+      if ((next.measurement || next.personalization) &&
+          (currentOperation !== operation || !readResearcherVerification())) return readPrivacyConsent();
       const response = await fetch("/api/privacy/consent", {
         method: "POST", credentials: "same-origin", cache: "no-store", keepalive: true,
         headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ version: PRIVACY_CONSENT_VERSION, ...next, verifiedAdult: true, expectedRevision }),
+        body: JSON.stringify({ version: PRIVACY_CONSENT_VERSION, ...next, verifiedAdult: readResearcherVerification(), expectedRevision }),
       });
       if (response.status === 409 && currentOperation === operation) {
         denyLocally(hasPendingDecline());
@@ -272,7 +282,7 @@ function ensureListeners(): void {
   if (listening || typeof window === "undefined") return;
   listening = true;
   const refresh = () => {
-    if (!initialized || !readResearcherVerification()) return;
+    if (!initialized || (!readResearcherVerification() && !isStandalonePrivacyPage(window.location.pathname))) return;
     if (globalPrivacyControl() && (consent.measurement || consent.personalization)) {
       void requestPrivacyConsent({ measurement: false, personalization: false });
     } else void initializePrivacyConsent();

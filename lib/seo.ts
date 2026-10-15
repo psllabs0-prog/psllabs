@@ -28,7 +28,8 @@ export const PAYMENTS_URL = resolvePaymentsUrl();
 
 export function pageIndexingPolicy(path: string): "private" | "utility" | "public" {
   const pathname = path.split(/[?#]/, 1)[0].replace(/\/+$/, "") || "/";
-  if (/^\/admin(?:-|\/|$)/.test(pathname) || /^\/partners\/(?:account|auth)(?:\/|$)/.test(pathname)) {
+  if (/^\/admin(?:-|\/|$)/.test(pathname) || /^\/partners\/(?:account|auth)(?:\/|$)/.test(pathname) ||
+      /^\/(?:research-account|payment-return)(?:\/|$)/.test(pathname)) {
     return "private";
   }
   return ["/checkout", "/success", "/cancel", "/track", "/unsubscribe", "/newsletter/confirm"].includes(pathname)

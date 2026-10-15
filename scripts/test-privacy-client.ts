@@ -61,7 +61,8 @@ async function main() {
           return Response.json({ error: "consent_conflict" }, { status: 409 });
         }
         assert.deepEqual(Object.keys(body).sort(), ["expectedRevision", "measurement", "personalization", "verifiedAdult", "version"]);
-        assert.equal(body.verifiedAdult, true);
+        assert.equal(body.verifiedAdult, storage.get("psl_researcher_verified_v1") === "1",
+          "withdrawal never fabricates an age/research declaration");
         assert.equal(body.version, PRIVACY_CONSENT_VERSION);
         server = { ...server, measurement: !!body.measurement, personalization: !!body.personalization,
           choice: "saved", revision: server.revision + 1, expiresAt: Date.now() + 86400000 };
@@ -166,8 +167,30 @@ async function main() {
     assert.equal(server.measurement, false, "serialized choices preserve the last intent at the server");
     assert.equal(requests.filter((r) => r.method === "POST").length, postsBeforeRace + 1, "stale queued grant is skipped before transport");
     assert.equal(readPrivacyConsent().measurement, false);
+    storage.delete("psl_researcher_verified_v1");
+    location.pathname = "/privacy";
+    const beforeStandalone = requests.length;
+    await initializePrivacyConsent();
+    assert.equal(requests.length, beforeStandalone + 1, "public policy pages can read consent without an old age marker");
+    assert.equal(readPrivacyConsent().measurement, false);
+    assert.equal(storage.has("psl_researcher_verified_v1"), false, "policy access never invents research qualification");
+    const beforeUnqualifiedGrant = requests.length;
+    await requestPrivacyConsent({ measurement: true, personalization: true });
+    assert.equal(requests.length, beforeUnqualifiedGrant, "unqualified policy visitors cannot transport optional grants");
+    failPost = true;
+    await requestPrivacyConsent({ measurement: false, personalization: false });
+    assert.equal(readPrivacyClientStatus().pendingDecline, true, "unqualified withdrawal failure remains pending and off");
+    assert.equal(requests.at(-1)?.body?.verifiedAdult, false);
+    assert.equal(readPrivacyConsent().measurement, false);
+    failPost = false;
+    await initializePrivacyConsent();
+    assert.equal(readPrivacyClientStatus().pendingDecline, false, "policy-page withdrawal retries without an age marker");
+    assert.equal(requests.at(-1)?.body?.verifiedAdult, false);
+    assert.equal(server.measurement, false);
+    assert.equal(server.personalization, false);
+    assert.equal(storage.has("psl_researcher_verified_v1"), false);
     unlisten();
-    console.log("[test-privacy-client] gate, default deny, trusted receipt, withdrawal retry, GPC, admin/test exclusion, malformed response, and request ordering passed offline");
+    console.log("[test-privacy-client] gate, default deny, trusted receipt, withdrawal retry, GPC, admin/test exclusion, malformed response, request ordering, and unqualified policy-page withdrawal passed offline");
   } finally {
     for (const [key, descriptor] of Object.entries(originals)) {
       if (descriptor) Object.defineProperty(globalThis, key, descriptor);

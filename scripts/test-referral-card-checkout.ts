@@ -1,5 +1,6 @@
 /** Offline provider-session evidence tests. No real orders, provider requests, or card details. */
 import assert from "node:assert/strict";
+import { CHECKOUT_RESEARCH_ACK_VERSION } from "../lib/checkout/research-acknowledgement";
 import { configuredReferralPromotionCode, configureAndVerifyReferralCardSession, referralCardSessionMatchesOrder, type ReferralCardCheckoutClient } from "../lib/tagada/referral-checkout";
 import { cardSessionReadyToCharge, createCardSessionStore, sanitizeCardSession, type TagadaCardSession } from "../lib/checkout/card-session-storage";
 import type { Order } from "../lib/orders/types";
@@ -15,6 +16,7 @@ const session: TagadaCardSession = { orderId: "psl_fixture", checkoutToken: bind
   items: binding.items, customer: { email: order.email, firstName: "Fixture", lastName: "Buyer" },
   shippingAddress: { line1: "1 Test Street", city: "Phoenix", state: "AZ", postalCode: "85001", country: "US" },
   shippingCost: order.shippingCost, total: order.total, cartFingerprint: "fixture",
+  researchAcknowledgementVersion: CHECKOUT_RESEARCH_ACK_VERSION,
   pricing: { subtotal: order.subtotal, discountCode: "fixture-1234abcd", discountAmount: order.discountAmount, tax: order.tax } };
 
 async function main() {

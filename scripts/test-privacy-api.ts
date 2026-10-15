@@ -166,6 +166,19 @@ async function main() {
     }
     {
       const f = fixture(); await f.initialize(); await f.post(f.grant());
+      f.state.rateLimited = true;
+      const before = f.state.rateChecks;
+      check((await f.post({ ...f.decline(1), verifiedAdult: false })).status, 200,
+        "withdrawal remains available without asserting age or researcher credentials");
+      check(f.state.rateChecks, before);
+      check(f.records.get(f.digest())!.measurement, false);
+      check(f.records.get(f.digest())!.personalization, false);
+      check((await f.post({ ...f.grant(2), verifiedAdult: false })).status, 400, "unqualified grants remain prohibited");
+      check((await f.post({ ...f.decline(2), verifiedAdult: undefined })).status, 400, "an explicit false is required for unqualified withdrawal");
+      check((await f.post({ ...f.decline(2), verifiedAdult: "false" })).status, 400);
+    }
+    {
+      const f = fixture(); await f.initialize(); await f.post(f.grant());
       f.state.now += privacyTypes.PRIVACY_CONSENT_TTL_MS + 1;
       const expired = (await (await f.get()).json()).consent;
       check(expired.choice, "unknown"); check(expired.measurement, false); check(expired.revision, 1);

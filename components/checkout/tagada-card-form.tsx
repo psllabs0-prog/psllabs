@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { normalizeCountryCode } from "@/lib/checkout/us-states";
 import { pickTagadaShippingRate } from "@/lib/tagada/select-shipping-rate";
 import { readTagadaCheckoutPriceEvidence } from "@/lib/tagada/checkout-price-evidence";
+import { CHECKOUT_RESEARCH_ACK_VERSION } from "@/lib/checkout/research-acknowledgement";
 import {
   cardSessionStore,
   cardSessionReadyToCharge,
@@ -192,6 +193,12 @@ function TagadaCardFields({
 
   async function handlePay() {
     if (context?.phase !== "ready" || confirmation || confirmationRequest.current) return;
+    if (session.researchAcknowledgementVersion !== CHECKOUT_RESEARCH_ACK_VERSION) {
+      const message = "Start a new checkout to review your research-use declaration before paying. No card charge was started.";
+      setLocalError(message);
+      onError(message);
+      return;
+    }
     setLocalError(null);
     onError("");
     setBusy(true);

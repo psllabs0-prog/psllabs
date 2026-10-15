@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { CHECKOUT_RESEARCH_ACK_VERSION } from "../lib/checkout/research-acknowledgement";
 import {
   CARD_SESSION_KEY, CARD_SESSION_TTL_MS, createCardSessionStore, getCardReturnHints,
   cardCartFingerprint, cardSessionMatchesCart, cardSessionReadyToCharge, parseCardCheckout, retryCardConfirmation, sanitizeCardSession,
@@ -11,6 +12,7 @@ const session: TagadaCardSession = {
   shippingAddress: { line1: "100 Test Way", city: "Phoenix", state: "AZ", postalCode: "85001", country: "US" },
   items: [{ variantId: "variant_fixture", quantity: 1 }], shippingCost: 8.99, total: 68.98,
   cartFingerprint: cardCartFingerprint([{ handle: "fixture", quantity: 1, unitPrice: 59.99 }]),
+  researchAcknowledgementVersion: CHECKOUT_RESEARCH_ACK_VERSION,
 };
 let checks = 0;
 function check(value: unknown, message?: string) { checks++; assert.ok(value, message); }

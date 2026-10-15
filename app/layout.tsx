@@ -7,6 +7,11 @@ import { SITE_DESCRIPTION, SITE_TITLE, SITE_URL } from "@/lib/seo";
 import "./globals.css";
 import "./storefront.css";
 import { isDesignPreview } from "@/lib/design-preview";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { getResearchAccount } from "@/lib/research-auth/server";
+import { RESEARCH_PATH_HEADER, researchPathRequiresAccount } from "@/lib/research-auth/paths";
+import { safeResearchReturnPath } from "@/lib/research-auth/qualification";
 
 const archivo = Archivo({
   subsets: ["latin"],
@@ -63,11 +68,16 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const requestHeaders = await headers();
+  const path = requestHeaders.get(RESEARCH_PATH_HEADER) || "/";
+  if (researchPathRequiresAccount(path) && !await getResearchAccount(requestHeaders)) {
+    redirect(`/research-account/sign-in?next=${encodeURIComponent(safeResearchReturnPath(path))}`);
+  }
   return (
     <html
       lang="en"

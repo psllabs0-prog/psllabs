@@ -41,6 +41,10 @@
 .detailsLayout { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 56px; padding-block: 43px 46px; align-items: start; }
 .detailSection, .questionsSection { scroll-margin-top: 150px; }
 .detailSection h2, .questionsSection h2, .informationSection h2 { margin: 0 0 20px; font-family: var(--font-display), sans-serif; font-size: 30px; font-weight: 500; line-height: 1.15; letter-spacing: -.04em; }
+.referenceNotes { margin-top: 18px; color: var(--muted, #a1afb7); font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.referenceNotes p { margin: 0 0 10px; }
+.referenceNotes ul { display: grid; gap: 8px; margin: 0; padding-left: 20px; }
+.referenceNotes a { color: var(--teal, #2fb6e0); text-decoration: underline; text-underline-offset: 4px; }
 .questionsSection { border-block: 1px solid var(--line, #26333b); background: #141a1f; padding-block: 34px 40px; }
 .questionsSection :global(.public-section-card) { border: 0; border-radius: 0; box-shadow: none; background: transparent; padding-inline: 0; }
 .informationSection { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 56px; padding-block: 40px; }

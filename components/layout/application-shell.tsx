@@ -9,6 +9,14 @@ import { PLAUSIBLE_INIT_JS } from "@/lib/plausible/redact";
 import { isPrivacyExcludedPath, PRIVACY_WITHDRAWAL_EVENT } from "@/lib/privacy/client";
 import { hasMetaBrowserSdk, metaBrowserContextAllowed, stopMetaBrowserDispatch } from "@/lib/meta-ads/browser";
 import { hasTikTokBrowserSdk, tikTokBrowserContextAllowed, stopTikTokBrowserDispatch } from "@/lib/tiktok-ads/browser";
+import { isPublicResearchPage, isResearchRecoveryPage } from "@/lib/research-auth/paths";
+import { ResearchAccountShell } from "@/components/research-auth/research-account-shell";
+import { CartProvider } from "@/components/cart/cart-provider";
+import { ResearchUseBanner } from "@/components/layout/research-use-banner";
+
+function isAccountIsolatedDocument(path: string): boolean {
+  return isPrivacyExcludedPath(path) || isPublicResearchPage(path) || isResearchRecoveryPage(path);
+}
 
 let pendingDocumentNavigation: string | null = null;
 function navigateDocument(destination: string) {
@@ -27,7 +35,7 @@ function advertisingNeedsFreshDocument(destination: URL): boolean {
     (hasTikTokBrowserSdk() && !tikTokBrowserContextAllowed(destination.href, document.referrer));
 }
 function subscribeDocumentUrl(notify: () => void) {
-  const documentWasPrivate = isPrivacyExcludedPath(window.location.pathname);
+  const documentWasPrivate = isAccountIsolatedDocument(window.location.pathname);
   const history = window.history;
   const push = history.pushState;
   const replace = history.replaceState;
@@ -46,7 +54,7 @@ function subscribeDocumentUrl(notify: () => void) {
   const wrap = (original: History["pushState"]): History["pushState"] => function(data, unused, url) {
     const destination = url == null ? new URL(window.location.href) : new URL(url, window.location.href);
     if (destination.origin === window.location.origin &&
-        (documentWasPrivate !== isPrivacyExcludedPath(destination.pathname) || advertisingNeedsFreshDocument(destination))) {
+        (documentWasPrivate !== isAccountIsolatedDocument(destination.pathname) || advertisingNeedsFreshDocument(destination))) {
       stopAdvertisingDispatch();
       navigateDocument(destination.href);
       return;
@@ -59,7 +67,7 @@ function subscribeDocumentUrl(notify: () => void) {
   history.pushState = wrappedPush;
   history.replaceState = wrappedReplace;
   const onHistory = () => {
-    if (documentWasPrivate !== isPrivacyExcludedPath(window.location.pathname) ||
+    if (documentWasPrivate !== isAccountIsolatedDocument(window.location.pathname) ||
         advertisingNeedsFreshDocument(new URL(window.location.href))) {
       stopAdvertisingDispatch();
       // Back/forward already committed the complete destination, including its
@@ -111,8 +119,8 @@ const serverDocumentUrl = () => "";
 export function ApplicationShell({ children, visualPreview = false }: { children: React.ReactNode; visualPreview?: boolean }) {
   const pathname = usePathname();
   const actualUrl = useSyncExternalStore(subscribeDocumentUrl, readDocumentUrl, serverDocumentUrl);
-  const [privateDocument] = useState(() => isPrivacyExcludedPath(pathname));
-  const crossesPrivacyBoundary = privateDocument !== isPrivacyExcludedPath(pathname);
+  const [privateDocument] = useState(() => isAccountIsolatedDocument(pathname));
+  const crossesPrivacyBoundary = privateDocument !== isAccountIsolatedDocument(pathname);
   let crossesAdvertisingBoundary = false;
   if (actualUrl && (hasMetaBrowserSdk() || hasTikTokBrowserSdk())) {
     const destination = new URL(actualUrl);
@@ -133,7 +141,7 @@ export function ApplicationShell({ children, visualPreview = false }: { children
       if (!link || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
       const destination = new URL(link.href, window.location.href);
       if (destination.origin !== window.location.origin ||
-          (privateDocument === isPrivacyExcludedPath(destination.pathname) && !advertisingNeedsFreshDocument(destination))) return;
+          (privateDocument === isAccountIsolatedDocument(destination.pathname) && !advertisingNeedsFreshDocument(destination))) return;
       event.preventDefault();
       event.stopPropagation();
       stopAdvertisingDispatch();
@@ -155,9 +163,15 @@ export function ApplicationShell({ children, visualPreview = false }: { children
   }, [requiresFreshDocument, pathname, actualUrl]);
   if (requiresFreshDocument) return null;
   if (isFinanceDemoPath(pathname)) return <>{children}</>;
+  if (pathname.startsWith("/research-account") || isPublicResearchPage(pathname)) {
+    return <ResearchAccountShell legal={["/terms", "/privacy", "/contact"].includes(pathname)}>{children}</ResearchAccountShell>;
+  }
+  if (isResearchRecoveryPage(pathname)) {
+    return <ResearchAccountShell><CartProvider>{children}</CartProvider></ResearchAccountShell>;
+  }
   // Partner sign-in and account records belong in a fresh private document.
   // Never mount storefront attribution, advertising SDKs or analytics here.
-  if (/^\/partners\/(?:account|auth)(?:\/|$)/i.test(pathname)) return <>{children}</>;
+  if (/^\/partners\/(?:account|auth)(?:\/|$)/i.test(pathname)) return <><ResearchUseBanner />{children}</>;
 
   return <>
     {!visualPreview && <><Script async src="https://plausible.io/js/pa-q336_RNw0XrNwsVUzNnQN.js" strategy="afterInteractive" />

@@ -1,4 +1,5 @@
 import type { OrderAttribution } from "@/lib/attribution/types";
+import type { OrderResearchAcknowledgement } from "@/lib/checkout/research-acknowledgement";
 
 export type OrderStatus =
   | "pending"
@@ -62,6 +63,8 @@ export type Order = {
   stockDecremented: boolean;
   /** Paid-acquisition attribution snapshot (last paid touch is primary). */
   attribution: OrderAttribution | null;
+  /** Private checkout declaration. Historical orders have no inferred acceptance. */
+  researchAcknowledgement?: OrderResearchAcknowledgement | null;
 };
 
 // Public order references expose only the summary, never customer/address or

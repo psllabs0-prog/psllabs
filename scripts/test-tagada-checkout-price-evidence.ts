@@ -1,5 +1,6 @@
 /** Offline regressions for the actual v2 original-vs-payable summary format. */
 import assert from "node:assert/strict";
+import { CHECKOUT_RESEARCH_ACK_VERSION } from "../lib/checkout/research-acknowledgement";
 import { normalizeTagadaCheckoutPriceEvidence, readTagadaCheckoutPriceEvidence } from "../lib/tagada/checkout-price-evidence";
 import { referralCardSessionMatchesOrder } from "../lib/tagada/referral-checkout";
 import { cardSessionReadyToCharge, type TagadaCardSession } from "../lib/checkout/card-session-storage";
@@ -16,6 +17,7 @@ summary: { currency: "USD", subtotalAmount: 5999, totalPromotionAmount: 600, shi
 const order = { currency: "USD", subtotal: 59.99, discountAmount: 6, shippingCost: 9.99, tax: 0, total: 63.98 } as Order;
 const expected = { ...binding, items: [{ variantId: "variant_fixture", quantity: 1 }], customerEmail: "fixture@example.test" };
 const session = { storeId: binding.storeId, checkoutToken: binding.checkoutToken, items: expected.items, shippingCost: 9.99, total: 63.98,
+  researchAcknowledgementVersion: CHECKOUT_RESEARCH_ACK_VERSION,
   pricing: { subtotal: 59.99, discountAmount: 6, tax: 0, discountCode: "fixture" } } as TagadaCardSession;
 
 async function main() {
