@@ -1,6 +1,6 @@
 /** Offline guard validation only. No database, carrier or SMTP connections. */
 import assert from "node:assert/strict";
-import { assertQaBuildEnvironment, assertQaMailTarget, assertQaProviderRequest, assertQaSchemaIdentity, assertQaSql, PSL_VERCEL_PROJECT, QA_BUILD_FLAG, QA_RECIPIENT } from "./fulfillment-shipping-qa-guards";
+import { assertQaBuildEnvironment, assertQaMailTarget, assertQaProviderRequest, assertQaSchemaIdentity, assertQaSql, PSL_VERCEL_PROJECT, QA_BUILD_FLAG, QA_RECIPIENT, qaBuildEnvironmentDiagnostics } from "./fulfillment-shipping-qa-guards";
 import { buildCreatePurchaseFieldsForTest } from "../lib/btcpostage/client";
 import { createQaMailAuthorization, QA_MAIL_AUTHORIZATION, QA_MAIL_MESSAGE_ID, QA_MAIL_RECIPIENT_HASH, type QaMailReceiptStatus } from "./fulfillment-shipping-qa-receipt";
 
@@ -36,6 +36,12 @@ assert.equal(buildCreatePurchaseFieldsForTest({ carrier: "USPS", service: "Groun
 const env = { PSL_FULFILLMENT_QA: QA_BUILD_FLAG, VERCEL: "1", VERCEL_ENV: "production", VERCEL_PROJECT_ID: PSL_VERCEL_PROJECT,
   PSL_FULFILLMENT_QA_EXPECTED_COMMIT: "a".repeat(40), VERCEL_GIT_COMMIT_SHA: "a".repeat(40), PSL_FULFILLMENT_QA_NONCE: "b".repeat(32) };
 pass(() => assertQaBuildEnvironment(env));
+const diagnostic = qaBuildEnvironmentDiagnostics(env);
+assert.equal(Object.values(diagnostic).every(value => value === true), true); checks++;
+assert.equal(Object.values(diagnostic).every(value => typeof value === "boolean"), true); checks++;
+assert.equal(qaBuildEnvironmentDiagnostics({ ...env, VERCEL_GIT_COMMIT_SHA: undefined }).shaMatches, false); checks++;
+assert.equal(qaBuildEnvironmentDiagnostics({ ...env, VERCEL_PROJECT_ID: undefined }).projectMatches, false); checks++;
+assert(!JSON.stringify(diagnostic).includes(env.PSL_FULFILLMENT_QA_NONCE)); checks++;
 for (const change of [{ VERCEL: "0" }, { VERCEL_ENV: "preview" }, { VERCEL_PROJECT_ID: "other-project" }, { VERCEL_GIT_COMMIT_SHA: "c".repeat(40) }, { PSL_FULFILLMENT_QA_NONCE: "" }, { PSL_FULFILLMENT_QA: "true" }])
   deny(() => assertQaBuildEnvironment({ ...env, ...change }));
 

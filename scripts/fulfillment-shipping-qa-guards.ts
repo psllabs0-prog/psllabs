@@ -19,6 +19,18 @@ export function assertQaBuildEnvironment(env: Record<string, string | undefined>
     env.VERCEL_GIT_COMMIT_SHA === env.PSL_FULFILLMENT_QA_EXPECTED_COMMIT && /^[a-f0-9]{32}$/.test(env.PSL_FULFILLMENT_QA_NONCE || ""),
     "Fulfillment QA requires the reviewed staged-production build, exact source commit and one-time nonce.");
 }
+/** Booleans only: safe to emit before the unchanged fail-closed build guard. */
+export function qaBuildEnvironmentDiagnostics(env: Record<string, string | undefined>) {
+  return {
+    flagOk: env.PSL_FULFILLMENT_QA === QA_BUILD_FLAG,
+    onVercel: env.VERCEL === "1",
+    production: env.VERCEL_ENV === "production",
+    projectMatches: env.VERCEL_PROJECT_ID === PSL_VERCEL_PROJECT,
+    shaPresent: /^[a-f0-9]{40}$/.test(env.VERCEL_GIT_COMMIT_SHA || ""),
+    shaMatches: /^[a-f0-9]{40}$/.test(env.PSL_FULFILLMENT_QA_EXPECTED_COMMIT || "") && env.VERCEL_GIT_COMMIT_SHA === env.PSL_FULFILLMENT_QA_EXPECTED_COMMIT,
+    nonceValid: /^[a-f0-9]{32}$/.test(env.PSL_FULFILLMENT_QA_NONCE || ""),
+  };
+}
 export function assertQaMailTarget(email: string, orderId: string, schema: string) {
   assert(QA_SCHEMA.test(schema) && email === QA_RECIPIENT && orderId.startsWith(`${schema}_`), "Only the explicitly allowed fake order and test recipient may receive QA mail.");
 }
