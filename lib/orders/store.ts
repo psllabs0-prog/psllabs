@@ -467,7 +467,7 @@ export async function listOrdersWithAttribution(
   });
 }
 
-/** Paid orders awaiting a manually entered tracking number (BTCPostage). */
+/** Paid orders awaiting tracking or explicit carrier handoff confirmation. */
 export async function getOrdersNeedingTracking(
   limit = 100
 ): Promise<OrderTrackingRow[]> {
@@ -477,7 +477,6 @@ export async function getOrdersNeedingTracking(
     SELECT order_id, email, total, status, tracking_number, paid_at, created_at
     FROM orders
     WHERE status = 'paid'
-      AND (tracking_number IS NULL OR trim(tracking_number) = '')
     ORDER BY paid_at ASC NULLS LAST, created_at ASC
     LIMIT ${limit}
   `) as {

@@ -41,7 +41,7 @@ export async function GET(request: Request) {
     }
 
     const board = await collectFulfillmentBoard();
-    const cards = [...board.ready, ...board.hold, ...board.packed];
+    const cards = [...board.ready, ...board.hold, ...board.packed, ...board.labeled];
     const labels = await listBtcpostageLabelsForOrders(
       cards.map((c) => c.orderId)
     );
@@ -56,6 +56,7 @@ export async function GET(request: Request) {
       ready: board.ready.map(sanitizeCard),
       hold: board.hold.map(sanitizeCard),
       packed: board.packed.map(sanitizeCard),
+      labeled: board.labeled.map(sanitizeCard),
       btcpostage: getBtcpostagePublicConfig(),
       labelsByOrderId,
     });

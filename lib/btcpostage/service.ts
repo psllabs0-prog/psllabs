@@ -134,7 +134,7 @@ export async function verifyOrderAddress(orderId: string): Promise<{
 
   const destination = destinationFromOrder(order);
   const result = await verifyAddress(destination);
-  if (result.standardized) {
+  if (result.isValid && result.standardized) {
     await saveVerifiedAddress(orderId, result.standardized);
   }
   return {
@@ -216,6 +216,8 @@ export async function buyOrderLabel(input: {
   service: string;
   confirmPurchase: boolean;
   pkg?: Partial<BtcpostagePackage> | null;
+  /** Internal server-only review binding. Never accepted from HTTP input. */
+  validateBeforePurchase?: (input: { order: Order; from: BtcpostageAddress; to: BtcpostageAddress; pkg: BtcpostagePackage }) => Promise<void>;
 }): Promise<{
   label: BtcpostageLabelPublic;
   alreadyPurchased?: boolean;
@@ -283,12 +285,14 @@ export async function buyOrderLabel(input: {
     to = await resolveToAddress(order);
     from = getBtcpostageFromAddress();
     await assertCurrentPriorityPostageCovered(order, from, to, pkg);
+    await input.validateBeforePurchase?.({ order, from, to, pkg });
   } catch (error) {
     if (order.shipping.selection?.method === "priority") {
       const message = error instanceof Error ? error.message : "Current postage could not be checked.";
       await markPurchaseNeedsReview(input.orderId, `Priority shipping review before purchase: ${message}`);
       throw new Error(`Priority shipping needs review. No label was purchased. ${message}`);
     }
+    await markPurchaseFailed(input.orderId, "Pre-purchase checks failed. Prepare and review the label again.");
     throw error;
   }
 
@@ -315,8 +319,8 @@ export async function buyOrderLabel(input: {
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "BTCPostage purchase failed.";
-    const uncertain =
-      error instanceof BtcpostageApiError ? error.uncertain : false;
+    const uncertain = returnedPurchaseId !== null ||
+      !(error instanceof BtcpostageApiError) || error.uncertain;
 
     if (uncertain) {
       await markPurchaseNeedsReview(
@@ -344,7 +348,7 @@ export async function recoverOrderPurchase(input: {
   const existing = await getBtcpostageLabel(input.orderId);
   if (existing?.purchaseStatus === "purchased") {
     assertStoredLabelService(order, existing);
-    return { label: toPublicLabel(existing) };
+    if (existing.trackingNumber?.trim() && existing.labelUrl?.trim()) return { label: toPublicLabel(existing) };
   }
 
   const btcpOrderId =
@@ -355,7 +359,12 @@ export async function recoverOrderPurchase(input: {
     );
   }
 
-  assertPaidUnshipped(order);
+  if (!["paid", "shipped"].includes(order.status)) {
+    throw new Error("Only paid or shipped orders can retrieve an existing shipment.");
+  }
+  if (existing?.btcpOrderId && existing.btcpOrderId !== btcpOrderId) {
+    throw new Error("Retrieve the provider purchase already recorded for this order.");
+  }
   await ensureLabelRow(input.orderId);
   // A retrieval may concern an existing paid purchase. Keep duplicate-buy
   // protection even if the provider read fails or cannot establish its identity.
@@ -369,6 +378,9 @@ export async function recoverOrderPurchase(input: {
     depthIn: existing?.depthIn ?? undefined,
   });
   try {
+    if (order.trackingNumber?.trim() && purchase.items[0]?.trackingNo?.trim() !== order.trackingNumber.trim()) {
+      throw new Error("The retrieved tracking differs from the order's saved shipment. Review without replacing it.");
+    }
     const record = await applyPurchaseResult(
       order,
       purchase,

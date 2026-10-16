@@ -36,13 +36,14 @@ const record = (status: BtcpostageLabelRecord["purchaseStatus"] = "none"): Btcpo
   weightLbs: 0, weightOz: 8, heightIn: 3, widthIn: 4, depthIn: 6, updatedAt: null,
 });
 
-function harness(options: { returned?: BtcpostagePurchase; existing?: BtcpostageLabelRecord | null; retrieveFailure?: boolean; createFailure?: boolean; legacy?: boolean;
+function harness(options: { returned?: BtcpostagePurchase; existing?: BtcpostageLabelRecord | null; retrieveFailure?: boolean; createFailure?: boolean; saveFailure?: boolean; legacy?: boolean;
+  trackingNumber?: string; shipped?: boolean;
   rates?: BtcpostageRate[]; rateFailure?: boolean; fromZip?: string; fromCountry?: string; toCountry?: string; reserve?: string; standard?: boolean } = {}) {
   let saved = options.existing === undefined ? null : structuredClone(options.existing);
   let creates = 0, retrieves = 0, successes = 0, claims = 0, rateReads = 0;
   const calls: string[] = [];
   const returned = options.returned ?? (options.standard ? { ...purchase(), items: [{ ...purchase().items[0], service: "GroundAdvantage" }] } : purchase());
-  const currentOrder = { ...order, shipping: { ...order.shipping, country: options.toCountry ?? "US",
+  const currentOrder = { ...order, trackingNumber: options.trackingNumber ?? order.trackingNumber, status: options.shipped ? "shipped" : order.status, shipping: { ...order.shipping, country: options.toCountry ?? "US",
     selection: options.legacy ? undefined : options.standard ? shippingPolicy.standardShippingSelection() : selection } };
   const mocks: Record<string, unknown> = {
     "@/lib/orders/store": { getOrder: async () => currentOrder },
@@ -80,6 +81,7 @@ function harness(options: { returned?: BtcpostagePurchase; existing?: Btcpostage
         saved.purchaseStatus = "purchasing"; return { ok: true };
       },
       markPurchaseSucceeded: async (input: Record<string, unknown>) => {
+        if (options.saveFailure) throw new Error("Fixture database lost response after paid purchase");
         successes++; saved = { ...record("purchased"), ...input, purchaseStatus: "purchased" } as BtcpostageLabelRecord; return saved;
       },
       markPurchaseNeedsReview: async (_id: string, error: string, partial?: { btcpOrderId?: string | null }) => {
@@ -166,6 +168,23 @@ async function main() {
     const uncertain = harness({ createFailure: true }); await assert.rejects(uncertain.buy()); checks++;
     await assert.rejects(uncertain.buy(), /review|uncertain/i); checks++;
     check(uncertain.state().creates, 1, "uncertain provider failure cannot be blindly repurchased");
+
+    const persistence = harness({ saveFailure: true }); await assert.rejects(persistence.buy(), /uncertain/i); checks++;
+    check(persistence.state().saved?.purchaseStatus, "needs_review", "database failure after accepted paid purchase never becomes retryable");
+    check(persistence.state().saved?.btcpOrderId, "btcp_fixture", "known paid provider ID retained after database failure");
+    await assert.rejects(persistence.buy(), /review|uncertain/i); checks++;
+    check(persistence.state().creates, 1, "post-success database failure cannot trigger a second paid request");
+
+    const incomplete = { ...record("purchased"), btcpOrderId: "btcp_fixture", carrier: "USPS", service: "Priority", trackingNumber: "OFFLINE-NOT-A-SHIPMENT", labelUrl: null };
+    for (const shipped of [false, true]) {
+      const repair = harness({ existing: incomplete, trackingNumber: "OFFLINE-NOT-A-SHIPMENT", shipped });
+      await repair.recover();
+      check(repair.state().retrieves, 1, "missing label PDF can be retrieved even after matching tracking is saved");
+      check(repair.state().creates, 0, "incomplete purchase repair never buys a replacement");
+    }
+    const conflict = harness({ existing: incomplete, trackingNumber: "DIFFERENT-SAVED-TRACKING" });
+    await assert.rejects(conflict.recover(), /tracking differs/i); checks++;
+    check(conflict.state().successes, 0, "recovery cannot overwrite a different saved shipment");
 
     const recovered = harness(); await recovered.recover();
     check(recovered.state().successes, 1, "manual recovery with exact returned PSL reference and service succeeds");

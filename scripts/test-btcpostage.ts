@@ -72,6 +72,13 @@ async function testVerifyAddress() {
   assert(result.isValid, "address valid");
   assert(result.standardized?.street1 === "123 MAIN ST", "standardized street");
   assert(result.errors.length === 0, "no verification errors");
+
+  for (const payload of [{ status: "success", is_valid: false, data: { verification: { is_valid: true } } },
+    { status: "success", data: { address: { street1: "UNVERIFIED" } } }]) {
+    const invalid = await verifyAddress({ street1: "1 Fixture", city: "Phoenix", state: "AZ", zip: "85016", country: "US" },
+      mockFetch([{ body: JSON.stringify(payload) }]));
+    assert(!invalid.isValid, "success envelope or contradictory flag is not address verification");
+  }
 }
 
 async function testGetRates() {

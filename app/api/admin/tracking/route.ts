@@ -3,15 +3,15 @@ import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin/require-auth";
 import { ensureBtcpostageSchema } from "@/lib/btcpostage/schema";
 import { getSuggestedTrackingForPaidOrders } from "@/lib/btcpostage/store";
-import { sendOrderShippedEmail } from "@/lib/email/order-shipped";
+import { dispatchTrackingNotification } from "@/lib/fulfillment/tracking-notification";
+import { privateDigest, saveTrackingAndQueue, shippingPaymentBlocked } from "@/lib/fulfillment/shipping-flow-store";
 import {
   getOrder,
   getOrdersNeedingTracking,
-  markTrackingEmailSent,
-  setOrderTracking,
 } from "@/lib/orders/store";
 
 export const runtime = "nodejs";
+export const maxDuration = 90;
 
 export async function GET() {
   const authError = await requireAdminAuth();
@@ -37,6 +37,10 @@ export async function POST(request: Request) {
   const authError = await requireAdminAuth();
   if (authError) return authError;
 
+  if (request.headers.get("origin") !== new URL(request.url).origin) {
+    return NextResponse.json({ error: "Same-origin request required." }, { status: 403 });
+  }
+
   let body: { orderId?: unknown; trackingNumber?: unknown };
   try {
     body = (await request.json()) as typeof body;
@@ -60,33 +64,33 @@ export async function POST(request: Request) {
   }
 
   try {
-    const updated = await setOrderTracking(orderId, trackingNumber, "USPS");
-    if (!updated) {
+    const order = await getOrder(orderId);
+    if (!order || !["paid", "shipped"].includes(order.status)) {
       return NextResponse.json(
         { error: "Order not found or not eligible for tracking." },
         { status: 404 }
       );
     }
 
-    const order = await getOrder(orderId);
-    let shippingEmailSent = false;
-    let shippingEmailError: string | null = null;
-
-    if (order && !order.trackingEmailSent) {
-      try {
-        await sendOrderShippedEmail(order);
-        await markTrackingEmailSent(orderId);
-        shippingEmailSent = true;
-      } catch (error) {
-        shippingEmailError =
-          error instanceof Error
-            ? error.message
-            : "Unable to send shipping confirmation email.";
-        console.error("[admin/tracking POST] shipping email failed:", error);
-      }
-    } else if (order?.trackingEmailSent) {
-      shippingEmailSent = true;
+    if (await shippingPaymentBlocked(orderId)) {
+      return NextResponse.json({ error: "Payment reconciliation needs review before carrier handoff." }, { status: 409 });
     }
+
+    await saveTrackingAndQueue({
+      orderId,
+      trackingNumber,
+      carrier: "USPS",
+      recipientHash: privateDigest(order.email.trim().toLowerCase()),
+      recipientEmail: order.email,
+      markShipped: true,
+    });
+    // Manual mark-shipped retains its existing send behavior, while sharing the
+    // same claim as label-ready notifications to prevent duplicate delivery.
+    const notification = await dispatchTrackingNotification(orderId, true);
+    const shippingEmailSent = notification?.status === "sent";
+    const shippingEmailError = shippingEmailSent
+      ? null
+      : notification?.lastError ?? "Tracking saved; the notification is pending.";
 
     return NextResponse.json({
       ok: true,

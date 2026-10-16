@@ -122,10 +122,12 @@ export function AdminLedgerDashboard() {
     setTrackingDrafts((current) => {
       const next = { ...current };
       for (const order of trackingData.orders) {
-        if (next[order.orderId] === undefined || next[order.orderId] === "") {
+        if (order.trackingNumber) {
+          next[order.orderId] = order.trackingNumber;
+        } else if (next[order.orderId] === undefined || next[order.orderId] === "") {
           const suggested =
             trackingData.suggestedTracking?.[order.orderId]?.trackingNumber;
-          next[order.orderId] = suggested ?? next[order.orderId] ?? "";
+          next[order.orderId] = order.trackingNumber ?? suggested ?? next[order.orderId] ?? "";
         }
       }
       return next;
@@ -333,6 +335,9 @@ export function AdminLedgerDashboard() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <a href="/admin-fulfillment" className="rounded-pill bg-accent px-4 py-2 text-sm font-semibold text-page">
+            Fulfillment & labels
+          </a>
           <a
             href="/admin-attribution"
             className="rounded-pill border border-linen px-4 py-2 text-sm font-medium text-ash transition-colors hover:border-accent/40 hover:text-ink"
@@ -450,8 +455,7 @@ export function AdminLedgerDashboard() {
         <div className="border-b border-linen px-5 py-4">
           <h2 className="font-display text-xl font-bold text-ink">Tracking</h2>
           <p className="mt-1 text-sm text-ash">
-            Paid orders awaiting a tracking number from BTCPostage. Carrier is
-            saved as USPS by default.
+            Paid orders awaiting tracking or carrier handoff. Prepare and buy labels in Fulfillment & labels; confirm handoff here after dispatch.
           </p>
         </div>
         <div className="overflow-x-auto">
@@ -469,7 +473,7 @@ export function AdminLedgerDashboard() {
               {trackingOrders.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-5 py-8 text-center text-ash">
-                    No paid orders awaiting tracking.
+                    No paid orders awaiting tracking or carrier handoff.
                   </td>
                 </tr>
               ) : (
@@ -489,6 +493,7 @@ export function AdminLedgerDashboard() {
                       <Input
                         type="text"
                         autoComplete="off"
+                        readOnly={Boolean(row.trackingNumber)}
                         value={trackingDrafts[row.orderId] ?? ""}
                         onChange={(e) =>
                           setTrackingDrafts((current) => ({
@@ -507,8 +512,9 @@ export function AdminLedgerDashboard() {
                         onClick={() => void handleTrackingSave(row.orderId)}
                         className="rounded-pill bg-accent px-4 py-2 text-sm font-medium text-page transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {busyOrderId === row.orderId ? "Saving…" : "Save"}
+                        {busyOrderId === row.orderId ? "Saving…" : row.trackingNumber ? "Confirm carrier handoff" : "Save & mark shipped"}
                       </button>
+                      {row.trackingNumber && <p className="mt-2 max-w-64 text-xs text-ash">Tracking is saved. Confirm only when the package has been handed to the carrier.</p>}
                       {trackingMessages[row.orderId] && (
                         <p
                           className={cn(

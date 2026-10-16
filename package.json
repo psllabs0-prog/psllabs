@@ -61,6 +61,8 @@
     "test:newsletter-welcome": "tsx scripts/test-newsletter-welcome.ts",
     "test:newsletter-welcome-db": "tsx scripts/test-newsletter-welcome-db.ts",
     "test:fulfillment": "tsx scripts/test-fulfillment.ts",
+    "test:fulfillment-shipping": "tsx scripts/test-fulfillment-shipping-flow.ts && tsx scripts/test-shipping-purchase-recovery.ts",
+    "migrate:fulfillment-shipping": "tsx scripts/migrate-fulfillment-shipping.ts",
     "test:btcpostage": "tsx scripts/test-btcpostage.ts",
     "test:order-notification": "tsx scripts/test-order-notification.ts",
     "test:card-verification": "tsx scripts/test-card-verification.ts && tsx scripts/test-card-routes.ts && tsx scripts/test-card-session-storage.ts && tsx scripts/test-tagada-checkout-price-evidence.ts",

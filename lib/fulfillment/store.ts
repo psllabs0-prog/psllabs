@@ -31,7 +31,7 @@ export type FulfillmentCard = {
   packingStartedAt: string | null;
   packedAt: string | null;
   blocker: string | null;
-  bucket: "ready" | "hold" | "packed";
+  bucket: "ready" | "hold" | "packed" | "labeled";
 };
 
 export type WarehouseSummary = {
@@ -39,6 +39,7 @@ export type WarehouseSummary = {
   unitsToPick: number;
   holds: number;
   packedWaitingTracking: number;
+  labelsReady: number;
 };
 
 function itemSku(item: OrderItem): string | null {
@@ -99,7 +100,6 @@ export async function listFulfillmentEligibleOrders(
     SELECT o.order_id
     FROM orders o
     WHERE o.status = 'paid'
-      AND (o.tracking_number IS NULL OR trim(o.tracking_number) = '')
       AND NOT EXISTS (
         SELECT 1 FROM finance_transactions ft
         WHERE ft.psl_order_id = o.order_id
@@ -150,6 +150,7 @@ export async function collectFulfillmentBoard(): Promise<{
   ready: FulfillmentCard[];
   hold: FulfillmentCard[];
   packed: FulfillmentCard[];
+  labeled: FulfillmentCard[];
   summary: WarehouseSummary;
   pickList: Array<{ label: string; quantity: number }>;
 }> {
@@ -168,6 +169,7 @@ export async function collectFulfillmentBoard(): Promise<{
   const ready: FulfillmentCard[] = [];
   const hold: FulfillmentCard[] = [];
   const packed: FulfillmentCard[] = [];
+  const labeled: FulfillmentCard[] = [];
   const pickMap = new Map<string, number>();
 
   for (const order of orders) {
@@ -206,14 +208,17 @@ export async function collectFulfillmentBoard(): Promise<{
       packedAt: wf?.packedAt ?? null,
       blocker,
       bucket:
-        workflowStatus === "hold"
+        order.trackingNumber?.trim()
+          ? "labeled"
+          : workflowStatus === "hold"
           ? "hold"
           : workflowStatus === "packed"
             ? "packed"
             : "ready",
     };
 
-    if (card.bucket === "hold") hold.push(card);
+    if (card.bucket === "labeled") labeled.push(card);
+    else if (card.bucket === "hold") hold.push(card);
     else if (card.bucket === "packed") packed.push(card);
     else {
       ready.push(card);
@@ -234,11 +239,13 @@ export async function collectFulfillmentBoard(): Promise<{
     ready,
     hold,
     packed,
+    labeled,
     summary: {
       readyOrders: ready.length,
       unitsToPick,
       holds: hold.length,
       packedWaitingTracking: packed.length,
+      labelsReady: labeled.length,
     },
     pickList,
   };

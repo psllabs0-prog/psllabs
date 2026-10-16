@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { BtcpostageOrderPanel } from "@/components/admin/btcpostage-order-panel";
+import { FulfillmentShippingPanel } from "@/components/admin/fulfillment-shipping-panel";
+import type { BtcpostageLabelPublic } from "@/lib/btcpostage/types";
 import type { OrderShippingAddress } from "@/lib/orders/types";
 import { getOrderShippingPresentation } from "@/lib/shipping/presentation";
 
@@ -23,35 +25,21 @@ type Card = {
   blocker: string | null;
 };
 
-type LabelPublic = {
-  pslOrderId: string;
-  purchaseStatus: string;
-  btcpOrderId: string | null;
-  shipmentId: string | null;
-  carrier: string | null;
-  service: string | null;
-  postageCost: number | null;
-  trackingNumber: string | null;
-  labelUrl: string | null;
-  testMode: boolean;
-  purchasedAt: string | null;
-  lastError: string | null;
-  isRealShipment: boolean;
-};
-
 type Payload = {
   summary: {
     readyOrders: number;
     unitsToPick: number;
     holds: number;
     packedWaitingTracking: number;
+    labelsReady?: number;
   };
   pickList: Array<{ label: string; quantity: number }>;
   ready: Card[];
   hold: Card[];
   packed: Card[];
+  labeled?: Card[];
   btcpostage?: { configured: boolean; testMode: boolean };
-  labelsByOrderId?: Record<string, LabelPublic>;
+  labelsByOrderId?: Record<string, BtcpostageLabelPublic>;
 };
 
 async function loadFulfillmentBoard(signal?: AbortSignal): Promise<Payload> {
@@ -65,7 +53,7 @@ export function AdminFulfillmentDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [labelsByOrderId, setLabelsByOrderId] = useState<
-    Record<string, LabelPublic>
+    Record<string, BtcpostageLabelPublic>
   >({});
 
   const refresh = useCallback(async () => {
@@ -94,18 +82,24 @@ export function AdminFulfillmentDashboard() {
   async function act(action: string, orderId: string, reason?: string) {
     setBusy(`${action}:${orderId}`);
     try {
-      await fetch("/api/admin/fulfillment", {
+      const response = await fetch("/api/admin/fulfillment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action, orderId, reason }),
       });
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({})) as { error?: string };
+        throw new Error(result.error || "Unable to save the fulfillment update.");
+      }
       await refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Unable to save the fulfillment update.");
     } finally {
       setBusy(null);
     }
   }
 
-  function renderOrderCard(card: Card, mode: "ready" | "hold" | "packed") {
+  function renderOrderCard(card: Card, mode: "ready" | "hold" | "packed" | "labeled") {
     const shipping = getOrderShippingPresentation(card.shipping);
     return (
       <li key={card.orderId} className="premium-card px-4 py-3 text-sm">
@@ -184,29 +178,45 @@ export function AdminFulfillmentDashboard() {
               Remove manual hold
             </button>
           )}
-          {mode === "packed" && (
-            <a href="/admin-ledger" className="underline">
-              Add tracking
-            </a>
-          )}
+          {mode === "labeled" && <a href="/admin-ledger" className="underline">Confirm carrier handoff on ledger</a>}
         </div>
 
-        {(mode === "ready" || mode === "packed") && data && (
-          <BtcpostageOrderPanel
-            orderId={card.orderId}
-            shipping={card.shipping}
-            testMode={Boolean(data.btcpostage?.testMode)}
-            configured={Boolean(data.btcpostage?.configured)}
-            initialLabel={labelsByOrderId[card.orderId] ?? null}
-            onLabelChange={(next) => {
-              setLabelsByOrderId((prev) => {
-                const copy = { ...prev };
-                if (!next) delete copy[card.orderId];
-                else copy[card.orderId] = next;
-                return copy;
-              });
-            }}
-          />
+        {(mode === "ready" || mode === "packed" || mode === "labeled") && data && (
+          <>
+            <FulfillmentShippingPanel
+              key={`${card.orderId}:${labelsByOrderId[card.orderId]?.purchaseStatus ?? "none"}:${labelsByOrderId[card.orderId]?.trackingNumber ?? ""}:${labelsByOrderId[card.orderId]?.labelUrl ?? ""}`}
+              orderId={card.orderId}
+              onLabelChange={(next) => {
+                setLabelsByOrderId((previous) => {
+                  const copy = { ...previous };
+                  if (next) copy[card.orderId] = next;
+                  else delete copy[card.orderId];
+                  return copy;
+                });
+                if (next?.purchaseStatus === "purchased") void refresh();
+              }}
+            />
+            <details className="mt-3 rounded-lg border border-white/10 px-3 py-2">
+              <summary className="cursor-pointer py-1.5 text-sm font-medium text-ash focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">Manual label tools &amp; purchase recovery</summary>
+              <p className="mt-2 text-xs leading-relaxed text-ash">Use these tools for an older order, a package correction or an uncertain provider purchase. Retrieve an existing purchase before trying to buy again.</p>
+              <BtcpostageOrderPanel
+                key={`${card.orderId}:${labelsByOrderId[card.orderId]?.purchaseStatus ?? "none"}:${labelsByOrderId[card.orderId]?.trackingNumber ?? ""}`}
+                orderId={card.orderId}
+                shipping={card.shipping}
+                testMode={Boolean(data.btcpostage?.testMode)}
+                configured={Boolean(data.btcpostage?.configured)}
+                initialLabel={labelsByOrderId[card.orderId] ?? null}
+                onLabelChange={(next) => {
+                  setLabelsByOrderId((previous) => {
+                    const copy = { ...previous };
+                    if (next) copy[card.orderId] = next as BtcpostageLabelPublic;
+                    else delete copy[card.orderId];
+                    return copy;
+                  });
+                }}
+              />
+            </details>
+          </>
         )}
       </li>
     );
@@ -219,8 +229,8 @@ export function AdminFulfillmentDashboard() {
           Fulfillment
         </h1>
         <p className="mt-2 text-sm text-ash">
-          What Luke needs to pack, hold, or review. Buy labels here; confirm
-          tracking on the ledger (does not auto-mark shipped).
+          Pack paid orders, purchase their selected shipping label, and save
+          tracking with the customer notification in one place.
         </p>
         {data?.btcpostage?.testMode && (
           <p className="mt-2 text-sm font-medium text-amber-800">
@@ -241,6 +251,7 @@ export function AdminFulfillmentDashboard() {
               Ready to pack: {data.summary.readyOrders} · Units to pick:{" "}
               {data.summary.unitsToPick} · Holds: {data.summary.holds} · Packed
               waiting tracking: {data.summary.packedWaitingTracking}
+              {data.summary.labelsReady !== undefined ? ` · Labels ready: ${data.summary.labelsReady}` : ""}
             </p>
           </section>
 
@@ -285,6 +296,14 @@ export function AdminFulfillmentDashboard() {
                   renderOrderCard(c, "ready")
                 ))
               )}
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="font-display text-lg font-bold text-ink">Labels ready / awaiting carrier handoff</h2>
+            <p className="mt-1 text-sm text-ash">Review tracking and customer email status here. Mark the order shipped after the package is handed to the carrier.</p>
+            <ul className="mt-3 space-y-3">
+              {!data.labeled?.length ? <li className="text-sm text-ash">No labeled orders awaiting handoff.</li> : data.labeled.map((card) => renderOrderCard(card, "labeled"))}
             </ul>
           </section>
 

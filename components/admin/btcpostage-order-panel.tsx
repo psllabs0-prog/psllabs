@@ -316,14 +316,15 @@ export function BtcpostageOrderPanel({
         </button>
         <button
           type="button"
-          disabled={busy !== null || !configured || !selected}
+          disabled={busy !== null || !configured || !selected || label?.purchaseStatus === "purchased" || label?.purchaseStatus === "purchasing" || label?.purchaseStatus === "needs_review"}
           className="underline disabled:opacity-50"
           onClick={() => void onBuy()}
         >
           Buy Label
         </button>
         {(label?.purchaseStatus === "needs_review" ||
-          label?.purchaseStatus === "purchasing") && (
+          label?.purchaseStatus === "purchasing" ||
+          (label?.purchaseStatus === "purchased" && (!label.trackingNumber?.trim() || !label.labelUrl?.trim()))) && (
           <button
             type="button"
             disabled={busy !== null || !configured}
@@ -388,15 +389,13 @@ export function BtcpostageOrderPanel({
             </a>
           )}
           <p className="text-xs text-ash">
-            Print manually from the browser (MUNBYN). Order is not marked
-            shipped until you save tracking on the ledger
-            {label.isRealShipment
-              ? " (tracking is prefilled from this label)."
-              : "."}
+            Print manually from the browser (MUNBYN). A label does not confirm
+            carrier pickup. Review tracking status above and confirm the
+            actual carrier handoff on the ledger.
           </p>
           {label.isRealShipment && (
             <a href="/admin-ledger" className="underline">
-              Confirm tracking on ledger
+              Confirm carrier handoff on ledger
             </a>
           )}
         </div>

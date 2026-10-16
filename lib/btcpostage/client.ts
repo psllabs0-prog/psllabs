@@ -59,7 +59,9 @@ async function postForm(
     );
   }
 
-  const text = await response.text();
+  let text: string;
+  try { text = await response.text(); }
+  catch { throw new BtcpostageApiError("BTCPostage response was interrupted; verify the purchase before retrying.", { uncertain: true }); }
   let json: unknown = null;
   try {
     json = text ? JSON.parse(text) : null;
@@ -70,7 +72,7 @@ async function postForm(
   if (!response.ok) {
     throw new BtcpostageApiError(
       `BTCPostage HTTP ${response.status}: ${text.slice(0, 240)}`,
-      { status: response.status, body: text, uncertain: response.status >= 500 }
+      { status: response.status, body: text, uncertain: response.status >= 500 || response.status === 408 }
     );
   }
 
@@ -208,10 +210,10 @@ export async function verifyAddress(
   const errors = Array.isArray(errorsRaw)
     ? errorsRaw.map((e) => str(e)).filter(Boolean)
     : [];
-  const isValid =
-    root?.is_valid === true ||
-    verification?.is_valid === true ||
-    str(root?.status).toLowerCase() === "success";
+  // An HTTP/API success is not proof that a delivery address is valid.
+  // Explicit negative verification must win over a generic success envelope.
+  const isValid = root?.is_valid !== false && verification?.is_valid !== false &&
+    (root?.is_valid === true || verification?.is_valid === true);
 
   const standardized: BtcpostageAddress | null = addr
     ? {

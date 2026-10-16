@@ -87,7 +87,7 @@ export function buildOrderShippedEmail(order: Order) {
   return { subject: SUBJECT, text, html };
 }
 
-export async function sendOrderShippedEmail(order: Order): Promise<void> {
+export async function sendOrderShippedEmail(order: Order, messageId?: string): Promise<void> {
   const to = order.email.trim();
   if (!to) throw new Error("Order has no customer email for shipping confirmation.");
   const built = buildOrderShippedEmail(order);
@@ -96,6 +96,7 @@ export async function sendOrderShippedEmail(order: Order): Promise<void> {
     from: FROM_EMAIL,
     to,
     replyTo: SUPPORT_EMAIL,
+    ...(messageId ? { messageId } : {}),
     ...built,
   });
 }
