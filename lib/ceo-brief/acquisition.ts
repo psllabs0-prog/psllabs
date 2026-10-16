@@ -9,6 +9,8 @@ import {
 import {
   normalizePaidPlatform,
   assignOrderToUniqueCampaign,
+  isPaidOrderAttribution,
+  type OrderAttributionFields,
 } from "@/lib/external-metrics/paid/attribution";
 
 import type { BriefPeriod } from "./period";
@@ -67,7 +69,7 @@ export async function collectAcquisitionSnapshot(
       return emptyUnavailable();
     }
 
-    const orderRows = (await sql`
+    const retrievedOrderRows = (await sql`
       SELECT
         o.order_id,
         o.total::float AS total,
@@ -92,6 +94,12 @@ export async function collectAcquisitionSnapshot(
       total: number;
       attribution: Record<string, unknown> | null;
     }>;
+
+    // Source-only SQL prefilter retains legacy records; explicit nonpaid media
+    // must still be excluded before totals or exact campaign joins are computed.
+    const orderRows = retrievedOrderRows.filter((order) =>
+      isPaidOrderAttribution(order.attribution as OrderAttributionFields | null)
+    );
 
     const orders = orderRows.length;
     const revenue = orderRows.reduce((s, o) => s + Number(o.total), 0);
@@ -146,6 +154,11 @@ export async function collectAcquisitionSnapshot(
           utmMedium: attr.utmMedium as string | null,
           utmCampaign: attr.utmCampaign as string | null,
           utmContent: attr.utmContent as string | null,
+          gclid: attr.gclid as string | null,
+          fbclid: attr.fbclid as string | null,
+          msclkid: attr.msclkid as string | null,
+          ttclid: attr.ttclid as string | null,
+          oppref: attr.oppref as string | null,
           campaignId:
             typeof attr.campaignId === "string" ? attr.campaignId : null,
         },

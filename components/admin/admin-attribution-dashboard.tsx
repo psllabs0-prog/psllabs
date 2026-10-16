@@ -60,9 +60,9 @@ export function AdminAttributionDashboard() {
             Order attribution
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-ash">
-            Last paid touch before checkout (30-day window). Direct revisits do
-            not overwrite a known paid source. UTM naming: source / medium /
-            campaign / content.
+            Last paid touch takes priority within 30 days; otherwise the latest
+            tagged organic, email or affiliate visit is shown. Organic visits do
+            not overwrite paid attribution. Pending orders are not paid revenue.
           </p>
         </div>
         <div className="flex flex-wrap gap-3">

@@ -34,7 +34,7 @@ export type CheckoutBody = {
   discountCode?: unknown;
   /** Optional payment method — "bitcoin" | "btcpay" | "card". */
   paymentMethod?: unknown;
-  /** Optional paid-acquisition attribution from client localStorage. */
+  /** Optional acquisition attribution from client localStorage, subject to verified consent. */
   attribution?: unknown;
   /** Required explicit checkout choice, separate from account and cookie consent. */
   researchAcknowledgement?: unknown;
@@ -90,6 +90,7 @@ export function checkoutAttribution(
     lastPaid: attribution.lastPaid ? cleanTouch(attribution.lastPaid) : null,
     lastEmail: attribution.lastEmail ? cleanTouch(attribution.lastEmail) : null,
     lastAffiliate: attribution.lastAffiliate ? cleanTouch(attribution.lastAffiliate) : null,
+    ...(attribution.lastOrganic ? { lastOrganic: cleanTouch(attribution.lastOrganic) } : {}),
     googleAdsMeasurementConsent: consent.capabilities.googleMeasurement,
     openaiAdsMeasurementOptOut: !consent.capabilities.openaiMeasurement,
     privacyConsent: { digest: binding.digest, revision: binding.revision, version: binding.version },

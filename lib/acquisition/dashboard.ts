@@ -7,6 +7,8 @@ import {
   normalizePaidPlatform,
   assignOrderToUniqueCampaign,
   assignOrderToUniqueCreative,
+  isPaidOrderAttribution,
+  type OrderAttributionFields,
 } from "@/lib/external-metrics/paid/attribution";
 import {
   countPaidAcquisitionRows,
@@ -89,19 +91,6 @@ export type AcquisitionDashboard = {
   contributionEconomics: "insufficient data";
   hasPaidData: boolean;
 };
-
-function isPaidOrderAttr(attr: {
-  utmSource?: string | null;
-  utmMedium?: string | null;
-} | null): boolean {
-  if (!attr) return false;
-  const medium = (attr.utmMedium ?? "").toLowerCase();
-  const source = normalizePaidPlatform(attr.utmSource);
-  return (
-    ["cpc", "paid_social", "display", "sponsored", "ppc"].includes(medium) ||
-    ["meta", "tiktok", "google", "bing", "x", "reddit"].includes(source)
-  );
-}
 
 export async function buildAcquisitionDashboard(options?: {
   startDate?: string;
@@ -196,14 +185,7 @@ export async function buildAcquisitionDashboard(options?: {
   }>;
 
   const paidOrders = orderRows.filter((o) =>
-    isPaidOrderAttr(
-      o.attribution
-        ? {
-            utmSource: o.attribution.utmSource as string | null,
-            utmMedium: o.attribution.utmMedium as string | null,
-          }
-        : null
-    )
+    isPaidOrderAttribution(o.attribution as OrderAttributionFields | null)
   );
 
   const campaignKeys = paidAgg.map((c) => ({
@@ -249,6 +231,11 @@ export async function buildAcquisitionDashboard(options?: {
       utmMedium: attr.utmMedium as string | null,
       utmCampaign: attr.utmCampaign as string | null,
       utmContent: attr.utmContent as string | null,
+      gclid: attr.gclid as string | null,
+      fbclid: attr.fbclid as string | null,
+      msclkid: attr.msclkid as string | null,
+      ttclid: attr.ttclid as string | null,
+      oppref: attr.oppref as string | null,
       campaignId:
         typeof attr.campaignId === "string" ? attr.campaignId : null,
       adId: typeof attr.adId === "string" ? attr.adId : null,

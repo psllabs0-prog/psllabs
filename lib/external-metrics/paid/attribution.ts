@@ -2,6 +2,7 @@
  * Join helpers between paid_acquisition_daily and PSL order attribution.
  * Deterministic exact matching only — never substring / fuzzy campaign joins.
  */
+import { isEmailTouch, isOrganicTouch, isPaidTouch } from "../../attribution/logic";
 
 export type PaidAttributionJoinKey = {
   platform: string;
@@ -25,7 +26,26 @@ export type OrderAttributionFields = {
   /** Only used when actually present on the attribution record — never invented. */
   campaignId?: string | null;
   adId?: string | null;
+  gclid?: string | null;
+  fbclid?: string | null;
+  msclkid?: string | null;
+  ttclid?: string | null;
+  oppref?: string | null;
 };
+
+function explicitlyNonPaid(attr: OrderAttributionFields): boolean {
+  return isOrganicTouch(attr) || isEmailTouch(attr) ||
+    ((attr.utmMedium ?? "").trim().toLowerCase() === "affiliate" && !isPaidTouch(attr));
+}
+
+/** Keep legacy source-only reporting, but never turn an explicit nonpaid channel into spend. */
+export function isPaidOrderAttribution(attr: OrderAttributionFields | null): boolean {
+  if (!attr || explicitlyNonPaid(attr)) return false;
+  const medium = (attr.utmMedium ?? "").toLowerCase();
+  const source = normalizePaidPlatform(attr.utmSource);
+  return ["cpc", "paid_social", "display", "sponsored", "ppc"].includes(medium) ||
+    ["meta", "tiktok", "google", "bing", "x", "reddit"].includes(source);
+}
 
 export function normalizePaidPlatform(raw: string | null | undefined): string {
   const s = (raw ?? "").trim().toLowerCase();
@@ -58,6 +78,7 @@ export function isExactCampaignMatch(
   orderAttr: OrderAttributionFields,
   paid: PaidAttributionJoinKey
 ): boolean {
+  if (explicitlyNonPaid(orderAttr)) return false;
   if (!platformMatches(orderAttr, paid)) return false;
 
   const paidCampId = normalizeAttributionToken(paid.campaignId);
@@ -109,6 +130,7 @@ export function isExactCreativeMatch(
     adName?: string | null;
   }
 ): boolean {
+  if (explicitlyNonPaid(orderAttr)) return false;
   if (!platformMatches(orderAttr, { platform: creative.platform })) return false;
   const content = normalizeAttributionToken(orderAttr.utmContent);
   if (!content) return false;

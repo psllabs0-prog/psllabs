@@ -1,7 +1,7 @@
 import type { PrivacyConsentBinding } from "../privacy/types";
 
 /**
- * Paid-acquisition attribution for PSL Labs.
+ * Acquisition attribution for PSL Labs.
  *
  * UTM naming convention (required for all contractors / ads):
  *
@@ -9,6 +9,7 @@ import type { PrivacyConsentBinding } from "../privacy/types";
  * medium:   cpc | paid_social | display | sponsored
  * campaign: <theme>_<geo>_<test>     e.g. testing_docs_us_test1
  * content:  <creative_concept>_<variant>  e.g. batch_docs_a
+ * Organic social uses its platform source and medium organic_social.
  *
  * Primary reporting attribution on an order = last non-direct paid touch.
  * First paid touch is also retained. Direct revisits do not overwrite paid data.
@@ -60,11 +61,13 @@ export type StoredAttributionState = {
   lastEmail?: AttributionTouch | null;
   /** Last partner referral; retained separately from paid ads and email. */
   lastAffiliate?: AttributionTouch | null;
+  /** Explicit organic/social/referral landing; never replaces a paid touch. */
+  lastOrganic?: AttributionTouch | null;
 };
 
 /**
  * Snapshot persisted on the order. Primary fields come from lastPaid, then
- * firstPaid, and fall back to the latest email or affiliate touch without paid data.
+ * firstPaid, and fall back to the latest email, affiliate or organic touch without paid data.
  */
 export type OrderAttribution = {
   /** Trusted consent receipt binding set by checkout server code, never checkout JSON. */
@@ -93,4 +96,6 @@ export type OrderAttribution = {
   lastEmailTouchAt?: string | null;
   lastAffiliate?: AttributionTouch | null;
   lastAffiliateTouchAt?: string | null;
+  lastOrganic?: AttributionTouch | null;
+  lastOrganicTouchAt?: string | null;
 };

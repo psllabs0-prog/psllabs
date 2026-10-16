@@ -34,6 +34,7 @@
     "migrate-newsletter-welcome": "tsx scripts/migrate-newsletter-welcome.ts",
     "migrate-partners": "tsx scripts/migrate-partners.ts",
     "test:partners": "tsx scripts/test-partners.ts && tsx scripts/test-affiliate-attribution.ts",
+    "test:organic-attribution": "node --require ./scripts/next-test-runtime.cjs --import tsx scripts/test-organic-attribution.ts",
     "test:partner-program": "tsx scripts/test-partner-program.ts && tsx scripts/test-referral-pilot.ts && tsx scripts/test-referral-setup.ts && tsx scripts/test-referral-card-checkout.ts && tsx scripts/test-tagada-checkout-price-evidence.ts",
     "test:referral-pilot": "node --require ./scripts/next-test-runtime.cjs --import tsx scripts/test-referral-pilot.ts && node --require ./scripts/next-test-runtime.cjs --import tsx scripts/test-referral-setup.ts",
     "test:inventory-monitor": "tsx scripts/test-inventory-monitor.ts",

@@ -32,7 +32,8 @@ function read(consent: PublicPrivacyConsent): StoredAttributionState {
     const state = raw ? pruneStoredAttribution(JSON.parse(raw)) : empty();
     return { firstPaid: allowedTouch(state.firstPaid, consent), lastPaid: allowedTouch(state.lastPaid, consent),
       lastEmail: allowedTouch(state.lastEmail, consent),
-      ...(state.lastAffiliate ? { lastAffiliate: allowedTouch(state.lastAffiliate, consent) } : {}) };
+      ...(state.lastAffiliate ? { lastAffiliate: allowedTouch(state.lastAffiliate, consent) } : {}),
+      ...(state.lastOrganic ? { lastOrganic: allowedTouch(state.lastOrganic, consent) } : {}) };
   } catch { return empty(); }
 }
 /** No historical capture or optional identifier storage before a verified choice. */
