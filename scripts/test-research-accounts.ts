@@ -60,6 +60,32 @@ async function main() {
     equal(allowed.headers.get("x-middleware-request-x-psl-research-request-path"),path,path+" trusted path overwritten");
   }
   for(const path of ["/research-account/sign-in","/research-account/sign-up","/research-account/forgot-password","/terms","/privacy","/contact","/payment-return","/success","/cancel","/unsubscribe","/newsletter/confirm","/api/checkout/card","/api/tagada-webhook","/api/btcpay-webhook","/api/cron/finance-reconcile","/api/admin/inventory","/api/partners/auth/verify","/api/partners/account","/api/integrations/n8n/mission-control/runs","/api/privacy/consent","/api/marketing/unsubscribe","/api/order-status","/_next/static/app.js","/branding/psl-logo-web.png"]){equal(researchPathRequiresAccount(path),false,path+" explicit public/independently authenticated route");}
+  const mediaGuard=createResearchRequestGuard(async()=>{throw new Error("Public media must not read a database-backed account session.");});
+  for(const path of ["/organic/2026-10-07/01-the-sample-is-the-scope.mp4","/organic/2026-10-16/priority-mail.mp4"]){
+    equal(researchPathRequiresAccount(path),false,path+" published video is public");
+    for(const method of ["GET","HEAD"]){
+      for(const range of [null,"bytes=0-1023"]){
+        const headers=new Headers({"user-agent":"ordinary-media-client"});if(range)headers.set("range",range);
+        const allowed=await mediaGuard(new NextRequest(origin+path,{method,headers}));
+        equal(allowed.headers.get("x-middleware-next"),"1",method+" video passes through without a session");
+        equal(allowed.headers.get("location"),null,method+" video is not redirected to HTML");
+        equal(allowed.headers.get("x-middleware-rewrite"),null,method+" video keeps its static asset URL");
+        equal(allowed.headers.get("x-middleware-request-range"),range,method+" video preserves byte-range request");
+        equal(allowed.headers.get("cache-control"),null,method+" public video is not forced private");
+        equal(await allowed.text(),"",method+" guard does not replace static media bytes");
+      }
+    }
+  }
+  for(const path of ["/organic","/organic/2026-10-07","/organic/2026-10-07/video","/organic/2026-10-07/video.mp4/private",
+    "/organic/2026-10-07/nested/video.mp4","/organic/2026-10-07/video_name.mp4","/organic/2026-10-07/-video.mp4",
+    "/organic/2026-10-07/video-.mp4","/organic/2026-10-07/video.mp4.html","/organic/2026-10-07/video.webm",
+    "/organic/not-a-date/video.mp4","/private/2026-10-07/video.mp4","/products/video.mp4","/api/inventory/video.mp4",
+    "/api/organic/2026-10-07/video.mp4","/checkout"]){
+    equal(researchPathRequiresAccount(path),true,path+" remains account protected");
+    const blocked=await guard(new NextRequest(origin+path,{headers:{range:"bytes=0-1023","user-agent":"ordinary-media-client"}}));
+    equal(blocked.status,path.startsWith("/api/")?401:307,path+" range request cannot bypass research sign-in");
+    equal(blocked.headers.get("cache-control"),"private, no-store",path+" denied response stays private");
+  }
   const legacyReturn=await guard(page("/checkout?paymentAction=requireAction&paymentId=qa-only"));
   equal(legacyReturn.status,307,"legacy recovery starts a new unambiguous document");
   ok(legacyReturn.headers.get("location")?.includes("/payment-return?"),"legacy recovery goes only to recovery page");

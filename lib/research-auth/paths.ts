@@ -27,7 +27,9 @@ export function isResearchAuthApiPath(path: string): boolean {
 }
 
 export function isResearchStaticPath(path: string): boolean {
-  return path.startsWith("/_next/static/") || path === "/_next/image" || path === "/favicon.ico" || path === "/robots.txt" || path === "/sitemap.xml" ||
+  // Published organic videos must be fetchable by ordinary media clients without a storefront session.
+  return /^\/organic\/\d{4}-\d{2}-\d{2}\/[a-z0-9]+(?:-[a-z0-9]+)*\.mp4$/.test(path) ||
+    path.startsWith("/_next/static/") || path === "/_next/image" || path === "/favicon.ico" || path === "/robots.txt" || path === "/sitemap.xml" ||
     /\.(?:css|js|map|png|jpg|jpeg|webp|avif|svg|ico|woff2?|ttf|webmanifest)$/i.test(path);
 }
 
