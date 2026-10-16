@@ -22,6 +22,7 @@ type LabelRow = {
   purchased_at: string | null;
   purchase_claimed_at: string | null;
   last_error: string | null;
+  raw_response?: { orderNotes?: unknown } | null;
   verified_street1: string | null;
   verified_street2: string | null;
   verified_city: string | null;
@@ -76,6 +77,7 @@ function rowToRecord(row: LabelRow): BtcpostageLabelRecord {
       ? new Date(row.purchase_claimed_at).toISOString()
       : null,
     lastError: row.last_error,
+    originalOrderReference: typeof row.raw_response?.orderNotes === "string" ? row.raw_response.orderNotes : null,
     verifiedStreet1: row.verified_street1,
     verifiedStreet2: row.verified_street2,
     verifiedCity: row.verified_city,
@@ -323,7 +325,9 @@ export async function markPurchaseFailed(
 export async function markPurchaseNeedsReview(
   pslOrderId: string,
   errorMessage: string,
-  partial?: { btcpOrderId?: string | null }
+  partial?: { btcpOrderId?: string | null; rawResponse?: unknown; pkg?: {
+    weightLbs: number; weightOz: number; heightIn: number; widthIn: number; depthIn: number;
+  } }
 ): Promise<void> {
   await ensureBtcpostageSchema();
   const sql = getSql();
@@ -331,6 +335,12 @@ export async function markPurchaseNeedsReview(
     UPDATE btcpostage_labels
     SET purchase_status = 'needs_review',
         btcp_order_id = COALESCE(${partial?.btcpOrderId ?? null}, btcp_order_id),
+        raw_response = COALESCE(${partial?.rawResponse ? JSON.stringify(partial.rawResponse) : null}::jsonb, raw_response),
+        weight_lbs = COALESCE(${partial?.pkg?.weightLbs ?? null}, weight_lbs),
+        weight_oz = COALESCE(${partial?.pkg?.weightOz ?? null}, weight_oz),
+        height_in = COALESCE(${partial?.pkg?.heightIn ?? null}, height_in),
+        width_in = COALESCE(${partial?.pkg?.widthIn ?? null}, width_in),
+        depth_in = COALESCE(${partial?.pkg?.depthIn ?? null}, depth_in),
         last_error = ${errorMessage.slice(0, 1000)},
         updated_at = now()
     WHERE psl_order_id = ${pslOrderId}

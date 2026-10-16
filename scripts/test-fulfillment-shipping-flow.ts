@@ -128,6 +128,7 @@ function harness(options: { enabled?: boolean; emailEnabled?: boolean; testMode?
     toPublicLabel,
   };
   const btc = load<typeof import("../lib/btcpostage/service")>("lib/btcpostage/service.ts", {
+    "@/lib/fulfillment/manual-test-destination": { manualTestDestination: () => null },
     "@/lib/orders/store": orderStore, "@/lib/shipping/policy": policy, "@/lib/shipping/request": { isPhysicalUSShippingAddress },
     "./client": client, "./config": config, "./store": labelStore, "./types": { DEFAULT_PACKAGE }, "./shipping-guard": guards,
   });

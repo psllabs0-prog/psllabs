@@ -71,6 +71,8 @@ export type BtcpostageLabelRecord = {
   purchasedAt: string | null;
   purchaseClaimedAt: string | null;
   lastError: string | null;
+  /** Server-only original provider evidence; deliberately omitted from public labels. */
+  originalOrderReference?: string | null;
   verifiedStreet1: string | null;
   verifiedStreet2: string | null;
   verifiedCity: string | null;

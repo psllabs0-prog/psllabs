@@ -210,6 +210,7 @@ async function main() {
         },
       } : mockClient;
       const service = load<typeof import("../lib/btcpostage/service")>("lib/btcpostage/service.ts", {
+        "@/lib/fulfillment/manual-test-destination": { manualTestDestination: () => null },
         "@/lib/orders/store": orderStore, "@/lib/shipping/policy": shippingPolicy, "@/lib/shipping/request": { isPhysicalUSShippingAddress },
         "./client": client, "./config": config, "./store": labelStore, "./types": { DEFAULT_PACKAGE }, "./shipping-guard": guards,
       }, {});

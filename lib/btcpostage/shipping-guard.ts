@@ -58,7 +58,7 @@ export function assertReturnedPurchaseMatchesOrder(input: {
   selection: ShippingSelection | null | undefined;
   destinationName: string;
   purchase: BtcpostagePurchase;
-  recovery?: { requestedPurchaseId: string; recordedPurchaseId: string | null };
+  recovery?: { requestedPurchaseId: string; recordedPurchaseId: string | null; recordedOrderReference?: string | null };
 }): void {
   const { purchase, recovery } = input;
   if (!purchase.orderId?.trim() || purchase.items.length !== 1) {
@@ -69,6 +69,9 @@ export function assertReturnedPurchaseMatchesOrder(input: {
   }
   const reference = purchase.orderNotes?.trim() || null;
   const expectedReference = `PSL ${input.orderId}`;
+  if (recovery?.recordedOrderReference?.trim() && recovery.recordedOrderReference.trim() !== expectedReference) {
+    throw new Error("The original provider purchase references a different PSL order. Review its original response before attaching this shipment.");
+  }
   if (reference && reference !== expectedReference) {
     throw new Error("The provider purchase references a different PSL order. Do not attach this shipment.");
   }

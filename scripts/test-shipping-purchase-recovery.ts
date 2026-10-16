@@ -49,6 +49,7 @@ function harness(options: { returned?: BtcpostagePurchase; existing?: Btcpostage
     "@/lib/orders/store": { getOrder: async () => currentOrder },
     "@/lib/shipping/policy": shippingPolicy,
     "@/lib/shipping/request": { isPhysicalUSShippingAddress },
+    "@/lib/fulfillment/manual-test-destination": { manualTestDestination: () => null },
     "./types": { DEFAULT_PACKAGE }, "./shipping-guard": guards,
     "./config": { isBtcpostageTestMode: () => false, getBtcpostageFromAddress: () => ({ street1: "1 Fixture Origin", city: "Phoenix", state: "AZ", zip: options.fromZip ?? "85016", country: options.fromCountry ?? "US" }) },
     "./client": {
@@ -84,10 +85,15 @@ function harness(options: { returned?: BtcpostagePurchase; existing?: Btcpostage
         if (options.saveFailure) throw new Error("Fixture database lost response after paid purchase");
         successes++; saved = { ...record("purchased"), ...input, purchaseStatus: "purchased" } as BtcpostageLabelRecord; return saved;
       },
-      markPurchaseNeedsReview: async (_id: string, error: string, partial?: { btcpOrderId?: string | null }) => {
+      markPurchaseNeedsReview: async (_id: string, error: string, partial?: { btcpOrderId?: string | null; rawResponse?: unknown; pkg?: unknown }) => {
         assert(saved, "needs-review must retain an actual durable label row");
         saved.purchaseStatus = "needs_review"; saved.lastError = error;
         if (partial?.btcpOrderId) saved.btcpOrderId = partial.btcpOrderId;
+        if (partial?.rawResponse) {
+          check(partial.rawResponse, returned, "the original disputed provider response is preserved for review");
+          check(JSON.parse(JSON.stringify(partial.pkg)), { ...DEFAULT_PACKAGE, weightOz: 8 }, "recovery retains the measured purchased package");
+          saved.originalOrderReference = returned.orderNotes;
+        }
       },
       markPurchaseFailed: async () => { assert(saved); saved.purchaseStatus = "failed"; },
       saveVerifiedAddress: async () => { throw new Error("Address writes are forbidden in this fixture"); },
@@ -210,6 +216,14 @@ async function main() {
     const knownWrong = harness({ existing: known, returned: { ...purchase(), orderNotes: "PSL unrelated_order" } });
     await assert.rejects(knownWrong.recover(), /different PSL order/i); checks++;
     check(knownWrong.state().successes, 0, "a prior binding never overrides contradictory returned evidence");
+
+    for (const laterReference of [null, `PSL ${order.orderId}`]) {
+      const originalConflict = harness({ existing: { ...known, originalOrderReference: "PSL unrelated_order" },
+        returned: { ...purchase(), orderNotes: laterReference } });
+      await assert.rejects(originalConflict.recover(), /original provider purchase references a different/i); checks++;
+      check(originalConflict.state().successes, 0, "later missing/corrected notes never erase an original order-reference conflict");
+      check(originalConflict.state().creates, 0, "reviewing original contradictory evidence never repurchases");
+    }
 
     const timeout = harness({ retrieveFailure: true }); await assert.rejects(timeout.recover(), /timeout/i); checks++;
     check(timeout.state().saved?.purchaseStatus, "needs_review", "retrieval failure preserves duplicate protection");

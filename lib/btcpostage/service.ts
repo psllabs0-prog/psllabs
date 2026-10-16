@@ -2,6 +2,7 @@ import { getOrder } from "@/lib/orders/store";
 import type { Order } from "@/lib/orders/types";
 import { isPriorityServiceCode, PRIORITY_ORIGIN_ZIP, priorityCostCovered } from "@/lib/shipping/policy";
 import { isPhysicalUSShippingAddress } from "@/lib/shipping/request";
+import { manualTestDestination } from "@/lib/fulfillment/manual-test-destination";
 
 import {
   BtcpostageApiError,
@@ -50,6 +51,8 @@ function assertStoredLabelService(order: Order, label: { carrier: string | null;
 }
 
 function destinationFromOrder(order: Order): BtcpostageAddress {
+  const manual = manualTestDestination(order);
+  if (manual) return manual;
   return {
     name: `${order.shipping.firstName} ${order.shipping.lastName}`.trim(),
     street1: order.shipping.address,
@@ -178,7 +181,7 @@ function applyPurchaseResult(
   purchase: Awaited<ReturnType<typeof createPurchase>>,
   pkg: BtcpostagePackage,
   testMode: boolean,
-  recovery?: { requestedPurchaseId: string; recordedPurchaseId: string | null }
+  recovery?: { requestedPurchaseId: string; recordedPurchaseId: string | null; recordedOrderReference?: string | null }
 ) {
   try {
     assertReturnedPurchaseMatchesOrder({
@@ -297,6 +300,7 @@ export async function buyOrderLabel(input: {
   }
 
   let returnedPurchaseId: string | null = null;
+  let returnedPurchase: Awaited<ReturnType<typeof createPurchase>> | null = null;
   try {
     const purchase = await createPurchase({
       to,
@@ -308,6 +312,7 @@ export async function buyOrderLabel(input: {
       testMode: testMode || undefined,
       orderNotes: `PSL ${input.orderId}`,
     });
+    returnedPurchase = purchase;
     returnedPurchaseId = purchase.orderId || null;
     const record = await applyPurchaseResult(
       order,
@@ -326,7 +331,8 @@ export async function buyOrderLabel(input: {
       await markPurchaseNeedsReview(
         input.orderId,
         `Uncertain after purchase attempt: ${message}`,
-        { btcpOrderId: returnedPurchaseId }
+        { btcpOrderId: returnedPurchaseId, rawResponse: returnedPurchase,
+          pkg }
       );
       throw new Error(
         `Purchase result uncertain — do not retry. Review BTCPostage or use retrieve. (${message})`
@@ -386,7 +392,8 @@ export async function recoverOrderPurchase(input: {
       purchase,
       pkg,
       existing?.testMode ?? isBtcpostageTestMode(),
-      { requestedPurchaseId: btcpOrderId, recordedPurchaseId: existing?.btcpOrderId ?? null }
+      { requestedPurchaseId: btcpOrderId, recordedPurchaseId: existing?.btcpOrderId ?? null,
+        recordedOrderReference: existing?.originalOrderReference }
     );
     return { label: toPublicLabel(record) };
   } catch (error) {

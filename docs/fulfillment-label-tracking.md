@@ -52,7 +52,7 @@ The owner chose to run the test manually. `/admin-fulfillment/test` is protected
 
 The actual application flow runs with a request-local AsyncLocalStorage SQL client. Each query verifies its fixed private schema, with no public search-path fallback. Schema bootstrap caches are keyed by their SQL client so test initialization cannot mask public initialization. No request changes global SQL injection or process environment variables.
 
-The owner clicks **Prepare test label**, then **Create USPS test label**. Carrier requests are forcibly USPS `test_mode=true` and bound to this fixed order; live mode cannot be supplied by the browser. The destination is the configured sender address, preserving its suite in the application's single address line. Provider redirects are refused. Creating the test label still does not attach tracking or send mail.
+The owner clicks **Prepare test label**, then **Create USPS test label**. Carrier requests are forcibly USPS `test_mode=true` and bound to this fixed order; live mode cannot be supplied by the browser. The destination is the configured sender address. The stored fixture keeps the application's single address line, while the carrier request restores the same configured street and suite to separate `street1` / `street2` fields after checking the fixed fixture identity. Provider redirects are refused. Creating the test label still does not attach tracking or send mail.
 
 A separate **Save tracking / send TEST email** action stores tracking only on the isolated fake order and invokes the actual claimed notification outbox with a test-only transport wrapper. It permits one message exclusively to `lukeghaz@gmail.com`, with a prominent TEST-only subject/body. Normal production test-label guards remain unchanged. A durable receipt in `psl_fulfillment_qa_receipts.mail_authorizations` uses the fixed `20261016-lukeghaz-fulfillment-test` authorization; it stores only authorization key, recipient hash, stable Message-ID, status and timestamps. No new browser request, build, nonce or source commit can reclaim an accepted or uncertain send. Check Sent mail after an interrupted send; there is no blind resend.
 
@@ -61,3 +61,11 @@ Status reads never create the fake order or request a label/email. Every test mu
 The prior automated integration prebuild hook is retired and removed from `package.json`; invoking it with its old flag now refuses to run. The unused operator CLI harness remains plan-only by default and is not authorized to run as part of this owner-operated test. Builds never create test labels or send test messages. The production purchase and automatic tracking-email settings remain off pending the owner's verification.
 
 Offline manual-test checks exercise concurrent public/test SQL isolation, per-client schema caches, unchanged environment variables, provider test-mode enforcement, seed rollback/retry/idempotency, and route auth/CSRF/fixed inputs. A completed provider request and actual inbox arrival can be verified only after the owner's respective button clicks.
+
+## October 16 usability and recovery corrections
+
+Fulfillment panels use the same semantic surfaces and text colors as the light admin layout. Status text, disabled controls, alerts and manual test states are checked inside the actual scoped admin stylesheet on desktop and mobile.
+
+After a manual purchase or retrieval error, the client reads the saved label status so that an uncertain purchase exposes recovery immediately and cannot be purchased again from stale browser state. If that status read fails, purchasing remains blocked until status can be checked. The known provider purchase ID is shown for review; no error handler automatically purchases, retrieves or emails.
+
+An uncertain purchase now retains its original parsed provider response and measured package alongside the known provider ID. These details are server-only. A later retrieval cannot erase a stored contradictory order reference, even if its response omits the notes. No truncation, partial-reference or guessed-encoding tolerance is applied.
