@@ -200,13 +200,25 @@ export async function verifyAddress(
   const { json } = await postForm(
     "verify-address",
     {
+      // The live verifier reports street1 required when only its documented fields
+      // are submitted. Include the shared shipping-form aliases with identical data.
+      name: address.name ?? "",
+      to_name: address.name ?? "",
       street1: address.street1,
+      street: address.street1,
+      to_street: address.street1,
       street2: address.street2 ?? "",
+      to_street2: address.street2 ?? "",
       city: address.city,
+      to_city: address.city,
       state: address.state,
+      to_state: address.state,
       zip: address.zip,
+      to_zip: address.zip,
       country: address.country,
+      to_country: address.country,
       phone: address.phone ?? "",
+      to_phone: address.phone ?? "",
     },
     fetchImpl
   );

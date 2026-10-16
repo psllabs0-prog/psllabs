@@ -59,21 +59,37 @@ async function testVerifyAddress() {
   process.env.BTCPOSTAGE_API_KEY = "test-key";
   process.env.BTCPOSTAGE_API_SECRET = "test-secret";
 
-  const result = await verifyAddress(
-    {
+  const inputAddress = {
+      name: "OFFLINE ONLY",
       street1: "123 Main St",
+      street2: "Suite 4",
       city: "Phoenix",
       state: "AZ",
       zip: "85001",
       country: "US",
-    },
-    fetchImpl
-  );
+      phone: "5550100000",
+    };
+  let captured: URLSearchParams | null = null;
+  const result = await verifyAddress(inputAddress, async (_url, init) => {
+    captured = new URLSearchParams(String(init?.body));
+    return fetchImpl();
+  });
+  assert(captured !== null, "verification request captured");
+  const fields = captured as URLSearchParams;
+  for (const [field, expected] of Object.entries({ name: inputAddress.name, to_name: inputAddress.name,
+    street1: inputAddress.street1, street: inputAddress.street1, to_street: inputAddress.street1,
+    street2: inputAddress.street2, to_street2: inputAddress.street2, city: inputAddress.city, to_city: inputAddress.city,
+    state: inputAddress.state, to_state: inputAddress.state, zip: inputAddress.zip, to_zip: inputAddress.zip,
+    country: inputAddress.country, to_country: inputAddress.country, phone: inputAddress.phone, to_phone: inputAddress.phone })) {
+    assert(fields.get(field) === expected, `verification alias ${field} preserves the exact input`);
+  }
   assert(result.isValid, "address valid");
   assert(result.standardized?.street1 === "123 MAIN ST", "standardized street");
   assert(result.errors.length === 0, "no verification errors");
 
   for (const payload of [{ status: "success", is_valid: false, data: { verification: { is_valid: true } } },
+    { status: "success", is_valid: true, data: { address: { street1: "UNVERIFIED" }, verification: { is_valid: false, errors: [] } } },
+    { status: "success", is_valid: false, data: { address: { street1: "UNVERIFIED" }, verification: { is_valid: false, errors: [{ code: "E.INPUT.INVALID", field: "street1", message: "Required" }] } } },
     { status: "success", data: { address: { street1: "UNVERIFIED" } } }]) {
     const invalid = await verifyAddress({ street1: "1 Fixture", city: "Phoenix", state: "AZ", zip: "85016", country: "US" },
       mockFetch([{ body: JSON.stringify(payload) }]));
