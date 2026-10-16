@@ -253,9 +253,10 @@ function TagadaCardFields({
       const pickedRate = pickTagadaShippingRate(rates, session.shippingCost,
         { method: session.shippingMethod, rateId: session.tagadaShippingRateId });
       // A successful lookup can omit the configured rate. Only the exact ID
-      // already verified by our server may fill an empty list; fresh provider
+      // already verified by our server may fill an absent entry; fresh provider
       // evidence below must still prove its saved service, fee and order total.
-      const shippingRateId = pickedRate?.id ?? (rates.length === 0 ? session.tagadaShippingRateId : null);
+      // A present conflicting or duplicate bound ID must never be replaced.
+      const shippingRateId = pickedRate?.id ?? (!rates.some(rate => rate.id === session.tagadaShippingRateId) ? session.tagadaShippingRateId : null);
       if (!shippingRateId) throw new Error("Your selected shipping service or price is no longer available. Cancel this checkout and review shipping again. No card charge was started.");
       if (checkoutSession.selectedShippingRateId !== shippingRateId) await selectShippingRate(shippingRateId);
       await refresh();

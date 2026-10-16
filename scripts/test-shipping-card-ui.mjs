@@ -84,7 +84,12 @@ async function main() {
     { name: "empty rates, already-selected bound rate", ok: true, preselected: true },
     { name: "exact nonempty listed rate", ok: true, rates: [{ id: "rate_server_bound", name: "USPS Ground Advantage", amount: 999, currency: "USD" }] },
     { name: "rate lookup throws", rateError: true },
-    { name: "nonempty rate omits bound ID", rates: [{ id: "another_rate", name: "USPS Ground Advantage", amount: 999, currency: "USD" }] },
+    { name: "nonempty rate omits bound ID", ok: true, rates: [{ id: "another_rate", name: "USPS Ground Advantage", amount: 999, currency: "USD" }] },
+    { name: "free Standard omitted beside paid Priority", ok: true, fee: 0, subtotal: 107.98,
+      rates: [{ id: "priority_rate", name: "USPS Priority Mail", amount: 2299, currency: "USD" }] },
+    { name: "duplicate bound ID with conflicting currency", rates: [
+      { id: "rate_server_bound", name: "USPS Ground Advantage", amount: 999, currency: "USD" },
+      { id: "rate_server_bound", name: "USPS Ground Advantage", amount: 999, currency: "EUR" }] },
     { name: "nonempty bound rate has wrong fee", rates: [{ id: "rate_server_bound", name: "USPS Ground Advantage", amount: 1000, currency: "USD" }] },
     { name: "nonempty bound rate contradicts service", rates: [{ id: "rate_server_bound", name: "USPS Priority Mail", amount: 999, currency: "USD" }] },
     { name: "provider rejects selection", selectError: true },
@@ -141,7 +146,7 @@ async function main() {
       check(pageErrors, [], `${scenario.name}: no browser errors`);
       await context.close();
     }
-    console.log(`PASS: shipping card UI (${checks} checks across ${scenarios.length} actual React scenarios; trusted empty-list selection, fresh identity/address/fee proof and payment recovery; synthetic SDK only, no live requests/orders/charges).`);
+    console.log(`PASS: shipping card UI (${checks} checks across ${scenarios.length} actual React scenarios; trusted absent-ID selection, fresh identity/address/fee proof and payment recovery; synthetic SDK only, no live requests/orders/charges).`);
   } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
