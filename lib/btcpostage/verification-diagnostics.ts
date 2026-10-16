@@ -1,6 +1,7 @@
 import type { BtcpostageAddress } from "./types";
 
 const fields = ["code", "error_code", "field", "message", "error", "description", "detail", "suggestion"] as const;
+const addressFields = new Set(["name", "street", "street1", "street2", "address", "address1", "address2", "city", "state", "province", "zip", "zip_code", "zipcode", "postal_code", "postalcode", "country", "country_code", "phone", "company", "email"]);
 const words = new Set(("a an the and or is are was were be been being no not cannot can't could couldn't unable to for of in on with from by this that it your " +
   "address verification verify verified validate validated validation delivery deliverable undeliverable primary secondary unit apartment suite street house number city state province country zip postal code " +
   "api key secret token authentication authorization authenticated authorized unauthenticated unauthorized forbidden permission permissions denied invalid missing required expired incorrect unknown invalid_request " +
@@ -31,6 +32,7 @@ export function verificationErrorDiagnostics(raw: unknown, address: BtcpostageAd
       .map(code => scrub(code).replace(/[^A-Za-z_.-]+/g, ".")).filter(code => !/redacted/i.test(code)).slice(0, 2) : [];
     const text = typeof error === "string" ? error : object ? [object.message, object.error, object.description, object.detail]
       .filter((value): value is string => typeof value === "string").join(" ") : "";
-    return { shape, codes, summary: prose(text) };
+    const field = typeof object?.field === "string" && addressFields.has(object.field.toLowerCase()) ? object.field : null;
+    return { shape, codes, field, summary: prose(text) };
   });
 }

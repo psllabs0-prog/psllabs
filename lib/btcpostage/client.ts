@@ -250,7 +250,7 @@ export async function verifyAddress(
       verificationValidity: typeof verification?.is_valid === "boolean" ? verification.is_valid : "missing",
       standardizedAddressPresent: Boolean(addr), inputSuitePresent: Boolean(address.street2?.trim()), senderHasStreet2,
       providerErrorCount: Array.isArray(errorsRaw) ? errorsRaw.length : 0,
-      providerErrors: verificationErrorDiagnostics(errorsRaw, address, getBtcpostageCredentials()) });
+      providerErrors: verificationErrorDiagnostics(errorsRaw, address, getBtcpostageCredentials()).map(error => JSON.stringify(error)) });
   }
   return { isValid: Boolean(isValid) && errors.length === 0, standardized, errors, raw: json };
 }
