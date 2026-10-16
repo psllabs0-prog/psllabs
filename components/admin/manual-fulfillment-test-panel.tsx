@@ -3,15 +3,21 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
-import type { ManualFulfillmentTestReply, ManualFulfillmentTestStatus } from "@/lib/fulfillment/manual-test-types";
+import type { ManualFulfillmentTestAddress, ManualFulfillmentTestReply, ManualFulfillmentTestStatus } from "@/lib/fulfillment/manual-test-types";
 import type { FulfillmentShippingPreview } from "@/lib/fulfillment/shipping-flow-types";
 
 type TestReply = ManualFulfillmentTestReply & { ok?: boolean };
-type Action = "create_test_order" | "prepare" | "purchase" | "retrieve" | "send_test_email" | "status";
+type Action = "create_test_order" | "update_test_address" | "prepare" | "purchase" | "retrieve" | "send_test_email" | "status";
 
 const endpoint = "/api/admin/fulfillment-test";
 const primary = "inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-page transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45";
 const secondary = "inline-flex min-h-11 items-center justify-center rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-accent/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45";
+const addressInput = "mt-1 block min-h-11 w-full rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent";
+const emptyAddress: ManualFulfillmentTestAddress = { address: "", street2: "", city: "", state: "", zip: "" };
+
+function normalizedAddress(address: ManualFulfillmentTestAddress): ManualFulfillmentTestAddress {
+  return { address: address.address.trim(), street2: address.street2.trim(), city: address.city.trim(), state: address.state.trim().toUpperCase(), zip: address.zip.trim() };
+}
 
 async function readReply(response: Response): Promise<TestReply> {
   const reply = await response.json() as TestReply;
@@ -29,12 +35,17 @@ export function ManualFulfillmentTestPanel() {
   const [error, setError] = useState<string | null>(null);
   const [purchaseUncertain, setPurchaseUncertain] = useState(false);
   const [emailUncertain, setEmailUncertain] = useState(false);
+  const [addressForm, setAddressForm] = useState<ManualFulfillmentTestAddress>(emptyAddress);
+  const [addressNotice, setAddressNotice] = useState<string | null>(null);
   const inFlight = useRef(false);
 
   useEffect(() => {
     const controller = new AbortController();
     void fetch(endpoint, { signal: controller.signal, cache: "no-store" }).then(readReply).then((reply) => {
-      if (!controller.signal.aborted) setData(reply);
+      if (!controller.signal.aborted) {
+        setData(reply);
+        setAddressForm(reply.testAddress ?? emptyAddress);
+      }
     }).catch((caught) => {
       if (!controller.signal.aborted) setError(caught instanceof Error ? caught.message : "Test order could not be loaded.");
     });
@@ -43,6 +54,10 @@ export function ManualFulfillmentTestPanel() {
 
   async function act(action: Action) {
     if (inFlight.current) return;
+    if (action === "update_test_address" && !data?.canEditTestAddress) {
+      setError("The test address is locked because label or email activity already exists.");
+      return;
+    }
     if (action === "purchase" && (!preview?.token || !preview.canPurchase || !preview.testMode ||
       !preview.expiresAt || !Number.isFinite(Date.parse(preview.expiresAt)) || Date.parse(preview.expiresAt) <= Date.now())) {
       setPreview(null);
@@ -52,16 +67,25 @@ export function ManualFulfillmentTestPanel() {
     inFlight.current = true;
     setBusy(action);
     setError(null);
+    setAddressNotice(null);
     try {
       const response = action === "status"
         ? await fetch(endpoint, { cache: "no-store" })
         : await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action, ...(action === "purchase" ? { previewToken: preview!.token, confirmPurchase: true } : {}) }),
+          body: JSON.stringify({ action,
+            ...(action === "purchase" ? { previewToken: preview!.token, confirmPurchase: true } : {}),
+            ...(action === "update_test_address" ? normalizedAddress(addressForm) : {}),
+          }),
         });
       const reply = await readReply(response);
       setData(reply);
+      if (action === "status" || action === "create_test_order" || action === "update_test_address") setAddressForm(reply.testAddress ?? emptyAddress);
+      if (action === "update_test_address") {
+        setPreview(null);
+        setAddressNotice("Test address saved. Prepare a new test quote when you are ready.");
+      }
       if (action === "prepare") setPreview(reply.preview ?? null);
       if (reply.shippingStatus?.label?.purchaseStatus === "purchased") {
         setPreview(null);
@@ -70,9 +94,18 @@ export function ManualFulfillmentTestPanel() {
       if (reply.testEmail.status === "smtp_accepted") setEmailUncertain(false);
     } catch (caught) {
       if (action === "prepare") setPreview(null);
-      if (action === "purchase") { setPurchaseUncertain(true); setPreview(null); }
+      let message = caught instanceof Error ? caught.message : "The test could not be updated.";
+      if (action === "purchase" || action === "retrieve") {
+        setPurchaseUncertain(true);
+        setPreview(null);
+        try {
+          const saved = await readReply(await fetch(endpoint, { cache: "no-store" }));
+          setData(saved);
+          if (saved.shippingStatus?.label?.purchaseStatus === "purchased") setPurchaseUncertain(false);
+        } catch { message += " Saved status could not be refreshed. Retrieve the existing test label before trying to create another one."; }
+      }
       if (action === "send_test_email") setEmailUncertain(true);
-      setError(caught instanceof Error ? caught.message : "The test could not be updated.");
+      setError(message);
     } finally {
       inFlight.current = false;
       setBusy(null);
@@ -85,7 +118,9 @@ export function ManualFulfillmentTestPanel() {
   const unexpectedLabel = Boolean(label && !label.testMode);
   const emailSent = data?.testEmail.status === "smtp_accepted";
   const emailHeld = emailUncertain || data?.testEmail.status === "claimed" || data?.testEmail.status === "needs_review";
-  const ready = Boolean(data?.exists && data.providerConfigured && data.senderReady && !unexpectedLabel);
+  const canEditAddress = Boolean(data?.canEditTestAddress && !purchased && !purchaseNeedsReview && !emailHeld && !emailSent && !data?.shippingStatus?.trackingSaved);
+  const addressDirty = canEditAddress && JSON.stringify(normalizedAddress(addressForm)) !== JSON.stringify(normalizedAddress(data?.testAddress ?? emptyAddress));
+  const ready = Boolean(data?.exists && data.providerConfigured && data.senderReady && !unexpectedLabel && !addressDirty);
   const isBusy = busy !== null;
   const canPurchase = ready && Boolean(preview?.canPurchase && preview.token && preview.testMode) && !purchased && !purchaseNeedsReview;
   const canEmail = ready && purchased && Boolean(label?.testMode && label.trackingNumber && data?.smtpReady) && !emailSent && !emailHeld;
@@ -120,6 +155,42 @@ export function ManualFulfillmentTestPanel() {
       {unexpectedLabel ? <p role="alert" className="text-sm text-red-700">Unexpected label state. Testing is blocked; check the saved status.</p> : null}
 
       {data?.exists ? <>
+        <section className="rounded-xl border border-linen bg-surface p-5 sm:p-6" aria-label="Test delivery address" aria-busy={busy === "update_test_address"}>
+          <h2 className="font-display text-lg font-semibold text-ink">Test delivery address</h2>
+          <p className="mt-2 text-sm leading-relaxed text-ash">Used only for this fake order and its USPS test label. The recipient email remains <span className="break-all text-ink">lukeghaz@gmail.com</span>.</p>
+          <div className="mt-4 rounded-lg border border-linen bg-page p-3">
+            <p className="text-xs font-medium text-ash">Saved test destination</p>
+            {data.testAddress ? <address className="mt-1 break-words text-sm not-italic text-ink">
+              {data.testAddress.address}<br />
+              {data.testAddress.street2 ? <>{data.testAddress.street2}<br /></> : null}
+              {data.testAddress.city}, {data.testAddress.state} {data.testAddress.zip}<br />United States
+            </address> : <p className="mt-1 text-sm text-ash">No test address saved yet.</p>}
+          </div>
+          {canEditAddress ? <form className="mt-4 grid gap-4 sm:grid-cols-2" autoComplete="off" onSubmit={(event) => { event.preventDefault(); void act("update_test_address"); }}>
+            <label className="text-sm font-medium text-ink sm:col-span-2" htmlFor="manual-test-street">Street address
+              <input id="manual-test-street" className={addressInput} value={addressForm.address} required maxLength={200} disabled={isBusy} onChange={(event) => { setAddressForm(current => ({ ...current, address: event.target.value })); setPreview(null); setAddressNotice(null); }} />
+            </label>
+            <label className="text-sm font-medium text-ink sm:col-span-2" htmlFor="manual-test-street2">Address line 2 <span className="font-normal text-ash">(optional)</span>
+              <input id="manual-test-street2" className={addressInput} value={addressForm.street2} maxLength={100} disabled={isBusy} onChange={(event) => { setAddressForm(current => ({ ...current, street2: event.target.value })); setPreview(null); setAddressNotice(null); }} />
+            </label>
+            <label className="text-sm font-medium text-ink sm:col-span-2" htmlFor="manual-test-city">City
+              <input id="manual-test-city" className={addressInput} value={addressForm.city} required maxLength={100} disabled={isBusy} onChange={(event) => { setAddressForm(current => ({ ...current, city: event.target.value })); setPreview(null); setAddressNotice(null); }} />
+            </label>
+            <label className="text-sm font-medium text-ink" htmlFor="manual-test-state">State
+              <input id="manual-test-state" className={addressInput} value={addressForm.state} required maxLength={2} pattern="[A-Za-z]{2}" placeholder="Two-letter code" disabled={isBusy} onChange={(event) => { setAddressForm(current => ({ ...current, state: event.target.value.toUpperCase() })); setPreview(null); setAddressNotice(null); }} />
+            </label>
+            <label className="text-sm font-medium text-ink" htmlFor="manual-test-zip">ZIP code
+              <input id="manual-test-zip" className={addressInput} value={addressForm.zip} required maxLength={10} pattern="[0-9]{5}(-[0-9]{4})?" inputMode="numeric" disabled={isBusy} onChange={(event) => { setAddressForm(current => ({ ...current, zip: event.target.value })); setPreview(null); setAddressNotice(null); }} />
+            </label>
+            <div className="sm:col-span-2">
+              <button type="submit" className={primary} disabled={isBusy || !addressDirty}>{busy === "update_test_address" ? "Saving test address…" : "Save test address"}</button>
+              <p className="mt-2 text-xs leading-relaxed text-ash">Saving the address clears any old quote. It does not request a quote, create a label or send an email.</p>
+              {addressDirty ? <p className="mt-2 text-sm text-amber-800">Save the test address before preparing a quote.</p> : null}
+            </div>
+          </form> : <p className="mt-3 text-sm leading-relaxed text-ash">The test address is locked once label or tracking-email activity exists.</p>}
+          {addressNotice ? <p role="status" className="mt-3 text-sm text-emerald-800">{addressNotice}</p> : null}
+        </section>
+
         <section className="rounded-xl border border-linen bg-surface p-5 sm:p-6" aria-label="Create a USPS test label" aria-busy={busy === "prepare" || busy === "purchase" || busy === "retrieve"}>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-display text-lg font-semibold text-ink">USPS test label</h2>
