@@ -89,11 +89,15 @@ async function testVerifyAddress() {
 
   for (const payload of [{ status: "success", is_valid: false, data: { verification: { is_valid: true } } },
     { status: "success", is_valid: true, data: { address: { street1: "UNVERIFIED" }, verification: { is_valid: false, errors: [] } } },
+    { status: "success", is_valid: true, data: { address: { street1: "UNVERIFIED" }, verification: { is_valid: true, errors: [{ code: "E.INPUT.INVALID", field: "street1", message: "Required" }] } } },
     { status: "success", is_valid: false, data: { address: { street1: "UNVERIFIED" }, verification: { is_valid: false, errors: [{ code: "E.INPUT.INVALID", field: "street1", message: "Required" }] } } },
     { status: "success", data: { address: { street1: "UNVERIFIED" } } }]) {
     const invalid = await verifyAddress({ street1: "1 Fixture", city: "Phoenix", state: "AZ", zip: "85016", country: "US" },
       mockFetch([{ body: JSON.stringify(payload) }]));
     assert(!invalid.isValid, "success envelope or contradictory flag is not address verification");
+    if (Array.isArray(payload.data?.verification?.errors) && payload.data.verification.errors.length) {
+      assert(invalid.errors.length > 0, "object-shaped provider errors are preserved as a generic blocker");
+    }
   }
 }
 

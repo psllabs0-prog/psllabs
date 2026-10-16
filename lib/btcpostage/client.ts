@@ -229,7 +229,7 @@ export async function verifyAddress(
   const verification = asRecord(data?.verification);
   const errorsRaw = verification?.errors;
   const errors = Array.isArray(errorsRaw)
-    ? errorsRaw.map((e) => str(e)).filter(Boolean)
+    ? errorsRaw.map((error) => str(error).trim() || "Carrier verification reported an error.")
     : [];
   // An HTTP/API success is not proof that a delivery address is valid.
   // Explicit negative verification must win over a generic success envelope.
