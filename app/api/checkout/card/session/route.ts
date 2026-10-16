@@ -15,6 +15,8 @@ import { configuredReferralPromotionCode, configureAndVerifyCardSession } from "
 import { getResearchAccount } from "@/lib/research-auth/server";
 
 export const runtime = "nodejs";
+// Promotion settlement can need read-only confirmation after a provider timeout.
+export const maxDuration = 300;
 
 /**
  * Reserve inventory, create a Tagada checkout session, and return tokens for

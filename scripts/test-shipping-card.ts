@@ -6,7 +6,7 @@ import { normalizeTagadaCheckoutPriceEvidence } from "../lib/tagada/checkout-pri
 import { cardShippingContextFingerprint, cardSessionMatchesShipping, cardSessionReadyToCharge, createCardSessionStore,
   type CardShippingContext, type TagadaCardSession } from "../lib/checkout/card-session-storage";
 import { CHECKOUT_RESEARCH_ACK_VERSION } from "../lib/checkout/research-acknowledgement";
-import { standardShippingSelection } from "../lib/shipping/policy";
+import { PRIORITY_PACKAGE, standardShippingSelection } from "../lib/shipping/policy";
 import type { Order } from "../lib/orders/types";
 
 let checks = 0;
@@ -24,6 +24,8 @@ const context: CardShippingContext = { method: "priority", quote: "signed_fixtur
 const order = { orderId: "psl_fixture", email: context.email, currency: "USD", subtotal: 59.99, discountAmount: 0,
   shippingCost: 24.99, tax: 0, total: 84.98, shipping: { ...context.address, selection: {
     ...standardShippingSelection(), method: "priority", providerServiceCode: "Priority", serviceDisplayName: "USPS Priority Mail",
+    transitDays: 2, quotedPostageUsd: 11.06, package: { ...PRIORITY_PACKAGE },
+    quotedAt: new Date().toISOString(), quoteExpiresAt: new Date(Date.now() + 300000).toISOString(),
   } } } as Order;
 const binding = { storeId: "store_fixture", checkoutToken: "checkout_fixture", items: [{ variantId: "variant_fixture", quantity: 1 }] };
 const session: TagadaCardSession = { orderId: order.orderId, ...binding, sessionToken: "session_fixture",
@@ -68,6 +70,9 @@ async function main() {
     for (const amount of [24.98, 25, 0]) check(pickTagadaShippingRate(rates, amount, { method: "priority", rateId: "priority2499" }), null);
     check(pickTagadaShippingRate([{ ...rates[1], currency: "EUR" }], 24.99, { method: "priority", rateId: "priority2499" }), null);
     check(pickTagadaShippingRate([rates[1], rates[1]], 24.99, { method: "priority", rateId: "priority2499" }), null);
+    for (const changed of [{ currency: "EUR" }, { amount: 2498 }, { name: "Ground Advantage" }]) {
+      check(pickTagadaShippingRate([rates[1], { ...rates[1], ...changed }], 24.99, { method: "priority", rateId: "priority2499" }), null);
+    }
     const standard = { id: "standard999", name: "Standard", amount: 999, currency: "USD" };
     check(pickTagadaShippingRate([standard], 9.99)?.id, "standard999");
     check(pickTagadaShippingRate([standard, { ...standard, id: "duplicate" }], 9.99), null);

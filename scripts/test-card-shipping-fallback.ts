@@ -30,7 +30,10 @@ async function scenario(order: Order, options: { rates?: Rate[]; rateFailure?: b
   providerChange?: Record<string, unknown>; envChange?: Record<string, string | undefined> } = {}) {
   const prior = { ...process.env };
   Object.assign(process.env, env);
-  for (const [key, value] of Object.entries(options.envChange ?? {})) value === undefined ? delete process.env[key] : process.env[key] = value;
+  for (const [key, value] of Object.entries(options.envChange ?? {})) {
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
   const binding = { storeId: "store_fixture", items: order.items.map((item, index) => ({ variantId: `variant_fixture_${index}`, quantity: item.quantity })) };
   let selected: string | undefined, reads = 0, rateReads = 0;
   const effects: string[] = [];
@@ -82,11 +85,26 @@ async function main() {
       const result = await scenario(order); check(result.ok, false); check(result.selected, undefined, "local eligibility is required before selecting an unlisted configured ID");
     }
     for (const options of [{ rateFailure: true }, { selectFailure: true },
-      { rates: [{ id: "wrong", name: "Standard", amount: 999, currency: "USD" }] },
       { rates: [{ id: "paid_fixture", name: "Priority Mail", amount: 999, currency: "USD" }] },
       { rates: [{ id: "paid_fixture", name: "Standard", amount: 999, currency: "EUR" }] },
+      { rates: [{ id: "paid_fixture", name: "Standard", amount: 998, currency: "USD" }] },
+      { rates: [{ id: "paid_fixture", name: "Standard", amount: 999, currency: "USD" }, { id: "paid_fixture", name: "Standard", amount: 999, currency: "EUR" }] },
+      { rates: [{ id: "paid_fixture", name: "Standard", amount: 999, currency: "USD" }, { id: "paid_fixture", name: "Standard", amount: 998, currency: "USD" }] },
       { envChange: { TAGADA_SHIPPING_STANDARD_PAID_RATE_ID: undefined } }]) {
-      const result = await scenario(orderFor(), options); check(result.ok, false); check(result.selected, undefined, "no HTTP/auth/nonempty mismatch/unconfigured fallback");
+      const result = await scenario(orderFor(), options); check(result.ok, false); check(result.selected, undefined, "no HTTP/auth/conflicting-ID/unconfigured fallback");
+    }
+    const paidPriorityCatalog = [{ id: "priority2299_fixture", name: "USPS Priority Mail", amount: 2299, currency: "USD" },
+      { id: "priority2499_fixture", name: "USPS Priority Mail", amount: 2499, currency: "USD" }];
+    for (const order of [orderFor("standard", true), orderFor("standard", true, true)]) {
+      const omittedFree = await scenario(order, { rates: paidPriorityCatalog });
+      check(omittedFree.ok, true); check(omittedFree.selected, "free_fixture"); check(omittedFree.reads, 2);
+    }
+    const omittedPaid = await scenario(orderFor(), { rates: paidPriorityCatalog });
+    check(omittedPaid.ok, true); check(omittedPaid.selected, "paid_fixture");
+    for (const options of [{ selectFailure: true }, { providerChange: { selectedShippingRateId: "priority2299_fixture" } },
+      { providerChange: { totals: { subtotal: 10798, discount: 0, shipping: 2299, tax: 0, total: 13097, currency: "USD" } } }]) {
+      const rejected = await scenario(orderFor("standard", true), { ...options, rates: paidPriorityCatalog });
+      check(rejected.ok, false, "incomplete catalog never bypasses provider selection and complete free-shipping proof");
     }
     const unconfigured = await scenario(orderFor(), { envChange: { TAGADA_SHIPPING_STANDARD_PAID_RATE_ID: undefined },
       rates: [{ id: "listed_fixture", name: "USPS Ground Advantage", amount: 999, currency: "USD" }] });
@@ -102,7 +120,7 @@ async function main() {
     // injectable client. All fetches are intercepted and never delegated.
     const priorEnv = { ...process.env };
     Object.assign(process.env, env);
-    let selected: string | null = null, authFailure = false;
+    let selected: string | null = null, authFailure = false, otherPaidCatalog = false;
     const actualCalls: string[] = [];
     const actualOrder = orderFor();
     const actualBinding = { storeId: "store_fixture", items: [{ variantId: "variant_fixture_0", quantity: 1 }] };
@@ -121,7 +139,7 @@ async function main() {
       if (url.pathname === "/api/v1/checkout-sessions/cs_fixture/customer-and-session-info" && method === "POST") return Response.json({});
       if (url.pathname === "/api/v1/checkout-sessions/cs_fixture/shipping-rates" && method === "GET") {
         return authFailure ? Response.json({ message: "Fixture authorization rejected" }, { status: 403 })
-          : Response.json({ rates: [], forceCheckoutSessionRefetch: true });
+          : Response.json({ rates: otherPaidCatalog ? [{ id: "priority2499_fixture", shippingRateName: "USPS Priority Mail", amount: 2499, currency: "USD" }] : [], forceCheckoutSessionRefetch: true });
       }
       if (url.pathname === "/api/v1/checkout-sessions/cs_fixture/shipping-rate" && method === "POST") {
         const body = JSON.parse(String(init?.body)); assert.equal(body.shippingRateId, "paid_fixture"); selected = body.shippingRateId;
@@ -132,13 +150,16 @@ async function main() {
     try {
       check(await configureAndVerifyCardSession(actualOrder, { checkoutToken: "checkout_fixture", sessionToken: "fixture_jwt" }, actualBinding, null), { shippingRateId: "paid_fixture" });
       check(actualCalls.length, 5, "real SDK adapter performs authenticated reads, address update and configured selection with rates=[]");
+      otherPaidCatalog = true; selected = null; actualCalls.length = 0;
+      check(await configureAndVerifyCardSession(actualOrder, { checkoutToken: "checkout_fixture", sessionToken: "fixture_jwt" }, actualBinding, null), { shippingRateId: "paid_fixture" });
+      check(actualCalls.length, 5, "real SDK adapter can verify an absent configured ID in a nonempty paid catalog");
       authFailure = true; actualCalls.length = 0;
       await assert.rejects(configureAndVerifyCardSession(actualOrder, { checkoutToken: "checkout_fixture", sessionToken: "fixture_jwt" }, actualBinding, null)); checks++;
       check(actualCalls.some(path => path.endsWith("/shipping-rate")), false, "real SDK HTTP/auth errors cannot trigger configured-ID selection");
     } finally {
       for (const key of Object.keys(process.env)) if (!(key in priorEnv)) delete process.env[key]; Object.assign(process.env, priorEnv);
     }
-    console.log(`PASS: configured shipping fallback (${checks} offline checks; verified tier eligibility, successful empty-list selection, exact destination/payable readback, HTTP/auth and nonempty mismatch rejection; no live requests or payments).`);
+    console.log(`PASS: configured shipping fallback (${checks} offline checks; verified tier eligibility, empty/incomplete catalogs, free Standard before discounts, exact destination/payable readback and contradictory-ID rejection; no live requests or payments).`);
   } finally { globalThis.fetch = oldFetch; }
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

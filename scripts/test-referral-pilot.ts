@@ -7,6 +7,7 @@ import { prepareReservedOrder } from "../lib/checkout/prepare-order";
 import { approveReferralPartner, lookupReferralDiscount, migrateReferralPilot, recordSettledReferralOrder, releaseUnpaidReferralClaim, reviewReferralCommission } from "../lib/partners/referral-store";
 import { authenticatedPartnerId, PARTNER_SESSION_COOKIE, PARTNER_SESSION_SECONDS, readPartnerAuthReadiness, redeemPartnerSignIn, requestPartnerSignIn, revokePartnerSession, sendPartnerSignInEmail, signPartnerSession, verifyPartnerSession } from "../lib/partners/auth";
 import { referralCodesEnabled } from "../lib/partners/referral-config";
+import { CHECKOUT_RESEARCH_ACK_VERSION } from "../lib/checkout/research-acknowledgement";
 
 let checks = 0;
 function check(actual: unknown, expected: unknown) { assert.deepEqual(actual, expected); checks++; }
@@ -88,15 +89,17 @@ async function main() {
     eligibleCode = false;
     check(await lookupReferralDiscount(code, "buyer@example.test"), null);
     const body = { email: "buyer@example.test", currency: "USD", discountCode: code,
+      researchAcknowledgement: { version: CHECKOUT_RESEARCH_ACK_VERSION, researchStatus: "independent_researcher", researchUseOnly: true },
       items: [{ handle: "retatrutide", quantity: 1 }], shipping: { firstName: "Fixture", lastName: "Only", address: "123 Test Street", city: "Phoenix", state: "AZ", zip: "85001", country: "US" } };
-    const rejected = await prepareReservedOrder(body, { paymentMethod: "bitcoin" });
+    const researchAccount = { id: "offline_referral_buyer", email: body.email };
+    const rejected = await prepareReservedOrder(body, { paymentMethod: "bitcoin", researchAccount });
     check(rejected.ok, false);
     eligibleCode = true;
     const beforeCard = statements.length;
-    const card = await prepareReservedOrder(body, { paymentMethod: "card" });
+    const card = await prepareReservedOrder(body, { paymentMethod: "card", researchAccount });
     check(card.ok, false);
     check(statements.slice(beforeCard).some(row => row.query.includes("SELECT checkout_create_referral_order")), false);
-    const prepared = await prepareReservedOrder(body, { paymentMethod: "bitcoin" });
+    const prepared = await prepareReservedOrder(body, { paymentMethod: "bitcoin", researchAccount });
     check(prepared.ok, true);
     if (prepared.ok) {
       check([prepared.order.subtotal, prepared.order.discountAmount, prepared.order.discountCode], [59.99, 6, code]);

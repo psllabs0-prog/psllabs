@@ -74,7 +74,9 @@ async function main() {
     await configureAndVerifyReferralCardSession(order, session, binding, configuredReferralPromotionCode(), client);
     expect(calls.filter(call => call.startsWith("promo:")).length, 1);
     fresh = { ...correct, totals: { ...correct.totals, discount: 0, total: 6998 } }; calls.length = 0; loads = 0;
-    await assert.rejects(configureAndVerifyReferralCardSession(order, session, binding, configuredReferralPromotionCode(), client)); checks++;
+    let clock = 0;
+    await assert.rejects(configureAndVerifyReferralCardSession(order, session, binding, configuredReferralPromotionCode(), client,
+      { now: () => clock, sleep: async milliseconds => { clock += milliseconds; } })); checks++;
     fresh = correct; calls.length = 0; loads = 0; promoFailure = "validation_error";
     await assert.rejects(configureAndVerifyReferralCardSession(order, session, binding, configuredReferralPromotionCode(), client)); checks++;
     expect(calls.includes("rates"), false);

@@ -54,8 +54,30 @@ export type ReferralCardCheckoutClient = {
   applyPromoCode(id: string, code: string): Promise<void>;
 };
 
+export const CARD_PROMOTION_SETTLEMENT_WAIT_MS = 120_000;
+const CARD_PROMOTION_POLL_INTERVAL_MS = 4_000;
+const CARD_PROMOTION_MAX_READS = 30;
+/** The real raw-session reader already bounds each request to 30 seconds. */
+const CARD_SESSION_READ_TIMEOUT_MS = 30_000;
+export type CardSessionReadbackTiming = { now(): number; sleep(milliseconds: number): Promise<void> };
+const defaultReadbackTiming: CardSessionReadbackTiming = {
+  now: () => Date.now(), sleep: milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)),
+};
+const isTransportTimeout = (error: unknown) => !!(error && typeof error === "object" && "code" in error && error.code === "network_error");
+
+/** Only an otherwise exact session with an unsettled discount may be observed again. */
+function promotionIsPending(
+  order: Order, expected: Parameters<typeof referralCardSessionMatchesOrder>[1], value: unknown,
+): boolean {
+  const discount = object(object(value)?.totals)?.discount;
+  if (!Number.isSafeInteger(discount) || Number(discount) < 0 || Number(discount) >= minor(order.discountAmount)) return false;
+  const pending = { ...order, discountAmount: Number(discount) / 100,
+    total: (minor(order.subtotal) - Number(discount) + minor(order.shippingCost) + minor(order.tax)) / 100 };
+  return referralCardSessionMatchesOrder(pending, expected, value);
+}
+
 /** Server-owned tier IDs are usable only under this store's verified eligibility. */
-function configuredShippingEligible(order: Order, method: "standard" | "priority"): boolean {
+function configuredShippingEligible(order: Order, method: "standard" | "priority", now = Date.now()): boolean {
   if (order.currency !== "USD" || !isPhysicalUSShippingAddress(order.shipping) ||
       ![order.subtotal, order.discountAmount, order.shippingCost].every(value => Number.isFinite(value) && value >= 0) ||
       order.subtotal <= 0 || order.discountAmount > order.subtotal) return false;
@@ -71,7 +93,7 @@ function configuredShippingEligible(order: Order, method: "standard" | "priority
   return !!config && !!selection && selection.method === "priority" && selection.providerServiceCode === config.serviceCode &&
     selection.transitDays !== null && typeof selection.deliveryEstimate === "string" && selection.deliveryEstimate.trim().length > 0 &&
     JSON.stringify(selection.package) === JSON.stringify(PRIORITY_PACKAGE) &&
-    !!selection.quoteExpiresAt && Date.parse(selection.quoteExpiresAt) > Date.now() &&
+    !!selection.quoteExpiresAt && Date.parse(selection.quoteExpiresAt) > now &&
     Array.isArray(order.items) && order.items.length > 0 &&
     order.items.every(item => Number.isSafeInteger(item.quantity) && item.quantity > 0) &&
     order.items.reduce((sum, item) => sum + item.quantity, 0) <= config.maxUnits &&
@@ -86,10 +108,13 @@ export async function configureAndVerifyCardSession(
   expected: { storeId: string; items: Array<{ variantId: string; quantity: number }> },
   promotionCode: string | null,
   injectedClient?: ReferralCardCheckoutClient,
+  timing: CardSessionReadbackTiming = defaultReadbackTiming,
 ): Promise<{ shippingRateId: string }> {
   if (process.env.PSL_VISUAL_PREVIEW === "1") throw new Error("Payments are disabled in this preview.");
   if (order.discountAmount > 0 && !promotionCode) throw new Error("The first-order card referral promotion is not configured.");
   const method = order.shipping.selection?.method ?? "standard";
+  const quoteExpiresAt = method === "priority" ? Date.parse(order.shipping.selection?.quoteExpiresAt ?? "") : Infinity;
+  const quoteStillValid = () => method !== "priority" || Number.isFinite(quoteExpiresAt) && timing.now() < quoteExpiresAt;
   const configuredId = configuredTagadaShippingRateId(method, order.shippingCost);
   if (method === "priority" && !configuredId) throw new Error("Priority card shipping is not configured for this price tier.");
   let checkout = injectedClient;
@@ -114,6 +139,7 @@ export async function configureAndVerifyCardSession(
     shippingAddress: { line1: order.shipping.address, city: order.shipping.city, state: order.shipping.state,
       postalCode: order.shipping.zip, country: order.shipping.country },
   });
+  let settlementDeadline: number | null = null;
   if (order.discountAmount > 0) {
     try { await checkout.applyPromoCode(id, promotionCode!); }
     catch (error) {
@@ -121,26 +147,49 @@ export async function configureAndVerifyCardSession(
       // repeat the mutation: only a fresh, exact provider summary below can
       // establish success. Authentication, validation and policy failures stay
       // failures rather than being treated as a transient transport result.
-      if (!(error && typeof error === "object" && "code" in error && error.code === "network_error")) throw error;
+      if (!isTransportTimeout(error)) throw error;
+      // The deadline starts at the uncertain mutation response, not after
+      // other provider calls. Leave enough quote lifetime for a bounded read.
+      settlementDeadline = Math.min(timing.now() + CARD_PROMOTION_SETTLEMENT_WAIT_MS,
+        quoteExpiresAt - CARD_SESSION_READ_TIMEOUT_MS);
     }
   }
   const rates = await checkout.getShippingRates(id);
   const rate = pickTagadaShippingRate(rates.map(rate => ({ ...rate, name: rate.name ?? "" })), order.shippingCost,
     { method, rateId: configuredId });
-  // The provider can return a successful empty list with force-refetch set even
-  // for merchant-verified eligible rates. Never recover from HTTP/auth errors or
-  // a nonempty conflicting list; only a configured, locally eligible ID applies.
-  const rateId = rate?.id ?? (rates.length === 0 && configuredId && configuredShippingEligible(order, method) ? configuredId : null);
+  // A successful catalog can omit a verified rate (including free Standard)
+  // while listing other paid services. Never override a contradictory entry
+  // bearing our configured ID, or recover from HTTP/auth errors. Selection and
+  // fresh complete price/address proof remain mandatory for an absent ID.
+  const configuredIdAbsent = configuredId && !rates.some(candidate => candidate.id === configuredId);
+  const rateId = rate?.id ?? (configuredIdAbsent && configuredShippingEligible(order, method, timing.now()) ? configuredId : null);
   if (!rateId) throw new Error("The selected shipping service and exact USD price are unavailable for card checkout.");
   await checkout.selectShippingRate(id, rateId);
-  const fresh = await checkout.loadSession(session.checkoutToken, session.sessionToken ?? undefined);
-  if (!referralCardSessionMatchesOrder(order, { ...expected, checkoutToken: session.checkoutToken,
+  const proofBinding = { ...expected, checkoutToken: session.checkoutToken,
     expectedSessionId: id, customerEmail: order.email, shippingRateId: rateId,
     shippingAddress: { line1: order.shipping.address, city: order.shipping.city, state: order.shipping.state,
-      postalCode: order.shipping.zip, country: order.shipping.country } }, fresh)) {
-    throw new Error("The provider card price or shipping service does not match this order. No card charge was started.");
+      postalCode: order.shipping.zip, country: order.shipping.country } };
+  let fresh: unknown;
+  try { fresh = await checkout.loadSession(session.checkoutToken, session.sessionToken ?? undefined); }
+  catch (error) {
+    if (settlementDeadline === null || !isTransportTimeout(error)) throw error;
   }
-  return { shippingRateId: rateId };
+  for (let reads = 0; ; reads++) {
+    if (!quoteStillValid()) throw new Error("The Priority shipping quote expired during card setup. Select shipping again before paying.");
+    if (referralCardSessionMatchesOrder(order, proofBinding, fresh)) return { shippingRateId: rateId };
+    if (settlementDeadline === null || timing.now() >= settlementDeadline || reads >= CARD_PROMOTION_MAX_READS ||
+        fresh !== undefined && !promotionIsPending(order, proofBinding, fresh)) break;
+    await timing.sleep(Math.min(CARD_PROMOTION_POLL_INTERVAL_MS, settlementDeadline - timing.now()));
+    if (timing.now() >= settlementDeadline || !quoteStillValid()) break;
+    try { fresh = await checkout.loadSession(session.checkoutToken, session.sessionToken ?? undefined); }
+    catch (error) {
+      // Retry reads only after the original promotion transport timeout.
+      // Auth, validation, and malformed evidence are never retried or accepted.
+      if (!isTransportTimeout(error)) throw error;
+      fresh = undefined;
+    }
+  }
+  throw new Error("The provider card price or shipping service does not match this order. No card charge was started.");
 }
 
 /** Compatibility export for existing referral callers and offline coverage. */

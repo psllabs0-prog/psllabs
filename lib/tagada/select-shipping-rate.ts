@@ -36,6 +36,10 @@ export function pickTagadaShippingRate(
   const exact = rates.filter(rate => rate.currency === "USD" && Number.isSafeInteger(rate.amount) &&
     rate.amount === expectedCents && typeof rate.id === "string" && rate.id.length > 0);
   if (binding.rateId) {
+    // Any repeated ID is contradictory evidence, even when only one copy has
+    // the expected amount/currency. Never hide a bad duplicate by filtering it.
+    const listed = rates.filter(rate => rate.id === binding.rateId);
+    if (listed.length !== 1) return null;
     // Provider labels can also be service codes such as GroundAdvantage or
     // PriorityMailExpress. Word boundaries do not separate their camelcase parts.
     const contradictsMethod = (name: string) => {
@@ -49,7 +53,7 @@ export function pickTagadaShippingRate(
   // Priority always requires an explicit server-configured tier ID. A same-price
   // Standard rate, a near-price rate or an ambiguous service cannot authorize it.
   if (binding.method !== "standard") return null;
-  const matches = exact.filter(rate => !/priority|express|expedited/i.test(rate.name) &&
+  const matches = exact.filter(rate => rates.filter(candidate => candidate.id === rate.id).length === 1 && !/priority|express|expedited/i.test(rate.name) &&
     (/\bground\s+advantage\b/i.test(rate.name) || /^(?:free\s+)?standard(?:\s+(?:u\.?s\.?|domestic))?(?:\s+(?:shipping|delivery))?$/i.test(rate.name.trim())));
   return matches.length === 1 ? matches[0] : null;
 }

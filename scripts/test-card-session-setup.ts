@@ -74,7 +74,7 @@ async function run(options: Options = {}) {
     updateCustomerAndAddress: async () => { if (options.failure === "address") throw new Error("Fixture address failure"); },
     getShippingRates: async () => {
       if (options.failure === "rate-error") throw new Error("Fixture rate HTTP/auth failure");
-      return options.emptyRates ? [] : [{ id: options.failure === "rate" ? "other_rate" : "rate_fixture", name: "USPS Ground Advantage", amount: 999,
+      return options.emptyRates ? [] : [{ id: "rate_fixture", name: options.failure === "rate" ? "USPS Priority Mail" : "USPS Ground Advantage", amount: 999,
         currency: options.failure === "currency" ? "EUR" : "USD" }];
     },
     selectShippingRate: async () => {},
