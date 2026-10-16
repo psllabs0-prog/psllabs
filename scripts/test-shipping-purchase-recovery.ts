@@ -38,7 +38,7 @@ const record = (status: BtcpostageLabelRecord["purchaseStatus"] = "none"): Btcpo
 
 function harness(options: { returned?: BtcpostagePurchase; existing?: BtcpostageLabelRecord | null; retrieveFailure?: boolean; createFailure?: boolean; saveFailure?: boolean; legacy?: boolean;
   trackingNumber?: string; shipped?: boolean;
-  rates?: BtcpostageRate[]; rateFailure?: boolean; fromZip?: string; fromCountry?: string; toCountry?: string; reserve?: string; standard?: boolean } = {}) {
+  rates?: BtcpostageRate[]; rateFailure?: boolean; fromZip?: string; fromCountry?: string; toCountry?: string; reserve?: string; standard?: boolean; testMode?: boolean } = {}) {
   let saved = options.existing === undefined ? null : structuredClone(options.existing);
   let creates = 0, retrieves = 0, successes = 0, claims = 0, rateReads = 0;
   const calls: string[] = [];
@@ -51,7 +51,7 @@ function harness(options: { returned?: BtcpostagePurchase; existing?: Btcpostage
     "@/lib/shipping/request": { isPhysicalUSShippingAddress },
     "@/lib/fulfillment/manual-test-destination": { manualTestDestination: () => null },
     "./types": { DEFAULT_PACKAGE }, "./shipping-guard": guards,
-    "./config": { isBtcpostageTestMode: () => false, getBtcpostageFromAddress: () => ({ street1: "1 Fixture Origin", city: "Phoenix", state: "AZ", zip: options.fromZip ?? "85016", country: options.fromCountry ?? "US" }) },
+    "./config": { isBtcpostageTestMode: () => options.testMode ?? false, getBtcpostageFromAddress: () => ({ street1: "1 Fixture Origin", city: "Phoenix", state: "AZ", zip: options.fromZip ?? "85016", country: options.fromCountry ?? "US" }) },
     "./client": {
       BtcpostageApiError,
       createPurchase: async (input: { orderNotes: string }) => {
@@ -85,10 +85,11 @@ function harness(options: { returned?: BtcpostagePurchase; existing?: Btcpostage
         if (options.saveFailure) throw new Error("Fixture database lost response after paid purchase");
         successes++; saved = { ...record("purchased"), ...input, purchaseStatus: "purchased" } as BtcpostageLabelRecord; return saved;
       },
-      markPurchaseNeedsReview: async (_id: string, error: string, partial?: { btcpOrderId?: string | null; rawResponse?: unknown; pkg?: unknown }) => {
+      markPurchaseNeedsReview: async (_id: string, error: string, partial?: { btcpOrderId?: string | null; rawResponse?: unknown; testMode?: boolean; pkg?: unknown }) => {
         assert(saved, "needs-review must retain an actual durable label row");
         saved.purchaseStatus = "needs_review"; saved.lastError = error;
         if (partial?.btcpOrderId) saved.btcpOrderId = partial.btcpOrderId;
+        if (partial?.testMode !== undefined) { saved.testMode = partial.testMode; check(partial.testMode, options.testMode ?? false, "uncertain purchases retain the actual server-side request mode"); }
         if (partial?.rawResponse) {
           check(partial.rawResponse, returned, "the original disputed provider response is preserved for review");
           check(JSON.parse(JSON.stringify(partial.pkg)), { ...DEFAULT_PACKAGE, weightOz: 8 }, "recovery retains the measured purchased package");
@@ -174,6 +175,12 @@ async function main() {
     const uncertain = harness({ createFailure: true }); await assert.rejects(uncertain.buy()); checks++;
     await assert.rejects(uncertain.buy(), /review|uncertain/i); checks++;
     check(uncertain.state().creates, 1, "uncertain provider failure cannot be blindly repurchased");
+
+    const uncertainTest = harness({ createFailure: true, testMode: true, standard: true });
+    await assert.rejects(uncertainTest.buy()); checks++;
+    check(uncertainTest.state().saved?.testMode, true, "an uncertain no-debit test request cannot become a live shipment on retrieval");
+    await assert.rejects(uncertainTest.buy(), /review|uncertain/i); checks++;
+    check(uncertainTest.state().creates, 1, "the test-mode failure also remains protected against duplicate purchases");
 
     const persistence = harness({ saveFailure: true }); await assert.rejects(persistence.buy(), /uncertain/i); checks++;
     check(persistence.state().saved?.purchaseStatus, "needs_review", "database failure after accepted paid purchase never becomes retryable");

@@ -331,7 +331,7 @@ export async function buyOrderLabel(input: {
       await markPurchaseNeedsReview(
         input.orderId,
         `Uncertain after purchase attempt: ${message}`,
-        { btcpOrderId: returnedPurchaseId, rawResponse: returnedPurchase,
+        { btcpOrderId: returnedPurchaseId, rawResponse: returnedPurchase, testMode,
           pkg }
       );
       throw new Error(

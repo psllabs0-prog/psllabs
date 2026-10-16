@@ -325,7 +325,7 @@ export async function markPurchaseFailed(
 export async function markPurchaseNeedsReview(
   pslOrderId: string,
   errorMessage: string,
-  partial?: { btcpOrderId?: string | null; rawResponse?: unknown; pkg?: {
+  partial?: { btcpOrderId?: string | null; rawResponse?: unknown; testMode?: boolean; pkg?: {
     weightLbs: number; weightOz: number; heightIn: number; widthIn: number; depthIn: number;
   } }
 ): Promise<void> {
@@ -335,6 +335,7 @@ export async function markPurchaseNeedsReview(
     UPDATE btcpostage_labels
     SET purchase_status = 'needs_review',
         btcp_order_id = COALESCE(${partial?.btcpOrderId ?? null}, btcp_order_id),
+        test_mode = COALESCE(${partial?.testMode ?? null}, test_mode),
         raw_response = COALESCE(${partial?.rawResponse ? JSON.stringify(partial.rawResponse) : null}::jsonb, raw_response),
         weight_lbs = COALESCE(${partial?.pkg?.weightLbs ?? null}, weight_lbs),
         weight_oz = COALESCE(${partial?.pkg?.weightOz ?? null}, weight_oz),
