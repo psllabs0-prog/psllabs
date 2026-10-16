@@ -4,10 +4,13 @@ import { completeFulfillmentTracking, getFulfillmentShippingStatus, prepareFulfi
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
-const reply = (data: unknown, status = 200) => NextResponse.json(data, { status, headers: { "Cache-Control": "no-store" } });
+const reply = (data: unknown, status = 200) => NextResponse.json(data, { status, headers: { "Cache-Control": "private, no-store" } });
 export async function GET(request: Request) {
   const authError = await requireAdminAuth();
-  if (authError) return authError;
+  if (authError) {
+    authError.headers.set("Cache-Control", "private, no-store");
+    return authError;
+  }
   const orderId = new URL(request.url).searchParams.get("orderId")?.trim();
   if (!orderId || orderId.length > 150) return reply({ error: "A valid order ID is required." }, 400);
   try { return reply(await getFulfillmentShippingStatus(orderId)); }
@@ -15,7 +18,10 @@ export async function GET(request: Request) {
 }
 export async function POST(request: Request) {
   const authError = await requireAdminAuth();
-  if (authError) return authError;
+  if (authError) {
+    authError.headers.set("Cache-Control", "private, no-store");
+    return authError;
+  }
   if (request.headers.get("origin") !== new URL(request.url).origin) return reply({ error: "Same-origin request required." }, 403);
   let body: Record<string, unknown>;
   try { body = await request.json(); } catch { return reply({ error: "Invalid request." }, 400); }

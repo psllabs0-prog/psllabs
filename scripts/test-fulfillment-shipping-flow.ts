@@ -221,7 +221,7 @@ async function main() {
     assert(body.html.includes("OFFLINE&lt;&amp;&gt;")); checks++;
     assert(body.text.includes("USPS Ground Advantage")); checks++;
 
-    const json = (data: unknown, init?: { status?: number }) => ({ data, status: init?.status ?? 200 });
+    const json = (data: unknown, init?: { status?: number; headers?: HeadersInit }) => ({ data, status: init?.status ?? 200, headers: new Headers(init?.headers) });
     let routeCalls = 0;
     const api = (denied: boolean) => load<typeof import("../app/api/admin/fulfillment-shipping/route")>("app/api/admin/fulfillment-shipping/route.ts", {
       "next/server": { NextResponse: { json } }, "@/lib/admin/require-auth": { requireAdminAuth: async () => denied ? json({ error: "Unauthorized" }, { status: 401 }) : null },
@@ -234,7 +234,12 @@ async function main() {
     });
     const denied = api(true), allowed = api(false);
     const req = (origin: string, action: string) => new Request("https://psllabs.org/api/admin/fulfillment-shipping", { method: "POST", headers: { origin, "Content-Type": "application/json" }, body: JSON.stringify({ action, orderId: "psl_OFFLINE_only" }) });
-    eq((await denied.POST(req("https://psllabs.org", "purchase")) as unknown as { status: number }).status, 401, "admin authentication required before any shipping action");
+    const deniedPost = await denied.POST(req("https://psllabs.org", "purchase"));
+    eq(deniedPost.status, 401, "admin authentication required before any shipping action");
+    eq(deniedPost.headers.get("Cache-Control"), "private, no-store", "unauthorized purchase responses cannot be publicly cached");
+    const deniedGet = await denied.GET(new Request("https://psllabs.org/api/admin/fulfillment-shipping?orderId=psl_OFFLINE_only"));
+    eq(deniedGet.status, 401, "read-only shipping status requires admin authentication");
+    eq(deniedGet.headers.get("Cache-Control"), "private, no-store", "unauthorized status responses cannot be publicly cached");
     eq(routeCalls, 0, "denied authentication touches no order/provider service");
     eq((await allowed.POST(req("https://untrusted.invalid", "purchase")) as unknown as { status: number }).status, 403, "cross-origin purchase rejected");
     eq(routeCalls, 0, "cross-origin purchase never reaches service");
