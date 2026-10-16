@@ -15,6 +15,7 @@ import { getActiveCatalogProducts } from "@/lib/products/catalog";
 import { standardShippingSelection } from "@/lib/shipping/policy";
 import type { Order } from "@/lib/orders/types";
 import { MANUAL_TEST_ORDER, MANUAL_TEST_RECIPIENT, MANUAL_TEST_SCHEMA } from "./manual-test-constants";
+import { manualFixtureFailure, type ManualFixtureStage } from "./manual-test-diagnostics";
 
 let control: Pool | null = null, isolated: Pool | null = null;
 let scopedSql: NeonQueryFunction<false, false> | null = null;
@@ -51,7 +52,8 @@ function manualSql() {
 async function queryInSchema(client: PoolClient, parts: TemplateStringsArray, values: unknown[]) {
   const query = parts.reduce((text, part, i) => text + (i ? `$${i}` : "") + part, "");
   assert(!/\bpublic\b|\b(?:SET|RESET)\s+(?:(?:LOCAL|SESSION)\s+)?(?:search_path|ROLE|SESSION\s+AUTHORIZATION)|\b(?:ALTER|DROP|CREATE)\s+(?:DATABASE|ROLE|USER|SCHEMA)\b|\b(?:GRANT|REVOKE)\b|\bset_config\s*\(/i.test(query), "Manual fixture SQL cannot access public data or change its scope.");
-  const scope = (await client.query("SELECT current_schema() AS schema,current_schemas(false) AS scopes")).rows[0];
+  // pg leaves name[] as a raw string; cast to its supported text[] decoder.
+  const scope = (await client.query("SELECT current_schema() AS schema,current_schemas(false)::text[] AS scopes")).rows[0];
   assert(scope.schema === MANUAL_TEST_SCHEMA && JSON.stringify(scope.scopes) === JSON.stringify([MANUAL_TEST_SCHEMA]), "Manual fixture SQL scope differs from its fixed private schema.");
   return (await client.query(query, values)).rows;
 }
@@ -76,42 +78,69 @@ export async function inManualTestScope<T>(action: () => Promise<T>, mail?: (ord
 
 /** Authenticated explicit action only. No carrier, payment provider, or SMTP calls. */
 export async function createManualTestFixture() {
-  const fingerprint = manualTestSenderFingerprint();
-  const db = getManualTestControl();
-  await db.query(`CREATE SCHEMA IF NOT EXISTS "${MANUAL_TEST_SCHEMA}"`);
-  assert(await assertOwnedSchema());
-  const client = await isolated!.connect();
-  const transactionSql = ((parts: TemplateStringsArray, ...values: unknown[]) => queryInSchema(client, parts, values)) as NeonQueryFunction<false, false>;
+  let stage: ManualFixtureStage = "validate_sender";
+  let client: PoolClient | null = null, transactionStarted = false;
   try {
+    const fingerprint = manualTestSenderFingerprint();
+    stage = "connect_control";
+    const db = getManualTestControl();
+    stage = "create_schema";
+    await db.query(`CREATE SCHEMA IF NOT EXISTS "${MANUAL_TEST_SCHEMA}"`);
+    stage = "verify_owner";
+    assert(await assertOwnedSchema());
+    stage = "connect_fixture";
+    client = await isolated!.connect();
+    const transactionSql = ((parts: TemplateStringsArray, ...values: unknown[]) => queryInSchema(client!, parts, values)) as NeonQueryFunction<false, false>;
+    stage = "begin";
     await client.query("BEGIN");
+    transactionStarted = true;
+    stage = "lock";
     await client.query("SELECT pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext($1))", [MANUAL_TEST_ORDER]);
     await withManualFulfillmentTestSql(transactionSql, async () => {
-    await ensureInventorySchema(); await ensureFinanceSchema(); await ensureFulfillmentSchema(); await ensureBtcpostageSchema(); await ensureShippingFlowSchema();
+    stage = "inventory_schema"; await ensureInventorySchema();
+    stage = "finance_schema"; await ensureFinanceSchema();
+    stage = "workflow_schema"; await ensureFulfillmentSchema();
+    stage = "label_schema"; await ensureBtcpostageSchema();
+    stage = "shipping_schema"; await ensureShippingFlowSchema();
     const sql = getSql();
+    stage = "identity_schema";
     await sql`CREATE TABLE IF NOT EXISTS manual_fixture_identity(order_id TEXT PRIMARY KEY,recipient_hash TEXT NOT NULL,sender_fingerprint TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT now())`;
+    stage = "existing_fixture";
     const existing = await getOrder(MANUAL_TEST_ORDER);
     if (existing) {
       const marker = (await sql`SELECT recipient_hash,sender_fingerprint FROM manual_fixture_identity WHERE order_id=${MANUAL_TEST_ORDER}`)[0];
       assert(existing.email === MANUAL_TEST_RECIPIENT && marker?.recipient_hash === privateDigest(MANUAL_TEST_RECIPIENT) && marker.sender_fingerprint === fingerprint, "Existing manual fixture identity could not be verified.");
       return;
     }
+    stage = "catalog";
     const product = getActiveCatalogProducts().find(item => item.handle === "retatrutide");
     assert(product, "Manual fixture catalog product missing.");
     const from = getBtcpostageFromAddress();
+    stage = "seed_product";
     await sql`INSERT INTO products(handle,name,stock,sku) VALUES(${product.handle},${product.name},10,${product.sku}) ON CONFLICT(handle) DO NOTHING`;
     const order = { orderId: MANUAL_TEST_ORDER, currency: "USD", email: MANUAL_TEST_RECIPIENT,
       shipping: { firstName: "TEST", lastName: "ONLY", address: [from.street1, from.street2].filter(Boolean).join(", "), city: from.city, state: from.state, zip: from.zip, country: "US", selection: standardShippingSelection() },
       items: [{ handle: product.handle, name: product.name, strength: product.strength, quantity: 1, unitPrice: product.price, lineTotal: product.price }],
       subtotal: product.price, discountCode: null, discountAmount: 0, taxRate: 0, tax: 0, shippingCost: 9.99, total: Math.round((product.price + 9.99) * 100) / 100, attribution: null } as Order;
+    stage = "checkout";
     assert((await checkoutWithStockCheck(order)).ok, "Manual fixture order creation failed.");
+    stage = "settlement";
     const paid = await settlePaidOrder(MANUAL_TEST_ORDER, null);
     assert(paid.ok && !paid.stockDecrementFailed, "Manual fixture synthetic settlement failed.");
+    stage = "workflow";
     await upsertFulfillmentWorkflow({ orderId: MANUAL_TEST_ORDER, workflowStatus: "packed", packedAt: new Date().toISOString() });
+    stage = "identity_marker";
     await sql`INSERT INTO manual_fixture_identity(order_id,recipient_hash,sender_fingerprint) VALUES(${MANUAL_TEST_ORDER},${privateDigest(MANUAL_TEST_RECIPIENT)},${fingerprint})`;
     });
+    stage = "commit";
     await client.query("COMMIT");
+    transactionStarted = false;
   } catch (error) {
-    await client.query("ROLLBACK");
-    throw error;
-  } finally { client.release(); }
+    let rollbackSucceeded: boolean | null = null;
+    if (client && transactionStarted) {
+      try { await client.query("ROLLBACK"); rollbackSucceeded = true; }
+      catch { rollbackSucceeded = false; }
+    }
+    throw manualFixtureFailure(stage, error, rollbackSucceeded);
+  } finally { client?.release(); }
 }
