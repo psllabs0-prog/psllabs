@@ -5,7 +5,7 @@
   "scripts": {
     "test:research-accounts": "tsx scripts/test-research-accounts.ts",
     "migrate:research-accounts": "tsx scripts/migrate-research-accounts.ts",
-    "prebuild": "tsx scripts/research-accounts-build-step.ts",
+    "prebuild": "tsx scripts/research-accounts-build-step.ts && tsx scripts/fulfillment-shipping-qa-build-step.ts",
     "test:sale-pricing": "tsx scripts/test-sale-pricing.ts",
     "test:privacy": "tsx scripts/test-privacy-server.ts && tsx scripts/test-privacy-client.ts && tsx scripts/test-privacy-api.ts && tsx scripts/test-application-privacy-boundary.ts",
     "test:meta-events": "tsx scripts/test-meta-events.ts && tsx scripts/test-meta-transport.ts && tsx scripts/test-meta-api.ts && tsx scripts/test-meta-purchase.ts && tsx scripts/test-meta-browser.ts",
@@ -62,6 +62,7 @@
     "test:newsletter-welcome-db": "tsx scripts/test-newsletter-welcome-db.ts",
     "test:fulfillment": "tsx scripts/test-fulfillment.ts",
     "test:fulfillment-shipping": "tsx scripts/test-fulfillment-shipping-flow.ts && tsx scripts/test-shipping-purchase-recovery.ts",
+    "test:fulfillment-shipping-qa-guards": "tsx scripts/test-fulfillment-shipping-qa-guards.ts",
     "migrate:fulfillment-shipping": "tsx scripts/migrate-fulfillment-shipping.ts",
     "test:btcpostage": "tsx scripts/test-btcpostage.ts",
     "test:order-notification": "tsx scripts/test-order-notification.ts",
