@@ -5,6 +5,7 @@ import {
 } from "./config";
 import { getManualFulfillmentTestScope } from "@/lib/db/sql";
 import { MANUAL_TEST_ORDER } from "@/lib/fulfillment/manual-test-constants";
+import { verificationErrorDiagnostics } from "./verification-diagnostics";
 import type {
   BtcpostageAddress,
   BtcpostagePackage,
@@ -248,7 +249,8 @@ export async function verifyAddress(
       rootValidity: typeof root?.is_valid === "boolean" ? root.is_valid : "missing",
       verificationValidity: typeof verification?.is_valid === "boolean" ? verification.is_valid : "missing",
       standardizedAddressPresent: Boolean(addr), inputSuitePresent: Boolean(address.street2?.trim()), senderHasStreet2,
-      providerErrorCount: Array.isArray(errorsRaw) ? errorsRaw.length : 0 });
+      providerErrorCount: Array.isArray(errorsRaw) ? errorsRaw.length : 0,
+      providerErrors: verificationErrorDiagnostics(errorsRaw, address, getBtcpostageCredentials()) });
   }
   return { isValid: Boolean(isValid) && errors.length === 0, standardized, errors, raw: json };
 }
