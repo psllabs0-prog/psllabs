@@ -56,6 +56,7 @@ export function BtcpostageOrderPanel({
   const [selected, setSelected] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
+  const [purchaseUncertain, setPurchaseUncertain] = useState(false);
 
   const quotedPackage = shipping.selection?.package;
   const [weightLbs, setWeightLbs] = useState("0");
@@ -104,7 +105,29 @@ export function BtcpostageOrderPanel({
 
   function applyLabel(next: LabelPublic | null) {
     setLabel(next);
+    if (next?.purchaseStatus === "purchased" || next?.purchaseStatus === "failed") setPurchaseUncertain(false);
     onLabelChange?.(next);
+  }
+
+  async function refreshSavedStatus() {
+    const data = await post("status");
+    applyLabel((data.label as LabelPublic) ?? null);
+  }
+
+  async function reviewPurchaseFailure(problem: unknown, fallback: string) {
+    const message = problem instanceof Error ? problem.message : fallback;
+    setPurchaseUncertain(true);
+    try {
+      await refreshSavedStatus();
+      setError(message);
+    } catch {
+      setError(`${message} Saved status could not be refreshed. Do not buy again; check status or retrieve the existing purchase.`);
+    }
+  }
+
+  async function onStatus() {
+    try { await refreshSavedStatus(); }
+    catch { setError("Saved status could not be refreshed. Do not buy another label until the existing purchase is checked."); }
   }
 
   async function onVerify() {
@@ -199,7 +222,7 @@ export function BtcpostageOrderPanel({
       });
       applyLabel((data.label as LabelPublic) ?? null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Buy label failed");
+      await reviewPurchaseFailure(e, "Buy label failed");
     }
   }
 
@@ -214,7 +237,7 @@ export function BtcpostageOrderPanel({
       });
       applyLabel((data.label as LabelPublic) ?? null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Retrieve failed");
+      await reviewPurchaseFailure(e, "Retrieve failed");
     }
   }
 
@@ -316,13 +339,13 @@ export function BtcpostageOrderPanel({
         </button>
         <button
           type="button"
-          disabled={busy !== null || !configured || !selected || label?.purchaseStatus === "purchased" || label?.purchaseStatus === "purchasing" || label?.purchaseStatus === "needs_review"}
+          disabled={busy !== null || purchaseUncertain || !configured || !selected || label?.purchaseStatus === "purchased" || label?.purchaseStatus === "purchasing" || label?.purchaseStatus === "needs_review"}
           className="underline disabled:opacity-50"
           onClick={() => void onBuy()}
         >
           Buy Label
         </button>
-        {(label?.purchaseStatus === "needs_review" ||
+        {(purchaseUncertain || label?.purchaseStatus === "needs_review" ||
           label?.purchaseStatus === "purchasing" ||
           (label?.purchaseStatus === "purchased" && (!label.trackingNumber?.trim() || !label.labelUrl?.trim()))) && (
           <button
@@ -332,6 +355,11 @@ export function BtcpostageOrderPanel({
             onClick={() => void onRetrieve()}
           >
             Retrieve purchase
+          </button>
+        )}
+        {(purchaseUncertain || label?.purchaseStatus === "needs_review" || label?.purchaseStatus === "purchasing") && (
+          <button type="button" disabled={busy !== null || !configured} className="min-h-11 underline disabled:opacity-50" onClick={() => void onStatus()}>
+            Refresh saved status
           </button>
         )}
       </div>
@@ -401,11 +429,13 @@ export function BtcpostageOrderPanel({
         </div>
       )}
 
-      {label?.purchaseStatus === "needs_review" && (
-        <p className="mt-2 text-red-700">
-          Needs review — do not buy again.{" "}
-          {label.lastError ? label.lastError : ""}
-        </p>
+      {(purchaseUncertain || label?.purchaseStatus === "needs_review" || label?.purchaseStatus === "purchasing") && (
+        <div className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-amber-800" role="status">
+          <p className="font-medium">Purchase needs review — do not buy another label.</p>
+          {label?.btcpOrderId ? <p className="mt-1 break-all">Recorded BTCPostage purchase: <span className="font-mono">{label.btcpOrderId}</span></p> : <p className="mt-1">The saved provider purchase ID is not available yet.</p>}
+          <p className="mt-1 text-xs">Status checks and retrieval do not buy a new label or send an email.</p>
+          {label?.lastError ? <p className="mt-2 break-words text-sm">{label.lastError}</p> : null}
+        </div>
       )}
       {label?.lastError && label.purchaseStatus === "failed" && (
         <p className="mt-2 text-red-700">{label.lastError}</p>
