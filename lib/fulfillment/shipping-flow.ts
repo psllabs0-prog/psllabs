@@ -13,6 +13,7 @@ import { getFulfillmentWorkflow } from "./store";
 import { consumeLabelPreview, getTrackingNotification, privateDigest, saveLabelPreview, saveTrackingAndQueue, shippingPaymentBlocked } from "./shipping-flow-store";
 import { dispatchTrackingNotification } from "./tracking-notification";
 import type { FulfillmentShippingPreview, FulfillmentShippingResult, FulfillmentShippingStatus } from "./shipping-flow-types";
+import { getManualFulfillmentTestScope } from "@/lib/db/sql";
 
 const MAX_UNITS = 10;
 const PREVIEW_TTL_MS = 5 * 60 * 1000;
@@ -20,8 +21,9 @@ export const VERIFIED_LABEL_PACKAGE: BtcpostagePackage = {
   weightLbs: 0, weightOz: 8, heightIn: 3, widthIn: 4, depthIn: 6, packageType: "Parcel",
 };
 export function shippingFlowConfig() {
-  return { ...getBtcpostagePublicConfig(), enabled: process.env.PSL_FULFILLMENT_LABEL_FLOW_ENABLED === "true",
-    trackingEmailEnabled: process.env.PSL_FULFILLMENT_TRACKING_EMAIL_ENABLED === "true" };
+  const manualTest = getManualFulfillmentTestScope();
+  return { ...getBtcpostagePublicConfig(), enabled: Boolean(manualTest) || process.env.PSL_FULFILLMENT_LABEL_FLOW_ENABLED === "true",
+    trackingEmailEnabled: manualTest ? false : process.env.PSL_FULFILLMENT_TRACKING_EMAIL_ENABLED === "true" };
 }
 
 export function shippingOrderBlockers(order: Order, workflow: { workflowStatus: string } | null): string[] {

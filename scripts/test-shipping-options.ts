@@ -167,7 +167,12 @@ async function storedSelectionBoundary(selection: ShippingSelection) {
       items: [], subtotal: 59.99, tax_rate: 0, tax: 0, shipping_cost: 9.99, total: 69.98 }];
     return text.includes("SET shipping = jsonb_set") ? [{ order_id: "psl_fixture" }] : [];
   };
-  const store = load("lib/orders/store.ts", { "@/lib/db/sql": { getSql: () => sql },
+  const schemas = new Map<string, Promise<void>>();
+  const store = load("lib/orders/store.ts", { "@/lib/db/sql": { getSql: () => sql,
+    ensureSqlSchema: (name: string, initialize: () => Promise<void>) => {
+      if (!schemas.has(name)) schemas.set(name, initialize());
+      return schemas.get(name)!;
+    } },
     "@/lib/checkout/research-acknowledgement": research, "@/lib/shipping/policy": shippingPolicy }) as {
       setOrderShippingSelection: (orderId: string, selection: ShippingSelection) => Promise<void>;
       getOrder: (orderId: string) => Promise<Order | null>;

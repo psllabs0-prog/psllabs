@@ -1,4 +1,4 @@
-import { getSql } from "@/lib/db/sql";
+import { ensureSqlSchema, getSql } from "@/lib/db/sql";
 
 export const FULFILLMENT_TABLES = ["fulfillment_workflow"] as const;
 
@@ -8,11 +8,9 @@ export type FulfillmentWorkflowStatus =
   | "packed"
   | "hold";
 
-let schemaReady: Promise<void> | null = null;
 
 export async function ensureFulfillmentSchema(): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = (async () => {
+  await ensureSqlSchema("fulfillment", async () => {
       const sql = getSql();
       await sql`
         CREATE TABLE IF NOT EXISTS fulfillment_workflow (
@@ -29,10 +27,5 @@ export async function ensureFulfillmentSchema(): Promise<void> {
         CREATE INDEX IF NOT EXISTS fulfillment_workflow_status_idx
         ON fulfillment_workflow (workflow_status, updated_at DESC)
       `;
-    })().catch((error) => {
-      schemaReady = null;
-      throw error;
     });
-  }
-  await schemaReady;
 }

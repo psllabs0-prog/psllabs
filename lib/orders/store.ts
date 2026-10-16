@@ -1,11 +1,10 @@
-import { getSql } from "@/lib/db/sql";
+import { ensureSqlSchema, getSql } from "@/lib/db/sql";
 import { readStoredResearchAcknowledgement, type OrderResearchAcknowledgement } from "@/lib/checkout/research-acknowledgement";
 
 import type { Order, OrderStatus, PaymentMethod } from "./types";
 import type { ShippingSelection } from "@/lib/shipping/types";
 import { readShippingSelection } from "@/lib/shipping/policy";
 
-let schemaReady: Promise<void> | null = null;
 
 /** Bind the provider-selected rate before a card checkout can become payable. */
 export async function setOrderShippingSelection(orderId: string, selection: ShippingSelection): Promise<void> {
@@ -24,9 +23,8 @@ export async function setOrderShippingSelection(orderId: string, selection: Ship
 }
 
 export async function ensureOrdersSchema(): Promise<void> {
-  if (schemaReady) return schemaReady;
-  const sql = getSql();
-  schemaReady = (async () => {
+  return ensureSqlSchema("orders", async () => {
+    const sql = getSql();
     await sql`
       CREATE TABLE IF NOT EXISTS orders (
         order_id         TEXT PRIMARY KEY,
@@ -136,8 +134,7 @@ export async function ensureOrdersSchema(): Promise<void> {
         AND trim(tracking_number) <> ''
         AND shipped_at IS NOT NULL
     `;
-  })();
-  return schemaReady;
+  });
 }
 
 type OrderRow = {

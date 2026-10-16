@@ -1,4 +1,4 @@
-import { getSql } from "@/lib/db/sql";
+import { ensureSqlSchema, getSql } from "@/lib/db/sql";
 import type { Order } from "@/lib/orders/types";
 import { ensureOrdersSchema } from "@/lib/orders/store";
 import type { StockStatus } from "@/lib/products/stock";
@@ -11,11 +11,9 @@ import {
   PENDING_GRACE_MINUTES,
 } from "./constants";
 
-let schemaReady: Promise<void> | null = null;
 
 export async function ensureInventorySchema(): Promise<void> {
-  if (schemaReady) return schemaReady;
-  schemaReady = (async () => {
+  return ensureSqlSchema("inventory", async () => {
     await ensureOrdersSchema();
     const sql = getSql();
 
@@ -274,8 +272,7 @@ export async function ensureInventorySchema(): Promise<void> {
       END;
       $$ LANGUAGE plpgsql
     `;
-  })();
-  return schemaReady;
+  });
 }
 
 export type CheckoutStockResult =

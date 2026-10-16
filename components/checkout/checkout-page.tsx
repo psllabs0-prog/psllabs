@@ -13,7 +13,7 @@ import {
 import { useCart } from "@/components/cart/cart-provider";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 import { formatPrice } from "@/lib/cart/format";
-import { DISCOUNT_CODES_ENABLED } from "@/lib/checkout/discount-codes";
+import { DISCOUNT_CODES_ENABLED } from "@/lib/checkout/discount-codes-config";
 import { CHECKOUT_RESEARCH_ACK_VERSION, RESEARCH_USE_CHECKOUT_STATEMENT } from "@/lib/checkout/research-acknowledgement";
 import { RESEARCH_STATUSES, isResearchStatus } from "@/lib/research-auth/qualification";
 import { ProductPrice } from "@/components/commerce/product-price";

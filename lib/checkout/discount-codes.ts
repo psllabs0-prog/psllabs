@@ -1,4 +1,7 @@
 import { getSql } from "@/lib/db/sql";
+import { DISCOUNT_CODES_ENABLED } from "@/lib/checkout/discount-codes-config";
+
+export { DISCOUNT_CODES_ENABLED } from "@/lib/checkout/discount-codes-config";
 
 export type DiscountCodeRow = {
   code: string;
@@ -6,9 +9,6 @@ export type DiscountCodeRow = {
   active: boolean;
   expiresAt: string | null;
 };
-
-/** Set true to re-enable checkout promo codes (table + lookup remain in place). */
-export const DISCOUNT_CODES_ENABLED = false;
 
 let schemaReady: Promise<void> | null = null;
 

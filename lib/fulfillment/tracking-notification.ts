@@ -2,6 +2,7 @@ import { getOrder } from "@/lib/orders/store";
 import { sendOrderShippedEmail } from "@/lib/email/order-shipped";
 import { sendTrackingReadyEmail } from "@/lib/email/tracking-ready";
 import { claimTrackingNotification, finishTrackingNotification, getTrackingNotification, privateDigest, reviewTrackingNotification, shippingPaymentBlocked } from "./shipping-flow-store";
+import { getManualFulfillmentTestScope } from "@/lib/db/sql";
 
 /** Outbox is persisted by the caller first. A failed/uncertain SMTP call is held, not retried. */
 export async function dispatchTrackingNotification(orderId: string, allowSend: boolean) {
@@ -19,7 +20,11 @@ export async function dispatchTrackingNotification(orderId: string, allowSend: b
       return getTrackingNotification(orderId);
     }
     const messageId = `<psl-tracking-${privateDigest([orderId, order.trackingNumber])}@psllabs.org>`;
-    if (current.status === "shipped") await sendOrderShippedEmail(current, messageId);
+    const manualTest = getManualFulfillmentTestScope();
+    if (manualTest) {
+      if (!manualTest.allowTestEmail || !manualTest.sendTrackingEmail) throw new Error("Manual test mail requires its explicit action.");
+      await manualTest.sendTrackingEmail(current, messageId);
+    } else if (current.status === "shipped") await sendOrderShippedEmail(current, messageId);
     else await sendTrackingReadyEmail(current, messageId);
     await finishTrackingNotification(orderId);
   } catch {

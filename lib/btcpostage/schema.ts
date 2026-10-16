@@ -1,12 +1,10 @@
-import { getSql } from "@/lib/db/sql";
+import { ensureSqlSchema, getSql } from "@/lib/db/sql";
 
 export const BTCPOSTAGE_TABLES = ["btcpostage_labels"] as const;
 
-let schemaReady: Promise<void> | null = null;
 
 export async function ensureBtcpostageSchema(): Promise<void> {
-  if (!schemaReady) {
-    schemaReady = (async () => {
+  await ensureSqlSchema("btcpostage", async () => {
       const sql = getSql();
       await sql`
         CREATE TABLE IF NOT EXISTS btcpostage_labels (
@@ -49,10 +47,5 @@ export async function ensureBtcpostageSchema(): Promise<void> {
         CREATE INDEX IF NOT EXISTS btcpostage_labels_status_idx
         ON btcpostage_labels (purchase_status, updated_at DESC)
       `;
-    })().catch((error) => {
-      schemaReady = null;
-      throw error;
     });
-  }
-  await schemaReady;
 }

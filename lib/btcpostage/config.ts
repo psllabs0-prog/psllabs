@@ -1,4 +1,5 @@
 import type { BtcpostageAddress } from "./types";
+import { getManualFulfillmentTestScope } from "@/lib/db/sql";
 
 const API_BASE = "https://btcpostage.com/api";
 
@@ -28,6 +29,7 @@ export function getBtcpostageCredentials(): { key: string; secret: string } {
  * Does not treat labels as real customer shipments.
  */
 export function isBtcpostageTestMode(): boolean {
+  if (getManualFulfillmentTestScope()) return true;
   const raw = (process.env.BTCPOSTAGE_TEST_MODE ?? "").trim().toLowerCase();
   return raw === "1" || raw === "true" || raw === "yes";
 }

@@ -240,6 +240,15 @@ export function AdminFulfillmentDashboard() {
         )}
       </header>
 
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-accent/25 bg-surface px-5 py-4" aria-label="Manual shipping test">
+        <div className="min-w-0">
+          <p className="text-xs font-semibold uppercase tracking-wide text-accent">Test only</p>
+          <h2 className="mt-1 break-words font-display text-base font-semibold text-ink">Test order — lukeghaz@gmail.com</h2>
+          <p className="mt-1 text-sm text-ash">Try a USPS test label and one TEST tracking email yourself.</p>
+        </div>
+        <a href="/admin-fulfillment/test" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/20 px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">Open test order</a>
+      </section>
+
       {error && <p className="text-sm text-red-700">{error}</p>}
 
       {!data ? (

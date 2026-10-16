@@ -1,6 +1,5 @@
-import { getSql } from "@/lib/db/sql";
+import { ensureSqlSchema, getSql } from "@/lib/db/sql";
 
-let schemaReady: Promise<void> | null = null;
 
 /**
  * Idempotent finance schema bootstrap.
@@ -14,8 +13,7 @@ let schemaReady: Promise<void> | null = null;
  * DEFAULT 0 as a verified processor fee for Phase 1 finance reporting.
  */
 export async function ensureFinanceSchema(): Promise<void> {
-  if (schemaReady) return schemaReady;
-  schemaReady = (async () => {
+  return ensureSqlSchema("finance", async () => {
     const sql = getSql();
 
     await sql`
@@ -313,11 +311,7 @@ export async function ensureFinanceSchema(): Promise<void> {
       CREATE INDEX IF NOT EXISTS finance_job_runs_started_idx
       ON finance_job_runs (started_at DESC)
     `;
-  })().catch((error) => {
-    schemaReady = null;
-    throw error;
   });
-  return schemaReady;
 }
 
 /**

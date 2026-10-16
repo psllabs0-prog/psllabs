@@ -178,6 +178,7 @@ async function main() {
     };
     const dispatcher = load<typeof import("../lib/fulfillment/tracking-notification")>("lib/fulfillment/tracking-notification.ts", {
       "@/lib/orders/store": orderStore, "@/lib/email/order-shipped": { sendOrderShippedEmail: testMailer }, "@/lib/email/tracking-ready": { sendTrackingReadyEmail: testMailer }, "./shipping-flow-store": flowStore,
+      "@/lib/db/sql": { getManualFulfillmentTestScope: () => null },
     }, {});
     const createFlow = (realUspsTest: boolean, logicalTestMode: boolean) => {
       const config = { getBtcpostageFromAddress: () => from, isBtcpostageTestMode: () => logicalTestMode,
@@ -217,6 +218,7 @@ async function main() {
         "@/lib/btcpostage/store": labelStore, "@/lib/btcpostage/client": client, "@/lib/btcpostage/shipping-guard": guards,
         "@/lib/shipping/policy": shippingPolicy, "@/lib/shipping/request": { isPhysicalUSShippingAddress }, "./store": workflowStore,
         "./shipping-flow-store": flowStore, "./tracking-notification": dispatcher,
+        "@/lib/db/sql": { getManualFulfillmentTestScope: () => null },
       }, { PSL_FULFILLMENT_LABEL_FLOW_ENABLED: "true", PSL_FULFILLMENT_TRACKING_EMAIL_ENABLED: "true" });
     };
     stage = providerTest ? "actual-usps-no-debit-test-label" : "mock-test-label-isolation";

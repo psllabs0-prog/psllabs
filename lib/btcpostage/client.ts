@@ -2,6 +2,8 @@ import {
   getBtcpostageApiBase,
   getBtcpostageCredentials,
 } from "./config";
+import { getManualFulfillmentTestScope } from "@/lib/db/sql";
+import { MANUAL_TEST_ORDER } from "@/lib/fulfillment/manual-test-constants";
 import type {
   BtcpostageAddress,
   BtcpostagePackage,
@@ -46,11 +48,16 @@ async function postForm(
   const { key, secret } = getBtcpostageCredentials();
   const url = `${getBtcpostageApiBase()}/${endpoint.replace(/^\//, "")}`;
   let response: Response;
+  const manualTest = getManualFulfillmentTestScope();
+  if (manualTest && !["verify-address", "get-rates", "create-purchase", "retrieve-purchase"].includes(endpoint)) {
+    throw new Error("Manual tests cannot contact this carrier endpoint.");
+  }
   try {
     response = await fetchImpl(url, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: formBody({ ...fields, key, secret }),
+      ...(manualTest ? { redirect: "error" as const, signal: AbortSignal.timeout(30_000) } : {}),
     });
   } catch (error) {
     throw new BtcpostageApiError(
@@ -297,6 +304,9 @@ export async function createPurchase(input: {
   orderNotes?: string;
   fetchImpl?: FetchLike;
 }): Promise<BtcpostagePurchase> {
+  if (getManualFulfillmentTestScope() && (input.testMode !== true || input.carrier !== "USPS" || input.orderNotes !== `PSL ${MANUAL_TEST_ORDER}`)) {
+    throw new Error("The manual test can create only a no-debit USPS test label for its fixed fake order.");
+  }
   const fields: Record<string, string | number | boolean | undefined | null> = {
     to_name: input.to.name ?? "",
     to_street: input.to.street1,

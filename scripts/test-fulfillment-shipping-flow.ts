@@ -92,6 +92,7 @@ function harness(options: { enabled?: boolean; emailEnabled?: boolean; testMode?
   };
   const dispatcher = load<typeof import("../lib/fulfillment/tracking-notification")>("lib/fulfillment/tracking-notification.ts", {
     "@/lib/orders/store": orderStore, "@/lib/email/order-shipped": { sendOrderShippedEmail: send }, "@/lib/email/tracking-ready": { sendTrackingReadyEmail: send }, "./shipping-flow-store": flowStore,
+    "@/lib/db/sql": { getManualFulfillmentTestScope: () => null },
   });
   const client = {
     BtcpostageApiError,
@@ -136,6 +137,7 @@ function harness(options: { enabled?: boolean; emailEnabled?: boolean; testMode?
     "@/lib/shipping/policy": policy, "@/lib/shipping/request": { isPhysicalUSShippingAddress },
     "./store": { getFulfillmentWorkflow: async () => ({ workflowStatus: workflow }) }, "./shipping-flow-store": flowStore,
     "./tracking-notification": dispatcher,
+    "@/lib/db/sql": { getManualFulfillmentTestScope: () => null },
   }, env);
   return { order, calls, flow, dispatcher, previews,
     prepare: () => flow.prepareFulfillmentLabel(order.orderId),

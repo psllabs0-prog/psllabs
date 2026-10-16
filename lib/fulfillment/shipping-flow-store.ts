@@ -1,13 +1,12 @@
 import { createHash } from "node:crypto";
-import { getSql } from "@/lib/db/sql";
+import { ensureSqlSchema, getSql } from "@/lib/db/sql";
 import { ensureOrdersSchema } from "@/lib/orders/store";
 import { ensureFinanceSchema } from "@/lib/finance/schema";
 import type { ShippingNotificationStatus } from "./shipping-flow-types";
 
-let ready: Promise<void> | null = null;
 export const privateDigest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 export async function ensureShippingFlowSchema() {
-  if (!ready) ready = (async () => {
+  await ensureSqlSchema("fulfillment-shipping-flow", async () => {
     await ensureOrdersSchema();
     const sql = getSql();
     await sql`CREATE TABLE IF NOT EXISTS fulfillment_label_previews (
@@ -20,8 +19,7 @@ export async function ensureShippingFlowSchema() {
       recipient_hash TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
       claimed_at TIMESTAMPTZ, sent_at TIMESTAMPTZ, last_error TEXT,
       created_at TIMESTAMPTZ NOT NULL DEFAULT now(), updated_at TIMESTAMPTZ NOT NULL DEFAULT now())`;
-  })().catch(error => { ready = null; throw error; });
-  await ready;
+  });
 }
 
 /** Fail closed when accounting tables are unavailable; do not rely on a UI bucket. */
