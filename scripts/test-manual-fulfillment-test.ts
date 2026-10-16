@@ -7,7 +7,7 @@ import { types as pgTypes } from "pg";
 import { __setSqlClientForTests, ensureSqlSchema, getManualFulfillmentTestScope, getSql, withManualFulfillmentTestSql } from "../lib/db/sql";
 import { ensureOrdersSchema } from "../lib/orders/store";
 import { isBtcpostageTestMode } from "../lib/btcpostage/config";
-import { createPurchase, getRates } from "../lib/btcpostage/client";
+import { createPurchase, getRates, verifyAddress } from "../lib/btcpostage/client";
 import { shippingFlowConfig } from "../lib/fulfillment/shipping-flow";
 import { MANUAL_TEST_ORDER, MANUAL_TEST_PACKAGE, MANUAL_TEST_RECIPIENT, MANUAL_TEST_SCHEMA } from "../lib/fulfillment/manual-test-constants";
 import { privateDigest } from "../lib/fulfillment/shipping-flow-store";
@@ -65,6 +65,41 @@ async function main() {
     eq(JSON.stringify(process.env), envSnapshot, "request scoping never mutates process environment");
 
     const address = { name: "TEST ONLY", street1: "1 Offline Fixture", city: "Phoenix", state: "AZ", zip: "85016", country: "US" };
+    // The persisted fixture uses one address line; the provider expects a separate suite field.
+    let destinationScope = false;
+    const suiteSender = { ...address, street2: "Suite 456" };
+    const destinationHelper = load<typeof import("../lib/fulfillment/manual-test-destination")>("lib/fulfillment/manual-test-destination.ts", {
+      "node:assert/strict": { default: assert }, "@/lib/db/sql": { getManualFulfillmentTestScope: () => destinationScope ? {} : null },
+      "@/lib/btcpostage/config": { getBtcpostageFromAddress: () => suiteSender },
+      "./manual-test-constants": { MANUAL_TEST_ORDER, MANUAL_TEST_RECIPIENT },
+    });
+    const suiteOrder = { orderId: MANUAL_TEST_ORDER, email: MANUAL_TEST_RECIPIENT,
+      shipping: { firstName: "TEST", lastName: "ONLY", address: `${address.street1}, ${suiteSender.street2}`,
+        city: address.city, state: address.state, zip: address.zip, country: "US" } } as import("../lib/orders/types").Order;
+    eq(destinationHelper.manualTestDestination(suiteOrder), null, "normal orders do not use manual destination reconstruction");
+    destinationScope = true;
+    eq(JSON.parse(JSON.stringify(destinationHelper.manualTestDestination(suiteOrder))), { ...suiteSender, phone: "" }, "manual fixture restores the actual configured suite in street2");
+    for (const changed of [{ ...suiteOrder, orderId: "REAL-ORDER" }, { ...suiteOrder, email: "other@example.invalid" },
+      { ...suiteOrder, shipping: { ...suiteOrder.shipping, address: "CHANGED ADDRESS" } },
+      { ...suiteOrder, shipping: { ...suiteOrder.shipping, zip: "10001" } }]) {
+      assert.throws(() => destinationHelper.manualTestDestination(changed), /fixed fixture/); checks++;
+    }
+    const verificationLogs: unknown[][] = [], savedWarn = console.warn;
+    console.warn = (...args: unknown[]) => { verificationLogs.push(args); };
+    try {
+      await withManualFulfillmentTestSql(qaSql, async () => {
+        const rejected = await verifyAddress({ ...suiteSender, street1: "DO-NOT-LOG-PRIVATE-ADDRESS" }, async (_url, init) => {
+          const fields = new URLSearchParams(String(init?.body));
+          eq(fields.get("street2"), suiteSender.street2, "actual verify form preserves suite separately");
+          return { ok: true, status: 200, text: async () => JSON.stringify({ status: "success", is_valid: false,
+            data: { address: { street1: "DO-NOT-LOG-PROVIDER-ADDRESS" }, verification: { is_valid: false, errors: ["DO-NOT-LOG-PROVIDER-ERROR"] } } }) } as Response;
+        });
+        eq(rejected.isValid, false, "actual carrier rejection remains blocked for the private fixture");
+      });
+      eq(verificationLogs.length, 1, "manual rejection emits one diagnostic");
+      eq(JSON.stringify(verificationLogs).includes("DO-NOT-LOG"), false, "verification diagnostics contain no input/address/provider error text");
+      eq((verificationLogs[0][1] as { rootValidity: boolean }).rootValidity, false, "diagnostics preserve negative validity as a boolean only");
+    } finally { console.warn = savedWarn; }
     const base = { to: address, from: address, pkg: MANUAL_TEST_PACKAGE, carrier: "USPS", service: "GroundAdvantage", orderNotes: `PSL ${MANUAL_TEST_ORDER}` };
     let carrierCalls = 0;
     const fetchMock: typeof fetch = async (_url, init) => {

@@ -1,6 +1,7 @@
 import {
   getBtcpostageApiBase,
   getBtcpostageCredentials,
+  getBtcpostageFromAddress,
 } from "./config";
 import { getManualFulfillmentTestScope } from "@/lib/db/sql";
 import { MANUAL_TEST_ORDER } from "@/lib/fulfillment/manual-test-constants";
@@ -238,6 +239,17 @@ export async function verifyAddress(
       }
     : null;
 
+  if (getManualFulfillmentTestScope() && (!isValid || !standardized || errors.length)) {
+    // Diagnose the private fixture without logging addresses, provider bodies or free-text errors.
+    let senderHasStreet2: boolean | null = null;
+    try { senderHasStreet2 = Boolean(getBtcpostageFromAddress().street2?.trim()); } catch { /* Boolean readiness only. */ }
+    console.warn("[manual-fulfillment-test]", { event: "address_verification_blocked",
+      responseStatus: root?.status === "success" ? "success" : root?.status === "error" ? "error" : "other",
+      rootValidity: typeof root?.is_valid === "boolean" ? root.is_valid : "missing",
+      verificationValidity: typeof verification?.is_valid === "boolean" ? verification.is_valid : "missing",
+      standardizedAddressPresent: Boolean(addr), inputSuitePresent: Boolean(address.street2?.trim()), senderHasStreet2,
+      providerErrorCount: Array.isArray(errorsRaw) ? errorsRaw.length : 0 });
+  }
   return { isValid: Boolean(isValid) && errors.length === 0, standardized, errors, raw: json };
 }
 
