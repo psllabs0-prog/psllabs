@@ -186,6 +186,7 @@ export function AdminFulfillmentDashboard() {
             <FulfillmentShippingPanel
               key={`${card.orderId}:${labelsByOrderId[card.orderId]?.purchaseStatus ?? "none"}:${labelsByOrderId[card.orderId]?.trackingNumber ?? ""}:${labelsByOrderId[card.orderId]?.labelUrl ?? ""}`}
               orderId={card.orderId}
+              serviceName={shipping.serviceName}
               onLabelChange={(next) => {
                 setLabelsByOrderId((previous) => {
                   const copy = { ...previous };
@@ -197,8 +198,8 @@ export function AdminFulfillmentDashboard() {
               }}
             />
             <details className="mt-3 rounded-lg border border-linen px-3 py-2">
-              <summary className="cursor-pointer py-1.5 text-sm font-medium text-ash focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">Manual label tools &amp; purchase recovery</summary>
-              <p className="mt-2 text-xs leading-relaxed text-ash">Use these tools for an older order, a package correction or an uncertain provider purchase. Retrieve an existing purchase before trying to buy again.</p>
+              <summary className="cursor-pointer py-1.5 text-sm font-medium text-ash focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">Address tools &amp; purchase recovery</summary>
+              <p className="mt-2 text-xs leading-relaxed text-ash">Review the address or retrieve an existing purchase here. Use the quote and purchase button above for new labels and automatic tracking email.</p>
               <BtcpostageOrderPanel
                 key={`${card.orderId}:${labelsByOrderId[card.orderId]?.purchaseStatus ?? "none"}:${labelsByOrderId[card.orderId]?.trackingNumber ?? ""}`}
                 orderId={card.orderId}
@@ -239,15 +240,6 @@ export function AdminFulfillmentDashboard() {
           </p>
         )}
       </header>
-
-      <section className="flex flex-wrap items-center justify-between gap-4 rounded-xl border border-accent/25 bg-surface px-5 py-4" aria-label="Manual shipping test">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-accent">Test only</p>
-          <h2 className="mt-1 break-words font-display text-base font-semibold text-ink">Test order — lukeghaz@gmail.com</h2>
-          <p className="mt-1 text-sm text-ash">Try a USPS test label and one TEST tracking email yourself.</p>
-        </div>
-        <a href="/admin-fulfillment/test" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border-strong px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-accent/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">Open test order</a>
-      </section>
 
       {error && <p className="text-sm text-red-700">{error}</p>}
 

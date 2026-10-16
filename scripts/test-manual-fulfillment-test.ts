@@ -183,28 +183,43 @@ async function main() {
     } finally { console.warn = originalWarn; }
 
     const json = (data: unknown, init?: { status?: number; headers?: HeadersInit }) => ({ data, status: init?.status ?? 200, headers: new Headers(init?.headers) });
-    let actions = 0, reads = 0, passedInput: unknown;
+    // The retired route may import authentication only, never fixture, database, carrier or mail actions.
+    const queriesBeforeRetiredRoute = [publicQueries.length, testQueries.length];
+    const carrierCallsBeforeRetiredRoute = carrierCalls;
+    let bodyReads = 0;
     const api = (authorized: boolean) => load<typeof import("../app/api/admin/fulfillment-test/route")>("app/api/admin/fulfillment-test/route.ts", {
       "next/server": { NextResponse: { json } }, "@/lib/admin/require-auth": { requireAdminAuth: async () => authorized ? null : json({ error: "Unauthorized" }, { status: 401 }) },
-      "@/lib/fulfillment/manual-test": { manualTestStatus: async () => { reads++; return { exists: false }; }, manualTestAction: async (_action: string, input: unknown) => { actions++; passedInput = input; return { exists: true }; } },
-      "@/lib/fulfillment/manual-test-diagnostics": fixtureDiagnostics,
-      "@/lib/fulfillment/manual-test-address": { parseManualTestAddress },
     });
-    const post = (origin: string, body: unknown) => new Request("https://psllabs.org/api/admin/fulfillment-test", { method: "POST", headers: { origin, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const post = (origin: string, body: unknown) => {
+      const request = new Request("https://psllabs.org/api/admin/fulfillment-test", { method: "POST", headers: { origin, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      request.json = async () => { bodyReads++; throw new Error("Retired actions must never read or execute request bodies."); };
+      return request;
+    };
     const anon = await api(false).GET(); eq(anon.status, 401, "anonymous test status blocked"); eq(anon.headers.get("Cache-Control"), "private, no-store", "anonymous test response private");
-    eq((await api(true).POST(post("https://other.invalid", { action: "purchase" }))).status, 403, "cross-origin test purchase blocked");
-    eq(actions, 0, "auth/CSRF failures invoke no seed, carrier or email action");
-    await api(true).GET(); eq(reads, 1, "GET only reads status, without creating fixture"); eq(actions, 0, "GET never seeds or starts carrier/mail actions");
-    await api(true).POST(post("https://psllabs.org", { action: "purchase", previewToken: "fixture", confirmPurchase: true, recipient: "other@example.invalid", orderId: "REAL-ORDER", testMode: false }));
-    eq(JSON.parse(JSON.stringify(passedInput)), { previewToken: "fixture", confirmPurchase: true }, "browser cannot choose order, recipient or live mode");
-    const beforeInvalidAddress = actions;
-    eq((await api(true).POST(post("https://psllabs.org", { action: "update_test_address", address: "1 Offline Fixture", city: "Phoenix", state: "AZ", zip: "BAD" }))).status, 400,
-      "invalid test address rejected before any database or carrier action");
-    eq(actions, beforeInvalidAddress, "invalid address invokes no backend action");
-    await api(true).POST(post("https://psllabs.org", { action: "update_test_address", address: "1 Offline Fixture", street2: "Suite 456", city: "Phoenix", state: "az", zip: "85016",
-      orderId: "REAL-ORDER", recipient: "other@example.invalid", country: "CA", package: { weightOz: 999 }, testMode: false }));
-    eq(JSON.parse(JSON.stringify(passedInput)), { confirmPurchase: false, testAddress: { address: "1 Offline Fixture", street2: "Suite 456", city: "Phoenix", state: "AZ", zip: "85016" } },
-      "address action accepts only the fixed-scope address fields, with no email/order/country/package/live overrides");
+    const anonymousPost = await api(false).POST(post("https://psllabs.org", { action: "purchase" }));
+    eq(anonymousPost.status, 401, "retired POST still requires owner authentication");
+    eq(anonymousPost.headers.get("Cache-Control"), "private, no-store", "unauthenticated retired POST stays private");
+    for (const origin of ["https://other.invalid", "null", ""]) {
+      const denied = await api(true).POST(post(origin, { action: "purchase" }));
+      eq(denied.status, 403, "retired POST still rejects cross-origin or missing origin");
+      eq(denied.headers.get("Cache-Control"), "private, no-store", "origin denial stays private");
+    }
+    const gone = await api(true).GET();
+    eq(gone.status, 410, "authenticated GET reports the test workflow retired");
+    eq(gone.headers.get("Cache-Control"), "private, no-store", "retired status stays private");
+    eq((gone as unknown as { data: { path: string } }).data.path, "/admin-fulfillment", "retired status points to real fulfillment");
+    for (const action of ["create_test_order", "prepare", "purchase", "retrieve", "send_test_email", "update_test_address", "unknown"]) {
+      const result = await api(true).POST(post("https://psllabs.org", { action, confirmPurchase: true, previewToken: "fixture", testMode: false }));
+      eq(result.status, 410, action + " can no longer run through the retired endpoint");
+      eq(result.headers.get("Cache-Control"), "private, no-store", action + " retirement response stays private");
+    }
+    eq(bodyReads, 0, "retired actions never parse purchase, address or email inputs");
+    eq([publicQueries.length, testQueries.length], queriesBeforeRetiredRoute, "retired requests do not access production or fixture data");
+    eq(carrierCalls, carrierCallsBeforeRetiredRoute, "retired requests never call the carrier");
+    const retiredPage = load<{ default: () => never }>("app/admin-fulfillment/test/page.tsx", {
+      "next/navigation": { redirect: (path: string) => { throw new Error("REDIRECT:" + path); } },
+    });
+    assert.throws(retiredPage.default, /REDIRECT:\/admin-fulfillment$/, "old page redirects without loading the test panel"); checks++;
     eq(external, 0, "all tests stayed offline");
   } finally {
     __setSqlClientForTests(null); globalThis.fetch = originalFetch;

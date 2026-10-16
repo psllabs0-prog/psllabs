@@ -14,6 +14,7 @@ type ShippingReply = Partial<FulfillmentShippingStatus> & {
 
 type Props = {
   orderId: string;
+  serviceName?: string;
   onLabelChange?: (label: BtcpostageLabelPublic | null) => void;
 };
 
@@ -42,13 +43,14 @@ async function readShippingResponse(response: Response): Promise<ShippingReply> 
   return data;
 }
 
-export function FulfillmentShippingPanel({ orderId, onLabelChange }: Props) {
+export function FulfillmentShippingPanel({ orderId, serviceName, onLabelChange }: Props) {
   const [status, setStatus] = useState<FulfillmentShippingStatus | null>(null);
   const [preview, setPreview] = useState<FulfillmentShippingPreview | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [purchaseUncertain, setPurchaseUncertain] = useState(false);
+  const [externalReceipt, setExternalReceipt] = useState("");
   const actionInFlight = useRef(false);
 
   useEffect(() => {
@@ -75,7 +77,7 @@ export function FulfillmentShippingPanel({ orderId, onLabelChange }: Props) {
     if (reply.label?.purchaseStatus === "purchased") setPurchaseUncertain(false);
   }
 
-  async function request(action: "prepare" | "purchase" | "complete_tracking" | "status") {
+  async function request(action: "prepare" | "purchase" | "complete_tracking" | "record_external_email" | "status") {
     if (actionInFlight.current) return;
     if (action === "purchase" && (!preview?.canPurchase || !preview.token ||
       !preview.expiresAt || !Number.isFinite(Date.parse(preview.expiresAt)) || Date.parse(preview.expiresAt) <= Date.now())) {
@@ -97,6 +99,7 @@ export function FulfillmentShippingPanel({ orderId, onLabelChange }: Props) {
             action,
             orderId,
             ...(action === "purchase" ? { previewToken: preview!.token, confirmPurchase: true } : {}),
+            ...(action === "record_external_email" ? { externalReceipt: externalReceipt.trim(), confirmRecorded: true } : {}),
           }),
         });
       const reply = await readShippingResponse(response);
@@ -106,13 +109,21 @@ export function FulfillmentShippingPanel({ orderId, onLabelChange }: Props) {
         setPreview(null);
         setNotice(reply.alreadyPurchased ? "The existing label was retrieved. No second label was purchased." : null);
       }
+      if (action === "record_external_email") {
+        setExternalReceipt("");
+        setNotice("Recorded the email already sent. No new email or label was created.");
+      }
       if (action === "status" && (reply.label?.purchaseStatus === "needs_review" || reply.label?.purchaseStatus === "purchasing" || purchaseUncertain)) {
-        setNotice("Review the existing purchase in Manual label tools below before buying again.");
+        setNotice("Review the existing purchase in Address tools & purchase recovery below before buying again.");
       }
     } catch (caught) {
       if (action === "purchase") {
         setPurchaseUncertain(true);
         setPreview(null);
+        try {
+          const saved = await fetch(`/api/admin/fulfillment-shipping?orderId=${encodeURIComponent(orderId)}`, { cache: "no-store" });
+          applyReply(await readShippingResponse(saved));
+        } catch { /* Keep the purchase uncertain until its saved status can be read. */ }
       }
       if (action === "prepare") setPreview(null);
       setError(caught instanceof Error ? caught.message : "Shipping could not be updated.");
@@ -128,7 +139,7 @@ export function FulfillmentShippingPanel({ orderId, onLabelChange }: Props) {
   const isTest = Boolean(status?.testMode || label?.testMode || preview?.testMode);
   const isBusy = busy !== null;
   const canUseFlow = Boolean(status?.enabled && status.configured);
-  const canBuy = canUseFlow && !purchased && !needsReview && Boolean(preview?.canPurchase && preview.token && preview.expiresAt && Number.isFinite(preview.postageUsd) && Number(preview.postageUsd) > 0);
+  const canBuy = canUseFlow && Boolean(status?.trackingEmailEnabled) && !purchased && !needsReview && Boolean(preview?.canPurchase && preview.token && preview.expiresAt && Number.isFinite(preview.postageUsd) && Number(preview.postageUsd) > 0);
   const canCompleteTracking = purchased && !isTest && label.isRealShipment && !needsReview && canUseFlow;
   const emailSent = status?.notification?.status === "sent";
   const emailSending = status?.notification?.status === "sending";
@@ -140,11 +151,12 @@ export function FulfillmentShippingPanel({ orderId, onLabelChange }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-display text-base font-semibold text-ink">Label &amp; tracking</h3>
         <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${isTest ? "border-amber-300 bg-amber-50 text-amber-800" : "border-linen text-ash"}`}>
-          {isTest ? "Test mode" : needsReview ? "Needs review" : purchased ? "Label ready" : !status ? "Checking status" : status.enabled && status.configured ? "Manual purchase" : "Workflow off"}
+          {isTest ? "Test mode" : needsReview ? "Needs review" : purchased ? "Label ready" : !status ? "Checking status" : status.enabled && status.configured ? "Ready for shipping" : "Workflow off"}
         </span>
       </div>
 
       {!status && !error ? <p className="mt-3 text-sm text-ash" role="status">Loading shipping status…</p> : null}
+      {status?.enabled && !purchased && !isTest ? <p className="mt-3 text-sm leading-relaxed text-ash">Verify the address to get a quote. The order’s {serviceName || "saved USPS service"} is selected automatically. After you buy the label, tracking is saved and emailed to the customer.</p> : null}
       {status && !status.enabled ? <p className="mt-3 text-sm leading-relaxed text-ash">The combined label and tracking workflow is off. No purchase or customer email starts automatically.</p> : null}
       {status && !status.configured ? <p className="mt-3 text-sm text-amber-800">Shipping provider setup is incomplete.</p> : null}
       {status && !emailEnabled && !isTest ? <p className="mt-3 text-sm text-ash">Customer tracking emails are off.</p> : null}
@@ -153,7 +165,7 @@ export function FulfillmentShippingPanel({ orderId, onLabelChange }: Props) {
       {needsReview ? (
         <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800" role="status">
           <p className="font-semibold">Purchase needs checking</p>
-          <p className="mt-1 leading-relaxed">A label may already exist. Check the saved status, then use Manual label tools to retrieve the existing purchase.</p>
+          <p className="mt-1 leading-relaxed">A label may already exist. Check the saved status, then use Address tools &amp; purchase recovery to retrieve the existing purchase.</p>
           {label?.lastError ? <p className="mt-2 break-words">{label.lastError}</p> : null}
         </div>
       ) : null}
@@ -201,10 +213,10 @@ export function FulfillmentShippingPanel({ orderId, onLabelChange }: Props) {
         {!purchased && !needsReview && status ? (
           <>
             <button type="button" className={preview ? secondaryButton : primaryButton} disabled={isBusy || !canUseFlow} onClick={() => void request("prepare")}>
-              {busy === "prepare" ? "Preparing label…" : preview ? "Refresh quote" : "Prepare label"}
+              {busy === "prepare" ? "Verifying address & getting quote…" : preview ? "Refresh quote" : "Verify address & get quote"}
             </button>
             {preview ? <button type="button" className={primaryButton} disabled={isBusy || !canBuy} onClick={() => void request("purchase")}>
-              {busy === "purchase" ? "Purchasing label…" : isTest ? "Create test label" : `Buy label & ${emailEnabled ? "send" : "save"} tracking${typeof preview.postageUsd === "number" ? ` · ${usd(preview.postageUsd)}` : ""}`}
+              {busy === "purchase" ? "Buying label & sending tracking…" : isTest ? "Create test label" : `Buy label & send tracking${typeof preview.postageUsd === "number" ? ` · ${usd(preview.postageUsd)}` : ""}`}
             </button> : null}
           </>
         ) : null}
@@ -214,6 +226,14 @@ export function FulfillmentShippingPanel({ orderId, onLabelChange }: Props) {
         {(needsReview || purchased || error) ? <button type="button" className={secondaryButton} disabled={isBusy} onClick={() => void request("status")}>{busy === "status" ? "Checking…" : "Check status"}</button> : null}
       </div>
       {canCompleteTracking && (!status?.trackingSaved || (emailEnabled && !emailSent && !emailNeedsReview)) ? <p className="mt-2 text-xs text-ash">This action uses the existing label. It cannot purchase another one.</p> : null}
+      {canCompleteTracking && !emailSent && !emailSending && !emailNeedsReview ? <details className="mt-4 rounded-lg border border-linen p-3">
+        <summary className="cursor-pointer py-1 text-sm font-medium text-ash">Already emailed this customer?</summary>
+        <p className="mt-2 text-xs leading-relaxed text-ash">After checking Sent mail, record its message reference here to save tracking and prevent a duplicate notification.</p>
+        <label className="mt-3 block text-sm text-ink">Sent email reference
+          <input value={externalReceipt} onChange={event => setExternalReceipt(event.target.value)} maxLength={150} disabled={isBusy} placeholder="Gmail message ID or sent-message reference" className="mt-1 min-h-11 w-full rounded-lg border border-border-strong bg-surface px-3 py-2 text-ink" />
+        </label>
+        <button type="button" className={`${secondaryButton} mt-3`} disabled={isBusy || !externalReceipt.trim()} onClick={() => void request("record_external_email")}>{busy === "record_external_email" ? "Recording sent email…" : "Record email already sent"}</button>
+      </details> : null}
       {notice ? <p className="mt-3 text-sm text-ash" role="status">{notice}</p> : null}
       {error ? <p className="mt-3 break-words text-sm text-red-700" role="alert">{error}</p> : null}
     </section>

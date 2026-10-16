@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/admin/require-auth";
-import { completeFulfillmentTracking, getFulfillmentShippingStatus, prepareFulfillmentLabel, purchaseFulfillmentLabel } from "@/lib/fulfillment/shipping-flow";
+import { completeFulfillmentTracking, getFulfillmentShippingStatus, prepareFulfillmentLabel, purchaseFulfillmentLabel, recordExternalFulfillmentTrackingEmail } from "@/lib/fulfillment/shipping-flow";
 
 export const runtime = "nodejs";
 export const maxDuration = 90;
@@ -32,6 +32,8 @@ export async function POST(request: Request) {
     if (body.action === "purchase") return reply(await purchaseFulfillmentLabel({ orderId,
       previewToken: typeof body.previewToken === "string" ? body.previewToken : "", confirmPurchase: body.confirmPurchase === true }));
     if (body.action === "complete_tracking") return reply(await completeFulfillmentTracking(orderId));
+    if (body.action === "record_external_email") return reply(await recordExternalFulfillmentTrackingEmail({ orderId,
+      externalReceipt: typeof body.externalReceipt === "string" ? body.externalReceipt : "", confirmRecorded: body.confirmRecorded === true }));
     return reply({ error: "Unknown shipping action." }, 400);
   } catch {
     // Provider errors can contain response bodies or customer details. Status is

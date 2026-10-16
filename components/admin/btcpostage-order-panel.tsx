@@ -197,35 +197,6 @@ export function BtcpostageOrderPanel({
     }
   }
 
-  async function onBuy() {
-    const rate = rates.find(
-      (r) => `${r.carrier}::${r.service}` === selected
-    );
-    if (!rate) {
-      setError("Select a rate first.");
-      return;
-    }
-    const costNote = testMode
-      ? "TEST MODE — no credits should be charged for USPS."
-      : "This will consume BTCPostage credits.";
-    const ok = window.confirm(
-      `Buy ${rate.carrier} ${rate.serviceDisplay || rate.service} for $${rate.rate}?\n\n${costNote}`
-    );
-    if (!ok) return;
-
-    try {
-      const data = await post("buy_label", {
-        ...packageBody(),
-        carrier: rate.carrier,
-        service: rate.service,
-        confirmPurchase: true,
-      });
-      applyLabel((data.label as LabelPublic) ?? null);
-    } catch (e) {
-      await reviewPurchaseFailure(e, "Buy label failed");
-    }
-  }
-
   async function onRetrieve() {
     const btcpOrderId =
       label?.btcpOrderId ||
@@ -336,14 +307,6 @@ export function BtcpostageOrderPanel({
           onClick={() => void onRates()}
         >
           Get Shipping Rates
-        </button>
-        <button
-          type="button"
-          disabled={busy !== null || purchaseUncertain || !configured || !selected || label?.purchaseStatus === "purchased" || label?.purchaseStatus === "purchasing" || label?.purchaseStatus === "needs_review"}
-          className="underline disabled:opacity-50"
-          onClick={() => void onBuy()}
-        >
-          Buy Label
         </button>
         {(purchaseUncertain || label?.purchaseStatus === "needs_review" ||
           label?.purchaseStatus === "purchasing" ||

@@ -10,7 +10,7 @@ import type { BtcpostageAddress, BtcpostagePackage, BtcpostageRate } from "@/lib
 import { PRIORITY_ORIGIN_ZIP, priorityCostCovered } from "@/lib/shipping/policy";
 import { isPhysicalUSShippingAddress } from "@/lib/shipping/request";
 import { getFulfillmentWorkflow } from "./store";
-import { consumeLabelPreview, getTrackingNotification, privateDigest, saveLabelPreview, saveTrackingAndQueue, shippingPaymentBlocked } from "./shipping-flow-store";
+import { consumeLabelPreview, getTrackingNotification, privateDigest, recordExternallySentTrackingNotification, saveLabelPreview, saveTrackingAndQueue, shippingPaymentBlocked } from "./shipping-flow-store";
 import { dispatchTrackingNotification } from "./tracking-notification";
 import type { FulfillmentShippingPreview, FulfillmentShippingResult, FulfillmentShippingStatus } from "./shipping-flow-types";
 import { getManualFulfillmentTestScope } from "@/lib/db/sql";
@@ -23,6 +23,7 @@ export const VERIFIED_LABEL_PACKAGE: BtcpostagePackage = {
 export function shippingFlowConfig() {
   const manualTest = getManualFulfillmentTestScope();
   return { ...getBtcpostagePublicConfig(), enabled: Boolean(manualTest) || process.env.PSL_FULFILLMENT_LABEL_FLOW_ENABLED === "true",
+    trackingEmailConfigured: Boolean(process.env.SMTP_HOST?.trim() && process.env.SMTP_USER?.trim() && process.env.SMTP_PASSWORD?.trim()),
     trackingEmailEnabled: manualTest ? false : process.env.PSL_FULFILLMENT_TRACKING_EMAIL_ENABLED === "true" };
 }
 
@@ -77,6 +78,7 @@ export async function prepareFulfillmentLabel(orderId: string) {
   if (await shippingPaymentBlocked(orderId)) blockers.push("Payment reconciliation or reporting exclusion requires review.");
   if (label && label.purchaseStatus !== "none" && label.purchaseStatus !== "failed") blockers.push("A label exists or a purchase needs review. Check its status before preparing another.");
   if (!config.configured) blockers.push("BTCPostage credentials are not configured.");
+  if (config.trackingEmailEnabled && !config.trackingEmailConfigured) blockers.push("Customer tracking email setup is incomplete. Configure email before buying this label.");
   let postageUsd: number | null = null, token: string | null = null, expiresAt: string | null = null;
   if (!blockers.length) {
     const from = getBtcpostageFromAddress();
@@ -116,7 +118,8 @@ export async function completeFulfillmentTracking(orderId: string): Promise<Fulf
   const tracking = label.trackingNumber?.trim() || "";
   if (!tracking || tracking.length > 64) throw new Error("The saved purchase has no usable tracking number. Retrieve and review the existing purchase; do not buy again.");
   await saveTrackingAndQueue({ orderId, trackingNumber: tracking, carrier: label.carrier.toUpperCase(), recipientHash: privateDigest(order.email.trim().toLowerCase()), recipientEmail: order.email });
-  const notification = await dispatchTrackingNotification(orderId, shippingFlowConfig().trackingEmailEnabled);
+  const config = shippingFlowConfig();
+  const notification = await dispatchTrackingNotification(orderId, config.trackingEmailEnabled && config.trackingEmailConfigured);
   return { ok: true, label, trackingSaved: true, notification, testMode: false };
 }
 
@@ -126,6 +129,7 @@ export async function purchaseFulfillmentLabel(input: { orderId: string; preview
   if (!config.enabled || !config.configured) throw new Error("Label purchase automation is not enabled and configured.");
   const existing = await getBtcpostageLabel(input.orderId);
   if (existing?.purchaseStatus === "purchased") return { ...await completeFulfillmentTracking(input.orderId), alreadyPurchased: true };
+  if (config.trackingEmailEnabled && !config.trackingEmailConfigured) throw new Error("Customer tracking email setup is incomplete. No label was purchased.");
   if (!/^[a-f0-9]{64}$/.test(input.previewToken)) throw new Error("A current label preview is required.");
   const preview = await consumeLabelPreview(input.orderId, input.previewToken);
   const order = await getOrder(input.orderId);
@@ -146,4 +150,22 @@ export async function purchaseFulfillmentLabel(input: { orderId: string; preview
   if (result.label.testMode) return { ok: true, label: result.label, testMode: true, trackingSaved: false, notification: null };
   // Purchase is already durably stored. Tracking failures must not return to buy.
   return { ...await completeFulfillmentTracking(input.orderId), ...(result.alreadyPurchased ? { alreadyPurchased: true } : {}) };
+}
+
+/** An explicit owner action records an already sent email; this never dispatches. */
+export async function recordExternalFulfillmentTrackingEmail(input: { orderId: string; externalReceipt: string; confirmRecorded: boolean }): Promise<FulfillmentShippingResult> {
+  if (input.confirmRecorded !== true || typeof input.externalReceipt !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._:@/-]{0,149}$/.test(input.externalReceipt)) throw new Error("Confirm the reviewed Sent-mail receipt before recording it.");
+  if (getManualFulfillmentTestScope()) throw new Error("External customer email evidence is unavailable in test mode.");
+  const order = await getOrder(input.orderId);
+  const label = await getOrderLabelPublic(input.orderId);
+  if (!order || !label || order.orderId !== input.orderId || label.pslOrderId !== input.orderId || !label.btcpOrderId?.trim() ||
+      label.purchaseStatus !== "purchased" || label.testMode || !label.isRealShipment) throw new Error("A verified real purchased label bound to this order is required.");
+  if (!["paid", "shipped"].includes(order.status) || await shippingPaymentBlocked(input.orderId)) throw new Error("The order's payment state needs review.");
+  if (!label.carrier || !label.service || !labelRateMatchesShippingSelection(order.shipping.selection, { carrier: label.carrier, service: label.service })) throw new Error("The existing label service does not match this order.");
+  const tracking = label.trackingNumber?.trim() || "";
+  if (!tracking || tracking.length > 64 || !order.email.trim() || !order.email.includes("@")) throw new Error("Verified tracking and a customer email are required.");
+  if (order.trackingNumber?.trim() && order.trackingNumber !== tracking || order.trackingCarrier?.trim() && order.trackingCarrier.trim().toUpperCase() !== label.carrier.toUpperCase()) throw new Error("Existing order tracking differs from the purchased label.");
+  await recordExternallySentTrackingNotification({ orderId: input.orderId, trackingNumber: tracking, carrier: label.carrier.toUpperCase(),
+    recipientHash: privateDigest(order.email.trim().toLowerCase()), recipientEmail: order.email, externalReceipt: input.externalReceipt });
+  return { ok: true, label, trackingSaved: true, notification: await getTrackingNotification(input.orderId), testMode: false };
 }

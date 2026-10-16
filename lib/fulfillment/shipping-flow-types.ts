@@ -9,6 +9,7 @@ export type FulfillmentShippingStatus = {
   testMode: boolean;
   configured: boolean;
   trackingEmailEnabled: boolean;
+  trackingEmailConfigured: boolean;
   trackingSaved: boolean;
   label: BtcpostageLabelPublic | null;
   notification: ShippingNotificationStatus | null;

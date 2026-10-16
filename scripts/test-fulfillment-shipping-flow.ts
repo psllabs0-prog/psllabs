@@ -45,7 +45,7 @@ function blankLabel(order: Order): BtcpostageLabelRecord {
 }
 type Flow = typeof import("../lib/fulfillment/shipping-flow");
 type Notice = ShippingNotificationStatus & { tracking: string; recipient: string };
-function harness(options: { enabled?: boolean; emailEnabled?: boolean; testMode?: boolean } = {}) {
+function harness(options: { enabled?: boolean; emailEnabled?: boolean; emailConfigured?: boolean; testMode?: boolean } = {}) {
   const order = fixture(), calls: string[] = [];
   let label: BtcpostageLabelRecord | null = null, notification: Notice | null = null;
   let workflow = "packed", blocked = false, invalidAddress = false, fromZip = "85016";
@@ -53,7 +53,8 @@ function harness(options: { enabled?: boolean; emailEnabled?: boolean; testMode?
   let creates = 0, sends = 0, retrieves = 0, verifies = 0, quotes = 0;
   const previews = new Map<string, { fingerprint: string; postageUsd: number; expiresAt: string; used: boolean }>();
   const env = { PSL_FULFILLMENT_LABEL_FLOW_ENABLED: String(options.enabled ?? true),
-    PSL_FULFILLMENT_TRACKING_EMAIL_ENABLED: String(options.emailEnabled ?? true) };
+    PSL_FULFILLMENT_TRACKING_EMAIL_ENABLED: String(options.emailEnabled ?? true),
+    SMTP_HOST: options.emailConfigured === false ? "" : "offline.invalid", SMTP_USER: "offline", SMTP_PASSWORD: "offline-not-a-secret" };
   const from = () => ({ name: "Fixture Sender", street1: "2 Fixture Origin", city: "Phoenix", state: "AZ", zip: fromZip, country: "US" });
   const config = { getBtcpostagePublicConfig: () => ({ configured: true, testMode: options.testMode ?? false }),
     getBtcpostageFromAddress: from, isBtcpostageTestMode: () => options.testMode ?? false };
@@ -194,6 +195,11 @@ async function main() {
     const wrongOrigin = harness(); wrongOrigin.set({ fromZip: "10007" }); await rejects(() => wrongOrigin.prepare(), /origin.*85016/);
     const off = harness({ enabled: false }); const op = (await off.prepare()).preview; eq(op.canPurchase, false, "purchase flag off is server enforced"); await rejects(() => off.buy(op), /not enabled/);
     const noEmail = harness({ emailEnabled: false }); await noEmail.buy((await noEmail.prepare()).preview); eq(noEmail.state().sends, 0, "email flag off queues without sending"); eq(noEmail.state().notification?.status, "pending", "queued state remains visible");
+    const missingEmail = harness({ emailConfigured: false }); const mp = (await missingEmail.prepare()).preview;
+    eq(mp.canPurchase, false, "known missing SMTP setup blocks a new paid label before quote confirmation");
+    eq(missingEmail.state().verifies, 0, "missing SMTP setup is reported before carrier verification");
+    await rejects(() => missingEmail.buy(mp), /email setup.*incomplete/i);
+    eq(missingEmail.state().creates, 0, "missing SMTP setup cannot spend provider credit");
     const test = harness({ testMode: true }); const tr = await test.buy((await test.prepare()).preview); eq(tr.testMode, true, "test purchase remains a test label"); eq(test.order.trackingNumber, null, "test label never copied to real order"); eq(test.state().sends, 0, "test label never emailed");
     const pri = harness(); pri.order.shipping.selection = { ...policy.standardShippingSelection(), method: "priority", providerServiceCode: "Priority", serviceDisplayName: "USPS Priority Mail", package: { ...policy.PRIORITY_PACKAGE }, quotedPostageUsd: 19.28, quotedAt: "2026-10-15T12:00:00.000Z", quoteExpiresAt: "2026-10-15T12:05:00.000Z" }; pri.order.shippingCost = 22.99; pri.set({ rate: "19.28" });
     const pp = (await pri.prepare()).preview; eq(pp.service, "Priority", "saved paid Priority upgrade retained"); await pri.buy(pp); eq(pri.state().creates, 1, "covered Priority succeeds");
