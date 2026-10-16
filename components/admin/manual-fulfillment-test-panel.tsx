@@ -115,7 +115,7 @@ export function ManualFulfillmentTestPanel() {
   const label = data?.shippingStatus?.label;
   const purchased = label?.purchaseStatus === "purchased";
   const purchaseNeedsReview = purchaseUncertain || label?.purchaseStatus === "needs_review" || label?.purchaseStatus === "purchasing";
-  const unexpectedLabel = Boolean(label && !label.testMode);
+  const unexpectedLabel = Boolean(label && (label.purchaseStatus === "purchased" || label.isRealShipment) && !label.testMode);
   const emailSent = data?.testEmail.status === "smtp_accepted";
   const emailHeld = emailUncertain || data?.testEmail.status === "claimed" || data?.testEmail.status === "needs_review";
   const canEditAddress = Boolean(data?.canEditTestAddress && !purchased && !purchaseNeedsReview && !emailHeld && !emailSent && !data?.shippingStatus?.trackingSaved);
