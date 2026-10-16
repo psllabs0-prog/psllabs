@@ -5,9 +5,19 @@ import type { BtcpostageAddress } from "@/lib/btcpostage/types";
 import type { Order } from "@/lib/orders/types";
 import { MANUAL_TEST_ORDER, MANUAL_TEST_RECIPIENT } from "./manual-test-constants";
 
-/** Restore the real configured suite to street2 for the fixed sender-as-destination fixture. */
+/** Resolve only the fixed private fixture's server-loaded destination, preserving its suite. */
 export function manualTestDestination(order: Order): BtcpostageAddress | null {
-  if (!getManualFulfillmentTestScope()) return null;
+  const scope = getManualFulfillmentTestScope();
+  if (!scope) return null;
+  if (scope.testAddress) {
+    const address = scope.testAddress;
+    assert(order.orderId === MANUAL_TEST_ORDER && order.email === MANUAL_TEST_RECIPIENT && order.shipping.country === "US" &&
+      order.shipping.address === [address.address, address.street2].filter(Boolean).join("\n") &&
+      order.shipping.city === address.city && order.shipping.state === address.state && order.shipping.zip === address.zip,
+    "The manual destination must match its fixed fixture's server-saved test address.");
+    return { name: `${order.shipping.firstName} ${order.shipping.lastName}`.trim(), street1: address.address,
+      street2: address.street2, city: address.city, state: address.state, zip: address.zip, country: "US", phone: "" };
+  }
   const from = getBtcpostageFromAddress();
   assert(order.orderId === MANUAL_TEST_ORDER && order.email === MANUAL_TEST_RECIPIENT &&
     order.shipping.address === [from.street1, from.street2].filter(Boolean).join(", ") &&

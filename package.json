@@ -63,7 +63,7 @@
     "test:fulfillment": "tsx scripts/test-fulfillment.ts",
     "test:fulfillment-shipping": "tsx scripts/test-fulfillment-shipping-flow.ts && tsx scripts/test-shipping-purchase-recovery.ts",
     "test:fulfillment-shipping-qa-guards": "tsx scripts/test-fulfillment-shipping-qa-guards.ts",
-    "test:manual-fulfillment": "tsx scripts/test-manual-fulfillment-test.ts",
+    "test:manual-fulfillment": "tsx scripts/test-manual-fulfillment-test.ts && tsx scripts/test-manual-test-address.ts",
     "migrate:fulfillment-shipping": "tsx scripts/migrate-fulfillment-shipping.ts",
     "test:btcpostage": "tsx scripts/test-btcpostage.ts",
     "test:order-notification": "tsx scripts/test-order-notification.ts",

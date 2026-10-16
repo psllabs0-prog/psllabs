@@ -1,7 +1,7 @@
 export type ManualFixtureStage = "validate_sender" | "connect_control" | "create_schema" | "verify_owner" |
   "connect_fixture" | "begin" | "lock" | "inventory_schema" | "finance_schema" | "workflow_schema" |
   "label_schema" | "shipping_schema" | "identity_schema" | "existing_fixture" | "catalog" | "seed_product" |
-  "checkout" | "settlement" | "workflow" | "identity_marker" | "commit";
+  "checkout" | "settlement" | "workflow" | "identity_marker" | "commit" | "check_unused" | "write_address" | "clear_address_cache";
 
 /** Only fixed stage names and a bounded SQLSTATE/category cross the admin boundary. */
 export class ManualFixtureError extends Error {

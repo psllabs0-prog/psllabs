@@ -2,10 +2,11 @@ import { neon, type NeonQueryFunction } from "@neondatabase/serverless";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { isDesignPreview } from "@/lib/design-preview";
 import type { Order } from "@/lib/orders/types";
+import type { ManualFulfillmentTestAddress } from "@/lib/fulfillment/manual-test-types";
 
 let sqlClient: NeonQueryFunction<false, false> | null = null;
 type Sql = NeonQueryFunction<false, false>;
-type ManualTestOptions = { allowTestEmail?: boolean; sendTrackingEmail?: (order: Order, messageId: string) => Promise<void> };
+type ManualTestOptions = { allowTestEmail?: boolean; sendTrackingEmail?: (order: Order, messageId: string) => Promise<void>; testAddress?: ManualFulfillmentTestAddress };
 type ManualTestScope = ManualTestOptions & { sql: Sql };
 const manualTestScopes = new AsyncLocalStorage<ManualTestScope>();
 const schemaCaches = new WeakMap<Sql, Map<string, Promise<void>>>();
@@ -16,7 +17,7 @@ export function withManualFulfillmentTestSql<T>(sql: Sql, action: () => Promise<
 }
 export function getManualFulfillmentTestScope(): ManualTestOptions | null {
   const scope = manualTestScopes.getStore();
-  return scope ? { allowTestEmail: scope.allowTestEmail, sendTrackingEmail: scope.sendTrackingEmail } : null;
+  return scope ? { allowTestEmail: scope.allowTestEmail, sendTrackingEmail: scope.sendTrackingEmail, testAddress: scope.testAddress } : null;
 }
 
 /** Cache schema initialization by its actual SQL client, never across public/test scopes. */

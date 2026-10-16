@@ -1,6 +1,13 @@
 import type { FulfillmentShippingPreview, FulfillmentShippingStatus } from "./shipping-flow-types";
 import type { BtcpostagePackage } from "@/lib/btcpostage/types";
 
+export type ManualFulfillmentTestAddress = {
+  address: string;
+  street2: string;
+  city: string;
+  state: string;
+  zip: string;
+};
 export type ManualFulfillmentTestStatus = {
   exists: boolean;
   testOnly: true;
@@ -11,6 +18,8 @@ export type ManualFulfillmentTestStatus = {
   providerConfigured: boolean;
   senderReady: boolean;
   smtpReady: boolean;
+  testAddress: ManualFulfillmentTestAddress | null;
+  canEditTestAddress: boolean;
   shippingStatus: FulfillmentShippingStatus | null;
   testEmail: { status: "none" | "claimed" | "smtp_accepted" | "needs_review" };
 };

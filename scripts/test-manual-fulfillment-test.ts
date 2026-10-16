@@ -12,6 +12,8 @@ import { shippingFlowConfig } from "../lib/fulfillment/shipping-flow";
 import { MANUAL_TEST_ORDER, MANUAL_TEST_PACKAGE, MANUAL_TEST_RECIPIENT, MANUAL_TEST_SCHEMA } from "../lib/fulfillment/manual-test-constants";
 import { privateDigest } from "../lib/fulfillment/shipping-flow-store";
 import * as fixtureDiagnostics from "../lib/fulfillment/manual-test-diagnostics";
+import { parseManualTestAddress } from "../lib/fulfillment/manual-test-address";
+import { QA_MAIL_AUTHORIZATION } from "../lib/fulfillment/test-mail-authorization";
 
 // pg's runtime parser registry supports array OIDs omitted from its TypeId union.
 const pgArrayParser = (oid: 1003 | 1009) => pgTypes.getTypeParser(oid as Parameters<typeof pgTypes.getTypeParser>[0]);
@@ -151,7 +153,7 @@ async function main() {
       async query(query: string) { return { rows: query.includes("pg_get_userbyid") ? [{ owned: true }] : [] }; }
     }
     const fixtureDb = load<typeof import("../lib/fulfillment/manual-test-db")>("lib/fulfillment/manual-test-db.ts", {
-      "node:assert/strict": { default: assert }, pg: { Pool: OfflinePool }, "@/lib/db/sql": { getSql, withManualFulfillmentTestSql },
+      "node:assert/strict": { default: assert }, pg: { Pool: OfflinePool }, "@/lib/db/sql": { getSql, withManualFulfillmentTestSql, getManualFulfillmentTestScope },
       "@/lib/design-preview": { isDesignPreview: () => false },
       "@/lib/btcpostage/config": { getBtcpostageFromAddress: () => address }, "@/lib/btcpostage/schema": { ensureBtcpostageSchema: async () => undefined },
       "@/lib/inventory/store": { ensureInventorySchema: async () => undefined, checkoutWithStockCheck: async (order: Record<string, unknown>) => { seededOrder = { ...order }; return { ok: true }; }, settlePaidOrder: async () => { stock--; return { ok: true }; } },
@@ -160,6 +162,7 @@ async function main() {
       "@/lib/orders/store": { getOrder: async () => seededOrder }, "@/lib/products/catalog": { getActiveCatalogProducts: () => [{ handle: "retatrutide", name: "Retatrutide", strength: "10mg", price: 59.99, sku: "PSL-RT-10MG" }] },
       "@/lib/shipping/policy": { standardShippingSelection: () => ({ method: "standard" }) }, "./manual-test-constants": { MANUAL_TEST_ORDER, MANUAL_TEST_RECIPIENT, MANUAL_TEST_SCHEMA },
       "./manual-test-diagnostics": fixtureDiagnostics,
+      "./manual-test-address": { parseManualTestAddress }, "./test-mail-authorization": { QA_MAIL_AUTHORIZATION },
     }, { DATABASE_URL: "postgresql://qa:offline@ep-qa.us-east-2.aws.neon.tech/qa?sslmode=require" });
     const diagnosticLogs: unknown[][] = [], originalWarn = console.warn;
     console.warn = (...args: unknown[]) => { diagnosticLogs.push(args); };
@@ -185,6 +188,7 @@ async function main() {
       "next/server": { NextResponse: { json } }, "@/lib/admin/require-auth": { requireAdminAuth: async () => authorized ? null : json({ error: "Unauthorized" }, { status: 401 }) },
       "@/lib/fulfillment/manual-test": { manualTestStatus: async () => { reads++; return { exists: false }; }, manualTestAction: async (_action: string, input: unknown) => { actions++; passedInput = input; return { exists: true }; } },
       "@/lib/fulfillment/manual-test-diagnostics": fixtureDiagnostics,
+      "@/lib/fulfillment/manual-test-address": { parseManualTestAddress },
     });
     const post = (origin: string, body: unknown) => new Request("https://psllabs.org/api/admin/fulfillment-test", { method: "POST", headers: { origin, "Content-Type": "application/json" }, body: JSON.stringify(body) });
     const anon = await api(false).GET(); eq(anon.status, 401, "anonymous test status blocked"); eq(anon.headers.get("Cache-Control"), "private, no-store", "anonymous test response private");
@@ -193,6 +197,14 @@ async function main() {
     await api(true).GET(); eq(reads, 1, "GET only reads status, without creating fixture"); eq(actions, 0, "GET never seeds or starts carrier/mail actions");
     await api(true).POST(post("https://psllabs.org", { action: "purchase", previewToken: "fixture", confirmPurchase: true, recipient: "other@example.invalid", orderId: "REAL-ORDER", testMode: false }));
     eq(JSON.parse(JSON.stringify(passedInput)), { previewToken: "fixture", confirmPurchase: true }, "browser cannot choose order, recipient or live mode");
+    const beforeInvalidAddress = actions;
+    eq((await api(true).POST(post("https://psllabs.org", { action: "update_test_address", address: "1 Offline Fixture", city: "Phoenix", state: "AZ", zip: "BAD" }))).status, 400,
+      "invalid test address rejected before any database or carrier action");
+    eq(actions, beforeInvalidAddress, "invalid address invokes no backend action");
+    await api(true).POST(post("https://psllabs.org", { action: "update_test_address", address: "1 Offline Fixture", street2: "Suite 456", city: "Phoenix", state: "az", zip: "85016",
+      orderId: "REAL-ORDER", recipient: "other@example.invalid", country: "CA", package: { weightOz: 999 }, testMode: false }));
+    eq(JSON.parse(JSON.stringify(passedInput)), { confirmPurchase: false, testAddress: { address: "1 Offline Fixture", street2: "Suite 456", city: "Phoenix", state: "AZ", zip: "85016" } },
+      "address action accepts only the fixed-scope address fields, with no email/order/country/package/live overrides");
     eq(external, 0, "all tests stayed offline");
   } finally {
     __setSqlClientForTests(null); globalThis.fetch = originalFetch;
