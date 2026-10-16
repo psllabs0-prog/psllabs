@@ -196,7 +196,7 @@ export function AdminFulfillmentDashboard() {
                 if (next?.purchaseStatus === "purchased") void refresh();
               }}
             />
-            <details className="mt-3 rounded-lg border border-white/10 px-3 py-2">
+            <details className="mt-3 rounded-lg border border-linen px-3 py-2">
               <summary className="cursor-pointer py-1.5 text-sm font-medium text-ash focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">Manual label tools &amp; purchase recovery</summary>
               <p className="mt-2 text-xs leading-relaxed text-ash">Use these tools for an older order, a package correction or an uncertain provider purchase. Retrieve an existing purchase before trying to buy again.</p>
               <BtcpostageOrderPanel
@@ -246,7 +246,7 @@ export function AdminFulfillmentDashboard() {
           <h2 className="mt-1 break-words font-display text-base font-semibold text-ink">Test order — lukeghaz@gmail.com</h2>
           <p className="mt-1 text-sm text-ash">Try a USPS test label and one TEST tracking email yourself.</p>
         </div>
-        <a href="/admin-fulfillment/test" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-white/20 px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">Open test order</a>
+        <a href="/admin-fulfillment/test" className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border-strong px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-accent/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent">Open test order</a>
       </section>
 
       {error && <p className="text-sm text-red-700">{error}</p>}

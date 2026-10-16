@@ -18,7 +18,7 @@ type Props = {
 };
 
 const primaryButton = "inline-flex min-h-11 items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-page transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45";
-const secondaryButton = "inline-flex min-h-11 items-center justify-center rounded-lg border border-white/20 px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45";
+const secondaryButton = "inline-flex min-h-11 items-center justify-center rounded-lg border border-border-strong px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:bg-accent/5 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-45";
 
 function usd(value: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
@@ -136,22 +136,22 @@ export function FulfillmentShippingPanel({ orderId, onLabelChange }: Props) {
   const emailEnabled = Boolean(status?.trackingEmailEnabled);
 
   return (
-    <section aria-label={`Shipping label for ${orderId}`} aria-busy={isBusy} className="mt-4 rounded-xl border border-white/10 bg-page/70 p-4 sm:p-5">
+    <section aria-label={`Shipping label for ${orderId}`} aria-busy={isBusy} className="mt-4 rounded-xl border border-linen bg-surface p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-display text-base font-semibold text-ink">Label &amp; tracking</h3>
-        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${isTest ? "border-amber-300/30 text-amber-200" : "border-white/15 text-ash"}`}>
+        <span className={`rounded-full border px-2.5 py-1 text-xs font-medium ${isTest ? "border-amber-300 bg-amber-50 text-amber-800" : "border-linen text-ash"}`}>
           {isTest ? "Test mode" : needsReview ? "Needs review" : purchased ? "Label ready" : !status ? "Checking status" : status.enabled && status.configured ? "Manual purchase" : "Workflow off"}
         </span>
       </div>
 
       {!status && !error ? <p className="mt-3 text-sm text-ash" role="status">Loading shipping status…</p> : null}
       {status && !status.enabled ? <p className="mt-3 text-sm leading-relaxed text-ash">The combined label and tracking workflow is off. No purchase or customer email starts automatically.</p> : null}
-      {status && !status.configured ? <p className="mt-3 text-sm text-amber-200">Shipping provider setup is incomplete.</p> : null}
+      {status && !status.configured ? <p className="mt-3 text-sm text-amber-800">Shipping provider setup is incomplete.</p> : null}
       {status && !emailEnabled && !isTest ? <p className="mt-3 text-sm text-ash">Customer tracking emails are off.</p> : null}
-      {isTest ? <p className="mt-3 text-sm text-amber-200">Test labels never update customer tracking or send a shipping email.</p> : null}
+      {isTest ? <p className="mt-3 text-sm text-amber-800">Test labels never update customer tracking or send a shipping email.</p> : null}
 
       {needsReview ? (
-        <div className="mt-4 rounded-lg border border-amber-300/25 bg-amber-300/5 p-3 text-sm text-amber-100" role="status">
+        <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800" role="status">
           <p className="font-semibold">Purchase needs checking</p>
           <p className="mt-1 leading-relaxed">A label may already exist. Check the saved status, then use Manual label tools to retrieve the existing purchase.</p>
           {label?.lastError ? <p className="mt-2 break-words">{label.lastError}</p> : null}
@@ -160,7 +160,7 @@ export function FulfillmentShippingPanel({ orderId, onLabelChange }: Props) {
 
       {preview && !purchased && !needsReview ? (
         <div className="mt-4 space-y-3">
-          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-white/10 pb-3">
+          <div className="flex flex-wrap items-end justify-between gap-3 border-b border-linen pb-3">
             <div className="min-w-0">
               <p className="text-xs uppercase tracking-wide text-ash">Selected order service</p>
               <p className="mt-1 break-words font-semibold text-ink">{preview.serviceName}</p>
@@ -174,7 +174,7 @@ export function FulfillmentShippingPanel({ orderId, onLabelChange }: Props) {
             <div className="min-w-0"><dt className="text-xs text-ash">Ship to</dt><dd className="mt-1 whitespace-pre-line break-words text-ink">{preview.destinationSummary}</dd></div>
             <div><dt className="text-xs text-ash">Saved package</dt><dd className="mt-1 text-ink">{preview.package.weightLbs} lb {preview.package.weightOz} oz · {preview.package.depthIn} × {preview.package.widthIn} × {preview.package.heightIn} in</dd></div>
           </dl>
-          {preview.blockers.length > 0 ? <ul className="space-y-1 rounded-lg border border-amber-300/25 bg-amber-300/5 p-3 text-sm text-amber-100" aria-label="Label purchase blockers">{preview.blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul> : null}
+          {preview.blockers.length > 0 ? <ul className="space-y-1 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800" aria-label="Label purchase blockers">{preview.blockers.map((blocker) => <li key={blocker}>{blocker}</li>)}</ul> : null}
           {canBuy ? <p className="text-xs leading-relaxed text-ash">Buying this label uses provider credit and saves its tracking number{emailEnabled ? ", then queues the customer email" : ""}. A label does not confirm carrier pickup.</p> : null}
         </div>
       ) : null}
@@ -185,13 +185,13 @@ export function FulfillmentShippingPanel({ orderId, onLabelChange }: Props) {
             <p className="font-medium text-ink">{isTest ? "Test label created" : "Label purchased"}</p>
             {typeof label.postageCost === "number" ? <span className="font-mono text-sm text-ink">{usd(label.postageCost)} USD</span> : null}
           </div>
-          <div className="rounded-lg border border-white/10 p-3">
+          <div className="rounded-lg border border-linen p-3">
             <p className="text-xs text-ash">{label.carrier ?? "Carrier"} · {label.service ?? "Shipping label"}</p>
             <p className="mt-1 break-all font-mono text-sm text-ink">{label.trackingNumber ?? "Tracking number not available yet"}</p>
           </div>
-          {!isTest ? <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm" role="status"><span className={status?.trackingSaved ? "text-emerald-200" : "text-amber-200"}>{status?.trackingSaved ? "Tracking saved" : "Tracking not yet saved"}</span><span className={emailSent ? "text-emerald-200" : "text-ash"}>{emailEnabled || status?.notification?.status === "sent" ? notificationLabel(status?.notification) : "Customer email off"}</span></div> : null}
-          {status?.notification?.lastError ? <p className="break-words text-sm text-amber-200">{status.notification.lastError}</p> : null}
-          {emailNeedsReview ? <p className="text-sm leading-relaxed text-amber-200">Check Sent mail; delivery needs review. No resend will run automatically.</p> : null}
+          {!isTest ? <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm" role="status"><span className={status?.trackingSaved ? "text-emerald-800" : "text-amber-800"}>{status?.trackingSaved ? "Tracking saved" : "Tracking not yet saved"}</span><span className={emailSent ? "text-emerald-800" : "text-ash"}>{emailEnabled || status?.notification?.status === "sent" ? notificationLabel(status?.notification) : "Customer email off"}</span></div> : null}
+          {status?.notification?.lastError ? <p className="break-words text-sm text-amber-800">{status.notification.lastError}</p> : null}
+          {emailNeedsReview ? <p className="text-sm leading-relaxed text-amber-800">Check Sent mail; delivery needs review. No resend will run automatically.</p> : null}
           {label.labelUrl ? <a href={label.labelUrl} target="_blank" rel="noreferrer" className={secondaryButton}>Open / print 4×6 label</a> : null}
           <p className="text-xs leading-relaxed text-ash">Print the label at its original size. Carrier pickup and delivery are separate from label creation.</p>
         </div>
@@ -215,7 +215,7 @@ export function FulfillmentShippingPanel({ orderId, onLabelChange }: Props) {
       </div>
       {canCompleteTracking && (!status?.trackingSaved || (emailEnabled && !emailSent && !emailNeedsReview)) ? <p className="mt-2 text-xs text-ash">This action uses the existing label. It cannot purchase another one.</p> : null}
       {notice ? <p className="mt-3 text-sm text-ash" role="status">{notice}</p> : null}
-      {error ? <p className="mt-3 break-words text-sm text-rose-200" role="alert">{error}</p> : null}
+      {error ? <p className="mt-3 break-words text-sm text-red-700" role="alert">{error}</p> : null}
     </section>
   );
 }
