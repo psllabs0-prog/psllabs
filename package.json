@@ -86,7 +86,8 @@
     "test:request-protection": "node --require ./scripts/next-test-runtime.cjs --import tsx scripts/test-request-protection.ts",
     "test:btcpay-verification": "tsx scripts/test-btcpay-verification.ts",
     "migrate:request-protection": "tsx scripts/migrate-request-protection.ts",
-    "test:checkout-validation": "tsx scripts/test-checkout-validation.ts"
+    "test:checkout-validation": "tsx scripts/test-checkout-validation.ts",
+    "test:inventory-receipts": "tsx scripts/test-inventory-receipts.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -112,6 +113,7 @@
     "twitter-text": "3.1.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.9",
     "@tailwindcss/postcss": "^4",
     "@types/mailparser": "^3.4.6",
     "@types/node": "^20",

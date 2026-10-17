@@ -1,8 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Input } from "@/components/ui/input";
+import { AdminInventoryReceipts, type ReceiptSnapshot } from "@/components/admin/admin-inventory-receipts";
 import type { AdminInventoryRow, StockHistoryRow } from "@/lib/inventory/store";
 import type { SkuMonitorMetrics } from "@/lib/inventory/monitor/metrics";
 import type { PipelineLotRow } from "@/lib/inventory/monitor/pipeline";
@@ -39,10 +41,17 @@ function statusLabel(status: string): string {
   return status.replace(/_/g, " ");
 }
 
+async function loadInventoryMonitor(signal?: AbortSignal): Promise<MonitorPayload> {
+  const response = await fetch("/api/admin/inventory/monitor", { cache: "no-store", signal });
+  if (!response.ok) throw new Error("Failed to load inventory monitor.");
+  return response.json() as Promise<MonitorPayload>;
+}
+
 export function AdminInventoryDashboard({
   products: initialProducts,
   history,
 }: AdminInventoryDashboardProps) {
+  const router = useRouter();
   const [products, setProducts] = useState(initialProducts);
   const [drafts, setDrafts] = useState<Record<string, string>>(() =>
     Object.fromEntries(initialProducts.map((row) => [row.handle, String(row.stock)]))
@@ -63,23 +72,29 @@ export function AdminInventoryDashboard({
   const [pipelineBusy, setPipelineBusy] = useState(false);
   const [pipelineMsg, setPipelineMsg] = useState<string | null>(null);
 
-  const refreshMonitor = useCallback(async () => {
+  const applyMonitor = useCallback((json: MonitorPayload) => {
     setMonitorError(null);
-    const res = await fetch("/api/admin/inventory/monitor");
-    if (!res.ok) {
-      setMonitorError("Failed to load inventory monitor.");
-      return;
-    }
-    const json = (await res.json()) as MonitorPayload;
     setMonitor(json);
-    if (!newSku && json.metrics[0]?.sku) {
-      setNewSku(json.metrics[0].sku);
+    setNewSku((current) => current || json.metrics[0]?.sku || "");
+  }, []);
+
+  const refreshMonitor = useCallback(async () => {
+    try {
+      applyMonitor(await loadInventoryMonitor());
+    } catch {
+      setMonitorError("Failed to load inventory monitor.");
     }
-  }, [newSku]);
+  }, [applyMonitor]);
 
   useEffect(() => {
-    void refreshMonitor();
-  }, [refreshMonitor]);
+    const controller = new AbortController();
+    void loadInventoryMonitor(controller.signal).then((json) => {
+      if (!controller.signal.aborted) applyMonitor(json);
+    }).catch(() => {
+      if (!controller.signal.aborted) setMonitorError("Failed to load inventory monitor.");
+    });
+    return () => controller.abort();
+  }, [applyMonitor]);
 
   async function handleUpdate(handle: string) {
     const stock = Number(drafts[handle]);
@@ -267,9 +282,33 @@ export function AdminInventoryDashboard({
 
   const metrics = monitor?.metrics ?? [];
   const lots = monitor?.lots ?? [];
+  const hasUnsavedStockEdits = products.some((row) => drafts[row.handle] !== String(row.stock));
+
+  function handleReceiptRecorded(snapshot: ReceiptSnapshot) {
+    const updatedBySku = new Map(snapshot.products.map((product) => [product.sku, product]));
+    // Receipt-only items remain in the private physical inventory panel.
+    // Keep any unrelated manual stock drafts while refreshing confirmed balances.
+    setDrafts((current) => {
+      const next = { ...current };
+      for (const row of products) {
+        const updated = row.sku ? updatedBySku.get(row.sku) : undefined;
+        if (updated?.listedForSale && current[row.handle] === String(row.stock)) {
+          next[row.handle] = String(updated.stock);
+        }
+      }
+      return next;
+    });
+    setProducts((current) => current.map((row) => {
+      const updated = row.sku ? updatedBySku.get(row.sku) : undefined;
+      return updated?.listedForSale ? { ...row, stock: updated.stock } : row;
+    }));
+    void refreshMonitor();
+    router.refresh();
+  }
 
   return (
     <div className="flex flex-col gap-10">
+      <AdminInventoryReceipts onRecorded={handleReceiptRecorded} hasUnsavedStockEdits={hasUnsavedStockEdits} />
       <section className="premium-card overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-linen px-5 py-4">
           <div>
@@ -731,6 +770,7 @@ export function AdminInventoryDashboard({
                   <td className="px-5 py-4 font-mono text-ink">{row.stock}</td>
                   <td className="px-5 py-4">
                     <Input
+                      aria-label={`${row.name} stock level`}
                       type="number"
                       min={0}
                       step={1}

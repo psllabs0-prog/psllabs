@@ -163,11 +163,11 @@ export async function updatePipelineLotStage(input: {
       notes = COALESCE(${input.notes ?? null}, notes),
       updated_at = now()
     WHERE id = ${input.lotId}
-      AND status <> 'released'
+      AND status NOT IN ('released', 'cancelled')
     RETURNING *
   `) as Array<Parameters<typeof mapLot>[0]>;
 
-  if (!rows[0]) throw new Error("Lot not found or already released");
+  if (!rows[0]) throw new Error("Lot not found or already closed/released");
   return mapLot(rows[0]);
 }
 
