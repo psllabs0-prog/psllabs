@@ -8,45 +8,60 @@ import { PLAUSIBLE_TRANSFORM_REQUEST_JS } from "../lib/plausible/redact";
 
 const summary = summarizeDemo(fixture);
 assert.equal(fixture.periodStart, "2026-08-25");
-assert.equal(fixture.periodEnd, "2026-10-15");
-assert.match(fixture.scenario, /October 15, 2026 — fictional financial period/);
+assert.equal(fixture.periodEnd, "2026-10-23");
+assert.match(fixture.scenario, /October 23, 2026 — fictional financial period/);
 const dayMs = 86_400_000;
 const startTime = Date.parse(`${fixture.periodStart}T00:00:00Z`);
 const endTime = Date.parse(`${fixture.periodEnd}T00:00:00Z`);
 const dates = Array.from({ length: (endTime - startTime) / dayMs + 1 }, (_, i) => new Date(startTime + i * dayMs).toISOString().slice(0, 10));
-assert.equal(dates.length, 52);
+assert.equal(dates.length, 60);
 for (const record of [...fixture.orders, ...fixture.expenses]) {
   assert.match(record.date, /^\d{4}-\d{2}-\d{2}$/);
   assert.equal(new Date(`${record.date}T00:00:00Z`).toISOString().slice(0, 10), record.date, `Invalid calendar date: ${record.date}`);
   assert(record.date >= fixture.periodStart && record.date <= fixture.periodEnd, `Out-of-range date: ${record.date}`);
   assert.equal(summary.weeks.filter(week => record.date >= week.startDate && record.date <= week.endDate).length, 1);
 }
-assert.equal(summary.weeks.length, 8);
+assert.equal(summary.weeks.length, 9);
 assert.equal(summary.weeks[0].startDate, fixture.periodStart);
 assert.equal(summary.weeks.at(-1)?.endDate, fixture.periodEnd);
-assert.deepEqual(summary.weeks.map(week => week.label), ["Aug 25–31", "Sep 1–7", "Sep 8–14", "Sep 15–21", "Sep 22–28", "Sep 29–Oct 5", "Oct 6–12", "Oct 13–15"]);
+assert.deepEqual(summary.weeks.map(week => week.label), ["Aug 25–31", "Sep 1–7", "Sep 8–14", "Sep 15–21", "Sep 22–28", "Sep 29–Oct 5", "Oct 6–12", "Oct 13–19", "Oct 20–23"]);
 for (const date of dates) assert.equal(summary.weeks.filter(week => date >= week.startDate && date <= week.endDate).length, 1);
 assert.equal(formatDemoDate("2026-08-25"), "Aug 25");
 assert.equal(formatDemoDate("2026-10-15"), "Oct 15");
-const boundaryOrders = ["2026-09-28", "2026-09-29", "2026-10-05", "2026-10-06", "2026-10-12", "2026-10-13"].map((date, i) => ({ ...fixture.orders[0], id: `DEMO-BOUNDARY-${i}`, date }));
+assert.equal(formatDemoDate("2026-10-23"), "Oct 23");
+const boundaryOrders = ["2026-09-28", "2026-09-29", "2026-10-05", "2026-10-06", "2026-10-12", "2026-10-13", "2026-10-19", "2026-10-20"].map((date, i) => ({ ...fixture.orders[0], id: `DEMO-BOUNDARY-${i}`, date }));
 const boundarySummary = summarizeDemo({ ...fixture, orders: boundaryOrders, expenses: [] });
 const boundaryTotal = orderTotalCents(boundaryOrders[0]);
 assert.equal(boundarySummary.weeks[4].revenueCents, boundaryTotal);
 assert.equal(boundarySummary.weeks[5].revenueCents, boundaryTotal * 2);
 assert.equal(boundarySummary.weeks[6].revenueCents, boundaryTotal * 2);
-assert.equal(boundarySummary.weeks[7].revenueCents, boundaryTotal);
-assert(summary.revenueCents >= 2_700_000 && summary.revenueCents < 2_800_000);
-assert.equal(summary.revenueCents, 2_748_673);
+assert.equal(boundarySummary.weeks[7].revenueCents, boundaryTotal * 2);
+assert.equal(boundarySummary.weeks[8].revenueCents, boundaryTotal);
+assert(summary.revenueCents >= 3_300_000 && summary.revenueCents < 3_400_000);
+assert.equal(summary.revenueCents, 3_364_603);
 // Extending the fictional period preserves the earlier transactions and adds six days of activity.
 const earlierOrders = fixture.orders.filter(order => order.date <= "2026-10-09");
-const addedOrders = fixture.orders.filter(order => order.date >= "2026-10-10");
+const addedOrders = fixture.orders.filter(order => order.date >= "2026-10-10" && order.date <= "2026-10-15");
 assert.equal(earlierOrders.length, 112);
 assert.equal(earlierOrders.reduce((total, order) => total + orderTotalCents(order), 0), 2_274_813);
 assert.equal(addedOrders.length, 24);
 assert.equal(addedOrders.reduce((total, order) => total + orderTotalCents(order), 0), 473_860);
 assert.deepEqual([...new Set(addedOrders.map(order => order.date))].sort(), ["2026-10-10", "2026-10-11", "2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15"]);
-assert.equal(summary.unitsSold, 226);
-assert(summary.expenseCents >= 700_000 && summary.expenseCents <= 800_000);
+// Preserve the complete October 15 snapshot and extend only the fictional tail.
+const priorOrders = fixture.orders.filter(order => order.date <= "2026-10-15");
+const priorExpenses = fixture.expenses.filter(expense => expense.date <= "2026-10-15");
+assert.equal(priorOrders.length, 136);
+assert.equal(priorOrders.reduce((sum, order) => sum + orderTotalCents(order), 0), 2_748_673);
+assert.equal(priorExpenses.length, 20);
+assert.equal(priorExpenses.reduce((sum, expense) => sum + expense.amountCents, 0), 791_993);
+const extensionOrders = fixture.orders.filter(order => order.date >= "2026-10-16");
+assert.equal(extensionOrders.length, 32);
+assert.equal(extensionOrders.reduce((sum, order) => sum + orderTotalCents(order), 0), 615_930);
+for (const date of dates.filter(date => date >= "2026-10-16")) {
+  assert.equal(extensionOrders.filter(order => order.date === date).length, 4);
+}
+assert.equal(summary.unitsSold, 279);
+assert.equal(summary.expenseCents, 871_447);
 assert.equal(summary.revenueCents, fixture.revenueTargetCents);
 assert.equal(summary.expenseCents, fixture.expenseTargetCents);
 assert.equal(summary.profitCents, summary.revenueCents - summary.expenseCents);
