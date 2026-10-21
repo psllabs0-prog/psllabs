@@ -1,0 +1,1032 @@
+{
+  "schemaVersion": 1,
+  "task": "PSL-ORGANIC-SCHEDULE-DECEMBER-20261021",
+  "createdAt": "2026-10-21T10:01:27.031Z",
+  "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+  "publicationState": "Media preparation only. No post or platform scheduling receipt is implied.",
+  "baseUrl": "https://www.psllabs.org",
+  "coverage": {
+    "count": 27,
+    "firstLocalDate": "2026-11-09",
+    "lastLocalDate": "2026-12-31",
+    "localTime": "19:00:00",
+    "timezone": "America/Phoenix",
+    "cadenceDays": 2
+  },
+  "publishingTargets": {
+    "instagramAccountId": "17841434973034928",
+    "facebookPageId": "1358766947311597"
+  },
+  "authorization": {
+    "contentApprovedDate": "2026-10-21",
+    "musicPermission": "Owner reported permission for these supplied recordings in PSL promotional posts on2026-10-21. Not independently license-verified.",
+    "rawSourceSongsIncluded": false
+  },
+  "provenance": {
+    "originalVisualManifestSha256": "2b182c726a492b26055d5bd5d2aa45aa0eba83440f4f5a1df3e047c12430d2f9",
+    "selectedMusicManifestSha256": "237c449a8b33a8c916ae41a07e1b40428ee0e5134123c5b156f685e7ef9a02e9",
+    "videoStreams": "Unchanged from approved originals; different16second excerpts of three user-supplied recordings replace original scores.",
+    "fullSourceRecordings": "Excluded; only approved16second excerpts embedded in videos."
+  },
+  "videos": [
+    {
+      "id": 12,
+      "slug": "the-catalog-is-calling",
+      "title": "The catalog is calling",
+      "localDate": "2026-11-09",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-11-10T02:00:00.000Z",
+      "caption": "The catalog is calling. A new visual take on PSL Labs research materials. Explore the current catalog at https://www.psllabs.org/products. Digital product renders. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/12-2026-11-09-the-catalog-is-calling-selected-music.mp4",
+        "sha256": "f97c88ce18f7b52c824b11b8812c9d797cf595c206e17aa93bb83c4c70dce3d6",
+        "bytes": 9729031,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/12-2026-11-09-the-catalog-is-calling-poster.jpg",
+        "sha256": "d450ef3ab3f0cdc29547a854e71e30d3182a8728daa3a30fcdaeb7a5c2dea4cf",
+        "bytes": 60694,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "Night Blooming Jasmine",
+        "startSeconds": 0.25,
+        "endSeconds": 16.25,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 13,
+      "slug": "midnight-in-chrome",
+      "title": "Midnight in chrome",
+      "localDate": "2026-11-11",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-11-12T02:00:00.000Z",
+      "caption": "Midnight in chrome: an original digital material study featuring the Retatrutide product render. Current product information: https://www.psllabs.org/products. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/13-2026-11-11-midnight-in-chrome-selected-music.mp4",
+        "sha256": "2d21698286482f14d97502eab377d81a55dbf2732c07db7f56258ab28f4fc132",
+        "bytes": 11617959,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/13-2026-11-11-midnight-in-chrome-poster.jpg",
+        "sha256": "7afc3ce9f63ef3e914ce9663b98fe2fa1cc2ad29df0e570ee07402b35022fb66",
+        "bytes": 79558,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "worry ultra slowed",
+        "startSeconds": 0.25,
+        "endSeconds": 16.25,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 14,
+      "slug": "pause-on-this-frame",
+      "title": "Pause on this frame",
+      "localDate": "2026-11-13",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-11-14T02:00:00.000Z",
+      "caption": "Pause on this frame. Type, light and form around the GHK-Cu render. Browse current product details at https://www.psllabs.org/products. Digital product visualization. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/14-2026-11-13-pause-on-this-frame-selected-music.mp4",
+        "sha256": "274fdcfa37488c437a3f833c4f87a8dc0f64ead6e06b2502901e2faa38e3ec7d",
+        "bytes": 12131543,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/14-2026-11-13-pause-on-this-frame-poster.jpg",
+        "sha256": "594ea5fcbf722b22784338191f2cc5be928a14a485b0195ed7bb643d7005372c",
+        "bytes": 77718,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "священная война",
+        "startSeconds": 0.25,
+        "endSeconds": 16.25,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 15,
+      "slug": "five-tabs-one-catalog",
+      "title": "Five tabs, one catalog",
+      "localDate": "2026-11-15",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-11-16T02:00:00.000Z",
+      "caption": "A quick visual tour of the PSL Labs catalog. Check the website for current product information and availability: https://www.psllabs.org/products. Digital product renders and illustrative navigation. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/15-2026-11-15-five-tabs-one-catalog-selected-music.mp4",
+        "sha256": "c7f6e8c304b194a3abc6c0bc18e9582f72b389060ce76fd5dd7649016d42906e",
+        "bytes": 10713616,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/15-2026-11-15-five-tabs-one-catalog-poster.jpg",
+        "sha256": "666125c6ce9bcd18cedfbfcbfe03a01c98b3a0b1b6bc4b2a32916e42d7b7f0da",
+        "bytes": 77061,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "Night Blooming Jasmine",
+        "startSeconds": 20.581,
+        "endSeconds": 36.581,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 16,
+      "slug": "look-beyond-the-label",
+      "title": "Look beyond the label",
+      "localDate": "2026-11-17",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-11-18T02:00:00.000Z",
+      "caption": "Look beyond the label. Review current product information and the original report linked to the product. A report only covers the tests shown on its original laboratory file. https://www.psllabs.org/products. Illustrative interface; digital product render. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/16-2026-11-17-look-beyond-the-label-selected-music.mp4",
+        "sha256": "ce1e11f0b0bb31d63e34028f3c91b1eb6b4c5b35b5527d704b34b891e223ea4b",
+        "bytes": 6318455,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/16-2026-11-17-look-beyond-the-label-poster.jpg",
+        "sha256": "fff91af83d3e157f8fd508cc64c41903367abd09c470c87dc359204e4e44cdf0",
+        "bytes": 71948,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "worry ultra slowed",
+        "startSeconds": 30.206,
+        "endSeconds": 46.206,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 17,
+      "slug": "blue-hour-study",
+      "title": "Blue hour study",
+      "localDate": "2026-11-19",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-11-20T02:00:00.000Z",
+      "caption": "Blue hour, reimagined as a digital product study. Featuring the GHK-Cu render, without outcome or performance claims. Current catalog: https://www.psllabs.org/products. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/17-2026-11-19-blue-hour-study-selected-music.mp4",
+        "sha256": "a6ce2ccf806d4761c720a6598909b5df8ed7ca4f31e138cfcb0cbd4b2a829749",
+        "bytes": 11707420,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/17-2026-11-19-blue-hour-study-poster.jpg",
+        "sha256": "82fe1a80d62a678da46f215d4f31348ed01f2f10d0c0b0811887c116478f31f5",
+        "bytes": 80717,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "священная война",
+        "startSeconds": 10.956,
+        "endSeconds": 26.956,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 18,
+      "slug": "your-saved-research-tab",
+      "title": "Your saved research tab",
+      "localDate": "2026-11-21",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-11-22T02:00:00.000Z",
+      "caption": "For the tab you meant to come back to. A playful catalog reminder, featuring a digital BPC-157 product render. https://www.psllabs.org/products. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/18-2026-11-21-your-saved-research-tab-selected-music.mp4",
+        "sha256": "a82862a5bf3e6edf6485ba1691d492e67f0d5f05a50248a44e54202cba3554c8",
+        "bytes": 10227090,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/18-2026-11-21-your-saved-research-tab-poster.jpg",
+        "sha256": "17a58ab0675625f21fd895ba697e1512b321c56fa9a5856e7cf49de40e95a0b6",
+        "bytes": 59938,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "Night Blooming Jasmine",
+        "startSeconds": 40.913,
+        "endSeconds": 56.913,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 19,
+      "slug": "black-box-design-notes",
+      "title": "Black box design notes",
+      "localDate": "2026-11-23",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-11-24T02:00:00.000Z",
+      "caption": "A PSL Labs packaging design study: black surfaces and cyan detail. CONCEPT ONLY — digital visualization, not current shipping packaging or a release announcement. Catalog: https://www.psllabs.org/products. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/19-2026-11-23-black-box-design-notes-selected-music.mp4",
+        "sha256": "634fb33e711a5ec48e74ba2c182b6bd084c7bbbc81f3d3351fc9036969bf1865",
+        "bytes": 8556340,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/19-2026-11-23-black-box-design-notes-poster.jpg",
+        "sha256": "060cae150752f7650a1ddb779a0ff14bbd605b27fad70ac564c2725c7b43b10e",
+        "bytes": 79420,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "worry ultra slowed",
+        "startSeconds": 60.163,
+        "endSeconds": 76.163,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 20,
+      "slug": "one-name-at-a-time",
+      "title": "One name at a time",
+      "localDate": "2026-11-25",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-11-26T02:00:00.000Z",
+      "caption": "One name at a time: a Tesamorelin visual spotlight. Find current specifications, information and availability in the catalog: https://www.psllabs.org/products. Digital product render. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/20-2026-11-25-one-name-at-a-time-selected-music.mp4",
+        "sha256": "7bb1e5d035a35d9b1b662cbfc7da12f93cad25868ff90b70660d7c00de4ea51d",
+        "bytes": 11319099,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/20-2026-11-25-one-name-at-a-time-poster.jpg",
+        "sha256": "aa809379aacbca286331f65a14659096b714c6bab2af86e9e08e6e8cebaf1aa6",
+        "bytes": 75114,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "священная война",
+        "startSeconds": 21.663,
+        "endSeconds": 37.663,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 21,
+      "slug": "small-object-wide-frame",
+      "title": "Small object, wide frame",
+      "localDate": "2026-11-27",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-11-28T02:00:00.000Z",
+      "caption": "Small object, wide frame. An original design study featuring the Reconstitution Solution render. No usage guidance is shown. Current product information: https://www.psllabs.org/products. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/21-2026-11-27-small-object-wide-frame-selected-music.mp4",
+        "sha256": "8d56872230d1560c4b8cd535d6d8fba0f09da10e46eaa9db691900478438f34d",
+        "bytes": 12031212,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/21-2026-11-27-small-object-wide-frame-poster.jpg",
+        "sha256": "cbf1d1a9fbd00a06c6d7062dc5d1560637680392434ff2fe01d9a0ef7ccb74a4",
+        "bytes": 81886,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "Night Blooming Jasmine",
+        "startSeconds": 61.244,
+        "endSeconds": 77.244,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 22,
+      "slug": "orbit-without-a-rush",
+      "title": "Orbit without a rush",
+      "localDate": "2026-11-29",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-11-30T02:00:00.000Z",
+      "caption": "A slow orbit around the BPC-157 digital product render. A visual study, with current product details kept in the catalog: https://www.psllabs.org/products. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/22-2026-11-29-orbit-without-a-rush-selected-music.mp4",
+        "sha256": "a2e4f4a8993c0e80bdacc51165149f95d218d7127307d37c8648d6fa5d47899e",
+        "bytes": 12063753,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/22-2026-11-29-orbit-without-a-rush-poster.jpg",
+        "sha256": "6ba897cdfa3a66b95f92046e83cc7e5aa7c2bd0534a026ec26b2269050e0623a",
+        "bytes": 79110,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "worry ultra slowed",
+        "startSeconds": 90.119,
+        "endSeconds": 106.119,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 23,
+      "slug": "read-the-original",
+      "title": "Read the original",
+      "localDate": "2026-12-01",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-12-02T02:00:00.000Z",
+      "caption": "Read the original laboratory file linked to a product. It covers only the tests shown; a visual or summary is not a substitute for that file. Start at https://www.psllabs.org/products. Illustrative document graphics, no invented results. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/23-2026-12-01-read-the-original-selected-music.mp4",
+        "sha256": "47f5e313781602cba8e55ca0924596c1a29daef99452b277fef39ff5bd048022",
+        "bytes": 6289476,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/23-2026-12-01-read-the-original-poster.jpg",
+        "sha256": "11f5a2df545189e94985c56f7d124f494bf41dd1b10e7d57457e0e1007c2893d",
+        "bytes": 72570,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "священная война",
+        "startSeconds": 32.369,
+        "endSeconds": 48.369,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 24,
+      "slug": "focus-mode-catalog",
+      "title": "Focus mode: catalog",
+      "localDate": "2026-12-03",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-12-04T02:00:00.000Z",
+      "caption": "Focus mode: catalog. A custom phone animation and Retatrutide product render, with no performance promises. Current details: https://www.psllabs.org/products. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/24-2026-12-03-focus-mode-catalog-selected-music.mp4",
+        "sha256": "63abe903b36e899233eb62eede50b50ba4d9d9d8bed7b7a19e30b06858dd0de7",
+        "bytes": 10173893,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/24-2026-12-03-focus-mode-catalog-poster.jpg",
+        "sha256": "ff25dbebf78180216d19ab6ed3bd910b7bf4e3b3da41723fd8e29f1ee3c31a76",
+        "bytes": 58895,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "Night Blooming Jasmine",
+        "startSeconds": 81.575,
+        "endSeconds": 97.575,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 25,
+      "slug": "meet-the-lineup-again",
+      "title": "Meet the lineup, again",
+      "localDate": "2026-12-05",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-12-06T02:00:00.000Z",
+      "caption": "Meet the lineup from a new point of view: Retatrutide, GHK-Cu, BPC-157, Tesamorelin and Reconstitution Solution. Check current details and availability at https://www.psllabs.org/products. Digital product renders. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/25-2026-12-05-meet-the-lineup-again-selected-music.mp4",
+        "sha256": "3201a72f82d486f4f8ed88bbdc1004741724b646294e21ae9b3101bf1fb1c9a4",
+        "bytes": 10786275,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/25-2026-12-05-meet-the-lineup-again-poster.jpg",
+        "sha256": "0c0077793eb1bb726b77a8593110814ca9916b6279a85f7a284e892433700fbb",
+        "bytes": 79314,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "worry ultra slowed",
+        "startSeconds": 120.075,
+        "endSeconds": 136.075,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 26,
+      "slug": "in-the-details",
+      "title": "In the details",
+      "localDate": "2026-12-07",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-12-08T02:00:00.000Z",
+      "caption": "It's in the details. A typography and product-render study featuring Tesamorelin. For actual product information, visit https://www.psllabs.org/products. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/26-2026-12-07-in-the-details-selected-music.mp4",
+        "sha256": "199f5ee583091fdd65d1ca721a4aaa28e9f6823e6e44a8fd081774c09010e81a",
+        "bytes": 12162587,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/26-2026-12-07-in-the-details-poster.jpg",
+        "sha256": "2cecf88845ac2ba3712b194dd9792ce76c67de53328c17ad6d78007c9c8c5718",
+        "bytes": 77638,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "священная война",
+        "startSeconds": 43.075,
+        "endSeconds": 59.075,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 27,
+      "slug": "aurora-after-dark",
+      "title": "Aurora after dark",
+      "localDate": "2026-12-09",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-12-10T02:00:00.000Z",
+      "caption": "Aurora after dark. An original digital visualization featuring the Tesamorelin render, with no outcome claims. Current product information: https://www.psllabs.org/products. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/27-2026-12-09-aurora-after-dark-selected-music.mp4",
+        "sha256": "228e743fe0fc5634a82ff02c9484f6255a749a5929104c46f1477400b93c9467",
+        "bytes": 11878671,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/27-2026-12-09-aurora-after-dark-poster.jpg",
+        "sha256": "cdbf36a4ff0dc308d98335a0fc4dcee70f273333535e2b22d7ec2cce2bb4efb2",
+        "bytes": 80171,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "Night Blooming Jasmine",
+        "startSeconds": 101.906,
+        "endSeconds": 117.906,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 28,
+      "slug": "a-better-second-look",
+      "title": "A better second look",
+      "localDate": "2026-12-11",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-12-12T02:00:00.000Z",
+      "caption": "A second look belongs in the product page. Read the listed information and linked original report; reports cover only the tests shown. https://www.psllabs.org/products. Illustrative interface and digital render. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/28-2026-12-11-a-better-second-look-selected-music.mp4",
+        "sha256": "fa88e3b8e8e9637b67ecfbf057665000f8a6e5ceb44b4401552cff7cff0da6f7",
+        "bytes": 6037678,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/28-2026-12-11-a-better-second-look-poster.jpg",
+        "sha256": "97228b91c8b30314e3631b244a14afc4aa4645e74be730605a892ffe6102755a",
+        "bytes": 69056,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "worry ultra slowed",
+        "startSeconds": 150.031,
+        "endSeconds": 166.031,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 29,
+      "slug": "from-sketch-to-shape",
+      "title": "From sketch to shape",
+      "localDate": "2026-12-13",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-12-14T02:00:00.000Z",
+      "caption": "From sketch to shape: a PSL Labs packaging concept. Digital design exploration only, not current shipping packaging or a production announcement. https://www.psllabs.org/products. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/29-2026-12-13-from-sketch-to-shape-selected-music.mp4",
+        "sha256": "37f5cb9d2d5c7bd4bf978edce309fb73370c87b2ad75dec9d87d0dbd76f39b3b",
+        "bytes": 8560016,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/29-2026-12-13-from-sketch-to-shape-poster.jpg",
+        "sha256": "870695a9a91455172846759d2b2bbffa5670ae129246bfb101fed5cc44e43655",
+        "bytes": 76284,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "священная война",
+        "startSeconds": 53.781,
+        "endSeconds": 69.781,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 30,
+      "slug": "one-unread-catalog-note",
+      "title": "One unread catalog note",
+      "localDate": "2026-12-15",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-12-16T02:00:00.000Z",
+      "caption": "One unread catalog note. An illustrative notification and GHK-Cu digital product render, created as an original brand animation. Current catalog: https://www.psllabs.org/products. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/30-2026-12-15-one-unread-catalog-note-selected-music.mp4",
+        "sha256": "6b6055aaa0e473f917e23514ddbe66c381f1d351ee3e9f35f7350c00c3d8558a",
+        "bytes": 10321935,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/30-2026-12-15-one-unread-catalog-note-poster.jpg",
+        "sha256": "1ee7f04ca793bf25834e760d7f5d95b3c1701db1cb8c3dbb5cb66c31e59c900c",
+        "bytes": 61734,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "Night Blooming Jasmine",
+        "startSeconds": 122.238,
+        "endSeconds": 138.238,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 31,
+      "slug": "catalog-on-your-time",
+      "title": "Catalog on your time",
+      "localDate": "2026-12-17",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-12-18T02:00:00.000Z",
+      "caption": "A quick look, at your own pace. A catalog spotlight on Reconstitution Solution, with current details on the website: https://www.psllabs.org/products. Digital product visualization; no usage instructions. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/31-2026-12-17-catalog-on-your-time-selected-music.mp4",
+        "sha256": "5d29b306d5dc69a72b9a0171a25c6402190090a104f6125fbd8b10ea0f169539",
+        "bytes": 11083546,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/31-2026-12-17-catalog-on-your-time-poster.jpg",
+        "sha256": "a1f453efbbfa07cc44846ef054cdebd89a09d4163c8acf5305a98f07e0be7618",
+        "bytes": 79270,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "worry ultra slowed",
+        "startSeconds": 179.988,
+        "endSeconds": 195.988,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 32,
+      "slug": "type-meets-form",
+      "title": "Type meets form",
+      "localDate": "2026-12-19",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-12-20T02:00:00.000Z",
+      "caption": "Type meets form. A kinetic design study around the BPC-157 product render. Current product information lives at https://www.psllabs.org/products. Digital visualization. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/32-2026-12-19-type-meets-form-selected-music.mp4",
+        "sha256": "a6b53b437b32a7a01f376c5c849f1ae6a2da5d5a7ec5337dc34fcd914281d607",
+        "bytes": 12205641,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/32-2026-12-19-type-meets-form-poster.jpg",
+        "sha256": "c5aafca4c74825819f7d4eb202a5cc820149c876283a6b2d22e7c8f8e82f74dc",
+        "bytes": 78212,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "священная война",
+        "startSeconds": 64.488,
+        "endSeconds": 80.488,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 33,
+      "slug": "the-quiet-reflection",
+      "title": "The quiet reflection",
+      "localDate": "2026-12-21",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-12-22T02:00:00.000Z",
+      "caption": "Stay for the reflection. An original digital study featuring the Reconstitution Solution render. For current specifications and information: https://www.psllabs.org/products. No usage instructions. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/33-2026-12-21-the-quiet-reflection-selected-music.mp4",
+        "sha256": "4bdcdc9a07bed69230f34b86cf9b23963e6d96dd6cd5586cf925897a30ed827d",
+        "bytes": 11902466,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/33-2026-12-21-the-quiet-reflection-poster.jpg",
+        "sha256": "20e308c24f86861d39652a9bc5da0db16c2f6e56b116d380beb470fa718fdf82",
+        "bytes": 82556,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "Night Blooming Jasmine",
+        "startSeconds": 142.569,
+        "endSeconds": 158.569,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 34,
+      "slug": "details-over-shortcuts",
+      "title": "Details over shortcuts",
+      "localDate": "2026-12-23",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-12-24T02:00:00.000Z",
+      "caption": "Details over shortcuts. Visit the product page and read the original report for the material you are reviewing. Its scope is limited to the tests shown, and it is not medical or usage advice. https://www.psllabs.org/products. Illustrative document graphics and digital render. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/34-2026-12-23-details-over-shortcuts-selected-music.mp4",
+        "sha256": "de83765948375b0cc29475411e06ca9cca8abb2c31259cfdd522116e5c534635",
+        "bytes": 6083788,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/34-2026-12-23-details-over-shortcuts-poster.jpg",
+        "sha256": "f22b596cf490704b6355306f48ad1a453a38e2b3271c7b11215733cdfec60d93",
+        "bytes": 72148,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "worry ultra slowed",
+        "startSeconds": 209.944,
+        "endSeconds": 225.944,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 35,
+      "slug": "call-back-the-catalog",
+      "title": "Call back the catalog",
+      "localDate": "2026-12-25",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-12-26T02:00:00.000Z",
+      "caption": "Call back the catalog. A fresh take on our phone animation with a digital product lineup. Read current information before deciding: https://www.psllabs.org/products. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/35-2026-12-25-call-back-the-catalog-selected-music.mp4",
+        "sha256": "d486cff9237ec116790958170d503d4faf5448d464d1f30254002b28a302255e",
+        "bytes": 11021931,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/35-2026-12-25-call-back-the-catalog-poster.jpg",
+        "sha256": "8a811377b664155a41fead4053e8e2304380bfb601af264c0dd205a8e132e5f0",
+        "bytes": 60566,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "священная война",
+        "startSeconds": 75.194,
+        "endSeconds": 91.194,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 36,
+      "slug": "catalog-closeup-retatrutide",
+      "title": "Catalog close-up: Retatrutide",
+      "localDate": "2026-12-27",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-12-28T02:00:00.000Z",
+      "caption": "A catalog close-up featuring the Retatrutide digital render. Current product details and availability belong on the product page: https://www.psllabs.org/products. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/36-2026-12-27-catalog-closeup-retatrutide-selected-music.mp4",
+        "sha256": "df28f8d0433896552d8a5a5d10604fb728b2a11940e4fa60f91f2e4116b8ca5e",
+        "bytes": 10802113,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/36-2026-12-27-catalog-closeup-retatrutide-poster.jpg",
+        "sha256": "19dfef8bbb8483e55e8c6079a43be3d8620239e8954e6a70ff60569f43e0f22d",
+        "bytes": 74235,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "Night Blooming Jasmine",
+        "startSeconds": 162.9,
+        "endSeconds": 178.9,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 37,
+      "slug": "the-name-in-lights",
+      "title": "The name in lights",
+      "localDate": "2026-12-29",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2026-12-30T02:00:00.000Z",
+      "caption": "The name in lights: an original motion and typography study featuring the GHK-Cu product render. Current catalog: https://www.psllabs.org/products. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/37-2026-12-29-the-name-in-lights-selected-music.mp4",
+        "sha256": "3b7254b1d3365eb4f06adad6fe147552daafa852788eb1f8b7da9a6a12e16bd2",
+        "bytes": 12126388,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/37-2026-12-29-the-name-in-lights-poster.jpg",
+        "sha256": "ec140bc0d0c25c2d93fd1e8335763b9a706f330b8f84c445e699734ea708cd87",
+        "bytes": 78476,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "worry ultra slowed",
+        "startSeconds": 239.9,
+        "endSeconds": 255.9,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    },
+    {
+      "id": 38,
+      "slug": "last-light-material-study",
+      "title": "Last light material study",
+      "localDate": "2026-12-31",
+      "localTime": "19:00:00",
+      "timezone": "America/Phoenix",
+      "scheduledUtc": "2027-01-01T02:00:00.000Z",
+      "caption": "One last light study for this collection. A digital lineup in soft moving light, with no product performance promises. Find current details at https://www.psllabs.org/products. For laboratory research only. Not for human or animal use.",
+      "status": "READY_FOR_FINITE_CLOUD_QUEUE",
+      "video": {
+        "path": "/organic/2026-11-09/38-2026-12-31-last-light-material-study-selected-music.mp4",
+        "sha256": "4fe5992372d76e401f22aff90917e8bc74e578c268674146841a5b0a058f8772",
+        "bytes": 12115560,
+        "mimeType": "video/mp4",
+        "durationSeconds": 16,
+        "width": 1080,
+        "height": 1920,
+        "fps": 30,
+        "audioCodec": "AAC",
+        "audioSampleRate": 48000,
+        "audioChannels": 2
+      },
+      "poster": {
+        "path": "/organic/2026-11-09/38-2026-12-31-last-light-material-study-poster.jpg",
+        "sha256": "b0d97e7dcba3ca46ccbe2964f8113e8681826d26990e4213c3b0bfa195f3b63d",
+        "bytes": 78989,
+        "mimeType": "image/jpeg"
+      },
+      "soundtrack": {
+        "trackTitle": "священная война",
+        "startSeconds": 85.9,
+        "endSeconds": 101.9,
+        "durationSeconds": 16
+      },
+      "visualSource": "Previously approved PSL Labs digital product renders and packaging concepts; visual stream unchanged."
+    }
+  ]
+}
