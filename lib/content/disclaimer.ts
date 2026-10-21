@@ -2,7 +2,6 @@ import type { ContentPageMeta } from "./types";
 import { LEGAL_ENTITY_NAME } from "./testing-scope";
 import { getProductArtworkDisclosure } from "../products/artwork-disclosures";
 import { reconstitutionSolution5mlReport, tesamorelin10mgReport } from "../batch-reports";
-import { FDA_RESEARCH_NOTICE, RESEARCH_USE_NOTICE } from "./research-use";
 
 export const disclaimerPageMeta: ContentPageMeta = {
   label: "LEGAL",
@@ -14,8 +13,6 @@ export const disclaimerPageMeta: ContentPageMeta = {
 };
 
 export const disclaimerParagraphs = [
-  RESEARCH_USE_NOTICE,
-  FDA_RESEARCH_NOTICE,
   `${LEGAL_ENTITY_NAME} products are sold strictly for laboratory and research use only. They are not intended for human or animal consumption, diagnosis, treatment, cure, or prevention of any disease.`,
   "Product descriptions, testing summaries, and Certificates of Analysis support research documentation. They do not constitute medical advice or usage guidance.",
   "A laboratory report covers the submitted sample and the tests and results listed in that report. It does not establish safety, efficacy, suitability for human or animal use, or regulatory approval. A reported result does not guarantee that every vial in a lot is identical.",

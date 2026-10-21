@@ -5,6 +5,11 @@ import { getPriorityShippingPriceUsd, PRIORITY_PACKAGE, PRIORITY_QUOTE_TTL_MS, p
 import type { ShippingSelection } from "./types";
 import { isPhysicalUSShippingAddress } from "./request";
 
+/** Quote namespace only, never a claim of identity or account authentication.
+ * The signed email, address, cart, discount and payment context still bind a
+ * quote to the exact guest checkout that requested it. */
+export const GUEST_SHIPPING_ACCOUNT_ID = "guest-checkout-v1";
+
 export type PriorityQuoteContext = {
   accountId: string;
   email: string;
@@ -32,7 +37,7 @@ function contextBinding(context: PriorityQuoteContext, secret: string): string {
 }
 
 function validContext(context: PriorityQuoteContext, config: PriorityShippingConfig): boolean {
-  return !!context.accountId && !!context.email && isPhysicalUSShippingAddress(context.shipping) &&
+  return context.accountId === GUEST_SHIPPING_ACCOUNT_ID && !!context.email && isPhysicalUSShippingAddress(context.shipping) &&
     Number.isSafeInteger(context.subtotalCents) && context.subtotalCents > 0 &&
     Number.isSafeInteger(context.discountCents) && context.discountCents >= 0 && context.discountCents <= context.subtotalCents &&
     context.items.length > 0 && context.items.every(item => Number.isSafeInteger(item.quantity) && item.quantity > 0) &&

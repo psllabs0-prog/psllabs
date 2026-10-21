@@ -153,7 +153,7 @@ function PreferencesForm({ consent, excluded, qualified, onSave }: {
   return <>
     <div className={`${styles.preferencesBody} min-h-0 space-y-5 overflow-y-auto px-5 py-5 text-sm leading-relaxed md:px-6`}>
       <Dialog.Description className="text-ash">Choose which optional advertising features you allow. Shopping, login, checkout, security, and your age and research-use confirmation work whichever option you choose.</Dialog.Description>
-      {!qualified && <p className="text-ash">Optional advertising stays off before research-account access. You can decline or withdraw optional cookies here.</p>}
+      {!qualified && <p className="text-ash">Optional advertising stays off until your age and research-use confirmation is complete. You can decline or withdraw optional cookies here.</p>}
       {(excluded || consent.gpc) && <p className="rounded-lg border border-border-strong p-3 text-ink">{excluded
         ? "Advertising collection is off for administrator and test activity."
         : "Global Privacy Control is active. Optional advertising measurement and personalization stay off."}</p>}

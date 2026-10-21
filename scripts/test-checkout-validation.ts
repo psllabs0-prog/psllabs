@@ -12,7 +12,6 @@ import * as totals from "../lib/checkout/totals";
 import * as countries from "../lib/checkout/us-states";
 import * as attribution from "../lib/attribution/logic";
 import * as referralLogic from "../lib/partners/referral-logic";
-import * as researchAcknowledgement from "../lib/checkout/research-acknowledgement";
 import * as shippingPolicy from "../lib/shipping/policy";
 import * as shippingRequest from "../lib/shipping/request";
 import type { CheckoutBody, PrepareOrderOptions, PrepareOrderResult } from "../lib/checkout/prepare-order";
@@ -22,9 +21,6 @@ import { PRIVACY_CONSENT_VERSION, UNKNOWN_PRIVACY_CONSENT } from "../lib/privacy
 const ROOT = resolve(__dirname, "..");
 const SHIPPING = { firstName: "Offline", lastName: "Fixture", address: "123 Fixture Street", city: "Phoenix", state: "AZ", zip: "85001", country: "US" };
 const ACTIVE = catalog.getActiveCatalogProducts();
-const RESEARCH_ACCOUNT = { id: "offline-research-account", email: "fixture@example.invalid" };
-const RESEARCH_DECLARATION = { version: researchAcknowledgement.CHECKOUT_RESEARCH_ACK_VERSION,
-  researchStatus: "independent_researcher", researchUseOnly: true };
 let checks = 0;
 let reservations = 0;
 let schemaCalls = 0;
@@ -47,15 +43,14 @@ function load(file: string, mocks: Record<string, unknown>): Record<string, unkn
   return output;
 }
 
-const rawPrepare = load("lib/checkout/prepare-order.ts", {
+const prepare = load("lib/checkout/prepare-order.ts", {
   "@/lib/shipping/policy": shippingPolicy,
   "@/lib/shipping/request": shippingRequest,
   "node:crypto": crypto, "@/lib/checkout/totals": totals, "@/lib/checkout/us-states": countries,
   "@/lib/attribution/logic": attribution, "@/lib/payments/products": pricing, "@/lib/products/catalog": catalog,
   "@/lib/checkout/discount-codes": { DISCOUNT_CODES_ENABLED: false, lookupActiveDiscountCode: async () => { throw new Error("Unexpected discount lookup"); } },
   "@/lib/partners/referral-logic": referralLogic,
-  "@/lib/checkout/research-acknowledgement": researchAcknowledgement,
-  "@/lib/orders/store": { saveOrderResearchAcknowledgement: async () => {}, markStatusIfPending: async () => {} },
+  "@/lib/orders/store": { markStatusIfPending: async () => {} },
   "@/lib/partners/referral-config": { referralCodesEnabled: () => { referralCalls++; if (allowReferralFixtures) return true;
     throw new Error("Unexpected referral configuration lookup in ordinary checkout"); } },
   "@/lib/partners/referral-store": {
@@ -75,13 +70,6 @@ const rawPrepare = load("lib/checkout/prepare-order.ts", {
     },
   },
 }) as { prepareReservedOrder: (body: CheckoutBody, options?: PrepareOrderOptions) => Promise<PrepareOrderResult> };
-// Existing cart/privacy scenarios use a qualified offline buyer. Omission and
-// forged-declaration rejection are exercised separately in test-checkout-research.
-const prepare = { prepareReservedOrder: (body: CheckoutBody, options?: PrepareOrderOptions) =>
-  rawPrepare.prepareReservedOrder(body && typeof body === "object" && !Array.isArray(body)
-    ? { ...body, researchAcknowledgement: RESEARCH_DECLARATION } : body,
-  { researchAccount: RESEARCH_ACCOUNT, ...options }) };
-
 const inventory = load("lib/inventory/store.ts", {
   "@/lib/db/sql": { getSql: () => { databaseCalls++; throw new Error("Database access forbidden"); } },
   "@/lib/orders/store": { ensureOrdersSchema: async () => { schemaCalls++; throw new Error("Schema writes forbidden"); } },
@@ -134,7 +122,6 @@ async function checkoutPrivacyChecks() {
       let reads = 0; let shippingBindings = 0;
       const route = load(filename, {
         "next/server": { NextResponse }, "@/lib/checkout/prepare-order": prepare,
-        "@/lib/research-auth/server": { getResearchAccount: async () => RESEARCH_ACCOUNT },
         "@/lib/checkout/us-states": countries,
         "@/lib/privacy/server": { readRequestPrivacyConsent: async (request: Request) => {
           reads++; assert.equal(request.headers.get("Sec-GPC"), "1");

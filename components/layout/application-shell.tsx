@@ -12,7 +12,6 @@ import { hasTikTokBrowserSdk, tikTokBrowserContextAllowed, stopTikTokBrowserDisp
 import { isPublicResearchPage, isResearchRecoveryPage } from "@/lib/research-auth/paths";
 import { ResearchAccountShell } from "@/components/research-auth/research-account-shell";
 import { CartProvider } from "@/components/cart/cart-provider";
-import { ResearchUseBanner } from "@/components/layout/research-use-banner";
 
 function isAccountIsolatedDocument(path: string): boolean {
   return isPrivacyExcludedPath(path) || isPublicResearchPage(path) || isResearchRecoveryPage(path);
@@ -171,7 +170,7 @@ export function ApplicationShell({ children, visualPreview = false }: { children
   }
   // Partner sign-in and account records belong in a fresh private document.
   // Never mount storefront attribution, advertising SDKs or analytics here.
-  if (/^\/partners\/(?:account|auth)(?:\/|$)/i.test(pathname)) return <><ResearchUseBanner />{children}</>;
+  if (/^\/partners\/(?:account|auth)(?:\/|$)/i.test(pathname)) return <>{children}</>;
 
   return <>
     {!visualPreview && <><Script async src="https://plausible.io/js/pa-q336_RNw0XrNwsVUzNnQN.js" strategy="afterInteractive" />

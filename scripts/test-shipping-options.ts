@@ -1,4 +1,4 @@
-/** Actual shipping/checkout helpers with only carrier, identity and persistence fixtures. No live calls. */
+/** Actual guest shipping/checkout helpers with only carrier and persistence fixtures. No live calls. */
 import assert from "node:assert/strict";
 import * as crypto from "node:crypto";
 import { readFileSync } from "node:fs";
@@ -48,7 +48,7 @@ const rates = async (input: Parameters<NonNullable<NonNullable<Parameters<typeof
 function contextFor(raw = body): quote.PriorityQuoteContext {
   const parsed = parseShippingQuoteRequest(raw, account.email)!;
   const computed = totals.computeTotals(parsed.subtotalCents / 100, address.state, null, { paymentMethod: parsed.paymentMethod });
-  return { accountId: account.id, ...parsed, discountCents: Math.round(computed.discountAmount * 100), discountCode: computed.discountCode };
+  return { accountId: quote.GUEST_SHIPPING_ACCOUNT_ID, ...parsed, discountCents: Math.round(computed.discountAmount * 100), discountCode: computed.discountCode };
 }
 
 function load(file: string, mocks: Record<string, unknown>): Record<string, unknown> {
@@ -79,58 +79,68 @@ async function checkoutBoundary(token: string, selection: ShippingSelection) {
     "@/lib/inventory/store": { ensureInventorySchema: async () => {}, checkoutWithStockCheck: async (order: Order) => {
       reserved.push(structuredClone(order)); return { ok: true }; } },
   }) as { prepareReservedOrder: (body: CheckoutBody, options: PrepareOrderOptions) => Promise<PrepareOrderResult> };
-  const payload = { ...body, researchAcknowledgement: { version: research.CHECKOUT_RESEARCH_ACK_VERSION,
-    researchStatus: "independent_researcher", researchUseOnly: true }, shippingMethod: "priority", shippingQuote: token };
+  // No research account, status or declaration is supplied by this guest.
+  const payload = { ...body, shippingMethod: "priority", shippingQuote: token };
   for (const shippingMethod of ["standard", "priority"] as const) {
     for (const shipping of [{ ...address, country: "CA" }, { ...address, zip: "unknown" },
       { ...address, zip: "00000" }, { ...address, zip: "99999" },
       { ...address, city: "APO", state: "AE", zip: "09012" }, { ...address, address: "P.O. Box 100" }]) {
-      const result = await prepare.prepareReservedOrder({ ...payload, shipping, shippingMethod }, { paymentMethod: "bitcoin", researchAccount: account });
+      const result = await prepare.prepareReservedOrder({ ...payload, shipping, shippingMethod }, { paymentMethod: "bitcoin" });
       check(result.ok, false); check(reserved.length, 0); check(acknowledgements, 0);
     }
   }
   for (const bad of [undefined, "changed", `${token}x`]) {
-    const result = await prepare.prepareReservedOrder({ ...payload, shippingQuote: bad }, { paymentMethod: "bitcoin", researchAccount: account });
+    const result = await prepare.prepareReservedOrder({ ...payload, shippingQuote: bad }, { paymentMethod: "bitcoin" });
     check(result.ok, false); check(reserved.length, 0); check(acknowledgements, 0);
   }
   for (const method of ["express", "overnight", 123, {}]) {
-    const result = await prepare.prepareReservedOrder({ ...payload, shippingMethod: method }, { paymentMethod: "bitcoin", researchAccount: account });
+    const result = await prepare.prepareReservedOrder({ ...payload, shippingMethod: method }, { paymentMethod: "bitcoin" });
     check(result.ok, false); check(reserved.length, 0);
   }
-  const changed = await prepare.prepareReservedOrder({ ...payload, shipping: { ...address, zip: "10007" } }, { paymentMethod: "bitcoin", researchAccount: account });
-  check(changed.ok, false); check(reserved.length, 0);
+  for (const changed of [{ shipping: { ...address, zip: "10007" } }, { email: "other@example.invalid" },
+    { items: [{ handle: "retatrutide", quantity: 2 }] }, { discountCode: "fixture-1234abcd" }]) {
+    const result = await prepare.prepareReservedOrder({ ...payload, ...changed }, { paymentMethod: "bitcoin" });
+    check(result.ok, false); check(reserved.length, 0);
+  }
+  const changedPayment = await prepare.prepareReservedOrder(payload, { paymentMethod: "card" });
+  check(changedPayment.ok, false); check(reserved.length, 0);
   process.env.PSL_PRIORITY_SHIPPING_ENABLED = "false";
-  check((await prepare.prepareReservedOrder(payload, { paymentMethod: "bitcoin", researchAccount: account })).ok, false);
+  check((await prepare.prepareReservedOrder(payload, { paymentMethod: "bitcoin" })).ok, false);
   check(reserved.length, 0);
   process.env.PSL_PRIORITY_SHIPPING_ENABLED = "true";
-  const accepted = await prepare.prepareReservedOrder(payload, { paymentMethod: "bitcoin", researchAccount: account });
+  const accepted = await prepare.prepareReservedOrder(payload, { paymentMethod: "bitcoin" });
   check(accepted.ok, true);
   assert(accepted.ok);
   check(reserved[0].shipping.selection, selection);
   check(accepted.order.shippingCost, 24.99); check(accepted.order.discountAmount, 3); check(accepted.order.total, 81.98);
-  check(acknowledgements, 1);
+  check(acknowledgements, 0, "Guest checkout does not fabricate or persist a research declaration");
   const publicOrder = toPublicOrder(accepted.order);
   check(publicOrder.shippingSelection, { method: "priority", carrier: "USPS", serviceDisplayName: "USPS Priority Mail", deliveryEstimate: selection.deliveryEstimate });
   assert(!JSON.stringify(publicOrder.shippingSelection).match(/quotedPostage|package|providerServiceCode|tagadaShippingRateId|quoteToken|Fixture Street/)); checks++;
   check(toPublicOrder({ ...accepted.order, shipping: address }).shippingSelection, null);
   assert.throws(() => toPublicOrder({ ...accepted.order, shipping: { ...address, selection: {} as ShippingSelection } })); checks++;
-  const ordinary = await prepare.prepareReservedOrder({ ...payload, shippingMethod: "standard", shippingQuote: undefined }, { paymentMethod: "bitcoin", researchAccount: account });
+  const ordinary = await prepare.prepareReservedOrder({ ...payload, shippingMethod: "standard", shippingQuote: undefined }, { paymentMethod: "bitcoin" });
   assert(ordinary.ok); check(ordinary.order.shippingCost, 9.99); check(ordinary.order.shipping.selection?.providerServiceCode, "GroundAdvantage");
-  const defaulted = await prepare.prepareReservedOrder({ ...payload, shippingMethod: undefined, shippingQuote: undefined }, { paymentMethod: "bitcoin", researchAccount: account });
+  const defaulted = await prepare.prepareReservedOrder({ ...payload, shippingMethod: undefined, shippingQuote: undefined }, { paymentMethod: "bitcoin" });
   assert(defaulted.ok); check(defaulted.order.shipping.selection?.method, "standard");
   for (const street of ["123 Fixture Street\nApt 2B", "123 Fixture Street\r\nSuite #204", "123-45 W. Fixture St. #2B"]) {
     const twoLine = await prepare.prepareReservedOrder({ ...payload, shippingMethod: "standard", shippingQuote: undefined,
-      shipping: { ...address, address: street, zip: "85001-1234", country: "United States" } }, { paymentMethod: "bitcoin", researchAccount: account });
+      shipping: { ...address, address: street, zip: "85001-1234", country: "United States" } }, { paymentMethod: "bitcoin" });
     assert(twoLine.ok); check(twoLine.order.shipping.address, street); check(twoLine.order.shipping.country, "US");
     check(twoLine.order.shippingCost, 9.99); check(twoLine.order.total, 66.98);
   }
+  const cardQuote = quote.issuePriorityShippingQuote(contextFor({ ...body, paymentMethod: "card" }), selection, config, NOW);
+  const guestCard = await prepare.prepareReservedOrder({ ...payload, shippingQuote: cardQuote.quoteToken }, { paymentMethod: "card" });
+  assert(guestCard.ok);
+  check(guestCard.order.shippingCost, 24.99); check(guestCard.order.discountAmount, 0); check(guestCard.order.total, 84.98);
+  check(acknowledgements, 0, "Guest card checkout also works without a research declaration");
 }
 
 async function routeBoundary() {
-  let signedIn = true, blocked = false, quoteEnabled = false, limits = 0;
+  let blocked = false, quoteEnabled = false, limits = 0;
   const route = load("app/api/checkout/shipping-options/route.ts", {
     "next/server": { NextResponse },
-    "@/lib/research-auth/server": { getResearchAccount: async () => signedIn ? account : null },
+    "@/lib/shipping/quote": quote,
     "@/lib/privacy/server": { readRequestPrivacyConsent: async () => ({ consent: { admin: false } }) },
     "@/lib/security/request-rate-limit": { consumeRequestLimit: async () => { limits++; return blocked ? NextResponse.json({ error: "Fixture rate limit" }, { status: 429 }) : null; } },
     "@/lib/shipping/config": { getPriorityShippingConfig: () => quoteEnabled ? config : null },
@@ -142,19 +152,26 @@ async function routeBoundary() {
   });
   const before = carrierReads;
   check((await route.POST(request(body, "https://other.invalid"))).status, 403);
-  signedIn = false;
-  check((await route.POST(request())).status, 401);
-  signedIn = true;
+  // There is deliberately no auth-library dependency or account cookie fixture.
   check((await route.POST(new Request("https://fixture.invalid/api/checkout/shipping-options", { method: "POST", body: "bad-json" }))).status, 400);
   check((await route.POST(request({ padding: "x".repeat(17_000) }))).status, 400);
   const disabled = await route.POST(request());
   check(disabled.status, 200); check(disabled.headers.get("cache-control"), "private, no-store");
   check((await disabled.json()).priority.available, false); check(limits, 0); check(carrierReads, before);
+  for (const email of [undefined, "", "bad-email", 123, "x".repeat(255) + "@example.invalid"]) {
+    check((await route.POST(request({ ...body, email, accountId: account.id }))).status, 400,
+      "Anonymous quotes require this request's valid email; body account ID supplies no fallback");
+  }
+  check(carrierReads, before);
   quoteEnabled = true; blocked = true;
   check((await route.POST(request())).status, 429); check(carrierReads, before);
   blocked = false;
-  const enabled = await route.POST(request());
-  check(enabled.status, 200); check((await enabled.json()).priority.available, true); check(carrierReads, before + 1);
+  const enabled = await route.POST(request({ ...body, accountId: "forged-account" }));
+  check(enabled.status, 200);
+  const data = await enabled.json();
+  check(data.priority.available, true); check(carrierReads, before + 1);
+  check(quote.validatePriorityShippingQuote(data.priority.quoteToken, contextFor(), { config, now: NOW }), data.priority.selection,
+    "Anonymous endpoint issues a fully context-bound quote; caller account IDs cannot replace the guest namespace");
 }
 
 async function storedSelectionBoundary(selection: ShippingSelection) {
@@ -329,7 +346,7 @@ async function main() {
     await routeBoundary();
     await storedSelectionBoundary(offer.selection);
     check(databaseCalls, 0); check(externalCalls, 0);
-    console.log(`PASS: Shipping options (${checks} checks; verified fee boundaries, discounts, signed cart/address/account binding, expiry, cost coverage, server reservation ordering and private projections; ${carrierReads} mocked carrier reads; no external calls, real orders, labels or payments).`);
+    console.log(`PASS: Guest shipping options (${checks} checks; verified fee boundaries, discounts, signed email/cart/address/payment binding, expiry, cost coverage, server reservation ordering and private projections; ${carrierReads} mocked carrier reads; no external calls, real orders, labels or payments).`);
   } finally {
     globalThis.fetch = oldFetch; __setSqlClientForTests(null);
     for (const key of Object.keys(process.env)) if (!(key in oldEnv)) delete process.env[key];

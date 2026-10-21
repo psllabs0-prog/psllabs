@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { getResearchAccount } from "@/lib/research-auth/server";
 import { readRequestPrivacyConsent } from "@/lib/privacy/server";
 import { consumeRequestLimit } from "@/lib/security/request-rate-limit";
 import { getPriorityShippingConfig } from "@/lib/shipping/config";
 import { getShippingOptionsForCheckout } from "@/lib/shipping/options";
+import { GUEST_SHIPPING_ACCOUNT_ID } from "@/lib/shipping/quote";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -15,8 +15,6 @@ export async function POST(request: Request) {
   if (request.headers.get("sec-fetch-site") === "cross-site" || origin && origin !== new URL(request.url).origin) {
     return NextResponse.json({ error: "Use the checkout page to request shipping options." }, { status: 403, headers });
   }
-  const account = await getResearchAccount(request);
-  if (!account) return NextResponse.json({ error: "Sign in to check shipping options." }, { status: 401, headers });
   let body: unknown;
   try {
     const raw = await request.text();
@@ -30,7 +28,10 @@ export async function POST(request: Request) {
   }
   try {
     const privacy = await readRequestPrivacyConsent(request).catch(() => null);
-    const result = await getShippingOptionsForCheckout(body, account, { config, admin: privacy?.consent.admin === true });
+    // Empty fallback requires a valid email in this request, without an account
+    // cookie or a caller-supplied account identifier.
+    const result = await getShippingOptionsForCheckout(body, { id: GUEST_SHIPPING_ACCOUNT_ID, email: "" },
+      { config, admin: privacy?.consent.admin === true });
     return result.ok ? NextResponse.json(result.data, { headers })
       : NextResponse.json({ error: result.error }, { status: result.status, headers });
   } catch {

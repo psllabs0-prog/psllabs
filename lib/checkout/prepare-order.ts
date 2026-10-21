@@ -16,8 +16,6 @@ import type { PrivacyConsentBinding, PublicPrivacyConsent } from "@/lib/privacy/
 import { lookupReferralDiscount, reserveReferralOrder } from "@/lib/partners/referral-store";
 import { normalizeReferralCode } from "@/lib/partners/referral-logic";
 import { referralCodesEnabled } from "@/lib/partners/referral-config";
-import { readCheckoutResearchDeclaration, RESEARCH_USE_CHECKOUT_STATEMENT } from "@/lib/checkout/research-acknowledgement";
-import { markStatusIfPending, saveOrderResearchAcknowledgement } from "@/lib/orders/store";
 import { normalizeShippingMethod, standardShippingSelection } from "@/lib/shipping/policy";
 import { isPhysicalUSShippingAddress } from "@/lib/shipping/request";
 
@@ -36,8 +34,6 @@ export type CheckoutBody = {
   paymentMethod?: unknown;
   /** Optional acquisition attribution from client localStorage, subject to verified consent. */
   attribution?: unknown;
-  /** Required explicit checkout choice, separate from account and cookie consent. */
-  researchAcknowledgement?: unknown;
   shippingMethod?: unknown;
   shippingQuote?: unknown;
 };
@@ -46,8 +42,6 @@ export type PrepareOrderOptions = {
   paymentMethod?: PaymentMethod | "btcpay" | null;
   /** Set only by the card route after checking its provider-side promotion configuration. */
   cardReferralPromotionConfigured?: boolean;
-  /** Authenticated account supplied by the server, never accepted from body. */
-  researchAccount?: { id: string; email: string } | null;
   /** Read from the request's HttpOnly receipt by the server, never from body. */
   privacyConsent?: { consent: PublicPrivacyConsent; binding: PrivacyConsentBinding | null } | null;
 };
@@ -131,14 +125,6 @@ export async function prepareReservedOrder(
   }
   const shippingMethod = normalizeShippingMethod(body.shippingMethod);
   if (!shippingMethod) return { ok: false, error: "Choose standard shipping or an available Priority Mail option.", status: 400 };
-  const researchDeclaration = readCheckoutResearchDeclaration(body.researchAcknowledgement);
-  if (!researchDeclaration) return {
-    ok: false, error: "Choose your research status and confirm research use only, not for human consumption.", status: 400,
-  };
-  const accountId = options?.researchAccount?.id;
-  if (typeof accountId !== "string" || !accountId.trim() || accountId.length > 150) return {
-    ok: false, error: "Sign in to your research account before checkout.", status: 401,
-  };
   if (!Array.isArray(body.items) || body.items.length === 0) {
     return { ok: false, error: "Cart is empty.", status: 400 };
   }
@@ -317,9 +303,9 @@ export async function prepareReservedOrder(
     shippingMethod,
   });
   if (shippingMethod === "priority") {
-    const { validatePriorityShippingQuote } = await import("@/lib/shipping/quote");
+    const { validatePriorityShippingQuote, GUEST_SHIPPING_ACCOUNT_ID } = await import("@/lib/shipping/quote");
     const selection = validatePriorityShippingQuote(body.shippingQuote, {
-      accountId, email, shipping, items, subtotalCents: Math.round(totals.subtotal * 100),
+      accountId: GUEST_SHIPPING_ACCOUNT_ID, email, shipping, items, subtotalCents: Math.round(totals.subtotal * 100),
       discountCents: Math.round(totals.discountAmount * 100),
       discountCode: referralDiscount ? appliedDiscount!.code : totals.discountCode, paymentMethod,
     });
@@ -372,7 +358,6 @@ export async function prepareReservedOrder(
     deliveryFollowupSent: false,
     stockDecremented: false,
     attribution,
-    researchAcknowledgement: { ...researchDeclaration, statement: RESEARCH_USE_CHECKOUT_STATEMENT, acceptedAt: now, accountId },
   };
 
   try {
@@ -382,14 +367,7 @@ export async function prepareReservedOrder(
     if (!stockCheck.ok) {
       return { ok: false, error: stockCheck.error, status: 409 };
     }
-    // Unlike optional attribution, this declaration must be durable before
-    // returning an order to either payment provider. Never infer old acceptance.
-    await saveOrderResearchAcknowledgement(orderId, order.researchAcknowledgement!);
   } catch (error) {
-    // Release the pending reservation if mandatory evidence could not be saved.
-    // No provider session or invoice has been created at this boundary.
-    try { await markStatusIfPending(orderId, "cancelled"); }
-    catch { console.error("[checkout] Unable to cancel the failed pending reservation."); }
     console.error("[checkout] Failed to persist order:", error);
     return {
       ok: false,

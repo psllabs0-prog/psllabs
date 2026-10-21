@@ -5,7 +5,6 @@
   "scripts": {
     "test:research-accounts": "tsx scripts/test-research-accounts.ts",
     "migrate:research-accounts": "tsx scripts/migrate-research-accounts.ts",
-    "prebuild": "tsx scripts/research-accounts-build-step.ts",
     "test:sale-pricing": "tsx scripts/test-sale-pricing.ts",
     "test:privacy": "tsx scripts/test-privacy-server.ts && tsx scripts/test-privacy-client.ts && tsx scripts/test-privacy-api.ts && tsx scripts/test-application-privacy-boundary.ts",
     "test:meta-events": "tsx scripts/test-meta-events.ts && tsx scripts/test-meta-transport.ts && tsx scripts/test-meta-api.ts && tsx scripts/test-meta-purchase.ts && tsx scripts/test-meta-browser.ts",
@@ -87,7 +86,8 @@
     "test:btcpay-verification": "tsx scripts/test-btcpay-verification.ts",
     "migrate:request-protection": "tsx scripts/migrate-request-protection.ts",
     "test:checkout-validation": "tsx scripts/test-checkout-validation.ts",
-    "test:inventory-receipts": "tsx scripts/test-inventory-receipts.ts"
+    "test:inventory-receipts": "tsx scripts/test-inventory-receipts.ts",
+    "test:guest-checkout": "tsx scripts/test-checkout-research.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
