@@ -9,7 +9,7 @@ import type { BtcpostageAddress, BtcpostageRate } from "@/lib/btcpostage/types";
 import { getPriorityShippingConfig, priorityCardRateConfigured, type PriorityShippingConfig } from "./config";
 import { getPriorityShippingPriceUsd, PRIORITY_ORIGIN_ZIP, PRIORITY_PACKAGE, PRIORITY_QUOTE_TTL_MS, priorityCostCovered, readPriorityTransitDays } from "./policy";
 import { parseShippingQuoteRequest } from "./request";
-import { issuePriorityShippingQuote, type PriorityQuoteContext } from "./quote";
+import { GUEST_SHIPPING_ACCOUNT_ID, issuePriorityShippingQuote, type PriorityQuoteContext } from "./quote";
 import type { ShippingOptionsResponse, ShippingSelection } from "./types";
 
 type OptionsDependencies = {
@@ -78,7 +78,9 @@ export async function getShippingOptionsForCheckout(raw: unknown, account: { id:
       deliveryEstimate: `Estimated ${transitDays} business ${transitDays === 1 ? "day" : "days"} after carrier acceptance; not guaranteed.`,
       quotedPostageUsd: Number(rate.rate), package: { ...PRIORITY_PACKAGE }, quotedAt: new Date(now).toISOString(),
       quoteExpiresAt: new Date(now + PRIORITY_QUOTE_TTL_MS).toISOString() };
-    const context: PriorityQuoteContext = { accountId: account.id, ...parsed, discountCents,
+    // An account is no longer required. Never accept a caller's account ID as
+    // quote authority; the HMAC binds all validated guest checkout details.
+    const context: PriorityQuoteContext = { accountId: GUEST_SHIPPING_ACCOUNT_ID, ...parsed, discountCents,
       discountCode: isReferral ? discount?.code ?? null : totals.discountCode };
     const signed = issuePriorityShippingQuote(context, selection, config, now);
     return { ok: true, data: { standard, priority: { available: true, method: "priority", priceUsd,

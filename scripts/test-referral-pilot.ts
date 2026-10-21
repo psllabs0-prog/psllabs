@@ -91,15 +91,14 @@ async function main() {
     const body = { email: "buyer@example.test", currency: "USD", discountCode: code,
       researchAcknowledgement: { version: CHECKOUT_RESEARCH_ACK_VERSION, researchStatus: "independent_researcher", researchUseOnly: true },
       items: [{ handle: "retatrutide", quantity: 1 }], shipping: { firstName: "Fixture", lastName: "Only", address: "123 Test Street", city: "Phoenix", state: "AZ", zip: "85001", country: "US" } };
-    const researchAccount = { id: "offline_referral_buyer", email: body.email };
-    const rejected = await prepareReservedOrder(body, { paymentMethod: "bitcoin", researchAccount });
+    const rejected = await prepareReservedOrder(body, { paymentMethod: "bitcoin" });
     check(rejected.ok, false);
     eligibleCode = true;
     const beforeCard = statements.length;
-    const card = await prepareReservedOrder(body, { paymentMethod: "card", researchAccount });
+    const card = await prepareReservedOrder(body, { paymentMethod: "card" });
     check(card.ok, false);
     check(statements.slice(beforeCard).some(row => row.query.includes("SELECT checkout_create_referral_order")), false);
-    const prepared = await prepareReservedOrder(body, { paymentMethod: "bitcoin", researchAccount });
+    const prepared = await prepareReservedOrder(body, { paymentMethod: "bitcoin" });
     check(prepared.ok, true);
     if (prepared.ok) {
       check([prepared.order.subtotal, prepared.order.discountAmount, prepared.order.discountCode], [59.99, 6, code]);

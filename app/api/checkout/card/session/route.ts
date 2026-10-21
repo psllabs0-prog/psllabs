@@ -12,7 +12,6 @@ import { createTagadaCheckoutSession } from "@/lib/tagada/server";
 import { readRequestPrivacyConsent } from "@/lib/privacy/server";
 import { normalizeReferralCode } from "@/lib/partners/referral-logic";
 import { configuredReferralPromotionCode, configureAndVerifyCardSession } from "@/lib/tagada/referral-checkout";
-import { getResearchAccount } from "@/lib/research-auth/server";
 
 export const runtime = "nodejs";
 // Promotion settlement can need read-only confirmation after a provider timeout.
@@ -23,8 +22,6 @@ export const maxDuration = 300;
  * the browser headless SDK (tokenize + processPayment).
  */
 export async function POST(request: Request) {
-  const researchAccount = await getResearchAccount(request);
-  if (!researchAccount) return NextResponse.json({ error: "Sign in to your research account to continue." }, { status: 401 });
   if (process.env.PSL_VISUAL_PREVIEW === "1") return NextResponse.json(
     { error: "Preview only. Payments and order creation are disabled." }, { status: 503 });
   if (!isTagadaConfigured()) {
@@ -46,7 +43,7 @@ export async function POST(request: Request) {
 
   const privacyConsent = await readRequestPrivacyConsent(request).catch(() => null);
   const referralPromotionCode = configuredReferralPromotionCode();
-  const prepared = await prepareReservedOrder(body, { paymentMethod: "card", privacyConsent, researchAccount,
+  const prepared = await prepareReservedOrder(body, { paymentMethod: "card", privacyConsent,
     cardReferralPromotionConfigured: referralPromotionCode !== null });
   if (!prepared.ok) {
     return NextResponse.json(
@@ -142,7 +139,6 @@ export async function POST(request: Request) {
       ...(shippingSelection.method === "priority" && typeof body.shippingQuote === "string" ? {
         shippingQuote: body.shippingQuote,
       } : {}),
-      researchAcknowledgementVersion: order.researchAcknowledgement?.version,
       pricing: { subtotal: order.subtotal, discountCode: order.discountCode, discountAmount: order.discountAmount, tax: order.tax },
     });
   } catch (error) {

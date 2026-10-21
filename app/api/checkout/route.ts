@@ -7,13 +7,10 @@ import {
 import { setInvoiceId, setPaymentMethod } from "@/lib/orders/store";
 import { getPaymentProcessor } from "@/lib/payments";
 import { readRequestPrivacyConsent } from "@/lib/privacy/server";
-import { getResearchAccount } from "@/lib/research-auth/server";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const researchAccount = await getResearchAccount(request);
-  if (!researchAccount) return NextResponse.json({ error: "Sign in to your research account to continue." }, { status: 401 });
   let body: CheckoutBody;
   try {
     body = (await request.json()) as CheckoutBody;
@@ -25,7 +22,7 @@ export async function POST(request: Request) {
   }
 
   const privacyConsent = await readRequestPrivacyConsent(request).catch(() => null);
-  const prepared = await prepareReservedOrder(body, { paymentMethod: "bitcoin", privacyConsent, researchAccount });
+  const prepared = await prepareReservedOrder(body, { paymentMethod: "bitcoin", privacyConsent });
   if (!prepared.ok) {
     return NextResponse.json(
       { error: prepared.error },

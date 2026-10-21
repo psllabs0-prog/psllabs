@@ -1,4 +1,3 @@
-import { CHECKOUT_RESEARCH_ACK_VERSION } from "@/lib/checkout/research-acknowledgement";
 import type { ShippingMethod } from "@/lib/shipping/types";
 import { tagadaCheckoutShippingAddressMatches } from "@/lib/tagada/checkout-price-evidence";
 
@@ -15,7 +14,7 @@ export type TagadaCardSession = {
   cartFingerprint: string;
   /** Reserved server amounts survive refresh and 3DS recovery. Older sessions remain readable. */
   pricing?: { subtotal: number; discountCode: string | null; discountAmount: number; tax: number };
-  /** Issued only after the server saves this order's explicit checkout declaration. */
+  /** Historical session metadata, retained only for compatible payment recovery. */
   researchAcknowledgementVersion?: string;
   shippingMethod?: ShippingMethod;
   tagadaShippingRateId?: string;
@@ -166,8 +165,7 @@ export function cardSessionReadyToCharge(session: TagadaCardSession, providerVal
   const providerItems: unknown[] | null = Array.isArray(provider?.items) ? provider.items : null;
   const itemMatches = !session.pricing || (providerItems !== null && providerItems.length === session.items.length &&
     session.items.every(item => providerItems.filter(value => object(value)?.variantId === item.variantId && object(value)?.quantity === item.quantity).length === 1));
-  return session.researchAcknowledgementVersion === CHECKOUT_RESEARCH_ACK_VERSION &&
-    (session.shippingMethod !== "priority" || !!session.shippingQuoteExpiresAt && Date.parse(session.shippingQuoteExpiresAt) > now) &&
+  return (session.shippingMethod !== "priority" || !!session.shippingQuoteExpiresAt && Date.parse(session.shippingQuoteExpiresAt) > now) &&
     !!session.shippingMethod && !!session.tagadaShippingRateId && provider?.selectedShippingRateId === session.tagadaShippingRateId &&
     pricingMatches && itemMatches && !!provider && !!totals && string(expectedSessionId, 150) &&
     provider.id === expectedSessionId && provider.storeId === session.storeId &&

@@ -14,8 +14,6 @@ import { useCart } from "@/components/cart/cart-provider";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 import { formatPrice } from "@/lib/cart/format";
 import { DISCOUNT_CODES_ENABLED } from "@/lib/checkout/discount-codes-config";
-import { CHECKOUT_RESEARCH_ACK_VERSION, RESEARCH_USE_CHECKOUT_STATEMENT } from "@/lib/checkout/research-acknowledgement";
-import { RESEARCH_STATUSES, isResearchStatus } from "@/lib/research-auth/qualification";
 import { ProductPrice } from "@/components/commerce/product-price";
 import { REFERRAL_CODE_FIELD_VISIBLE } from "@/lib/partners/referral-logic";
 import { computeTotals, type OrderTotals } from "@/lib/checkout/totals";
@@ -46,8 +44,6 @@ type FormState = {
   city: string;
   state: string;
   zip: string;
-  researchStatus: string;
-  researchUseOnly: boolean;
 };
 
 type FormErrors = Partial<Record<keyof FormState, string>>;
@@ -61,8 +57,6 @@ const FIELD_IDS: Record<keyof FormState, string> = {
   city: "checkout-city",
   state: "checkout-state",
   zip: "checkout-zip",
-  researchStatus: "checkout-research-status",
-  researchUseOnly: "checkout-research-use",
 };
 
 const initialForm: FormState = {
@@ -73,8 +67,6 @@ const initialForm: FormState = {
   city: "",
   state: "",
   zip: "",
-  researchStatus: "",
-  researchUseOnly: false,
 };
 
 const selectClassName =
@@ -124,8 +116,6 @@ function validateForm(form: FormState): FormErrors {
   if (!form.city.trim()) errors.city = "City is required.";
   if (!form.state.trim()) errors.state = "State is required.";
   if (!form.zip.trim()) errors.zip = "ZIP code is required.";
-  if (!isResearchStatus(form.researchStatus)) errors.researchStatus = "Choose your research status.";
-  if (form.researchUseOnly !== true) errors.researchUseOnly = "Confirm research use only, not for human consumption.";
 
   return errors;
 }
@@ -173,7 +163,6 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
       lastName: tagadaSession.customer.lastName, address: tagadaSession.shippingAddress.line1,
       city: tagadaSession.shippingAddress.city, state: tagadaSession.shippingAddress.state,
       zip: tagadaSession.shippingAddress.postalCode,
-      researchStatus: formOverrides.researchStatus ?? "", researchUseOnly: formOverrides.researchUseOnly ?? false,
     } : { ...initialForm, ...formOverrides };
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitted, setSubmitted] = useState(false);
@@ -281,11 +270,6 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
       currency: "USD",
       shippingMethod,
       ...(prioritySelected && priority ? { shippingQuote: priority.quoteToken } : {}),
-      researchAcknowledgement: {
-        version: CHECKOUT_RESEARCH_ACK_VERSION,
-        researchStatus: form.researchStatus,
-        researchUseOnly: form.researchUseOnly,
-      },
       email: form.email,
       shipping: {
         firstName: form.firstName,
@@ -433,7 +417,6 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
         shippingCost: data.shippingCost ?? totals.shipping,
         total: data.total,
         ...(data.pricing ? { pricing: data.pricing } : {}),
-        ...(data.researchAcknowledgementVersion ? { researchAcknowledgementVersion: data.researchAcknowledgementVersion } : {}),
         shippingMethod: data.shippingMethod,
         tagadaShippingRateId: data.tagadaShippingRateId,
         ...(data.shippingQuote ? { shippingQuote: data.shippingQuote } : {}),
@@ -515,13 +498,12 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
   }
 
   if (tagadaSession && retained?.phase === "ready" && !isCardReturn &&
-      (tagadaSession.researchAcknowledgementVersion !== CHECKOUT_RESEARCH_ACK_VERSION ||
-        !cardSessionMatchesShipping(tagadaSession, cardShippingContext()))) {
+      !cardSessionMatchesShipping(tagadaSession, cardShippingContext())) {
     return (
       <main className={cn("storefront-theme public-page-surface min-h-[60vh] bg-paper px-6 py-16 md:px-16 md:py-20 lg:px-24", styles.page)}>
         <div className="premium-card public-section-card mx-auto max-w-lg p-6">
           <h1 className="font-display text-display-md font-bold text-ink">Review your checkout details</h1>
-          <p className="mt-4 text-ash">Start a new checkout to review your shipping choice, current quote and research-use declaration before payment.</p>
+          <p className="mt-4 text-ash">Start a new checkout to review your shipping choice and current quote before payment.</p>
           <button type="button" onClick={() => cardSessionStore.clear()} className="mt-6 inline-flex rounded-pill bg-accent px-6 py-3.5 text-base font-medium text-page">Start new checkout</button>
         </div>
       </main>
@@ -783,32 +765,6 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
               <p className="mt-3 text-xs leading-relaxed text-ash">Orders are processed within 24 hours. Transit begins when the carrier receives the parcel; delivery times are estimates.</p>
             </section>
 
-            {!tagadaSession && <section className="premium-card public-section-card p-5 md:p-6" aria-labelledby="checkout-research-heading">
-              <h2 id="checkout-research-heading" className="font-display text-lg font-bold text-ink">Research-use confirmation</h2>
-              <p id="checkout-research-description" className="mt-2 text-sm leading-relaxed text-ash">Choose your current research role. This is your declaration, not a verification of researcher credentials. Advertising-cookie preferences are separate.</p>
-              <div className="mt-5 space-y-4">
-                <Field id="checkout-research-status" label="Research status" required error={submitted ? errors.researchStatus : undefined}>
-                  <select id="checkout-research-status" name="researchStatus" required value={form.researchStatus}
-                    disabled={isSubmitting} onChange={(event) => updateField("researchStatus", event.target.value)}
-                    className={selectClassName} aria-invalid={!!errors.researchStatus}
-                    aria-describedby={errors.researchStatus ? "checkout-research-description checkout-research-status-error" : "checkout-research-description"}>
-                    <option value="">Select your research status</option>
-                    {RESEARCH_STATUSES.map((status) => <option key={status.value} value={status.value}>{status.label}</option>)}
-                  </select>
-                </Field>
-                <div>
-                  <label htmlFor="checkout-research-use" className="flex min-h-11 cursor-pointer items-start gap-3 text-sm leading-relaxed text-ink">
-                    <input id="checkout-research-use" name="researchUseOnly" type="checkbox" required checked={form.researchUseOnly}
-                      disabled={isSubmitting} onChange={(event) => updateField("researchUseOnly", event.target.checked)}
-                      aria-invalid={!!errors.researchUseOnly} aria-describedby={errors.researchUseOnly ? "checkout-research-use-error" : undefined}
-                      className="mt-0.5 size-5 shrink-0 accent-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent" />
-                    <span>{RESEARCH_USE_CHECKOUT_STATEMENT}<span className="text-signal"> *</span></span>
-                  </label>
-                  {submitted && errors.researchUseOnly && <p id="checkout-research-use-error" className="mt-1.5 text-xs text-signal">{errors.researchUseOnly}</p>}
-                </div>
-              </div>
-            </section>}
-
             {!paymentUnresolved && !isCardReturn && <div className="premium-card public-section-card p-5 md:p-6 lg:hidden">
               <CheckoutSummary
                 lines={lines}
@@ -832,8 +788,6 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
               <h2 className="font-display text-lg font-bold text-ink">
                 Payment Method
               </h2>
-              {tagadaSession && retained?.phase === "ready" && tagadaSession.researchAcknowledgementVersion === CHECKOUT_RESEARCH_ACK_VERSION &&
-                <p className="mt-2 text-sm text-ash">Your research-use declaration is recorded for this checkout.</p>}
               <div className="mt-5 flex flex-col gap-3">
                 <button
                   type="button"
