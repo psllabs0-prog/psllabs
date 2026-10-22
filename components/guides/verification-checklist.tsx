@@ -107,7 +107,7 @@ export function VerificationChecklist({
             </p>
 
             {item.actionHint && (
-              <p className="mt-1 font-mono text-[0.6875rem] text-stone">
+              <p className="mt-1 font-mono text-xs text-stone">
                 Tip: {item.actionHint}
               </p>
             )}

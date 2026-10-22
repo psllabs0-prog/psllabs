@@ -818,7 +818,7 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                       <span className="text-sm font-medium text-ink">
                         Pay with Bitcoin
                       </span>
-                      <span className="inline-flex items-center rounded-pill border border-accent/35 bg-accent/10 px-2 py-0.5 font-mono text-[0.68rem] font-semibold tracking-wide text-accent">
+                      <span className="inline-flex items-center rounded-pill border border-accent/35 bg-accent/10 px-2 py-0.5 font-mono text-xs font-semibold tracking-wide text-accent">
                         {appliedDiscount?.exclusive ? "Referral 10%" : "Save 5%"}
                       </span>
                     </div>

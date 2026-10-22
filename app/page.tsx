@@ -39,6 +39,17 @@ const organizationLd = {
   },
 };
 
+/** Site name for search results (facts only: name, URL, publisher). PSL-FIX-20261022. */
+const websiteLd = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "@id": `${SITE_URL}/#website`,
+  name: "PSL Labs",
+  url: SITE_URL,
+  inLanguage: "en-US",
+  publisher: { "@id": `${SITE_URL}/#organization` },
+};
+
 export const dynamic = "force-dynamic";
 
 export default async function Home({
@@ -61,6 +72,7 @@ export default async function Home({
     <main className={styles.home}>
       {/* Validate Organization markup: https://search.google.com/test/rich-results */}
       <JsonLd data={organizationLd} />
+      <JsonLd data={websiteLd} />
       <HeroSection />
       <AvailableMaterialsSection
         products={activeProducts}

@@ -2,7 +2,7 @@
 .productStage{position:relative;display:block;aspect-ratio:1;height:auto;flex-shrink:0;background:#171e25;border-bottom:1px solid var(--line,#26333b);overflow:hidden}
 .productStage img{object-fit:contain;padding:35px 26px 18px;transition:transform .18s ease}
 .renderStage img{object-fit:cover;padding:0}
-.researchBadge{position:absolute;top:17px;left:18px;z-index:1;display:inline-flex;align-items:center;min-height:27px;border:1px solid #285368;border-radius:999px;padding:4px 10px;color:var(--cyan,#2fb6e0);background:#102530;font-family:var(--font-mono),monospace;font-size:10px;line-height:1.4;letter-spacing:.075em;text-transform:uppercase;pointer-events:none}
+.researchBadge{position:absolute;top:17px;left:18px;z-index:1;display:inline-flex;align-items:center;min-height:27px;border:1px solid #285368;border-radius:999px;padding:4px 10px;color:var(--cyan,#2fb6e0);background:#102530;font-family:var(--font-mono),monospace;font-size:12px;line-height:1.4;letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
 .productBody{display:flex;flex:1;min-width:0;flex-direction:column;padding:23px}
 .productHeading{display:flex;min-width:0;flex-direction:column;align-items:start;gap:8px}
 .productHeading h2,.productHeading h3{min-width:0;color:var(--ink,#e9f1f5);font-family:var(--font-display),sans-serif;font-size:24px;font-weight:600;line-height:1.22;letter-spacing:-.025em;overflow-wrap:anywhere}
@@ -18,7 +18,7 @@
 .reportHeading{display:flex;align-items:center;gap:7px;color:var(--muted,#a1afb7);font-size:12px;font-weight:500;line-height:1.5}
 .reportHeading svg{width:14px;height:14px;color:var(--cyan,#2fb6e0)}
 .reportMetric{margin-top:8px;color:var(--ink,#e9f1f5);font-size:14px;font-weight:500;line-height:1.55}
-.batchLabel{margin-top:5px;color:var(--muted,#a1afb7);font-family:var(--font-mono),monospace;font-size:11px;line-height:1.65;overflow-wrap:anywhere}
+.batchLabel{margin-top:5px;color:var(--muted,#a1afb7);font-family:var(--font-mono),monospace;font-size:12px;line-height:1.65;overflow-wrap:anywhere}
 .testedSample{margin-top:5px;color:var(--muted,#a1afb7);font-size:12px;line-height:1.5}
 .cardActions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:9px;margin-top:auto;padding-top:0}
 .buttonPrimary,.buttonSecondary{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:46px;border:1px solid #526977;border-radius:7px;padding:10px 10px;font-size:13px;font-weight:600;line-height:1.45;text-align:center;text-decoration:none}
@@ -30,10 +30,39 @@
 .productStage:focus-visible{outline-offset:-4px}
 .labelAlert{margin-bottom:20px;padding:12px 13px;border:1px solid #79623d;border-radius:7px;background:#292215;color:#f3d9aa;font-size:12px;line-height:1.65}
 .labelAlert>p:first-child{margin-bottom:4px;font-weight:600}
-.pipelineMarker{padding:23px 23px 0;color:var(--cyan,#2fb6e0);font-family:var(--font-mono),monospace;font-size:11px;line-height:1.5;letter-spacing:.08em;text-transform:uppercase}
+.pipelineMarker{padding:23px 23px 0;color:var(--cyan,#2fb6e0);font-family:var(--font-mono),monospace;font-size:12px;line-height:1.5;letter-spacing:.08em;text-transform:uppercase}
 .comingSoonCard .productBody{padding-top:13px}.comingSoonCard .productDescription{margin-bottom:22px}.comingSoonCard .cardActions{grid-template-columns:1fr}
+/* Compact listing card (PSL-FIX-20261022). Glass surface over the page aura, 4:3 image, research-use badge in the body (same words), stacked actions; horizontal on phones. */
+.compact{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr auto;border-color:var(--ring,rgba(120,200,235,.14));background:var(--surface,#141a1f)}
+@supports ((-webkit-backdrop-filter:blur(12px)) or (backdrop-filter:blur(12px))){.compact{background:var(--glass,rgba(20,26,31,.72));-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}}
+.compact .productStage{aspect-ratio:4/3}
+.compact .renderStage img{object-position:50% 30%}
+.compact .saleBadge{top:12px;right:12px}
+.compact .productBody{padding:14px 16px 0}
+.compact .productHeading{gap:4px}
+.compact .productHeading h2,.compact .productHeading h3{font-size:19px;line-height:1.25;letter-spacing:-.02em}
+.compact .productMeta{margin-top:6px;font-size:13px}
+.compact .badgeRow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:8px}
+.compact .researchBadge{position:static;max-width:100%;min-height:24px;padding:2px 8px;letter-spacing:.03em}
+.compact .stockBadge{margin-top:0}
+.compact .batchSummary{margin-block:10px 0;padding:10px 0 0;border-bottom:0}
+.compact .reportMetric{display:flex;align-items:flex-start;gap:6px;margin-top:0}
+.metricIcon{width:14px;height:14px;margin-top:4px;flex-shrink:0;color:var(--cyan,#2fb6e0)}
+.compact .batchLabel,.compact .testedSample{margin-top:3px}
+.compact .cardActions{grid-template-columns:minmax(0,1fr);gap:6px;margin-top:0;padding:10px 16px 16px}
+.compact .buttonPrimary,.compact .buttonSecondary{min-height:40px;padding-block:8px}
+.compact .pipelineMarker{padding:16px 16px 0}
+.compact.comingSoonCard .productBody{padding-top:8px}
+.compact.comingSoonCard .productDescription{margin-bottom:0}
+@media(pointer:coarse){.compact .buttonPrimary,.compact .buttonSecondary{min-height:44px}}
+/* 5-column /products grid only: a slightly wider image crop keeps all five on one desktop screen. */
+@media(min-width:1200px){:global([data-product-catalog]) .compact .productStage{aspect-ratio:3/2}}
+@media(max-width:620px){.compact{grid-template-columns:120px minmax(0,1fr);grid-template-rows:auto auto}.compact .productStage{grid-column:1;grid-row:1;align-self:start;aspect-ratio:1;margin:12px 0 0 12px;border:1px solid var(--line,#26333b);border-radius:10px}.compact .renderStage img{object-position:50% 45%}.compact .saleBadge{top:auto;right:auto;bottom:6px;left:6px}.compact .productBody{grid-column:2;grid-row:1;padding:12px 14px 0 12px}.compact .productHeading h2,.compact .productHeading h3{font-size:18px}.compact .cardActions{grid-column:1/-1;grid-row:2;grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:12px}.compact.comingSoonCard{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto}.compact.comingSoonCard .productBody,.compact.comingSoonCard .cardActions{grid-column:1;grid-row:auto}}
+@media(max-width:359px){.compact{grid-template-columns:100px minmax(0,1fr)}.compact .productStage{margin:10px 0 0 10px}.compact .productBody{padding:10px 10px 0}.compact .productHeading h2,.compact .productHeading h3{font-size:17px}.compact .cardActions{padding:10px}}
 @media(max-width:1100px){.productBody{padding:20px}.productHeading{gap:12px}.productHeading h2,.productHeading h3{font-size:23px}.price{font-size:21px}}
 @media(max-width:620px){.productBody{padding:20px}.productHeading h2,.productHeading h3{font-size:24px}.productDescription{font-size:14px}.cardActions{gap:10px}.buttonPrimary,.buttonSecondary{min-height:46px;font-size:13px}.researchBadge{left:16px;top:15px}}
 @media(max-width:359px){.productBody{padding:17px}.productHeading h2,.productHeading h3{font-size:21px}.price{font-size:20px}.productMeta{font-size:13px}.cardActions{gap:8px}.buttonPrimary,.buttonSecondary{font-size:12px;gap:5px;padding-inline:8px}}
 @media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){.productCard{transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease}.productCard:hover{transform:perspective(1000px) translateY(-3px) rotateX(1deg) rotateY(-1deg);border-color:#416475;box-shadow:0 16px 32px #0004}.productStage:hover img{transform:scale(1.015)}}
+@media(hover:hover) and (pointer:fine) and (prefers-reduced-motion:no-preference){.compact:hover{transform:none;border-color:rgba(47,182,224,.45);box-shadow:0 0 0 1px rgba(47,182,224,.18),0 18px 40px -18px var(--glow,rgba(47,182,224,.35))}}
+@media(hover:hover) and (prefers-reduced-motion:reduce){.compact:hover{border-color:rgba(47,182,224,.45)}}
 @media(prefers-reduced-motion:reduce){.productStage img{transition:none}}

@@ -159,11 +159,11 @@ export default function GuidesHubPage() {
                         >
                           <div className="flex flex-col gap-3">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-stone">
+                              <span className="font-mono text-xs uppercase tracking-wider text-stone">
                                 {guide.readTime}
                               </span>
                               {guide.featured && (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 font-mono text-[0.6875rem] font-semibold text-accent">
+                                <span className="inline-flex items-center gap-1 rounded-full border border-accent/30 bg-accent/10 px-2 py-0.5 font-mono text-xs font-semibold text-accent">
                                   <ShieldCheck className="size-3" aria-hidden />
                                   Core guide
                                 </span>

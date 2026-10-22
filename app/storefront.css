@@ -1,4 +1,4 @@
-.storefront-theme{--paper:#090c0e;--white:#141a1f;--surface:#141a1f;--ink:#e9f1f5;--muted:#a1afb7;--line:#26333b;--cyan:#2fb6e0;--teal:#2fb6e0;--color-page:var(--paper);--color-paper:var(--paper);--color-ink:var(--ink);--color-ash:var(--muted);--color-graphite:var(--muted);--color-slate-muted:var(--muted);--color-stone:var(--muted);--color-linen:var(--line);--color-border-strong:#526977;--color-surface:var(--surface);--color-lab-white:var(--surface);--color-surface-elevated:#192129;--color-surface-section:var(--paper);--color-interactive:var(--cyan);--color-border-default:var(--line);background:var(--paper);color:var(--ink);font-family:var(--font-sans);font-size:16px;line-height:1.55;min-height:100vh}
+.storefront-theme{--paper:#090c0e;--white:#141a1f;--surface:#141a1f;--ink:#e9f1f5;--muted:#a1afb7;--line:#26333b;--cyan:#2fb6e0;--teal:#2fb6e0;--color-page:var(--paper);--color-paper:var(--paper);--color-ink:var(--ink);--color-ash:var(--muted);--color-graphite:var(--muted);--color-slate-muted:var(--muted);--color-stone:var(--muted);--color-linen:var(--line);--color-border-strong:#526977;--color-surface:var(--surface);--color-lab-white:var(--surface);--color-surface-elevated:#192129;--color-surface-section:var(--paper);--color-interactive:var(--cyan);--color-border-default:var(--line);--glass:rgba(20,26,31,.72);--ring:rgba(120,200,235,.14);--glow:rgba(47,182,224,.35);background:var(--paper);color:var(--ink);font-family:var(--font-sans);font-size:16px;line-height:1.55;min-height:100vh}
 .storefront-theme :is(.text-ink,.text-near-black){color:var(--ink)}
 .storefront-theme :is(.text-ash,.text-graphite,.text-slate-muted,.text-stone){color:var(--muted)}
 .storefront-theme :is(.bg-paper,.bg-page,.bg-canvas,.bg-section-hero,.bg-section-warm,.bg-section-cool){background-color:var(--paper)}
@@ -32,4 +32,6 @@
 .storefront-not-found>div{display:flex;flex-wrap:wrap;gap:16px;margin-top:30px}
 .storefront-not-found a{display:inline-flex;align-items:center;justify-content:space-between;gap:30px;min-height:48px;padding:12px 18px;border:1px solid #526977;border-radius:7px;font-size:14px;font-weight:600}
 .storefront-not-found a:first-child{background:var(--cyan);color:#09202a;border-color:var(--cyan)}
+/* PSL-FIX-20261022: 12px minimum for the storefront research-use badge (globals.css left untouched). */
+.storefront-theme .badge-verified{font-size:12px}
 @media(max-width:600px){.design-preview-notice{font-size:11px}}

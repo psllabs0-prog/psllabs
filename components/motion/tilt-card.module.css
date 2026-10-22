@@ -1,0 +1,20 @@
+/* PSL-FIX-20261022: wrapper only; the card keeps its own markup, links and data attributes. */
+.tilt { position: relative; display: flex; min-width: 0; border-radius: 16px; }
+.tilt > * { flex: 1; min-width: 0; }
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .tilt { transform: perspective(900px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)); transition: transform 180ms ease-out; }
+  .tilt[data-tilting="true"] { transition: transform 60ms linear; }
+  .tilt::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 200ms ease;
+    background: radial-gradient(circle at var(--glare-x, 50%) var(--glare-y, 0%), rgba(120, 200, 235, 0.14), transparent 55%);
+  }
+  .tilt[data-tilting="true"]::after { opacity: 1; }
+}

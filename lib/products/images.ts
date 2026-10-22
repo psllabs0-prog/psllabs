@@ -1,3 +1,5 @@
+import { getProductCutout } from "./renders";
+
 /** Shared Retatrutide vial. Used as featured/hero fallback. */
 export const PRODUCT_VIAL_IMAGE = {
   src: "/Retatrutide-transparent.png",
@@ -38,10 +40,19 @@ export const PRODUCT_IMAGES = {
 
 export type ProductImageHandle = keyof typeof PRODUCT_IMAGES;
 
+/**
+ * Image used wherever a product is listed (catalog imageSrc: cart, checkout, sitemap fallback).
+ *
+ * PRODUCT_IMAGES above is kept as the record of the original label artwork. Listings now use
+ * the illustrative render cutouts, so every place a product image appears comes from one
+ * render set. The original files stay in public/ and are not deleted.
+ */
 export function getProductImage(handle: string): {
   src: string;
   alt: string;
 } {
+  const cutout = getProductCutout(handle);
+  if (cutout) return cutout;
   if (handle in PRODUCT_IMAGES) {
     return PRODUCT_IMAGES[handle as ProductImageHandle];
   }

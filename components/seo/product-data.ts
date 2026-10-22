@@ -1,3 +1,4 @@
+import { FLAT_SHIPPING_USD, FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 import type { ProductAvailability } from "@/lib/inventory/availability";
 import type { Product } from "@/lib/products";
 import type { CatalogProduct } from "@/lib/products/catalog";
@@ -36,6 +37,17 @@ export function createProductData({
       url,
       itemCondition: "https://schema.org/NewCondition",
       seller: { "@type": "Organization", "@id": `${SITE_URL}/#organization`, name: "PSL Labs" },
+      // Facts from lib/cart/constants.ts (U.S. only, flat standard rate, free at the product
+      // subtotal threshold). No delivery-time promise: carrier estimates are not guaranteed.
+      shippingDetails: {
+        "@type": "OfferShippingDetails",
+        shippingRate: {
+          "@type": "MonetaryAmount",
+          value: (product.price >= FREE_SHIPPING_THRESHOLD ? 0 : FLAT_SHIPPING_USD).toFixed(2),
+          currency: "USD",
+        },
+        shippingDestination: { "@type": "DefinedRegion", addressCountry: "US" },
+      },
       // An inventory fallback is not a verified stock count. Omit this field
       // when the inventory read fails or no tracked stock record exists.
       ...(availability.tracked ? {

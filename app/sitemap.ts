@@ -3,6 +3,7 @@ import type { MetadataRoute } from "next";
 import { ANALYTICAL_GUIDES } from "@/lib/content/guides-data";
 import { getScienceArticles } from "@/lib/content/science";
 import { getActiveCatalogProducts } from "@/lib/products/catalog";
+import { getProductRender } from "@/lib/products/renders";
 import { SITE_URL } from "@/lib/seo";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -14,9 +15,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
   ];
 
   const staticRoutes = staticPaths.map((path) => ({ url: `${SITE_URL}${path}` }));
+  // List the image the product page actually shows (the studio render) rather than the original
+  // label PNGs.
   const productRoutes = getActiveCatalogProducts().map((product) => ({
     url: `${SITE_URL}${product.href}`,
-    images: [`${SITE_URL}${product.imageSrc}`],
+    images: [`${SITE_URL}${getProductRender(product.handle)?.src ?? product.imageSrc}`],
   }));
   const guideRoutes = ANALYTICAL_GUIDES.map((guide) => ({
     url: `${SITE_URL}/guides/${guide.slug}`,

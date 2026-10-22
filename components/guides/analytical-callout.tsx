@@ -51,7 +51,7 @@ export function AnalyticalCallout({
           aria-hidden
         />
         <div className="flex flex-wrap items-baseline gap-2">
-          <span className="font-mono text-[0.6875rem] font-semibold uppercase tracking-wider text-stone">
+          <span className="font-mono text-xs font-semibold uppercase tracking-wider text-stone">
             {config.label}
           </span>
           <span className="text-stone">·</span>

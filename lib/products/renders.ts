@@ -10,3 +10,9 @@ const renders: Record<string, { src: string; alt: string }> = {
 export function getProductRender(handle: string) {
   return renders[handle];
 }
+
+/** Transparent cutout of the same render, for small thumbnails (cart, checkout, listings). */
+export function getProductCutout(handle: string): { src: string; alt: string } | undefined {
+  const render = renders[handle];
+  return render ? { src: render.src.replace("-studio.webp", "-cutout.webp"), alt: render.alt } : undefined;
+}

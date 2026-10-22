@@ -51,7 +51,7 @@ export function ContactInfoPanel({ content }: ContactInfoPanelProps) {
                     </div>
                   ) : null}
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <p className="font-mono text-[0.65rem] uppercase tracking-wider text-ash">
+                    <p className="font-mono text-xs uppercase tracking-wider text-ash">
                       {detail.label}
                     </p>
                     {detail.href ? (

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { TiltCard } from "@/components/motion/tilt-card";
 import { ProductCatalogCard } from "@/components/products/product-catalog-card";
 import { JsonLd } from "@/components/seo/json-ld";
 import { SiteBreadcrumbs } from "@/components/seo/site-breadcrumbs";
@@ -15,6 +16,9 @@ export const metadata: Metadata = createPageMetadata({
 
 export const dynamic = "force-dynamic";
 
+/** 5 columns at >=1200px, 3 at 1001-1199px, 2 at 621-1000px, horizontal card on phones. */
+const CATALOG_IMAGE_SIZES = "(max-width: 620px) 128px, (max-width: 1000px) calc(50vw - 40px), (max-width: 1199px) calc(33.333vw - 40px), 260px";
+
 export default async function ProductsPage() {
   const active = getActiveCatalogProducts();
   const comingSoon = getComingSoonCatalogProducts();
@@ -23,7 +27,7 @@ export default async function ProductsPage() {
   ).catch(() => new Map());
 
   return (
-    <main className={styles.catalogPage}>
+    <main className={`${styles.catalogPage} ${styles.catalogAura}`}>
       <JsonLd data={{
         "@context": "https://schema.org",
         "@type": "CollectionPage",
@@ -43,19 +47,25 @@ export default async function ProductsPage() {
           })),
         },
       }} />
-      <section className={styles.catalogHeader}>
+      <section className={`${styles.catalogHeader} ${styles.catalogHeaderCompact}`}>
         <div className={styles.container}>
-          <SiteBreadcrumbs items={[{ name: "Home", path: "/" }, { name: "Products", path: "/products" }]} />
-          <p className={styles.eyebrow}>PRODUCT CATALOG</p>
-          <h1 className={styles.catalogTitle}>Research peptides<br /><span>with published lab reports.</span></h1>
-          <p className={styles.catalogIntro}>Browse materials for laboratory research. Each active product lists specs and a batch report when published. Research use only.</p>
+          <SiteBreadcrumbs items={[{ name: "Home", path: "/" }, { name: "Products", path: "/products" }]} className="mb-1" />
+          <div className={styles.catalogHeaderRow}>
+            <div>
+              <p className={styles.eyebrow}>PRODUCT CATALOG</p>
+              <h1 className={styles.catalogTitle}>Research peptides <span>with published lab reports.</span></h1>
+            </div>
+            <p className={styles.catalogIntro}>Browse materials for laboratory research. Each active product lists specs and a batch report when published. Research use only.</p>
+          </div>
         </div>
       </section>
       <section className={styles.catalogPageSection}>
         <div className={styles.container}>
-          <div data-product-catalog className={styles.catalogGrid}>
+          <div data-product-catalog className={`${styles.catalogGrid} ${styles.catalogGridFive}`}>
             {active.map((product, index) => (
-              <ProductCatalogCard key={product.handle} product={product} availability={availabilityMap.get(product.handle)} imagePriority={index === 0} showDescription />
+              <TiltCard key={product.handle}>
+                <ProductCatalogCard product={product} availability={availabilityMap.get(product.handle)} imagePriority={index === 0} compact imageSizes={CATALOG_IMAGE_SIZES} />
+              </TiltCard>
             ))}
           </div>
           {comingSoon.length > 0 && (
@@ -65,8 +75,8 @@ export default async function ProductsPage() {
                 <h2>Coming soon</h2>
                 <p>Additional research compounds in preparation. Join the newsletter to hear when batch documentation and inventory are available.</p>
               </div>
-              <div className={styles.catalogGrid}>
-                {comingSoon.map((product) => <ProductCatalogCard key={product.handle} product={product} headingLevel={3} />)}
+              <div className={`${styles.catalogGrid} ${styles.catalogGridFive}`}>
+                {comingSoon.map((product) => <ProductCatalogCard key={product.handle} product={product} headingLevel={3} compact />)}
               </div>
             </section>
           )}

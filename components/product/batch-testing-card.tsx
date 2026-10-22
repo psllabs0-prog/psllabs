@@ -105,7 +105,7 @@ export function BatchTestingCard({ report, compact = false }: BatchTestingCardPr
 
         <div className="mt-5 grid gap-5 rounded-xl border border-border-strong bg-paper/70 p-5 sm:grid-cols-2">
           <div>
-            <p className="font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-ash">
+            <p className="font-mono text-xs uppercase tracking-[0.08em] text-ash">
               Label amount
             </p>
             <p className="mt-1 font-mono text-xl font-medium text-ink">
@@ -114,7 +114,7 @@ export function BatchTestingCard({ report, compact = false }: BatchTestingCardPr
             <p className="mt-1 text-xs text-ash">Amount printed on the vial label</p>
           </div>
           <div>
-            <p className="font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-ash">
+            <p className="font-mono text-xs uppercase tracking-[0.08em] text-ash">
               {amount.label}
             </p>
             <p className="mt-1 font-mono text-xl font-medium text-ink">

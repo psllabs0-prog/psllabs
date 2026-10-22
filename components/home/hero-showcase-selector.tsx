@@ -50,7 +50,7 @@ export function HeroShowcaseSelector({ products }: { products: HeroShowcaseProdu
               )}
             >
               <Image src={product.imageSrc} alt="" width={44} height={44} sizes="44px" className="size-9 object-contain sm:size-11" />
-              <span className={cn("block max-w-full truncate text-[9px] sm:text-[11px]", isSelected ? "font-medium text-ink" : "text-[#aab0b9]")}>{product.shortLabel}</span>
+              <span className={cn("block max-w-full truncate text-[9px] sm:text-[11px]", isSelected ? "font-medium text-ink" : "text-[#aab0b9]")}>{product.name}</span>
             </button>
           );
         })}

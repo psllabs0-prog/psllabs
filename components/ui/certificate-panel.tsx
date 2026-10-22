@@ -30,7 +30,7 @@ export function CertificatePanel({
       )}
     >
       <div className="flex items-center justify-between gap-3 border-b border-linen px-4 py-3 md:px-5">
-        <p className="font-mono text-[0.6875rem] font-medium uppercase tracking-[0.12em] text-stone">
+        <p className="font-mono text-xs font-medium uppercase tracking-[0.12em] text-stone">
           {headerLabel}
         </p>
         <Check
@@ -46,7 +46,7 @@ export function CertificatePanel({
             key={row.label}
             className="flex items-baseline justify-between gap-4 border-b border-linen px-4 py-3 last:border-b-0 md:px-5"
           >
-            <dt className="font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-stone">
+            <dt className="font-mono text-xs uppercase tracking-[0.08em] text-stone">
               {row.label}
             </dt>
             <dd

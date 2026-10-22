@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
+import { TiltCard } from "@/components/motion/tilt-card";
 import { ProductCatalogCard } from "@/components/products/product-catalog-card";
 import { ProductPrice } from "@/components/commerce/product-price";
 import type { ProductAvailability } from "@/lib/inventory/availability";
@@ -19,7 +20,7 @@ export function AvailableMaterialsSection({ products, availabilityMap }: Availab
           <Link href="/products" className={styles.textLink}>All products <ArrowUpRight aria-hidden /></Link>
         </div>
         <div className={styles.catalogGrid}>
-          {selected.map((product) => <ProductCatalogCard key={product.handle} product={product} availability={availabilityMap.get(product.handle)} headingLevel={3} showDescription />)}
+          {selected.map((product) => <TiltCard key={product.handle}><ProductCatalogCard product={product} availability={availabilityMap.get(product.handle)} headingLevel={3} compact /></TiltCard>)}
         </div>
         {remaining.length > 0 && <div className={styles.remainingMaterials}><p>Also in the catalog</p><div>{remaining.map((product) => <Link key={product.handle} href={product.href}>{product.name} <ProductPrice handle={product.handle} unitPrice={product.price} size="compact" /><ArrowUpRight aria-hidden /></Link>)}</div></div>}
       </div>

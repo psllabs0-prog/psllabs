@@ -51,7 +51,7 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
         <section className={`${styles.container} ${styles.productLayout}`}>
           <div className={styles.productTitle}>
             <p className={styles.eyebrow}>PSL Labs / Laboratory research</p>
-            <h1>{product.name}{strength ? <span className={styles.strength}>{strength}</span> : null}</h1>
+            <h1>{product.name}{strength ? <>{" "}<span className={styles.strength}>{strength}</span></> : null}</h1>
             <p className={styles.shortDescription}>{leadDescription}</p>
             <p className={styles.titlePrice}><ProductPrice handle={product.handle} unitPrice={product.price} size="large" /><span>per vial</span></p>
           </div>

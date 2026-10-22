@@ -28,7 +28,7 @@ export function CartIconButton({ className }: CartIconButtonProps) {
     >
       <ShoppingBag className="size-6" strokeWidth={1.35} aria-hidden />
       {isHydrated && totalQuantity > 0 && (
-        <span aria-hidden className="absolute -right-0.5 -top-0.5 flex size-5 items-center justify-center rounded-full bg-accent font-mono text-[0.625rem] font-medium text-page">
+        <span aria-hidden className="absolute -right-0.5 -top-0.5 flex size-5 items-center justify-center rounded-full bg-accent font-mono text-xs font-medium text-page">
           {totalQuantity > 99 ? "99+" : totalQuantity}
         </span>
       )}

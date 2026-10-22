@@ -37,7 +37,7 @@ export function RelatedGuides({
             className="group flex flex-col justify-between public-section-card p-5 transition-colors duration-200 hover:border-linen-dark hover:bg-paper/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
           >
             <div className="flex flex-col gap-2.5">
-              <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-stone">
+              <span className="font-mono text-xs uppercase tracking-wider text-stone">
                 {guide.categoryLabel}
               </span>
               <h3 className="font-display text-base font-bold text-ink transition-colors group-hover:text-accent">

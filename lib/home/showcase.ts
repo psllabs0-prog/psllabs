@@ -1,11 +1,9 @@
 import { formatReportedPurity, getBatchReportsForProduct } from "@/lib/batch-reports";
 import { getActiveCatalogProducts } from "@/lib/products/catalog";
-import { homeProductCode } from "@/lib/home/product-display";
 
 export type HeroShowcaseProduct = {
   handle: string;
   name: string;
-  shortLabel: string;
   strength: string;
   href: string;
   imageSrc: string;
@@ -32,7 +30,6 @@ export function getHeroShowcaseProducts(): HeroShowcaseProduct[] {
     return {
       handle: product.handle,
       name: product.name,
-      shortLabel: homeProductCode(product.handle),
       strength: product.strength,
       href: product.href,
       imageSrc: product.imageSrc,

@@ -44,7 +44,7 @@ export function ReturnsPage() {
               </h1>
             </AnimateIn>
             <AnimateIn delay={0.1}>
-              <span className="inline-flex w-fit rounded-pill border border-biotech-blue/20 bg-biotech-mist/50 px-4 py-1.5 font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-wider text-biotech-deep">
+              <span className="inline-flex w-fit rounded-pill border border-biotech-blue/20 bg-biotech-mist/50 px-4 py-1.5 font-[family-name:var(--font-mono)] text-xs uppercase tracking-wider text-biotech-deep">
                 {content.badge}
               </span>
             </AnimateIn>
@@ -174,7 +174,7 @@ export function ReturnsPage() {
                     key={row.label}
                     className="flex flex-col gap-2 py-5 first:pt-0 last:pb-0 md:grid md:grid-cols-[minmax(9rem,28%)_1fr] md:gap-8 md:py-6"
                   >
-                    <p className="font-[family-name:var(--font-mono)] text-[0.65rem] uppercase tracking-wider text-biotech-deep/80">
+                    <p className="font-[family-name:var(--font-mono)] text-xs uppercase tracking-wider text-biotech-deep/80">
                       {row.label}
                     </p>
                     <p className="text-sm leading-relaxed text-ash md:text-base">
