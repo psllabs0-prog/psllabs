@@ -46,6 +46,7 @@
 .compact .productHeading h2,.compact .productHeading h3{font-size:19px;line-height:1.25;letter-spacing:-.02em}
 .compact .productHeading a{display:inline-block;min-height:24px;padding-block:1px}
 .compact .productMeta{margin-top:6px;font-size:13px}
+.compact:not(.comingSoonCard) .productDescription{margin-top:6px;font-size:13px;line-height:1.55}
 .compact .badgeRow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:8px;padding-bottom:10px}
 .compact .researchBadge{position:static;max-width:100%;min-height:24px;padding:2px 8px;letter-spacing:.03em}
 .compact .stockBadge{margin-top:0}

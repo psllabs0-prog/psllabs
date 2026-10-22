@@ -22,7 +22,8 @@ type ProductCatalogCardProps = {
    * Compact listing card (PSL-FIX-20261022): 4:3 image, the research-use badge moves from the
    * image into the card body (same words), "Published batch report" kept above the metric and
    * linked to the original report, stacked buttons, and a horizontal layout on phones.
-   * The product description is not shown on compact cards (it stays on the product page).
+   * The catalog description shows only when `showDescription` is passed. The /products and home
+   * call sites currently leave it off (to restore it, pass showDescription there).
    */
   compact?: boolean;
   /** next/image `sizes` for the compact layout the card is placed in. */
@@ -84,7 +85,7 @@ export function ProductCatalogCard({ product, availability, className, headingLe
           {!comingSoon && <ProductPrice handle={product.handle} unitPrice={product.price} className={styles.price} />}
         </div>
         <p className={styles.productMeta}>{amount} <span>· {product.tag === "LABORATORY REAGENT" ? "Laboratory reagent" : "Research peptide"}</span></p>
-        {((showDescription && !compact) || comingSoon) && <p className={styles.productDescription}>{product.description}</p>}
+        {(showDescription || comingSoon) && <p className={styles.productDescription}>{product.description}</p>}
         {compact && !comingSoon ? <div className={styles.badgeRow}>{researchBadge}{stockBadge}</div> : stockBadge}
         {!comingSoon && <div className={styles.batchSummary}>
           {reportHeading}
