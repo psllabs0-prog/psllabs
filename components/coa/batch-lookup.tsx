@@ -10,6 +10,7 @@ import {
   batchReportToCertificateRows,
   findBatchReport,
 } from "@/lib/batch-reports";
+import { reportPagePath } from "@/lib/batch-reports/report-pages";
 import { productPathFromHandle } from "@/lib/products/catalog";
 import { BatchTestingCard } from "@/components/product/batch-testing-card";
 import { CertificatePanel } from "@/components/ui/certificate-panel";
@@ -90,6 +91,14 @@ export function BatchLookup() {
                   {/* Descriptive anchor text (product and label amount) helps crawlers match each report to its product page. */}
                   {report.product} {report.nominalStrength.replace(/(\d)(mg|ml)$/i, "$1 $2")} product page
                 </Link>
+                {reportPagePath(report) && (
+                  <Link
+                    href={reportPagePath(report)!}
+                    className="inline-flex items-center justify-center rounded-pill border border-border-strong bg-paper px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:border-accent/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  >
+                    {report.laboratory} report {report.taskNumber}
+                  </Link>
+                )}
                 <a
                   href={report.reportUrl}
                   target="_blank"

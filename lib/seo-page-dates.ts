@@ -30,6 +30,11 @@ export const PAGE_LAST_MODIFIED: Readonly<Record<string, string>> = {
   "/products/psl-bpc157-10mg": PSL_FIX_RELEASE_DATE,
   "/products/psl-tesa-10mg": PSL_FIX_RELEASE_DATE,
   "/products/psl-rs-5ml": PSL_FIX_RELEASE_DATE,
+  // New per-report pages (lib/batch-reports/report-pages.ts): first published with this release.
+  "/coa/janoshik-199788": PSL_FIX_RELEASE_DATE,
+  "/coa/janoshik-226454": PSL_FIX_RELEASE_DATE,
+  "/coa/janoshik-226456": PSL_FIX_RELEASE_DATE,
+  "/coa/janoshik-226457": PSL_FIX_RELEASE_DATE,
 };
 
 export function pageLastModified(path: string): string | undefined {

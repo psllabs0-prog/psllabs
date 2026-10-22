@@ -5,6 +5,7 @@ import { ProductPrice, SaleBadge } from "@/components/commerce/product-price";
 
 import { TestingScopeExplainer } from "@/components/testing/testing-scope-explainer";
 import { getBatchReportsForProduct, formatReportedPurity } from "@/lib/batch-reports";
+import { reportPagePath } from "@/lib/batch-reports/report-pages";
 import type { ProductAvailability } from "@/lib/inventory/availability";
 import type { Product } from "@/lib/products";
 import { getCatalogProductByHandle } from "@/lib/products/catalog";
@@ -29,6 +30,7 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
   const report = getBatchReportsForProduct(product.handle).find(
     (candidate) => candidate.status === "report_available" && Boolean(candidate.reportUrl) && candidate.sku === catalog?.sku,
   );
+  const reportPath = report ? reportPagePath(report) : undefined;
   const fallbackImage = getProductImage(product.handle);
   const imageSrc = product.imageSrc ?? fallbackImage.src;
   const imageAlt = product.imageAlt ?? fallbackImage.alt;
@@ -84,6 +86,7 @@ export function ResearchPeptideTemplate({ product, availability }: ResearchPepti
                 <div className={styles.batchActions}>
                   <a href={report.reportUrl} target="_blank" rel="noopener noreferrer">View original report <ArrowUpRight size={16} aria-hidden /></a>
                   <a href={report.verificationUrl} target="_blank" rel="noopener noreferrer">Verify with Janoshik <ArrowUpRight size={16} aria-hidden /></a>
+                  {reportPath ? <Link href={reportPath}>{report.laboratory} report {report.taskNumber}</Link> : null}
                 </div>
               </section>
             ) : <p className={styles.scopeNote}>Batch report not yet published. <Link href="/coa">Check batch documentation</Link>.</p>}

@@ -11,6 +11,8 @@ import sitemap from "../app/sitemap";
 import { JsonLd } from "../components/seo/json-ld";
 import { createProductData } from "../components/seo/product-data";
 import { SiteBreadcrumbs } from "../components/seo/site-breadcrumbs";
+import { getAvailableBatchReports } from "../lib/batch-reports";
+import { getReportPageReportBySlug, getReportPageReports, reportPagePath, reportPageSlug } from "../lib/batch-reports/report-pages";
 import { getProduct } from "../lib/products";
 import { getActiveCatalogProducts, getComingSoonCatalogProducts } from "../lib/products/catalog";
 import { PRODUCT_IMAGES } from "../lib/products/images";
@@ -74,6 +76,25 @@ async function checkRetiredImageRedirects() {
 }
 for (const product of getComingSoonCatalogProducts()) {
   check(!urls.includes(`${SITE_URL}${product.href}`), `${product.name} unreleased page is excluded`);
+}
+
+// Per-report pages (/coa/janoshik-<task>): facts from lib/batch-reports only; no Reconstitution Solution page.
+const reportPages = getReportPageReports();
+check(reportPages.length > 0, "Published reports have their own pages");
+check(!reportPages.some((report) => report.productHandle === "reconstitution-solution"), "The Reconstitution Solution report has no landing page");
+check(new Set(reportPages.map((report) => reportPagePath(report))).size === reportPages.length, "Report page paths are unique");
+for (const report of getAvailableBatchReports()) {
+  const path = reportPagePath(report);
+  if (!path) {
+    check(!urls.some((url) => url.endsWith(`/coa/${reportPageSlug(report)}`)), `${report.product} report without a page is not in the sitemap`);
+    continue;
+  }
+  check(/^\/coa\/janoshik-\d+$/.test(path) && pageIndexingPolicy(path) === "public", `${path} is a public lowercase report path`);
+  check(getReportPageReportBySlug(reportPageSlug(report)) === report, `${path} resolves to its own report`);
+  const route = routes.find((candidate) => candidate.url === `${SITE_URL}${path}`);
+  check(route, `${path} is in the sitemap`);
+  check(route?.images?.length === 1 && route.images[0] === `${SITE_URL}${encodeURI(report.reportUrl)}` && !route.images[0].includes(" "), `${path} sitemap image is the encoded original report file`);
+  check(existsSync(join(process.cwd(), "public", report.reportUrl)), `${path} report file exists`);
 }
 const robotsFile = robots();
 check(robotsFile.sitemap === `${SITE_URL}/sitemap.xml`, "robots.txt points at the canonical sitemap");

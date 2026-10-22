@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 
+import { getReportPageReports, reportPagePath } from "@/lib/batch-reports/report-pages";
 import { ANALYTICAL_GUIDES } from "@/lib/content/guides-data";
 import { getScienceArticles } from "@/lib/content/science";
 import { getActiveCatalogProducts } from "@/lib/products/catalog";
@@ -30,6 +31,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       images: [`${SITE_URL}${getProductRender(product.handle)?.src ?? product.imageSrc}`],
     };
   });
+  // One page per published lab report; its image entry is the original report file the page shows.
+  const reportRoutes = getReportPageReports().map((report) => {
+    const path = reportPagePath(report)!;
+    const lastModified = pageLastModified(path);
+    return {
+      url: `${SITE_URL}${path}`,
+      ...(lastModified ? { lastModified } : {}),
+      images: [`${SITE_URL}${encodeURI(report.reportUrl)}`],
+    };
+  });
   const guideRoutes = ANALYTICAL_GUIDES.map((guide) => ({
     url: `${SITE_URL}/guides/${guide.slug}`,
     lastModified: guide.modifiedDate || guide.publishedDate,
@@ -39,5 +50,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     lastModified: article.modifiedDate || article.date || undefined,
   }));
 
-  return [...staticRoutes, ...productRoutes, ...guideRoutes, ...scienceRoutes];
+  return [...staticRoutes, ...productRoutes, ...reportRoutes, ...guideRoutes, ...scienceRoutes];
 }
