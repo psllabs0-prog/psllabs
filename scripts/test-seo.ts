@@ -1,6 +1,6 @@
 /** Offline SEO checks. No customer, payment or advertising requests are sent. */
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -67,6 +67,15 @@ for (const product of getComingSoonCatalogProducts()) {
 const robotsFile = robots();
 check(robotsFile.sitemap === `${SITE_URL}/sitemap.xml`, "robots.txt points at the canonical sitemap");
 check(!JSON.stringify(robotsFile.rules).includes("/admin"), "Crawlers may read the admin pages' noindex directives");
+
+// IndexNow ownership key (public by design): exactly one public/<key>.txt whose content is its own
+// name, which scripts/indexnow-ping.mjs reads. robots.txt must not block it.
+const publicDir = join(process.cwd(), "public");
+const indexNowKeys = readdirSync(publicDir)
+  .filter((name) => /^[A-Za-z0-9-]{8,128}\.txt$/.test(name))
+  .filter((name) => readFileSync(join(publicDir, name), "utf8").trim() === name.slice(0, -4));
+check(indexNowKeys.length === 1, "Exactly one IndexNow key file is served from public/");
+check(!JSON.stringify(robotsFile.rules).includes(".txt"), "robots.txt does not block the IndexNow key file");
 
 const crumbItems = [{ name: "Home", path: "/" }, { name: "Products", path: "/products" }, { name: "BPC-157 10 mg", path: "/products/psl-bpc157-10mg" }];
 const crumbHtml = renderToStaticMarkup(createElement(SiteBreadcrumbs, { items: crumbItems }));
