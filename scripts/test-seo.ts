@@ -16,6 +16,7 @@ import { getActiveCatalogProducts, getComingSoonCatalogProducts } from "../lib/p
 import { PRODUCT_IMAGES } from "../lib/products/images";
 import { getProductRender } from "../lib/products/renders";
 import { createPageMetadata, pageIndexingPolicy, SITE_URL } from "../lib/seo";
+import { PAGE_LAST_MODIFIED } from "../lib/seo-page-dates";
 
 let checks = 0;
 function check(value: unknown, message: string) { assert.ok(value, message); checks++; }
@@ -37,7 +38,17 @@ const urls = routes.map((route) => route.url);
 check(urls.length === new Set(urls).size, "The sitemap has no duplicate URLs");
 check(urls.every((url) => url.startsWith(SITE_URL)), "Sitemap URLs use the canonical host");
 check(urls.every((url) => pageIndexingPolicy(new URL(url).pathname) === "public"), "The sitemap excludes private and checkout/confirmation utility pages");
-check(routes.filter((route) => !/\/(?:guides|science)\//.test(route.url)).every((route) => !route.lastModified), "Unchanged static pages do not receive fabricated modification dates");
+// lastmod outside guides/science comes only from the hand-maintained lib/seo-page-dates.ts (never build time).
+for (const route of routes.filter((candidate) => !/\/(?:guides|science)\//.test(candidate.url))) {
+  const path = route.url.slice(SITE_URL.length) || "/";
+  check(route.lastModified === PAGE_LAST_MODIFIED[path], `${path} lastmod comes only from lib/seo-page-dates.ts`);
+}
+for (const [path, date] of Object.entries(PAGE_LAST_MODIFIED)) {
+  check(urls.includes(`${SITE_URL}${path === "/" ? "" : path}`), `${path} has a recorded date and is in the sitemap`);
+  check(/^\d{4}-\d{2}-\d{2}$/.test(date) && !Number.isNaN(Date.parse(date)), `${path} lastmod is a calendar date`);
+}
+const latestPlausibleDate = new Date(Date.now() + 36 * 3600 * 1000).toISOString().slice(0, 10);
+check(routes.every((route) => !route.lastModified || String(route.lastModified).slice(0, 10) <= latestPlausibleDate), "No sitemap lastmod is in the future");
 // Original label PNGs replaced by the render cutouts. They must not be listed, submitted to image
 // search or used as structured-data images (next.config.ts redirects them).
 const RETIRED_LABEL_IMAGES: readonly string[] = [PRODUCT_IMAGES.tesamorelin.src, PRODUCT_IMAGES["reconstitution-solution"].src];
