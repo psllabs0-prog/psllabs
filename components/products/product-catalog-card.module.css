@@ -32,32 +32,43 @@
 .labelAlert>p:first-child{margin-bottom:4px;font-weight:600}
 .pipelineMarker{padding:23px 23px 0;color:var(--cyan,#2fb6e0);font-family:var(--font-mono),monospace;font-size:12px;line-height:1.5;letter-spacing:.08em;text-transform:uppercase}
 .comingSoonCard .productBody{padding-top:13px}.comingSoonCard .productDescription{margin-bottom:22px}.comingSoonCard .cardActions{grid-template-columns:1fr}
-/* Compact listing card (PSL-FIX-20261022). Glass surface over the page aura, 4:3 image, research-use badge in the body (same words), stacked actions; horizontal on phones. */
-.compact{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr auto;border-color:var(--ring,rgba(120,200,235,.14));background:var(--surface,#141a1f)}
-@supports ((-webkit-backdrop-filter:blur(12px)) or (backdrop-filter:blur(12px))){.compact{background:var(--glass,rgba(20,26,31,.72));-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}}
+/* Compact listing card (PSL-FIX-20261022). 4:3 image, research-use badge in the body (same words), "Published batch report" above the metric (same words, linked to the original report), stacked actions; horizontal on phones. */
+.compact{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto 1fr auto;border-color:var(--psl-card-ring,rgba(120,200,235,.14));background:var(--surface,#141a1f)}
+/* Glass surface only for fine pointers; touch devices keep the solid surface and skip the blur cost. */
+@media(hover:hover) and (pointer:fine){@supports ((-webkit-backdrop-filter:blur(12px)) or (backdrop-filter:blur(12px))){.compact{background:var(--glass,rgba(20,26,31,.72));-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}}}
 .compact .productStage{aspect-ratio:4/3}
 .compact .renderStage img{object-position:50% 30%}
+/* Whole transparent render, never cropped (no clipped cap or base). */
+.cutoutStage img{object-fit:contain;padding:12px 16px}
 .compact .saleBadge{top:12px;right:12px}
 .compact .productBody{padding:14px 16px 0}
 .compact .productHeading{gap:4px}
 .compact .productHeading h2,.compact .productHeading h3{font-size:19px;line-height:1.25;letter-spacing:-.02em}
+.compact .productHeading a{display:inline-block;min-height:24px;padding-block:1px}
 .compact .productMeta{margin-top:6px;font-size:13px}
-.compact .badgeRow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:8px}
+.compact .badgeRow{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:8px;padding-bottom:10px}
 .compact .researchBadge{position:static;max-width:100%;min-height:24px;padding:2px 8px;letter-spacing:.03em}
 .compact .stockBadge{margin-top:0}
-.compact .batchSummary{margin-block:10px 0;padding:10px 0 0;border-bottom:0}
-.compact .reportMetric{display:flex;align-items:flex-start;gap:6px;margin-top:0}
-.metricIcon{width:14px;height:14px;margin-top:4px;flex-shrink:0;color:var(--cyan,#2fb6e0)}
+/* margin-top:auto keeps the report rows aligned across a grid row when one title wraps. */
+.compact .batchSummary{margin-block:auto 0;padding:8px 0 0;border-bottom:0}
+.reportHeadingLink{min-height:24px;text-decoration:underline;text-decoration-color:#526977;text-underline-offset:3px}
+.reportHeadingLink:hover{color:var(--ink,#e9f1f5);text-decoration-color:var(--cyan,#2fb6e0)}
+.reportHeadingLink:focus-visible{outline:3px solid var(--cyan,#2fb6e0);outline-offset:2px;border-radius:2px}
+.reportHeading .reportHeadingArrow{width:12px;height:12px;margin-left:-3px}
+.compact .reportMetric{margin-top:2px}
 .compact .batchLabel,.compact .testedSample{margin-top:3px}
+.compact .batchLabel>span:not(.batchSeparator){display:block}
+.compact .batchSeparator{display:none}
 .compact .cardActions{grid-template-columns:minmax(0,1fr);gap:6px;margin-top:0;padding:10px 16px 16px}
 .compact .buttonPrimary,.compact .buttonSecondary{min-height:40px;padding-block:8px}
 .compact .pipelineMarker{padding:16px 16px 0}
 .compact.comingSoonCard .productBody{padding-top:8px}
 .compact.comingSoonCard .productDescription{margin-bottom:0}
 @media(pointer:coarse){.compact .buttonPrimary,.compact .buttonSecondary{min-height:44px}}
-/* 5-column /products grid only: a slightly wider image crop keeps all five on one desktop screen. */
-@media(min-width:1200px){:global([data-product-catalog]) .compact .productStage{aspect-ratio:3/2}}
-@media(max-width:620px){.compact{grid-template-columns:120px minmax(0,1fr);grid-template-rows:auto auto}.compact .productStage{grid-column:1;grid-row:1;align-self:start;aspect-ratio:1;margin:12px 0 0 12px;border:1px solid var(--line,#26333b);border-radius:10px}.compact .renderStage img{object-position:50% 45%}.compact .saleBadge{top:auto;right:auto;bottom:6px;left:6px}.compact .productBody{grid-column:2;grid-row:1;padding:12px 14px 0 12px}.compact .productHeading h2,.compact .productHeading h3{font-size:18px}.compact .cardActions{grid-column:1/-1;grid-row:2;grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:12px}.compact.comingSoonCard{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto}.compact.comingSoonCard .productBody,.compact.comingSoonCard .cardActions{grid-column:1;grid-row:auto}}
+/* 5-column /products grid only (>=1200px): whole cutout in a 16:9 well, a title size that keeps every name on one line, and the
+   report reached through the "Published batch report" link, so the duplicate Lab report button is not shown here. */
+@media(min-width:1200px){:global([data-product-catalog]) .compact .productStage{aspect-ratio:16/9}:global([data-product-catalog]) .compact .cutoutStage img{padding:8px 12px}:global([data-product-catalog]) .compact .productBody{padding-top:10px}:global([data-product-catalog]) .compact .productHeading h2,:global([data-product-catalog]) .compact .productHeading h3{font-size:clamp(16px,1.3vw,18.5px);letter-spacing:-.025em}:global([data-product-catalog]) .compact .labReportButton{display:none}:global([data-product-catalog]) .compact .cardActions{padding:10px 16px 12px}}
+@media(max-width:620px){.compact{grid-template-columns:120px minmax(0,1fr);grid-template-rows:auto auto}.compact .productStage{grid-column:1;grid-row:1;align-self:start;aspect-ratio:1;margin:12px 0 0 12px;border:1px solid var(--line,#26333b);border-radius:10px}.compact .renderStage img{object-position:50% 45%}.compact .cutoutStage img{padding:6px}.compact .saleBadge{top:auto;right:auto;bottom:6px;left:6px}.compact .productBody{grid-column:2;grid-row:1;padding:12px 14px 0 12px}.compact .productHeading h2,.compact .productHeading h3{font-size:18px}.compact .cardActions{grid-column:1/-1;grid-row:2;grid-template-columns:minmax(0,1fr) minmax(0,1fr);padding:12px}.compact.comingSoonCard{grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto auto}.compact.comingSoonCard .productBody,.compact.comingSoonCard .cardActions{grid-column:1;grid-row:auto}}
 @media(max-width:359px){.compact{grid-template-columns:100px minmax(0,1fr)}.compact .productStage{margin:10px 0 0 10px}.compact .productBody{padding:10px 10px 0}.compact .productHeading h2,.compact .productHeading h3{font-size:17px}.compact .cardActions{padding:10px}}
 @media(max-width:1100px){.productBody{padding:20px}.productHeading{gap:12px}.productHeading h2,.productHeading h3{font-size:23px}.price{font-size:21px}}
 @media(max-width:620px){.productBody{padding:20px}.productHeading h2,.productHeading h3{font-size:24px}.productDescription{font-size:14px}.cardActions{gap:10px}.buttonPrimary,.buttonSecondary{min-height:46px;font-size:13px}.researchBadge{left:16px;top:15px}}

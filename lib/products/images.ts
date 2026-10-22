@@ -6,7 +6,12 @@ export const PRODUCT_VIAL_IMAGE = {
   alt: "Vial of lyophilized Retatrutide powder",
 } as const;
 
-/** Per-product vial / bottle images (transparent PNGs). */
+/**
+ * Record of the ORIGINAL per-product label artwork (transparent PNGs). Do not render these:
+ * listings use the render cutouts (getProductImage below), and /products/tesamorelin-transparent.png
+ * and /products/reconstitution-solution.png now 307-redirect to their cutouts (next.config.ts),
+ * so next/image returns 400 ("isn't a valid image") for those two URLs.
+ */
 export const PRODUCT_IMAGES = {
   retatrutide: {
     src: "/Retatrutide-transparent.png",
@@ -41,11 +46,11 @@ export const PRODUCT_IMAGES = {
 export type ProductImageHandle = keyof typeof PRODUCT_IMAGES;
 
 /**
- * Image used wherever a product is listed (catalog imageSrc: cart, checkout, sitemap fallback).
+ * Image used wherever a product is listed (catalog imageSrc: cart, checkout, sitemap fallback):
+ * the illustrative render cutout when one exists.
  *
- * PRODUCT_IMAGES above is kept as the record of the original label artwork. Listings now use
- * the illustrative render cutouts, so every place a product image appears comes from one
- * render set. The original files stay in public/ and are not deleted.
+ * Label art: the Tesamorelin and Reconstitution Solution renders print "BATCH REPORT ONLINE".
+ * The original files stay in public/ and are not deleted.
  */
 export function getProductImage(handle: string): {
   src: string;

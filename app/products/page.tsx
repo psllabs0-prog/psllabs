@@ -64,7 +64,7 @@ export default async function ProductsPage() {
           <div data-product-catalog className={`${styles.catalogGrid} ${styles.catalogGridFive}`}>
             {active.map((product, index) => (
               <TiltCard key={product.handle}>
-                <ProductCatalogCard product={product} availability={availabilityMap.get(product.handle)} imagePriority={index === 0} compact imageSizes={CATALOG_IMAGE_SIZES} />
+                <ProductCatalogCard product={product} availability={availabilityMap.get(product.handle)} imagePriority={index === 0} compact imageSizes={CATALOG_IMAGE_SIZES} imageVariant="cutout" />
               </TiltCard>
             ))}
           </div>

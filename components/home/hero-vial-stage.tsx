@@ -84,7 +84,7 @@ export function HeroVialStage({ products }: { products: FeaturedProduct[] }) {
         <div className={styles.stageFooter}><button className={styles.motionButton} type="button" onClick={() => setPaused(v=>!v)} aria-pressed={paused}>{paused ? "Resume motion" : "Pause motion"}</button></div>
       </div>
       <div className={styles.selectionHeader}><span>EXPLORE THE LINEUP</span><span>RESEARCH USE ONLY</span></div>
-      <div className={styles.selector} role="group" aria-label="Choose featured product">
+      <div className={styles.selector} role="group" aria-label="Choose featured product" data-count={products.length}>
         {products.map(product => <button type="button" key={product.handle} aria-pressed={product.handle===selected.handle} aria-controls={panelId} aria-label={`Show ${product.name}, ${product.strength}`} onClick={()=>{setSelectedHandle(product.handle);setSelectionChanged(true);}}><span>{product.handle === "reconstitution-solution" ? "Solution" : product.name}</span><small>{product.strength.replace(/(\d)(mg|ml)/i,"$1 $2")}</small></button>)}
       </div>
       <div className={styles.details}>

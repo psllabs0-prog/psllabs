@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import nextConfig from "../next.config";
 import robots from "../app/robots";
 import sitemap from "../app/sitemap";
 import { JsonLd } from "../components/seo/json-ld";
@@ -12,6 +13,7 @@ import { createProductData } from "../components/seo/product-data";
 import { SiteBreadcrumbs } from "../components/seo/site-breadcrumbs";
 import { getProduct } from "../lib/products";
 import { getActiveCatalogProducts, getComingSoonCatalogProducts } from "../lib/products/catalog";
+import { PRODUCT_IMAGES } from "../lib/products/images";
 import { getProductRender } from "../lib/products/renders";
 import { createPageMetadata, pageIndexingPolicy, SITE_URL } from "../lib/seo";
 
@@ -36,9 +38,28 @@ check(urls.length === new Set(urls).size, "The sitemap has no duplicate URLs");
 check(urls.every((url) => url.startsWith(SITE_URL)), "Sitemap URLs use the canonical host");
 check(urls.every((url) => pageIndexingPolicy(new URL(url).pathname) === "public"), "The sitemap excludes private and checkout/confirmation utility pages");
 check(routes.filter((route) => !/\/(?:guides|science)\//.test(route.url)).every((route) => !route.lastModified), "Unchanged static pages do not receive fabricated modification dates");
+// Original label PNGs replaced by the render cutouts. They must not be listed, submitted to image
+// search or used as structured-data images (next.config.ts redirects them).
+const RETIRED_LABEL_IMAGES: readonly string[] = [PRODUCT_IMAGES.tesamorelin.src, PRODUCT_IMAGES["reconstitution-solution"].src];
 for (const product of getActiveCatalogProducts()) {
   check(urls.includes(`${SITE_URL}${product.href}`), `${product.name} canonical page is in the sitemap`);
-  check(existsSync(join(process.cwd(), "public", product.imageSrc)), `${product.name} sitemap image exists`);
+  // Same expression app/sitemap.ts uses, so this tests the URL the sitemap actually contains.
+  const sitemapImage = getProductRender(product.handle)?.src ?? product.imageSrc;
+  const route = routes.find((candidate) => candidate.url === `${SITE_URL}${product.href}`);
+  check(route?.images?.includes(`${SITE_URL}${sitemapImage}`), `${product.name} sitemap lists the image its page shows`);
+  check(existsSync(join(process.cwd(), "public", sitemapImage)), `${product.name} sitemap image exists`);
+  check(existsSync(join(process.cwd(), "public", product.imageSrc)), `${product.name} listing image exists`);
+}
+for (const product of [...getActiveCatalogProducts(), ...getComingSoonCatalogProducts()]) {
+  check(!RETIRED_LABEL_IMAGES.includes(product.imageSrc), `${product.name} listing image is not a retired label PNG`);
+}
+check(routes.every((route) => (route.images ?? []).every((image) => !RETIRED_LABEL_IMAGES.some((retired) => image.endsWith(retired)))), "The sitemap submits no retired label PNG");
+async function checkRetiredImageRedirects() {
+  const configRedirects = await nextConfig.redirects!();
+  for (const retired of RETIRED_LABEL_IMAGES) {
+    const redirect = configRedirects.find((candidate) => candidate.source === retired);
+    check(redirect && !("permanent" in redirect && redirect.permanent) && existsSync(join(process.cwd(), "public", redirect.destination)), `${retired} keeps its temporary redirect to an existing corrected image`);
+  }
 }
 for (const product of getComingSoonCatalogProducts()) {
   check(!urls.includes(`${SITE_URL}${product.href}`), `${product.name} unreleased page is excluded`);
@@ -66,6 +87,7 @@ for (const catalog of getActiveCatalogProducts()) {
   check(data.sku === catalog.sku && data.url === `${SITE_URL}${catalog.href}`, `${product.name} schema uses its actual SKU and canonical URL`);
   check(data.offers.price === product.price.toFixed(2) && data.offers.priceCurrency === "USD", `${product.name} schema uses the store price and currency`);
   check(data.image === `${SITE_URL}${getProductRender(product.handle)?.src ?? product.imageSrc}`, `${product.name} structured image matches the visible product image`);
+  check(!RETIRED_LABEL_IMAGES.some((retired) => String(data.image).endsWith(retired)), `${product.name} structured image is not a retired label PNG`);
   check(!("aggregateRating" in data) && !("review" in data) && !("hasCertification" in data), "No invented rating, review or certification is emitted");
   check(data.offers.availability === "https://schema.org/InStock", "Tracked available inventory maps to InStock");
   const soldOut = createProductData({ product, catalog, availability: { ...availability, available: 0, status: "out_of_stock" } });
@@ -74,4 +96,9 @@ for (const catalog of getActiveCatalogProducts()) {
   check(!("availability" in unknown.offers), "An inventory fallback does not become a verified schema stock claim");
 }
 
-console.log(`SEO offline checks passed: ${checks}. No network requests or business writes.`);
+checkRetiredImageRedirects().then(() => {
+  console.log(`SEO offline checks passed: ${checks}. No network requests or business writes.`);
+}, (error: unknown) => {
+  console.error(error);
+  process.exitCode = 1;
+});

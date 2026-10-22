@@ -59,16 +59,17 @@
 .catalogDisclaimer p{max-width:80ch;color:var(--muted,#a1afb7);font-size:14px;line-height:1.65}
 /* PSL-FIX-20261022: compact catalog header, 5-column catalog grid, one static aura (no animation). */
 .catalogAura{background-image:radial-gradient(ellipse 900px 560px at 78% -120px,rgba(47,182,224,.12),transparent 70%);background-repeat:no-repeat}
-.catalogHeader.catalogHeaderCompact{padding-block:8px 18px}
+.catalogHeader.catalogHeaderCompact{padding-block:4px 12px}
 .catalogHeaderRow{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 40px}
 .catalogHeaderRow>div{flex:1 1 auto;min-width:0}
 .catalogHeaderCompact .catalogTitle{max-width:none;margin-top:6px;font-size:36px;line-height:1.12;letter-spacing:-.035em}
 .catalogHeaderCompact .catalogIntro{flex:0 1 44ch;max-width:44ch;margin-top:0;font-size:15px;line-height:1.55}
-.catalogGridFive{gap:16px}
+/* Two-class selectors so these win over the later single-class .catalogGrid gap rules at <=1100px and <=620px. */
+.catalogGrid.catalogGridFive{gap:16px}
 @media(min-width:1200px){.catalogGridFive{grid-template-columns:repeat(5,minmax(0,1fr))}}
 @media(max-width:1100px){.catalogHeaderCompact .catalogTitle{font-size:32px}}
 @media(max-width:800px){.catalogHeader.catalogHeaderCompact{padding-block:6px 18px}.catalogHeaderCompact .catalogTitle{font-size:29px}.catalogHeaderCompact .catalogIntro{flex-basis:100%;max-width:60ch;font-size:14px}}
-@media(max-width:620px){.catalogGridFive{gap:14px}}
+@media(max-width:620px){.catalogGrid.catalogGridFive{gap:14px}}
 @media(max-width:359px){.catalogHeaderCompact .catalogTitle{font-size:26px}}
 .newsletter{padding-block:44px;border-top:1px solid var(--line,#26333b);scroll-margin-top:96px;background:var(--paper,#090c0e)}
 .newsletterInner{display:grid;grid-template-columns:1.15fr 1fr;align-items:center;gap:60px}
