@@ -87,7 +87,8 @@ export function BatchLookup() {
                   href={productPathFromHandle(report.productHandle)}
                   className="inline-flex items-center justify-center rounded-pill border border-border-strong bg-paper px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:border-accent/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
-                  Product page
+                  {/* Descriptive anchor text (product and label amount) helps crawlers match each report to its product page. */}
+                  {report.product} {report.nominalStrength.replace(/(\d)(mg|ml)$/i, "$1 $2")} product page
                 </Link>
                 <a
                   href={report.reportUrl}
