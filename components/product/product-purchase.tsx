@@ -65,7 +65,7 @@ export function ProductPurchase({ productHandle, stockStatus, availability, nomi
 
       <div className={styles.shipping}>
         <p><strong>{formatPrice(FLAT_SHIPPING_USD)} shipping</strong>{" · Free on product subtotals of "}{formatPrice(FREE_SHIPPING_THRESHOLD)} or more.</p>
-        <p>Usually ships within 1–2 business days after payment clears. Tracked delivery to U.S. physical addresses.</p>
+        <p>Usually ships within 24 hours after payment clears. Tracked delivery to U.S. physical addresses.</p>
         <Link href="/shipping">Shipping policy</Link>
       </div>
     </div>

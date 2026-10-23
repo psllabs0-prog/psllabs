@@ -39,7 +39,7 @@ export function ResearchGuidesSection() {
             </Link>
             <Link href="/shipping" className={styles.documentLink}>
               <Truck aria-hidden />
-              <div><h3>Shipping, upfront</h3><p>{formatPrice(FLAT_SHIPPING_USD)} U.S. shipping. Free from {formatPrice(FREE_SHIPPING_THRESHOLD)} in products. Usually dispatches in 1–2 business days after payment clears.</p></div>
+              <div><h3>Shipping, upfront</h3><p>{formatPrice(FLAT_SHIPPING_USD)} U.S. shipping. Free from {formatPrice(FREE_SHIPPING_THRESHOLD)} in products. Usually ships within 24 hours after payment clears.</p></div>
               <ArrowUpRight aria-hidden />
             </Link>
           </div>
