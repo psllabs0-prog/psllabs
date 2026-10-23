@@ -23,8 +23,8 @@ export const PAGE_LAST_MODIFIED: Readonly<Record<string, string>> = {
   "/products": PSL_FIX_RELEASE_DATE,
   // Descriptive product-page links on each published report.
   "/coa": PSL_FIX_RELEASE_DATE,
-  // Product pages: heading text, Offer shippingDetails; corrected images for Tesamorelin and
-  // Reconstitution Solution.
+  // Product pages: heading text, Offer shippingDetails; corrected "BATCH REPORT ONLINE" images for
+  // every product (the home page's hero vial too).
   "/products/psl-rt-10mg": PSL_FIX_RELEASE_DATE,
   "/products/psl-ghkcu-50mg": PSL_FIX_RELEASE_DATE,
   "/products/psl-bpc157-10mg": PSL_FIX_RELEASE_DATE,

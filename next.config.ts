@@ -62,9 +62,24 @@ const nextConfig: NextConfig = {
         destination: "/products/psl-rs-5ml",
         permanent: true,
       },
-      // Legacy label art: send old links and image-search hits for these two original label
-      // files to the current "BATCH REPORT ONLINE" render cutouts without deleting the files.
+      // Legacy label art: send old links and image-search hits for the original label files
+      // to the current "BATCH REPORT ONLINE" art without deleting the files.
       // Temporary (307), so the originals can be restored.
+      {
+        source: "/Retatrutide-transparent.png",
+        destination: "/products/retatrutide-transparent-batch.png",
+        permanent: false,
+      },
+      {
+        source: "/products/bpc-157-transparent.png",
+        destination: "/products/renders/bpc-157-cutout.webp",
+        permanent: false,
+      },
+      {
+        source: "/products/ghk-cu-transparent.png",
+        destination: "/products/renders/ghk-cu-cutout.webp",
+        permanent: false,
+      },
       {
         source: "/products/tesamorelin-transparent.png",
         destination: "/products/renders/tesamorelin-cutout.webp",

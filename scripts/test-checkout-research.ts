@@ -83,10 +83,12 @@ const prepare = load("lib/checkout/prepare-order.ts", {
   "@/lib/inventory/store": { ensureInventorySchema: async () => {}, checkoutWithStockCheck: reserve },
 }) as { prepareReservedOrder: (body: CheckoutBody, options?: PrepareOrderOptions) => Promise<PrepareOrderResult> };
 
-function route(file: string) {
+const PAUSED_MESSAGE = "Card payments are paused (offline fixture).";
+function route(file: string, cardPaused = false) {
   return load(file, {
     "next/server": { NextResponse }, "@/lib/checkout/prepare-order": prepare,
     "@/lib/checkout/us-states": countries, "@/lib/orders/store": ordersMock,
+    "@/lib/checkout/card-availability": { CARD_CHECKOUT_PAUSED: cardPaused, CARD_CHECKOUT_PAUSED_MESSAGE: PAUSED_MESSAGE },
     "@/lib/privacy/server": { readRequestPrivacyConsent: async () => ({ consent: UNKNOWN_PRIVACY_CONSENT, binding: null }) },
     "@/lib/payments": { getPaymentProcessor: () => ({ createInvoice: async (input: { amount: number }) => {
       providerCreates++; check(input.amount, reserved.at(-1)!.total);
@@ -180,6 +182,13 @@ async function priorityChecks() {
 }
 
 async function routeChecks() {
+  // Card checkout paused: the card route refuses before any stock reservation or provider session.
+  const paused = route("app/api/checkout/card/session/route.ts", true);
+  const beforePaused = [providerCreates, reservations];
+  const pausedResponse = await paused.POST(request(BODY));
+  check(pausedResponse.status, 503);
+  check(((await pausedResponse.json()) as { error?: string }).error, PAUSED_MESSAGE);
+  check([providerCreates, reservations], beforePaused, "Paused card checkout starts no reservation or provider session");
   for (const file of ["app/api/checkout/route.ts", "app/api/checkout/card/session/route.ts"]) {
     const handler = route(file);
     const beforeMalformed = [providerCreates, reservations];

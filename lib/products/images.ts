@@ -1,16 +1,19 @@
 import { getProductCutout } from "./renders";
 
-/** Shared Retatrutide vial. Used as featured/hero fallback. */
+/**
+ * Shared Retatrutide vial. Used as featured/hero fallback. Same artwork as /Retatrutide-transparent.png with the
+ * label line corrected to "BATCH REPORT ONLINE" (the original stays in public/ and 307-redirects here).
+ */
 export const PRODUCT_VIAL_IMAGE = {
-  src: "/Retatrutide-transparent.png",
+  src: "/products/retatrutide-transparent-batch.png",
   alt: "Vial of lyophilized Retatrutide powder",
 } as const;
 
 /**
  * Record of the ORIGINAL per-product label artwork (transparent PNGs). Do not render these:
- * listings use the render cutouts (getProductImage below), and /products/tesamorelin-transparent.png
- * and /products/reconstitution-solution.png now 307-redirect to their cutouts (next.config.ts),
- * so next/image returns 400 ("isn't a valid image") for those two URLs.
+ * listings use the render cutouts (getProductImage below). The Tesamorelin, Reconstitution Solution,
+ * BPC-157 and GHK-Cu originals and /Retatrutide-transparent.png now 307-redirect to corrected art
+ * (next.config.ts), so next/image returns 400 ("isn't a valid image") for those URLs.
  */
 export const PRODUCT_IMAGES = {
   retatrutide: {
@@ -49,7 +52,7 @@ export type ProductImageHandle = keyof typeof PRODUCT_IMAGES;
  * Image used wherever a product is listed (catalog imageSrc: cart, checkout, sitemap fallback):
  * the illustrative render cutout when one exists.
  *
- * Label art: the Tesamorelin and Reconstitution Solution renders print "BATCH REPORT ONLINE".
+ * Label art: every render prints "BATCH REPORT ONLINE" (no purity figure on the label).
  * The original files stay in public/ and are not deleted.
  */
 export function getProductImage(handle: string): {

@@ -14,6 +14,7 @@ import { useCart } from "@/components/cart/cart-provider";
 import { FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
 import { formatPrice } from "@/lib/cart/format";
 import { DISCOUNT_CODES_ENABLED } from "@/lib/checkout/discount-codes-config";
+import { CARD_CHECKOUT_PAUSED, CARD_CHECKOUT_PAUSED_MESSAGE } from "@/lib/checkout/card-availability";
 import { ProductPrice } from "@/components/commerce/product-price";
 import { REFERRAL_CODE_FIELD_VISIBLE } from "@/lib/partners/referral-logic";
 import { computeTotals, type OrderTotals } from "@/lib/checkout/totals";
@@ -836,6 +837,28 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                   )}
                 </button>
 
+                {CARD_CHECKOUT_PAUSED && !tagadaSession ? (
+                  <div
+                    aria-disabled="true"
+                    className="flex items-start gap-3 rounded-xl border border-linen bg-lab-white p-4 text-left opacity-70"
+                  >
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border border-linen bg-soft-blue/50">
+                      <CreditCard
+                        className="size-5 text-biotech-deep"
+                        strokeWidth={1.6}
+                        aria-hidden
+                      />
+                    </span>
+                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="text-sm font-medium text-ink">
+                        Credit / Debit Card
+                      </span>
+                      <span className="text-xs leading-relaxed text-ash">
+                        {CARD_CHECKOUT_PAUSED_MESSAGE}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
                 <button
                   type="button"
                   onClick={() => {
@@ -877,6 +900,7 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
                     />
                   )}
                 </button>
+                )}
               </div>
 
               {payError && (

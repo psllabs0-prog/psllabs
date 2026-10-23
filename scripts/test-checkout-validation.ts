@@ -123,6 +123,8 @@ async function checkoutPrivacyChecks() {
       const route = load(filename, {
         "next/server": { NextResponse }, "@/lib/checkout/prepare-order": prepare,
         "@/lib/checkout/us-states": countries,
+        // Card checkout is paused in production; these checks exercise the route with the pause off.
+        "@/lib/checkout/card-availability": { CARD_CHECKOUT_PAUSED: false, CARD_CHECKOUT_PAUSED_MESSAGE: "offline fixture" },
         "@/lib/privacy/server": { readRequestPrivacyConsent: async (request: Request) => {
           reads++; assert.equal(request.headers.get("Sec-GPC"), "1");
           if (consentFails) throw new Error("offline consent storage unavailable");

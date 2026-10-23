@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { normalizeCountryCode } from "@/lib/checkout/us-states";
+import { CARD_CHECKOUT_PAUSED, CARD_CHECKOUT_PAUSED_MESSAGE } from "@/lib/checkout/card-availability";
 
 import {
   prepareReservedOrder,
@@ -24,6 +25,7 @@ export const maxDuration = 300;
 export async function POST(request: Request) {
   if (process.env.PSL_VISUAL_PREVIEW === "1") return NextResponse.json(
     { error: "Preview only. Payments and order creation are disabled." }, { status: 503 });
+  if (CARD_CHECKOUT_PAUSED) return NextResponse.json({ error: CARD_CHECKOUT_PAUSED_MESSAGE }, { status: 503 });
   if (!isTagadaConfigured()) {
     return NextResponse.json(
       { error: "Card checkout is not available." },
