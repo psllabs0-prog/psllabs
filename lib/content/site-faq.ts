@@ -1,4 +1,5 @@
 import { FLAT_SHIPPING_USD, FREE_SHIPPING_THRESHOLD } from "@/lib/cart/constants";
+import { CARD_CHECKOUT_PAUSED } from "@/lib/checkout/card-availability";
 import { TESTING_SCOPE_STATEMENT } from "./testing-scope";
 import { ORDER_PROCESSING_NOTICE, PRIORITY_PRICING_NOTICE, STANDARD_TRANSIT_NOTICE } from "./shipping";
 
@@ -63,8 +64,16 @@ export const siteFaqItems: SiteFaqItem[] = [
     id: "payments",
     category: "payments",
     question: "What payment methods do you accept?",
+    answer: CARD_CHECKOUT_PAUSED
+      ? "Right now we accept Bitcoin only, through BTCPay Server. Card payments are temporarily unavailable. Bitcoin gets a 5% discount on the product subtotal at checkout."
+      : "Major credit and debit cards (Visa, Mastercard, American Express, Discover) through Tagada Pay, and Bitcoin through BTCPay Server. Bitcoin gets a 5% discount on the product subtotal at checkout.",
+  },
+  {
+    id: "paying-with-bitcoin",
+    category: "payments",
+    question: "How do I pay with Bitcoin?",
     answer:
-      "Major credit and debit cards (Visa, Mastercard, American Express, Discover) through Tagada Pay, and Bitcoin through BTCPay Server. Bitcoin gets a 5% discount on the product subtotal at checkout.",
+      "You need a Bitcoin wallet with enough BTC to cover your order, for example a mobile wallet or an exchange account that can send Bitcoin. At checkout, enter your contact and shipping details and choose Bitcoin. You'll be redirected to our secure BTCPay checkout, which shows the exact amount to send and a payment address with a QR code. Send that exact amount from your wallet before the invoice time limit runs out; your wallet sets the network fee. If the invoice expires before payment, start checkout again for a new invoice. Your order is marked paid once the payment is confirmed.",
   },
   {
     id: "shipping",

@@ -566,8 +566,9 @@ export function CheckoutPage({ visualPreview = false }: { visualPreview?: boolea
             Review your order
           </h1>
           <p className="mt-3 max-w-2xl text-sm text-ash md:text-base">
-            Complete your contact and shipping details, then pay securely with
-            Bitcoin or card.
+            {CARD_CHECKOUT_PAUSED
+              ? "Complete your contact and shipping details, then pay securely with Bitcoin. Card payments are temporarily unavailable."
+              : "Complete your contact and shipping details, then pay securely with Bitcoin or card."}
           </p>
         </header>
 
